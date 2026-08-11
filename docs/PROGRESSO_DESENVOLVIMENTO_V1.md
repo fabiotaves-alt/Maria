@@ -2,7 +2,7 @@
 
 ## 📅 Última alteração: 2026-08-11
 
-## 📈 Percentual Total Concluído: 92%
+## 📈 Percentual Total Concluído: 95%
 
 ---
 
@@ -68,6 +68,18 @@
 - [x] Tolerância a falhas de disco (aviso sem interromper o loop)
 - [x] Testes: 4 novos (`TestSessionStorage`) — 30 testes no total, todos passando
 
+### Fase 2.5 — Ferramentas de Leitura (v2.5.0) ✅
+- [x] Lista branca de pastas (`PASTAS_PERMITIDAS`) com proteção contra path traversal
+- [x] `resolver_caminho_permitido()` — validação de caminhos dentro das pastas permitidas
+- [x] `listar_arquivos` — nova ferramenta de leitura (sem confirmação)
+- [x] `resumir_documento` — nova ferramenta de leitura de `.txt`, `.md`, `.csv`, `.log`, `.docx`
+- [x] `FERRAMENTAS_LEITURA` — conjunto de ferramentas executadas sem confirmação
+- [x] `TOOLS_SCHEMA` expandido de 3 → 5 ferramentas
+- [x] `continuar_com_resultado_ferramenta_stream()` — streaming com `role="tool"`
+- [x] Encadeamento de leitura em `main.py` (até `MAX_PASSOS_LEITURA` passos)
+- [x] `SYSTEM_PROMPT` atualizado com instruções anti-alucinação para leitura
+- [x] Testes: 10 novos (`TestAcessoLeitura` + `TestFerramentasLeitura`) — 40 testes no total, todos passando
+
 ### Funcionalidades Futuras
 - [ ] Preferências do usuário persistidas (próxima etapa)
 - [ ] Retomada automática de sessão sem comando explícito
@@ -84,11 +96,12 @@
 | 2.0.0 | 22 | ✅ Passando |
 | 2.1.0 | 24 | ✅ Passando |
 | 2.3.0 | 26 | ✅ Passando |
-| **2.4.0** | **30** | ✅ **Passando** |
+| 2.4.0 | 30 | ✅ Passando |
+| **2.5.0** | **40** | ✅ **Passando** |
 
 **Comando:** `python -m unittest tests.test_maria -v`
 
-**Última execução (2026-08-11):** 30/30 testes passaram.
+**Última execução (2026-08-11):** 40/40 testes passaram.
 
 ---
 
@@ -102,11 +115,12 @@
 | 2.1.0 | - | Streaming de respostas, criação de documentos Word, edição de planilhas |
 | 2.2.0 | - | Sistema de benchmark e validação contínua |
 | 2.3.0 | - | Reorganização de arquitetura (pacote `core/`, `tests/`) |
-| **2.4.0** | **2026-08-11** | **Persistência de sessões (histórico de conversa persistente)** |
+| 2.4.0 | 2026-08-11 | Persistência de sessões (histórico de conversa persistente) |
+| **2.5.0** | **2026-08-11** | **Ferramentas de leitura: listagem e resumo de documentos** |
 
 ---
 
-## 📂 Estrutura do Projeto (v2.4.0)
+## 📂 Estrutura do Projeto (v2.5.0)
 
 ```
 maria/
@@ -115,18 +129,18 @@ maria/
 │   ├── chat_session.py         # Sessão de chat (histórico, confirmação)
 │   ├── config.py               # Configurações centralizadas
 │   ├── excel_handler.py        # Criação/edição de planilhas Excel
-│   ├── file_utils.py           # Utilitários de arquivos
+│   ├── file_utils.py           # Utilitários de arquivos (inclui leitura)
 │   ├── ollama_client.py        # Cliente Ollama (chat, streaming, tools)
-│   ├── session_storage.py      # Persistência de sessões (NOVO v2.4.0)
-│   ├── tools_schema.py         # Schemas e execução de ferramentas
+│   ├── session_storage.py      # Persistência de sessões (v2.4.0)
+│   ├── tools_schema.py         # Schemas e execução de ferramentas (5 ferramentas)
 │   └── word_handler.py         # Criação de documentos Word
 ├── tests/
-│   └── test_maria.py           # 30 testes unitários
+│   └── test_maria.py           # 40 testes unitários
 ├── benchmark/                  # Sistema de benchmark
 ├── docs/                       # Documentação
 │   └── PROGRESSO_DESENVOLVIMENTO_V1.md  # Este arquivo
 ├── arquivos_gerados/           # Arquivos gerados pela MARIA
-├── sessoes_salvas/             # Sessões de chat persistidas (NOVO v2.4.0)
+├── sessoes_salvas/             # Sessões de chat persistidas (v2.4.0)
 ├── ui_terminal/                # Arte de terminal
 ├── CHANGELOG.md                # Histórico de mudanças
 ├── README.md                   # Documentação principal

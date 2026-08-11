@@ -24,6 +24,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 - Novas classes `TestAcessoLeitura` e `TestFerramentasLeitura` cobrindo path traversal, listagem, truncamento, extensão não suportada e arquivo inexistente.
 
+### ✅ Status dos Testes
+
+- **40/40 testes passaram** (`python -m unittest tests.test_maria -v`)
+- **Compilação sem erros** (`python -m py_compile main.py core/config.py core/file_utils.py core/tools_schema.py core/ollama_client.py core/chat_session.py tests/test_maria.py`)
+
+### 📊 Cobertura de Código
+
+- Ferramentas de leitura: path traversal, listagem de arquivos, truncamento, extensão não suportada, arquivo inexistente, resumo de documento e ferramenta desconhecida.
+
 ## [2.4.0] - Persistência de Sessões (Histórico de Conversa)
 
 - **Novo módulo `core/session_storage.py`**: Persistência de sessões de chat em disco, com 4 funções públicas (`garantir_pasta_sessoes`, `salvar_sessao`, `listar_sessoes_salvas`, `carregar_sessao`) e leitura dinâmica de `PASTA_SESSOES` por chamada (isolamento em testes).

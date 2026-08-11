@@ -15,6 +15,7 @@ A MARIA é uma assistente de escritório local que usa o Ollama e o modelo `qwen
 - ✅ Edição de planilhas existentes com sobrescrita explícita
 - ✅ Sanitização de nomes para manter arquivos dentro da pasta de saída
 - ✅ Listagem de arquivos e leitura/resumo de documentos de texto em pastas permitidas
+- ✅ Persistência de sessões com retomada via comando `retomar`
 - ✅ Testes unitários automatizados
 
 ## Pré-requisitos
@@ -63,9 +64,12 @@ maria/
 │   ├── excel_handler.py
 │   ├── file_utils.py
 │   ├── ollama_client.py
+│   ├── session_storage.py
 │   ├── tools_schema.py
 │   └── word_handler.py
 ├── arquivos_gerados/
+├── sessoes_salvas/
+├── docs/
 ├── benchmark/
 │   ├── __init__.py
 │   ├── benchmark_config.py
@@ -95,6 +99,7 @@ python main.py
 |---------|-----------|
 | `ajuda` | Mostra a lista de comandos disponíveis |
 | `limpar` | Limpa o histórico da conversa atual |
+| `retomar` | Retoma uma conversa salva de uma execução anterior |
 | `sair` ou `exit` | Encerra a aplicação |
 
 ### Exemplos de Uso
@@ -150,7 +155,7 @@ O system prompt define que a MARIA:
 
 ### 4. Function Calling (`tools_schema.py`)
 
-Três ferramentas disponíveis, executadas somente após confirmação explícita:
+Cinco ferramentas disponíveis. As três de **escrita** são executadas somente após confirmação explícita; as duas de **leitura** são executadas imediatamente (somente leitura, não modificam nada):
 
 | Ferramenta | Descrição |
 |------------|-----------|
@@ -165,7 +170,8 @@ Três ferramentas disponíveis, executadas somente após confirmação explícit
 - Loop de chat interativo no terminal
 - Detecção de tool calls e confirmação antes da execução
 - Registro do resultado de ações confirmadas no histórico
-- Comandos especiais (ajuda, limpar, sair)
+- Comandos especiais (ajuda, limpar, retomar, sair/exit)
+- Retomada de sessões salvas de execuções anteriores via comando `retomar`
 - Mensagens de erro amigáveis
 - Tratamento de encoding UTF-8 para Windows
 
@@ -177,11 +183,12 @@ Três ferramentas disponíveis, executadas somente após confirmação explícit
 - Máximo de mensagens no histórico
 - Nível de logging
 - Pasta de saída via `PASTA_ARQUIVOS_GERADOS` (padrão: `arquivos_gerados`)
+- Pasta de sessões salvas via `PASTA_SESSOES` (padrão: `sessoes_salvas`)
 - Lista de pastas permitidas para leitura via `PASTAS_PERMITIDAS` (padrão: mesma pasta de `PASTA_ARQUIVOS_GERADOS`)
 
 ### 7. Testes Unitários (`tests/test_maria.py`)
 
-- 24 testes cobrindo sessão, ferramentas, arquivos reais, sanitização e streaming
+- 40 testes cobrindo sessão, ferramentas, arquivos reais, sanitização, streaming, persistência de sessões e leitura de documentos
 - Executar com: `python -m unittest tests.test_maria -v`
 
 ## Critérios de Aceite
