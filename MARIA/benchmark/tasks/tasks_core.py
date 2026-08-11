@@ -1,0 +1,21 @@
+"""Tarefas centrais do benchmark MARIA."""
+from .task_schema import MariaTask, MariaTaskCategory
+
+
+TASKS_CORE = [
+    MariaTask(1, "Conversa simples", "Saudação sem ferramenta", "Olá, como você pode me ajudar?", expected_keywords=["MARIA"], category=MariaTaskCategory.CONVERSA),
+    MariaTask(2, "Conversa sobre produtividade", "Pedido informativo", "Dê uma dica curta para organizar meu dia.", expected_keywords=["organ"], category=MariaTaskCategory.CONVERSA),
+    MariaTask(3, "Planilha básica", "Planilha de gastos com duas colunas", "Crie uma planilha de gastos com colunas Data e Valor.", "criar_planilha", ["planilha"], ["sim"], category=MariaTaskCategory.CRIAR_PLANILHA),
+    MariaTask(4, "Planilha financeira", "Planilha com descrição", "Crie uma planilha de despesas com Data, Descrição, Categoria e Valor, descrevendo o propósito.", "criar_planilha", ["planilha"], ["sim"], category=MariaTaskCategory.CRIAR_PLANILHA),
+    MariaTask(5, "Planilha estoque", "Planilha com muitas colunas", "Crie uma planilha de estoque com Produto, SKU, Quantidade, Custo e Fornecedor.", "criar_planilha", ["planilha"], ["sim"], category=MariaTaskCategory.CRIAR_PLANILHA),
+    MariaTask(6, "Planilha contatos", "Planilha curta sem descrição", "Crie uma planilha de contatos com Nome, Email e Telefone.", "criar_planilha", ["planilha"], ["sim"], category=MariaTaskCategory.CRIAR_PLANILHA),
+    MariaTask(7, "Documento curto", "Documento Word com conteúdo curto", "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas.", "criar_documento", ["documento"], ["sim"], category=MariaTaskCategory.CRIAR_DOCUMENTO),
+    MariaTask(8, "Documento carta", "Carta formal narrativa", "Crie uma carta de apresentação em documento Word, com texto completo e formal.", "criar_documento", ["documento"], ["sim"], category=MariaTaskCategory.CRIAR_DOCUMENTO),
+    MariaTask(9, "Documento relatório", "Relatório narrativo longo", "Crie um relatório sobre a reunião de hoje com introdução, decisões e próximos passos em texto corrido.", "criar_documento", ["documento"], ["sim"], category=MariaTaskCategory.CRIAR_DOCUMENTO),
+    MariaTask(10, "Documento comunicado", "Comunicado de tamanho médio", "Crie um comunicado formal informando a equipe sobre a mudança do horário de atendimento.", "criar_documento", ["documento"], ["sim"], category=MariaTaskCategory.CRIAR_DOCUMENTO),
+    MariaTask(11, "Editar gastos", "Editar planilha existente", "Edite a planilha gastos para incluir as colunas Data, Valor e Categoria.", "editar_planilha", ["atualizada"], ["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, context=[{"role": "assistant", "content": "A planilha gastos.xlsx já foi criada."}]),
+    MariaTask(12, "Editar estoque", "Atualizar planilha existente", "Atualize a planilha estoque com Produto, Quantidade e Estoque mínimo.", "editar_planilha", ["atualizada"], ["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, context=[{"role": "assistant", "content": "A planilha estoque.xlsx já foi criada."}]),
+    MariaTask(13, "Editar contatos", "Remover e adicionar colunas", "Corrija a planilha contatos para conter Nome, Email e Empresa.", "editar_planilha", ["atualizada"], ["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, context=[{"role": "assistant", "content": "A planilha contatos.xlsx já foi criada."}]),
+    MariaTask(14, "Confirmação de criação", "Confirmação afirmativa explícita", "Crie uma planilha chamada agenda com as colunas Dia e Compromisso.", "criar_planilha", ["sucesso"], ["sim"], category=MariaTaskCategory.CONFIRMACAO),
+    MariaTask(15, "Confirmação de documento", "Confirmação afirmativa de Word", "Crie um documento de ata com título Ata e conteúdo completo sobre uma reunião.", "criar_documento", ["sucesso"], ["sim"], category=MariaTaskCategory.CONFIRMACAO),
+]

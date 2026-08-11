@@ -1,0 +1,15 @@
+[
+  {"input": "Some dois números: a=3, b=4", "output": "(+ 3 4)"},
+  {"input": "Multiplique dois números: a=6, b=7", "output": "(* 6 7)"},
+  {"input": "Divida dois números (divisão inteira): a=10, b=3", "output": "(/ 10 3)"},
+  {"input": "Valor absoluto de um número: n=-5", "output": "(abs -5)"},
+  {"input": "Valor absoluto usando if: n=-5", "output": "(let ((n -5)) (if (< n 0) (- 0 n) n))"},
+  {"input": "Maior de dois números: a=3, b=7", "output": "(let ((a 3) (b 7)) (if (> a b) a b))"},
+  {"input": "Classifique o sinal: n=42", "output": "(let ((n 42)) (if (> n 0) 1 (if (< n 0) (- 0 1) 0)))"},
+  {"input": "Verifique se número é par: n=4", "output": "(let ((n 4)) (= (mod n 2) 0))"},
+  {"input": "Restrinja valor a [min,max]: v=15, lo=0, hi=10", "output": "(let ((v 15) (lo 0) (hi 10)) (if (< v lo) lo (if (> v hi) hi v)))"},
+  {"input": "FizzBuzz para um número: n=15", "output": "(let ((n 15)) (if (= (mod n 15) 0) \"fizzbuzz\" (if (= (mod n 3) 0) \"fizz\" (if (= (mod n 5) 0) \"buzz\" (str_of n)))))"},
+  {"input": "Classifique idade: age=8", "output": "(let ((age 8)) (if (< age 13) \"child\" (if (< age 20) \"teenager\" (if (< age 65) \"adult\" \"senior\"))))"},
+  {"input": "Dobre o valor dentro de um Option, mantendo None se ausente: opt=Some 21", "output": "(match (Some 21) ((Some x) (Some (* x 2))) ((None) None))"},
+  {"input": "Extraia o valor de um Result multiplicando por 2, ou retorne 0 em caso de erro: res=Ok 21", "output": "(match (Ok 21) ((Ok x) (* x 2)) ((Err e) 0))"}
+]
