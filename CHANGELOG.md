@@ -2,6 +2,31 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.4.0] - Persistência de Sessões (Histórico de Conversa)
+
+- **Novo módulo `core/session_storage.py`**: Persistência de sessões de chat em disco, com 4 funções públicas (`garantir_pasta_sessoes`, `salvar_sessao`, `listar_sessoes_salvas`, `carregar_sessao`) e leitura dinâmica de `PASTA_SESSOES` por chamada (isolamento em testes).
+- **Nova config `PASTA_SESSOES`** em `core/config.py`: Configurável via variável de ambiente, padrão `sessoes_salvas`, seguindo o mesmo padrão de `PASTA_ARQUIVOS_GERADOS`.
+- **Novo comando `retomar`** em `main.py`: Lista sessões salvas (mais recentes primeiro) e retoma a sessão escolhida de uma execução anterior. Funciona mesmo sem sessões salvas (mensagem clara, sem crash).
+- **Salvamento automático**: A sessão é salva em disco após cada troca normal de mensagens e após a execução confirmada de uma ferramenta.
+- **Arquivos de sessão**: Cada execução gera um arquivo `sessao_<timestamp>.json` na pasta `sessoes_salvas/`; ao retomar, a conversa continua salvando no mesmo arquivo.
+- **Tolerância a falhas de disco**: Falhas ao salvar (`PermissionError`/`OSError`) exibem aviso mas não interrompem o loop de chat.
+- **Sessões em disco**: Sessão salva anteriormente nesta execução (`sessoes_salvas/sessao_20260811_123004.json`) é ignorada pela funcionalidade de retomada apenas se corrompida ou ilegível.
+
+### 🧪 Testes
+
+- Suíte ampliada para **30 testes** (26 existentes + 4 novos).
+- Nova classe `TestSessionStorage` cobrindo: salvar/carregar com mesmo histórico, ordenação por timestamp (mais recentes primeiro), arquivo corrompido ignorado e `ValueError` para sessão inexistente.
+- Todos os testes isolados em diretório temporário via `tempfile.TemporaryDirectory`.
+
+### ✅ Status dos Testes
+
+- **30/30 testes passaram** (`python -m unittest tests.test_maria -v`)
+- **Compilação sem erros** (`python -m py_compile main.py core/session_storage.py core/config.py tests/test_maria.py`)
+
+### 📊 Cobertura de Código
+
+- Persistência de sessões: salvar, carregar, listar (ordenação + arquivo corrompido), erro de arquivo inexistente.
+
 ## [2.3.0] - Reorganização de Arquitetura
 
 - Eliminada a pasta duplicada `MARIA/` que estava aninhada dentro da raiz do projeto.

@@ -1,0 +1,133 @@
+# 📊 PROGRESSO DE DESENVOLVIMENTO — MARIA V1
+
+## 📅 Última alteração: 2026-08-11
+
+## 📈 Percentual Total Concluído: 92%
+
+---
+
+## ✅ Checklist de Funcionalidades
+
+### Fase 1 — Base da MARIA
+- [x] Cliente básico de comunicação com Ollama
+- [x] Sessão de chat com histórico limitado
+- [x] Prompt de sistema em português
+- [x] Esquema de function calling para planilhas e documentos
+- [x] Interface CLI básica
+
+### Fase 1.1 — Correções e Melhorias
+- [x] System prompt enviado ao modelo (correção crítica)
+- [x] Python 3.11+ como requisito mínimo
+- [x] Configuração centralizada em `config.py`
+- [x] `requirements.txt` criado
+- [x] Encoding UTF-8 no Windows
+- [x] Logging configurável
+- [x] 15 testes unitários (Fase 1)
+
+### Fase 2 — Máquina de Estado de Confirmação e Execução Real (v2.0.0)
+- [x] Fluxo de confirmação antes de criar arquivos (`acao_pendente`)
+- [x] `interpretar_confirmacao()` — afirmativas, negativas e ambíguas
+- [x] Cancelamento automático por ambiguidade repetida
+- [x] Comandos especiais durante confirmação (`sair`, `exit`, `limpar`, `ajuda`)
+- [x] Execução real de arquivos (Excel `.xlsx` e Word `.docx`)
+- [x] Exibição do caminho do arquivo gerado (`[SISTEMA]`)
+- [x] Tratamento de exceções amigável (`PermissionError`, `OSError`, `ValueError`)
+- [x] Geração de nomes únicos (`gerar_nome_unico`)
+
+### Fase 2.1 — Streaming e Ferramentas de Arquivo (v2.1.0)
+- [x] Streaming de respostas (`chat_com_tools_stream()`)
+- [x] Criação real de documentos Word com conteúdo completo
+- [x] Edição de planilhas (`editar_planilha`) com sobrescrita
+- [x] Confirmações específicas com prévia do conteúdo
+- [x] Histórico de execução de ferramentas na sessão
+- [x] Sanitização de nomes de arquivos
+- [x] Isolamento de testes (pasta temporária dinâmica)
+- [x] Streaming defensivo (tool calls malformadas não derrubam)
+
+### Fase 2.2 — Sistema de Benchmark (v2.2.0)
+- [x] Pacote `benchmark/` criado
+- [x] 25 casos de benchmark (conversa, arquivos, confirmação, cancelamento, ambiguidade, sanitização)
+- [x] `MariaRunner` com streaming real e sessões isoladas
+- [x] Métricas de acurácia, confirmação, palavras-chave, execução, latência e erros
+- [x] Relatórios Markdown com `log.json`
+- [x] CLI com filtros (IDs, quantidade, categoria, diretório, atraso)
+
+### Fase 2.3 — Reorganização de Arquitetura (v2.3.0)
+- [x] Módulos centrais movidos para o pacote `core/`
+- [x] `test_maria.py` movido para `tests/`
+- [x] Imports internos atualizados para `core.<módulo>`
+- [x] Pasta duplicada `MARIA/` eliminada
+- [x] Código legado `Lia_benchmark/` removido
+
+### Fase 2.4 — Persistência de Sessões (v2.4.0) ✅
+- [x] Novo módulo `core/session_storage.py`
+- [x] Funções: `garantir_pasta_sessoes`, `salvar_sessao`, `listar_sessoes_salvas`, `carregar_sessao`
+- [x] Config `PASTA_SESSOES` em `core/config.py` (padrão `sessoes_salvas`)
+- [x] Novo comando `retomar` em `main.py`
+- [x] Salvamento automático após mensagens e execução de ferramenta
+- [x] Tolerância a falhas de disco (aviso sem interromper o loop)
+- [x] Testes: 4 novos (`TestSessionStorage`) — 30 testes no total, todos passando
+
+### Funcionalidades Futuras
+- [ ] Preferências do usuário persistidas (próxima etapa)
+- [ ] Retomada automática de sessão sem comando explícito
+- [ ] Exportação de histórico em outros formatos (TXT, PDF)
+- [ ] Interface gráfica ou web
+
+---
+
+## 🧪 Status dos Testes
+
+| Versão | Testes | Status |
+|--------|--------|--------|
+| 1.0.0 | 15 | ✅ Passando |
+| 2.0.0 | 22 | ✅ Passando |
+| 2.1.0 | 24 | ✅ Passando |
+| 2.3.0 | 26 | ✅ Passando |
+| **2.4.0** | **30** | ✅ **Passando** |
+
+**Comando:** `python -m unittest tests.test_maria -v`
+
+**Última execução (2026-08-11):** 30/30 testes passaram.
+
+---
+
+## 📦 Tabela de Versões
+
+| Versão | Data | Descrição |
+|--------|------|-----------|
+| 1.0.0 | - | Versão inicial da Fase 1 (cliente Ollama, sessão de chat, CLI) |
+| 1.1.0 | - | Correções críticas (system prompt, Python 3.11+, config centralizada) |
+| 2.0.0 | - | Máquina de estado de confirmação e execução real de arquivos |
+| 2.1.0 | - | Streaming de respostas, criação de documentos Word, edição de planilhas |
+| 2.2.0 | - | Sistema de benchmark e validação contínua |
+| 2.3.0 | - | Reorganização de arquitetura (pacote `core/`, `tests/`) |
+| **2.4.0** | **2026-08-11** | **Persistência de sessões (histórico de conversa persistente)** |
+
+---
+
+## 📂 Estrutura do Projeto (v2.4.0)
+
+```
+maria/
+├── main.py                     # Interface CLI principal
+├── core/
+│   ├── chat_session.py         # Sessão de chat (histórico, confirmação)
+│   ├── config.py               # Configurações centralizadas
+│   ├── excel_handler.py        # Criação/edição de planilhas Excel
+│   ├── file_utils.py           # Utilitários de arquivos
+│   ├── ollama_client.py        # Cliente Ollama (chat, streaming, tools)
+│   ├── session_storage.py      # Persistência de sessões (NOVO v2.4.0)
+│   ├── tools_schema.py         # Schemas e execução de ferramentas
+│   └── word_handler.py         # Criação de documentos Word
+├── tests/
+│   └── test_maria.py           # 30 testes unitários
+├── benchmark/                  # Sistema de benchmark
+├── docs/                       # Documentação
+│   └── PROGRESSO_DESENVOLVIMENTO_V1.md  # Este arquivo
+├── arquivos_gerados/           # Arquivos gerados pela MARIA
+├── sessoes_salvas/             # Sessões de chat persistidas (NOVO v2.4.0)
+├── ui_terminal/                # Arte de terminal
+├── CHANGELOG.md                # Histórico de mudanças
+├── README.md                   # Documentação principal
+└── requirements.txt            # Dependências
