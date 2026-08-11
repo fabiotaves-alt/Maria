@@ -80,6 +80,13 @@
 - [x] `SYSTEM_PROMPT` atualizado com instruções anti-alucinação para leitura
 - [x] Testes: 10 novos (`TestAcessoLeitura` + `TestFerramentasLeitura`) — 40 testes no total, todos passando
 
+### Fase 2.6 — Exibição de Comandos na Tela Inicial (v2.6.0) ✅
+- [x] Linha `Comandos: 'ajuda' | 'limpar' | 'retomar' | 'sair'` exibida no banner inicial
+- [x] Comando `retomar` visível na inicialização sem necessidade de digitar `ajuda` primeiro
+- [x] Logo ASCII, painel de texto e rosto do banner permanecem inalterados
+- [x] README.md revisado — tabela de comandos já consistente, sem edição necessária
+- [x] Validação manual: `python main.py` + `sair` confirmou o critério de aceite
+
 ### Funcionalidades Futuras
 - [ ] Preferências do usuário persistidas (próxima etapa)
 - [ ] Retomada automática de sessão sem comando explícito
@@ -98,6 +105,7 @@
 | 2.3.0 | 26 | ✅ Passando |
 | 2.4.0 | 30 | ✅ Passando |
 | **2.5.0** | **40** | ✅ **Passando** |
+| **2.6.0** | **40** | ✅ **Passando (sem alteração de lógica)** |
 
 **Comando:** `python -m unittest tests.test_maria -v`
 
@@ -117,6 +125,7 @@
 | 2.3.0 | - | Reorganização de arquitetura (pacote `core/`, `tests/`) |
 | 2.4.0 | 2026-08-11 | Persistência de sessões (histórico de conversa persistente) |
 | **2.5.0** | **2026-08-11** | **Ferramentas de leitura: listagem e resumo de documentos** |
+| **2.6.0** | **2026-08-11** | **Exibição de comandos na tela inicial (banner)** |
 
 ---
 

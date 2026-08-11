@@ -297,7 +297,7 @@ def exibir_banner(imagem=None, glifo="M", mono=False):
     print()
     print(rgb(TEAL, "─" * t.columns))
     print(rgb(TEAL_SUAVE, "MARIA CLI v1.0.0"))
-    print(rgb(CINZA, "Digite 'ajuda' para ver os comandos disponíveis."))
+    print(rgb(CINZA, "Comandos: 'ajuda' | 'limpar' | 'retomar' | 'sair'"))
     print(rgb(ROSA, "maria") + rgb(VERDE, "@assistente") + rgb(TEAL, ":~$ _"))
 
 

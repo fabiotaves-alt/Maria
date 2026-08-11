@@ -2,6 +2,23 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.6.0] - Exibição de Comandos na Tela Inicial
+
+### ✅ Funcionalidades implementadas
+
+- **Linha de comandos no banner inicial**: A função `exibir_banner` em `ui_terminal.py` agora exibe diretamente a linha `Comandos: 'ajuda' | 'limpar' | 'retomar' | 'sair'` na inicialização, eliminando a necessidade de digitar `ajuda` primeiro.
+- **Comando `retomar` visível na inicialização**: O comando `retomar` (introduzido na v2.4.0) agora aparece diretamente no banner junto dos comandos básicos (`ajuda`, `limpar`, `sair`).
+- **README.md revisado**: Confirmado que a tabela "Comandos Disponíveis" permanece consistente com a nova linha do banner; nenhuma edição foi necessária (o README não reproduz a tela inicial literalmente).
+
+### ✅ Status dos Testes
+
+- **Nenhuma alteração de lógica testável** — a mudança é apenas de texto de interface (`print` de uma nova linha no banner).
+- **Validação manual**: `python main.py` confirmou a exibição da linha `Comandos: 'ajuda' | 'limpar' | 'retomar' | 'sair'` antes do prompt `maria@assistente:~$`, seguida de `sair` para encerrar.
+
+### 📊 Cobertura de Código
+
+- Mudança puramente de interface (texto de tela); sem lógica testável adicionada.
+
 ## [2.5.0] - Ferramentas de Leitura: Listagem e Resumo de Documentos
 
 ### ✅ Funcionalidades implementadas
