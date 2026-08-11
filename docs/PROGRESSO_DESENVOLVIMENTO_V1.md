@@ -87,6 +87,16 @@
 - [x] README.md revisado — tabela de comandos já consistente, sem edição necessária
 - [x] Validação manual: `python main.py` + `sair` confirmou o critério de aceite
 
+### Fase 2.7 — Integração das Ferramentas de Leitura no Controller (v2.7.0) ✅
+- [x] Encadeamento automático de leitura em `MariaController.enviar_mensagem` (até `MAX_PASSOS_LEITURA`)
+- [x] Novo generator `_gerar_resposta_com_encadeamento` — streaming contínuo entre chamadas ao Ollama
+- [x] Ferramentas de leitura executadas sem confirmação (`listar_arquivos`, `resumir_documento`)
+- [x] Ferramentas de escrita preservadas — confirmação normal ao final (`get_mensagem_confirmacao` intacto)
+- [x] Limite de passos respeitado com aviso amigável
+- [x] Tratamento de `PermissionError`/`OSError`/`ValueError` em leitura sem derrubar a aplicação
+- [x] `ui_terminal.py` intacto — interface continua iterando `(chunk, tool_chunk)` sem alteração
+- [x] Validado: 40/40 testes + 3 cenários de encadeamento com mocks (leitura→escrita, leitura simples, limite)
+
 ### Funcionalidades Futuras
 - [ ] Preferências do usuário persistidas (próxima etapa)
 - [ ] Retomada automática de sessão sem comando explícito
@@ -106,6 +116,7 @@
 | 2.4.0 | 30 | ✅ Passando |
 | **2.5.0** | **40** | ✅ **Passando** |
 | **2.6.0** | **40** | ✅ **Passando (sem alteração de lógica)** |
+| **2.7.0** | **40** | ✅ **Passando (integração leitura no controller)** |
 
 **Comando:** `python -m unittest tests.test_maria -v`
 
@@ -126,6 +137,7 @@
 | 2.4.0 | 2026-08-11 | Persistência de sessões (histórico de conversa persistente) |
 | **2.5.0** | **2026-08-11** | **Ferramentas de leitura: listagem e resumo de documentos** |
 | **2.6.0** | **2026-08-11** | **Exibição de comandos na tela inicial (banner)** |
+| **2.7.0** | **2026-08-11** | **Integração das ferramentas de leitura no controller** |
 
 ---
 

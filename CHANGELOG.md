@@ -2,6 +2,27 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.7.0] - Integração das Ferramentas de Leitura no Controller
+
+### ✅ Funcionalidades implementadas
+
+- **Encadeamento automático de leitura**: O método `enviar_mensagem` em `main.py` (classe `MariaController`) agora encadeia automaticamente ferramentas de **leitura** (`listar_arquivos`, `resumir_documento`) sem pedir confirmação, até `MAX_PASSOS_LEITURA` vezes.
+- **Novo generator `_gerar_resposta_com_encadeamento`**: Chama o modelo via `chat_com_tools_stream` e, enquanto a tool call for de leitura, executa via `executar_ferramenta_leitura` e reenvia o resultado via `continuar_com_resultado_ferramenta_stream` — mantendo o efeito de streaming contínuo.
+- **Ferramentas de escrita preservadas**: Quando o encadeamento chega a uma ferramenta de **escrita** (`criar_planilha`, `criar_documento`, `editar_planilha`), o fluxo de confirmação normal é acionado ao final — `get_mensagem_confirmacao` e `processar_confirmacao` permanecem intactos.
+- **Limite de passos respeitado**: Se `MAX_PASSOS_LEITURA` for atingido sem resposta final, um aviso amigável é exibido e o encadeamento é encerrado com segurança.
+- **Tratamento de erros de leitura**: `PermissionError`, `OSError` e `ValueError` ao executar ferramentas de leitura são capturados e devolvidos ao modelo como texto, sem derrubar a aplicação.
+- **`ui_terminal.py` intacto**: A interface continua iterando `(chunk, tool_chunk)` como antes — nenhuma alteração foi necessária.
+
+### ✅ Status dos Testes
+
+- **40/40 testes passaram** (`python -m unittest tests.test_maria -v`)
+- **Compilação sem erros** (`python -m py_compile main.py`)
+- **Validação com mocks**: 3 cenários de encadeamento validados (leitura→escrita, leitura simples, limite de passos)
+
+### 📊 Cobertura de Código
+
+- Encadeamento de leitura: execução sem confirmação, propagação de tool de escrita, limite de passos, tratamento de erros.
+
 ## [2.6.0] - Exibição de Comandos na Tela Inicial
 
 ### ✅ Funcionalidades implementadas
