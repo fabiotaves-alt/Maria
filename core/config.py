@@ -33,3 +33,6 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # Pasta para arquivos gerados
 PASTA_ARQUIVOS_GERADOS = os.getenv("PASTA_ARQUIVOS_GERADOS", "arquivos_gerados")
+
+# Pasta para sessões salvas (histórico de conversa persistente entre execuções)
+PASTA_SESSOES = os.getenv("PASTA_SESSOES", "sessoes_salvas")

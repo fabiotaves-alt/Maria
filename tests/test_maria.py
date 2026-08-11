@@ -21,6 +21,7 @@ from core.tools_schema import (
 )
 from core.excel_handler import criar_planilha_real, editar_planilha_real
 from core.file_utils import gerar_nome_unico, garantir_pasta_arquivos
+from core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
 
 
 class TestChatSession(unittest.TestCase):
@@ -447,6 +448,71 @@ class TestRegressao(unittest.TestCase):
             runner._enviar_com_retry(ChatSession(), task)
 
         self.assertEqual(cliente.chamadas, 1)
+
+
+class TestSessionStorage(unittest.TestCase):
+    """Testes para persistência de sessões em disco."""
+
+    def setUp(self):
+        """Configura pasta temporária isolada para testes."""
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.original_pasta = os.environ.get("PASTA_SESSOES")
+        os.environ["PASTA_SESSOES"] = self.temp_dir.name
+
+    def tearDown(self):
+        """Limpa pasta temporária e restaura variável de ambiente."""
+        self.temp_dir.cleanup()
+        if self.original_pasta:
+            os.environ["PASTA_SESSOES"] = self.original_pasta
+        else:
+            os.environ.pop("PASTA_SESSOES", None)
+
+    def test_salvar_e_carregar_sessao(self):
+        """Testa que uma sessão salva pode ser recarregada com o mesmo histórico."""
+        sessao = ChatSession()
+        sessao.adicionar_mensagem("user", "Olá")
+        sessao.adicionar_mensagem("assistant", "Oi! Como posso ajudar?")
+
+        caminho = salvar_sessao(sessao.to_dict(), "sessao_20260101_120000.json")
+        self.assertTrue(os.path.exists(caminho))
+
+        dados_carregados = carregar_sessao(caminho)
+        sessao_restaurada = ChatSession.from_dict(dados_carregados)
+
+        self.assertEqual(sessao_restaurada.contar_mensagens(), 2)
+        self.assertEqual(sessao_restaurada.get_ultima_mensagem_usuario(), "Olá")
+
+    def test_listar_sessoes_ordena_mais_recentes_primeiro(self):
+        """Testa que listar_sessoes_salvas ordena por nome (timestamp) decrescente."""
+        sessao = ChatSession()
+        sessao.adicionar_mensagem("user", "teste")
+
+        salvar_sessao(sessao.to_dict(), "sessao_20260101_100000.json")
+        salvar_sessao(sessao.to_dict(), "sessao_20260102_100000.json")
+
+        sessoes = listar_sessoes_salvas()
+
+        self.assertEqual(len(sessoes), 2)
+        self.assertEqual(sessoes[0]["nome_arquivo"], "sessao_20260102_100000.json")
+        self.assertEqual(sessoes[1]["nome_arquivo"], "sessao_20260101_100000.json")
+        self.assertEqual(sessoes[0]["qtd_mensagens"], 1)
+
+    def test_listar_sessoes_ignora_arquivo_corrompido(self):
+        """Testa que um arquivo de sessão corrompido é ignorado, não levanta exceção."""
+        pasta = os.environ["PASTA_SESSOES"]
+        os.makedirs(pasta, exist_ok=True)
+        caminho_corrompido = os.path.join(pasta, "sessao_20260103_100000.json")
+        with open(caminho_corrompido, "w", encoding="utf-8") as arquivo:
+            arquivo.write("{ json inválido")
+
+        sessoes = listar_sessoes_salvas()
+
+        self.assertEqual(sessoes, [])
+
+    def test_carregar_sessao_inexistente_levanta_value_error(self):
+        """Testa que carregar uma sessão inexistente levanta ValueError."""
+        with self.assertRaises(ValueError):
+            carregar_sessao(os.path.join(os.environ["PASTA_SESSOES"], "nao_existe.json"))
 
 
 class TestOllamaClientErrorModeloNaoInstalado(unittest.TestCase):

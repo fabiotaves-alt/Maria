@@ -13,10 +13,12 @@ Comandos especiais:
 
 import sys
 import logging
+from datetime import datetime
 from core.config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT, LOG_LEVEL, MAX_MENSAGENS_HISTORICO
 from core.ollama_client import OllamaClient, OllamaClientError
 from core.chat_session import ChatSession, interpretar_confirmacao
 from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real
+from core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
 
 
 # Configurar encoding do stdout para UTF-8 (evita erros no Windows)
@@ -43,7 +45,7 @@ def mostrar_boas_vindas():
     print("Rodando 100% localmente no seu computador, sem internet.\n")
     print("Como posso ajudar você hoje?")
     print("-" * 60)
-    print("Comandos: 'ajuda' | 'limpar' | 'sair'\n")
+    print("Comandos: 'ajuda' | 'limpar' | 'retomar' | 'sair'\n")
 
 
 def mostrar_ajuda():
@@ -51,6 +53,7 @@ def mostrar_ajuda():
     print("\n--- Comandos Disponíveis ---")
     print("  ajuda    - Mostra esta mensagem de ajuda")
     print("  limpar   - Limpa o histórico da conversa")
+    print("  retomar  - Retoma uma conversa salva de uma execução anterior")
     print("  sair     - Encerra a aplicação")
     print("  exit     - Encerra a aplicação (alternativo)")
     print("-" * 30)
@@ -106,6 +109,64 @@ def gerar_mensagem_confirmacao(tool_call: dict) -> str:
         return f'Vou executar a ação "{nome}". Posso prosseguir? (responda sim ou não)'
 
 
+def gerar_nome_sessao() -> str:
+    """Gera o nome do arquivo da sessão atual com base no timestamp de início."""
+    return f"sessao_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+
+
+def salvar_sessao_silenciosamente(sessao: ChatSession, nome_sessao: str) -> None:
+    """Salva a sessão em disco sem interromper o loop de chat em caso de falha."""
+    try:
+        salvar_sessao(sessao.to_dict(), nome_sessao)
+    except (PermissionError, OSError) as error:
+        logger.warning(f"Falha ao salvar sessão automaticamente: {error}")
+        print(f"\n[AVISO] Não foi possível salvar a sessão automaticamente: {error}")
+
+
+def tratar_comando_retomar(sessao: ChatSession, nome_sessao_atual: str) -> tuple[ChatSession, str]:
+    """
+    Trata o comando 'retomar': lista sessões salvas e carrega a escolhida.
+
+    Returns:
+        Tupla (sessao, nome_sessao_atual) — a mesma sessão/nome recebidos
+        se a retomada for cancelada ou falhar.
+    """
+    if sessao.tem_acao_pendente():
+        sessao.limpar_acao_pendente()
+        print("\nAção pendente cancelada para retomar outra sessão.")
+
+    sessoes_disponiveis = listar_sessoes_salvas()
+    if not sessoes_disponiveis:
+        print("\nNenhuma sessão salva encontrada.")
+        return sessao, nome_sessao_atual
+
+    print("\n--- Sessões salvas (mais recentes primeiro) ---")
+    for indice, info in enumerate(sessoes_disponiveis, start=1):
+        print(f"  {indice}. {info['nome_arquivo']} ({info['qtd_mensagens']} mensagens)")
+
+    escolha = input("Digite o número da sessão para retomar (ou Enter para cancelar): ").strip()
+    if not escolha:
+        print("\nRetomada cancelada.")
+        return sessao, nome_sessao_atual
+
+    try:
+        indice_escolhido = int(escolha)
+        sessao_escolhida = sessoes_disponiveis[indice_escolhido - 1]
+    except (ValueError, IndexError):
+        print("\nSeleção inválida. Retomada cancelada.")
+        return sessao, nome_sessao_atual
+
+    try:
+        dados_sessao = carregar_sessao(sessao_escolhida["caminho"])
+        nova_sessao = ChatSession.from_dict(dados_sessao)
+        print(f"\nSessão '{sessao_escolhida['nome_arquivo']}' retomada com "
+              f"{nova_sessao.contar_mensagens()} mensagem(ns).")
+        return nova_sessao, sessao_escolhida["nome_arquivo"]
+    except ValueError as error:
+        print(f"\n[ERRO] Não foi possível retomar a sessão: {error}")
+        return sessao, nome_sessao_atual
+
+
 def loop_chat():
     """
     Loop principal de interação com o usuário.
@@ -119,6 +180,7 @@ def loop_chat():
         return
     
     sessao = ChatSession(max_mensagens=MAX_MENSAGENS_HISTORICO)
+    nome_sessao_atual = gerar_nome_sessao()
     
     mostrar_boas_vindas()
     
@@ -142,6 +204,10 @@ def loop_chat():
                 print("\nHistórico da conversa limpo!")
                 continue
             
+            if entrada.lower() == "retomar":
+                sessao, nome_sessao_atual = tratar_comando_retomar(sessao, nome_sessao_atual)
+                continue
+            
             if not entrada:
                 continue
             
@@ -158,6 +224,7 @@ def loop_chat():
                         print(f"\n[SISTEMA] {caminho}")
                         sessao.adicionar_mensagem("assistant", caminho)
                         sessao.limpar_acao_pendente()
+                        salvar_sessao_silenciosamente(sessao, nome_sessao_atual)
                     except (PermissionError, OSError, ValueError) as e:
                         logger.error(f"Erro ao executar ferramenta: {e}")
                         print(f"\n[ERRO] Não foi possível criar o arquivo: {e}")
@@ -216,6 +283,7 @@ def loop_chat():
                 else:
                     if resposta_textual.strip():
                         sessao.adicionar_mensagem("assistant", resposta_textual)
+                salvar_sessao_silenciosamente(sessao, nome_sessao_atual)
                 
             except OllamaClientError as e:
                 print(f"\n[Erro] {e}")
