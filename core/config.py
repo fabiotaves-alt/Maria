@@ -36,3 +36,9 @@ PASTA_ARQUIVOS_GERADOS = os.getenv("PASTA_ARQUIVOS_GERADOS", "arquivos_gerados")
 
 # Pasta para sessões salvas (histórico de conversa persistente entre execuções)
 PASTA_SESSOES = os.getenv("PASTA_SESSOES", "sessoes_salvas")
+
+# ---- Acesso de leitura a arquivos (somente leitura, nunca escrita) ----
+EXTENSOES_LEITURA = {".txt", ".md", ".csv", ".log", ".docx"}
+MAX_CHARS_LEITURA = int(os.getenv("MAX_CHARS_LEITURA", "6000"))
+MAX_TAMANHO_ARQUIVO_MB = int(os.getenv("MAX_TAMANHO_ARQUIVO_MB", "5"))
+MAX_PASSOS_LEITURA = int(os.getenv("MAX_PASSOS_LEITURA", "3"))

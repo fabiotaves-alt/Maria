@@ -115,11 +115,66 @@ NÃO use se a planilha ainda não existir — nesse caso use criar_planilha.""",
     }
 }
 
+FERRAMENTA_LISTAR_ARQUIVOS = {
+    "type": "function",
+    "function": {
+        "name": "listar_arquivos",
+        "description": """Lista os arquivos existentes em uma pasta permitida (somente leitura, não modifica nada).
+Use PARA: responder o que existe em uma pasta ou diretório.
+Exemplos de frases-gatilho:
+- "que arquivos tem na pasta docs?"
+- "o que já foi criado na pasta de arquivos gerados?"
+NÃO use para criar, editar ou apagar arquivos.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pasta": {
+                    "type": "string",
+                    "description": "Nome ou caminho relativo da pasta dentro das permitidas. Deixe vazio para a pasta padrão."
+                }
+            },
+            "required": []
+        }
+    }
+}
+
+FERRAMENTA_RESUMIR_DOCUMENTO = {
+    "type": "function",
+    "function": {
+        "name": "resumir_documento",
+        "description": """Lê um documento de texto (.txt, .md, .csv, .log, .docx) de uma pasta permitida e disponibiliza o conteúdo para você resumir, analisar ou extrair informações. Somente leitura, não modifica nada.
+Use PARA: resumir, analisar ou extrair trechos de um documento já existente.
+Exemplos de frases-gatilho:
+- "resuma o arquivo notas_reuniao.txt"
+- "do que trata o documento ata.docx?"
+NÃO use para criar um documento novo — nesse caso use criar_documento.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "nome_arquivo": {
+                    "type": "string",
+                    "description": "Nome do arquivo a ler. Ex.: 'relatorio.txt', 'ata.docx'"
+                },
+                "instrucoes": {
+                    "type": "string",
+                    "description": "O que fazer com o conteúdo. Ex.: 'resuma em 5 tópicos'"
+                }
+            },
+            "required": ["nome_arquivo"]
+        }
+    }
+}
+
+# Ferramentas de leitura: executadas sem confirmação (não modificam nada)
+FERRAMENTAS_LEITURA = {"listar_arquivos", "resumir_documento"}
+
 # Lista de todas as ferramentas disponíveis
 TOOLS_SCHEMA = [
     FERRAMENTA_CRIAR_PLANILHA,
     FERRAMENTA_CRIAR_DOCUMENTO,
-    FERRAMENTA_EDITAR_PLANILHA
+    FERRAMENTA_EDITAR_PLANILHA,
+    FERRAMENTA_LISTAR_ARQUIVOS,
+    FERRAMENTA_RESUMIR_DOCUMENTO,
 ]
 
 
@@ -191,3 +246,46 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
         
     else:
         raise ValueError(f"Ferramenta desconhecida: {nome_funcao}")
+
+
+def executar_ferramenta_leitura(nome_funcao: str, argumentos: dict) -> str:
+    """
+    Executa uma ferramenta de LEITURA (não modifica arquivos) e retorna o
+    resultado como texto, pronto para ser devolvido ao modelo.
+
+    Args:
+        nome_funcao: "listar_arquivos" ou "resumir_documento"
+        argumentos: argumentos da tool call
+
+    Returns:
+        Texto com o resultado da leitura.
+
+    Raises:
+        ValueError: se a ferramenta não for reconhecida (propaga ValueError/
+            PermissionError/OSError vindos de core.file_utils para os demais casos).
+    """
+    logger.info(f"Executando ferramenta de leitura: {nome_funcao}({argumentos})")
+
+    if nome_funcao == "listar_arquivos":
+        from core.file_utils import listar_arquivos
+        itens = listar_arquivos(argumentos.get("pasta", ""))
+        if not itens:
+            return "A pasta está vazia (nenhum arquivo encontrado)."
+        linhas = "\n".join(f"- {i['nome']} ({i['tamanho_kb']} KB)" for i in itens)
+        return f"Arquivos encontrados:\n{linhas}"
+
+    elif nome_funcao == "resumir_documento":
+        from core.file_utils import ler_documento
+        doc = ler_documento(argumentos.get("nome_arquivo", ""))
+        aviso = ""
+        if doc["truncado"]:
+            aviso = (f"\n[Atenção: conteúdo truncado em {len(doc['texto'])} de "
+                     f"{doc['total_chars']} caracteres; considere apenas a parte inicial.]")
+        cabecalho = f"Conteúdo do arquivo {doc['nome']}:"
+        instrucoes = argumentos.get("instrucoes", "")
+        if instrucoes:
+            cabecalho += f"\nPedido do usuário: {instrucoes}"
+        return f"{cabecalho}{aviso}\n\n{doc['texto']}"
+
+    else:
+        raise ValueError(f"Ferramenta de leitura desconhecida: {nome_funcao}")

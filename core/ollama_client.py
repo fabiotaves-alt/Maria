@@ -449,3 +449,110 @@ class OllamaClient:
             )
 
         yield None, tool_call_final
+
+    def continuar_com_resultado_ferramenta_stream(
+        self,
+        historico: list[dict[str, str]],
+        tool_call: dict,
+        resultado: str,
+        tools: list[dict] | None = None,
+    ) -> Generator[tuple[str | None, dict | None], None, None]:
+        """
+        Reenvia a conversa incluindo o resultado de uma ferramenta de leitura
+        (role="tool") e transmite a nova resposta do modelo em streaming.
+
+        Args:
+            historico: histórico já contendo system prompt + mensagem do usuário
+                (NÃO deve incluir a chamada de ferramenta nem o resultado; ambos
+                são montados aqui).
+            tool_call: {"name": str, "arguments": dict} da ferramenta já executada.
+            resultado: texto com o resultado real da execução da ferramenta.
+            tools: schema de ferramentas, para permitir encadeamento (ex.: nova leitura).
+        """
+        mensagens = list(historico)
+        mensagens.append({
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [{"function": {
+                "name": tool_call.get("name", ""),
+                "arguments": tool_call.get("arguments", {}),
+            }}],
+        })
+        mensagens.append({"role": "tool", "content": resultado})
+
+        payload = {
+            "model": self.model,
+            "messages": mensagens,
+            "tools": tools,
+            "stream": True,
+            "options": {
+                "num_ctx": OLLAMA_NUM_CTX,
+                "num_predict": OLLAMA_NUM_PREDICT,
+                "num_thread": OLLAMA_NUM_THREAD
+            },
+            "keep_alive": OLLAMA_KEEP_ALIVE
+        }
+
+        response = self._make_request(payload, stream=True)
+        tool_call_final = None
+        houve_conteudo = False
+
+        try:
+            for line in response.iter_lines():
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line.decode("utf-8"))
+                except json.JSONDecodeError:
+                    continue
+
+                message = data.get("message", {})
+                content = message.get("content", "")
+                if content:
+                    houve_conteudo = True
+                    yield content, None
+
+                tool_calls = message.get("tool_calls")
+                if not isinstance(tool_calls, list) or not tool_calls:
+                    continue
+
+                tc = tool_calls[0]
+                if not isinstance(tc, dict):
+                    logger.warning("Tool call malformada no stream de continuação")
+                    continue
+                function = tc.get("function")
+                if not isinstance(function, dict):
+                    logger.warning("Tool call malformada no stream de continuação: function inválida")
+                    continue
+                name = function.get("name")
+                if not isinstance(name, str) or not name:
+                    logger.warning("Tool call malformada no stream de continuação: name inválido")
+                    continue
+                arguments_raw = function.get("arguments", "{}")
+                try:
+                    arguments = (
+                        json.loads(arguments_raw)
+                        if isinstance(arguments_raw, str)
+                        else arguments_raw
+                    )
+                except json.JSONDecodeError:
+                    logger.warning("Falha ao parsear argumentos no stream de continuação")
+                    arguments = {}
+                tool_call_final = {"name": name, "arguments": arguments}
+
+        except requests.exceptions.ConnectionError as error:
+            logger.error(f"Erro de conexão durante streaming de continuação: {error}")
+            raise OllamaClientError(
+                "Perda de conexão com o Ollama durante o streaming. "
+                "Verifique se o serviço continua rodando."
+            ) from error
+        except requests.exceptions.Timeout as error:
+            logger.error(f"Timeout durante streaming de continuação: {error}")
+            raise OllamaTimeoutError(
+                "Tempo limite excedido durante o streaming da resposta."
+            ) from error
+
+        if tool_call_final is None and not houve_conteudo:
+            logger.debug("Resposta de continuação sem tool call e sem conteúdo textual.")
+
+        yield None, tool_call_final

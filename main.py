@@ -14,10 +14,16 @@ Comandos especiais:
 import sys
 import logging
 from datetime import datetime
-from core.config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT, LOG_LEVEL, MAX_MENSAGENS_HISTORICO
+from core.config import (
+    OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT, LOG_LEVEL,
+    MAX_MENSAGENS_HISTORICO, MAX_PASSOS_LEITURA
+)
 from core.ollama_client import OllamaClient, OllamaClientError
 from core.chat_session import ChatSession, interpretar_confirmacao
-from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real
+from core.tools_schema import (
+    TOOLS_SCHEMA, executar_ferramenta_real,
+    FERRAMENTAS_LEITURA, executar_ferramenta_leitura
+)
 from core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
 
 
@@ -272,6 +278,50 @@ def loop_chat():
                         resposta_textual += chunk
                     if tool_chunk is not None:
                         tool_call_final = tool_chunk
+
+                # Encadeamento de ferramentas de LEITURA (sem confirmação)
+                passos = 0
+                while (
+                    tool_call_final
+                    and tool_call_final.get("name") in FERRAMENTAS_LEITURA
+                    and passos < MAX_PASSOS_LEITURA
+                ):
+                    try:
+                        resultado_ferramenta = executar_ferramenta_leitura(
+                            tool_call_final["name"], tool_call_final.get("arguments", {})
+                        )
+                    except (PermissionError, OSError, ValueError) as e:
+                        logger.error(f"Erro ao executar ferramenta de leitura: {e}")
+                        resultado_ferramenta = f"Erro ao acessar o sistema de arquivos: {e}"
+
+                    historico_continuacao = sessao.get_historico_com_system()
+                    novo_tool_call = None
+
+                    for chunk, tool_chunk in cliente.continuar_com_resultado_ferramenta_stream(
+                        historico=historico_continuacao,
+                        tool_call=tool_call_final,
+                        resultado=resultado_ferramenta,
+                        tools=TOOLS_SCHEMA,
+                    ):
+                        if chunk is not None:
+                            print(chunk, end="", flush=True)
+                            resposta_textual += chunk
+                        if tool_chunk is not None:
+                            novo_tool_call = tool_chunk
+
+                    tool_call_final = novo_tool_call
+                    passos += 1
+
+                if tool_call_final and tool_call_final.get("name") in FERRAMENTAS_LEITURA:
+                    # Limite de passos atingido sem uma resposta final em texto
+                    logger.warning("Limite de passos de leitura atingido sem resposta final.")
+                    aviso_limite = (
+                        "\n\nNão consegui concluir a consulta após várias tentativas. "
+                        "Tente reformular o pedido."
+                    )
+                    print(aviso_limite, end="", flush=True)
+                    resposta_textual += aviso_limite
+                    tool_call_final = None
 
                 print()
 

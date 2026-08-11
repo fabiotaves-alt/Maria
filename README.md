@@ -14,6 +14,7 @@ A MARIA é uma assistente de escritório local que usa o Ollama e o modelo `qwen
 - ✅ Criação de planilhas Excel e documentos Word reais
 - ✅ Edição de planilhas existentes com sobrescrita explícita
 - ✅ Sanitização de nomes para manter arquivos dentro da pasta de saída
+- ✅ Listagem de arquivos e leitura/resumo de documentos de texto em pastas permitidas
 - ✅ Testes unitários automatizados
 
 ## Pré-requisitos
@@ -156,6 +157,8 @@ Três ferramentas disponíveis, executadas somente após confirmação explícit
 | `criar_planilha` | Cria planilha Excel com dados tabulares estruturados em colunas (ex: controle financeiro, inventários) |
 | `editar_planilha` | Sobrescreve uma planilha existente com novas colunas e linhas opcionais |
 | `criar_documento` | Cria documento Word com título e conteúdo narrativo em parágrafos |
+| `listar_arquivos` | Lista os arquivos de uma pasta permitida (somente leitura) |
+| `resumir_documento` | Lê um documento de texto existente para resumo/análise (somente leitura) |
 
 ### 5. Interface CLI (`main.py`)
 
@@ -174,6 +177,7 @@ Três ferramentas disponíveis, executadas somente após confirmação explícit
 - Máximo de mensagens no histórico
 - Nível de logging
 - Pasta de saída via `PASTA_ARQUIVOS_GERADOS` (padrão: `arquivos_gerados`)
+- Lista de pastas permitidas para leitura via `PASTAS_PERMITIDAS` (padrão: mesma pasta de `PASTA_ARQUIVOS_GERADOS`)
 
 ### 7. Testes Unitários (`tests/test_maria.py`)
 

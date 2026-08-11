@@ -2,6 +2,28 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.5.0] - Ferramentas de Leitura: Listagem e Resumo de Documentos
+
+### ✅ Funcionalidades implementadas
+
+- **Lista branca de pastas (`PASTAS_PERMITIDAS`)**: nova variável de ambiente que restringe onde a MARIA pode ler arquivos; resolução de caminho protegida contra path traversal (`resolver_caminho_permitido`).
+- **`listar_arquivos`**: nova ferramenta que lista nome e tamanho dos arquivos de uma pasta permitida.
+- **`resumir_documento`**: nova ferramenta que lê `.txt`, `.md`, `.csv`, `.log` e `.docx` (com truncamento seguro via `MAX_CHARS_LEITURA`) para que o modelo resuma ou analise o conteúdo.
+- **Ferramentas de leitura não pedem confirmação**: por serem somente leitura, `listar_arquivos` e `resumir_documento` são executadas imediatamente, diferente das ferramentas de escrita.
+- **Encadeamento de chamadas**: `main.py` processa até `MAX_PASSOS_LEITURA` ferramentas de leitura em sequência (ex.: listar → ler → resumir) antes de responder ou pedir confirmação de escrita.
+- **Streaming mantido na continuação**: novo método `continuar_com_resultado_ferramenta_stream` em `OllamaClient` devolve o resultado da leitura ao modelo e transmite a resposta em streaming.
+
+### 🔒 Segurança e confiabilidade
+
+- Todo acesso de leitura é validado contra `PASTAS_PERMITIDAS`; caminhos fora da lista branca são rejeitados com `ValueError`.
+- Extensões de leitura restritas a uma lista branca (`EXTENSOES_LEITURA`).
+- Limites de tamanho de arquivo (`MAX_TAMANHO_ARQUIVO_MB`) e de caracteres lidos (`MAX_CHARS_LEITURA`).
+- `PermissionError`/`OSError` tratados com mensagens amigáveis, no mesmo padrão de `excel_handler.py`/`word_handler.py`.
+
+### 🧪 Testes
+
+- Novas classes `TestAcessoLeitura` e `TestFerramentasLeitura` cobrindo path traversal, listagem, truncamento, extensão não suportada e arquivo inexistente.
+
 ## [2.4.0] - Persistência de Sessões (Histórico de Conversa)
 
 - **Novo módulo `core/session_storage.py`**: Persistência de sessões de chat em disco, com 4 funções públicas (`garantir_pasta_sessoes`, `salvar_sessao`, `listar_sessoes_salvas`, `carregar_sessao`) e leitura dinâmica de `PASTA_SESSOES` por chamada (isolamento em testes).

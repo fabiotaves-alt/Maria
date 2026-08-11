@@ -18,9 +18,17 @@ from core.tools_schema import (
     FERRAMENTA_CRIAR_PLANILHA,
     FERRAMENTA_CRIAR_DOCUMENTO,
     FERRAMENTA_EDITAR_PLANILHA,
+    FERRAMENTAS_LEITURA,
+    executar_ferramenta_leitura,
 )
 from core.excel_handler import criar_planilha_real, editar_planilha_real
-from core.file_utils import gerar_nome_unico, garantir_pasta_arquivos
+from core.file_utils import (
+    gerar_nome_unico,
+    garantir_pasta_arquivos,
+    resolver_caminho_permitido,
+    listar_arquivos,
+    ler_documento,
+)
 from core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
 
 
@@ -547,6 +555,114 @@ class TestOllamaClientErrorModeloNaoInstalado(unittest.TestCase):
         self.assertIn("não está instalado", erro_msg)
         self.assertIn("qwen2.5:7b", erro_msg)
         self.assertIn("ollama pull", erro_msg)
+
+
+class TestAcessoLeitura(unittest.TestCase):
+    """Testes para as ferramentas de leitura (listar_arquivos, ler_documento)."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.original_pastas = os.environ.get("PASTAS_PERMITIDAS")
+        os.environ["PASTAS_PERMITIDAS"] = self.temp_dir.name
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+        if self.original_pastas:
+            os.environ["PASTAS_PERMITIDAS"] = self.original_pastas
+        else:
+            os.environ.pop("PASTAS_PERMITIDAS", None)
+
+    def test_traversal_negado(self):
+        """Testa que um caminho fora das pastas permitidas é rejeitado."""
+        with self.assertRaises(ValueError):
+            resolver_caminho_permitido("../../etc/passwd")
+
+    def test_listar_pasta_temporaria(self):
+        """Testa listagem de arquivos em uma pasta permitida."""
+        caminho_arquivo = os.path.join(self.temp_dir.name, "nota.txt")
+        with open(caminho_arquivo, "w", encoding="utf-8") as f:
+            f.write("conteúdo de teste")
+
+        itens = listar_arquivos()
+
+        nomes = [item["nome"] for item in itens]
+        self.assertIn("nota.txt", nomes)
+
+    def test_listar_pasta_vazia(self):
+        """Testa que uma pasta permitida vazia retorna lista vazia."""
+        self.assertEqual(listar_arquivos(), [])
+
+    def test_leitura_truncada(self):
+        """Testa que um arquivo maior que max_chars é truncado corretamente."""
+        caminho_arquivo = os.path.join(self.temp_dir.name, "grande.txt")
+        with open(caminho_arquivo, "w", encoding="utf-8") as f:
+            f.write("a" * 100)
+
+        doc = ler_documento("grande.txt", max_chars=10)
+
+        self.assertTrue(doc["truncado"])
+        self.assertEqual(len(doc["texto"]), 10)
+        self.assertEqual(doc["total_chars"], 100)
+
+    def test_leitura_nao_truncada(self):
+        """Testa que um arquivo menor que max_chars não é marcado como truncado."""
+        caminho_arquivo = os.path.join(self.temp_dir.name, "pequeno.txt")
+        with open(caminho_arquivo, "w", encoding="utf-8") as f:
+            f.write("texto curto")
+
+        doc = ler_documento("pequeno.txt")
+
+        self.assertFalse(doc["truncado"])
+        self.assertEqual(doc["texto"], "texto curto")
+
+    def test_extensao_nao_suportada(self):
+        """Testa que uma extensão fora da lista permitida levanta ValueError."""
+        caminho_arquivo = os.path.join(self.temp_dir.name, "programa.exe")
+        with open(caminho_arquivo, "wb") as f:
+            f.write(b"binario")
+
+        with self.assertRaises(ValueError):
+            ler_documento("programa.exe")
+
+    def test_arquivo_inexistente_levanta_value_error(self):
+        """Testa que ler um arquivo inexistente levanta ValueError."""
+        with self.assertRaises(ValueError):
+            ler_documento("nao_existe.txt")
+
+
+class TestFerramentasLeitura(unittest.TestCase):
+    """Testes para o executor de ferramentas de leitura (tools_schema)."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.original_pastas = os.environ.get("PASTAS_PERMITIDAS")
+        os.environ["PASTAS_PERMITIDAS"] = self.temp_dir.name
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+        if self.original_pastas:
+            os.environ["PASTAS_PERMITIDAS"] = self.original_pastas
+        else:
+            os.environ.pop("PASTAS_PERMITIDAS", None)
+
+    def test_executar_listar_arquivos_pasta_vazia(self):
+        resultado = executar_ferramenta_leitura("listar_arquivos", {})
+        self.assertIn("vazia", resultado.lower())
+
+    def test_executar_resumir_documento(self):
+        caminho_arquivo = os.path.join(self.temp_dir.name, "notas.txt")
+        with open(caminho_arquivo, "w", encoding="utf-8") as f:
+            f.write("Reunião marcada para sexta-feira.")
+
+        resultado = executar_ferramenta_leitura(
+            "resumir_documento", {"nome_arquivo": "notas.txt"}
+        )
+
+        self.assertIn("Reunião marcada para sexta-feira.", resultado)
+
+    def test_executar_ferramenta_desconhecida(self):
+        with self.assertRaises(ValueError):
+            executar_ferramenta_leitura("apagar_tudo", {})
 
 
 if __name__ == "__main__":
