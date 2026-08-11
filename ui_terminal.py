@@ -1,33 +1,37 @@
 #!/usr/bin/env python3
 """
-MARIA — Logo e rosto no terminal (half-block truecolor, tema real + rosa).
+MARIA — Interface de Terminal (UI).
+
+Responsabilidades:
+    - Exibir banner artístico com imagem
+    - Gerenciar o loop de interação com o usuário
+    - Processar comandos especiais (ajuda, limpar, retomar, sair)
+    - Exibir respostas em streaming
+    - Delegar lógica de negócio ao controller (main.py)
 
 Uso:
-    python maria_terminal_art.py                      # usa maria_face.png, se existir
-    python maria_terminal_art.py --imagem outra.png
-    python maria_terminal_art.py --mono               # teal sólido (sem truecolor)
-
-Dependência opcional (apenas para logo/rosto):
-    pip install pillow
+    python main.py
 """
 
 import argparse
 import os
 import shutil
+import sys
 import textwrap
 
-# Paleta azul esverdeado (teal). Alternativas: (0, 191, 181), (72, 209, 204), (32, 178, 170)
-TEAL = (64, 224, 208)          # cor principal
-TEAL_SUAVE = (42, 160, 150)    # tom suave para textos secundários
-ROSA = (255, 45, 120)          # acento (pingo do logo, usuário no prompt)
-VERDE = (140, 255, 210)        # hostname no prompt
-CINZA = (150, 180, 178)        # dicas
+# ───────────────────────────────────────────────────────────────
+# Paleta de cores
+# ───────────────────────────────────────────────────────────────
+TEAL = (64, 224, 208)
+TEAL_SUAVE = (42, 160, 150)
+ROSA = (255, 45, 120)
+VERDE = (140, 255, 210)
+CINZA = (150, 180, 178)
 PRETO = (12, 12, 12)
 RESET = "\033[0m"
 
-# Escalas de tamanho (1.0 = original)
-ESCALA_LOGO = 1.20   # logo 20% maior
-ESCALA_ROSTO = 1.3  # rosto 10% maior
+ESCALA_LOGO = 1.20
+ESCALA_ROSTO = 1.30
 
 FONTE = {
     "M": ["10001", "11011", "10101", "10001", "10001", "10001", "10001"],
@@ -36,9 +40,11 @@ FONTE = {
     "I": ["111", "010", "010", "010", "010", "010", "111"],
 }
 
-DESCRICAO = ("MARIA é uma assistente de IA de escritório que trabalha com você "
-             "de forma inteligente e local, garantindo privacidade, agilidade e "
-             "resultados reais no seu dia a dia.")
+DESCRICAO = (
+    "MARIA é uma assistente de IA de escritório que trabalha com você "
+    "de forma inteligente e local, garantindo privacidade, agilidade e "
+    "resultados reais no seu dia a dia."
+)
 
 FUNCIONALIDADES = [
     ("▣", "PRIVADO", "Seus dados ficam apenas com você. Sem envio para a nuvem."),
@@ -48,13 +54,19 @@ FUNCIONALIDADES = [
 ]
 
 
+# ═══════════════════════════════════════════════════════════════
+# Funções utilitárias de cor e renderização
+# ═══════════════════════════════════════════════════════════════
+
 def rgb(cor, texto):
     return f"\033[38;2;{cor[0]};{cor[1]};{cor[2]}m{texto}{RESET}"
 
 
 def rgb2(fg, bg, texto):
-    return (f"\033[38;2;{fg[0]};{fg[1]};{fg[2]}m"
-            f"\033[48;2;{bg[0]};{bg[1]};{bg[2]}m{texto}{RESET}")
+    return (
+        f"\033[38;2;{fg[0]};{fg[1]};{fg[2]}m"
+        f"\033[48;2;{bg[0]};{bg[1]};{bg[2]}m{texto}{RESET}"
+    )
 
 
 def lum(r, g, b):
@@ -62,12 +74,10 @@ def lum(r, g, b):
 
 
 def eh_rosa(r, g, b):
-    """Detecta pixels rosados/magenta (o acento de cor do banner)."""
     return r > 120 and (r - g) > 50 and (b - g) > 20
 
 
 def cor_pixel(r, g, b):
-    """Recolore a imagem para teal pela luminância; rosa vira acento forte."""
     if eh_rosa(r, g, b):
         return ROSA
     l = lum(r, g, b) ** 0.85
@@ -160,7 +170,6 @@ def painel_texto():
 
 
 def _halfblock(img, colunas, linhas_max=None, mono=False):
-    """Half-block truecolor (2 pixels por célula), tema teal + rosa."""
     A = img.width / img.height
     R = max(4, round(colunas / A / 2))
     if linhas_max:
@@ -247,7 +256,6 @@ def exibir_banner(imagem=None, glifo="M", mono=False):
             print("Para desenhar logo/rosto, instale o Pillow: pip install pillow")
             tem_img = False
 
-    # Logo: 20% maior (54 -> ~65 colunas)
     logo_rows, logo_w = [], 0
     if tem_img:
         try:
@@ -272,7 +280,6 @@ def exibir_banner(imagem=None, glifo="M", mono=False):
     for segs in texto:
         esq.append((render_seg(segs, pad=larg_esq), larg_esq))
 
-    # Rosto: 10% maior (altura e largura), limitado pela largura do terminal
     rosto = []
     if tem_img:
         alt_face = int(max(t.lines - 6, 32) * ESCALA_ROSTO)
@@ -294,7 +301,199 @@ def exibir_banner(imagem=None, glifo="M", mono=False):
     print(rgb(ROSA, "maria") + rgb(VERDE, "@assistente") + rgb(TEAL, ":~$ _"))
 
 
-def main():
+# ═══════════════════════════════════════════════════════════════
+# Interface Terminal — loop de interação
+# ═══════════════════════════════════════════════════════════════
+
+class InterfaceTerminal:
+    """
+    Gerencia toda a interação com o usuário via terminal.
+    Delega a lógica de negócio para um controller.
+    """
+
+    def __init__(self, controller, imagem_banner="maria_opening.png"):
+        """
+        Args:
+            controller: objeto com a interface definida em main.py (MariaController)
+            imagem_banner: caminho para a imagem do banner
+        """
+        self.controller = controller
+        self.imagem_banner = imagem_banner
+
+    # ── Exibição ──────────────────────────────────────────────
+
+    def mostrar_ajuda(self):
+        print("\n--- Comandos Disponíveis ---")
+        print("  ajuda    - Mostra esta mensagem de ajuda")
+        print("  limpar   - Limpa o histórico da conversa")
+        print("  retomar  - Retoma uma conversa salva de uma execução anterior")
+        print("  sair     - Encerra a aplicação")
+        print("  exit     - Encerra a aplicação (alternativo)")
+        print("-" * 30)
+        print("\nDica: você pode pedir em linguagem natural, como")
+        print("  'crie uma planilha de gastos' ou")
+        print("  'crie um documento com uma carta de apresentação'.")
+        print("A MARIA identificará automaticamente e perguntará antes de criar.\n")
+
+    def exibir_prompt(self):
+        t = shutil.get_terminal_size((120, 30))
+        print()
+        print(rgb(TEAL, "─" * t.columns))
+        print(rgb(TEAL_SUAVE, "MARIA CLI v1.0.0"))
+        print(rgb(CINZA, "Digite 'ajuda' para ver os comandos disponíveis."))
+        print(rgb(ROSA, "maria") + rgb(VERDE, "@assistente") + rgb(TEAL, ":~$ "), end="")
+
+    # ── Comandos ──────────────────────────────────────────────
+
+    def _processar_comando(self, entrada: str) -> bool:
+        """
+        Processa comandos especiais.
+        Retorna True se o loop deve ser encerrado.
+        """
+        cmd = entrada.lower()
+
+        if cmd in ("sair", "exit"):
+            print("\nEncerrando MARIA. Até logo!")
+            return True
+
+        if cmd == "ajuda":
+            self.mostrar_ajuda()
+            return False
+
+        if cmd == "limpar":
+            self.controller.limpar_historico()
+            print("\nHistórico da conversa limpo!")
+            return False
+
+        if cmd == "retomar":
+            self._retomar_sessao()
+            return False
+
+        return False  # não era comando especial conhecido
+
+    def _retomar_sessao(self):
+        """Interage com o usuário para retomar uma sessão salva."""
+        if self.controller.tem_acao_pendente():
+            self.controller.limpar_acao_pendente()
+            print("\nAção pendente cancelada para retomar outra sessão.")
+
+        sessoes = self.controller.listar_sessoes()
+        if not sessoes:
+            print("\nNenhuma sessão salva encontrada.")
+            return
+
+        print("\n--- Sessões salvas (mais recentes primeiro) ---")
+        for indice, info in enumerate(sessoes, start=1):
+            print(f"  {indice}. {info['nome_arquivo']} ({info['qtd_mensagens']} mensagens)")
+
+        escolha = input("Digite o número da sessão para retomar (ou Enter para cancelar): ").strip()
+        if not escolha:
+            print("\nRetomada cancelada.")
+            return
+
+        try:
+            indice = int(escolha)
+            sucesso, msg = self.controller.retomar_sessao(indice)
+            print(f"\n{msg}")
+        except (ValueError, IndexError):
+            print("\nSeleção inválida. Retomada cancelada.")
+
+    # ── Processamento de mensagens ────────────────────────────
+
+    def _processar_mensagem_normal(self, entrada: str):
+        """Envia mensagem para o modelo e exibe resposta em streaming."""
+        print("\nMARIA: ", end="", flush=True)
+
+        stream = self.controller.enviar_mensagem(entrada)
+        for chunk, tool_chunk in stream:
+            if chunk is not None:
+                print(chunk, end="", flush=True)
+            self.controller.processar_chunk(chunk, tool_chunk)
+        print()
+
+        tem_tool, info = self.controller.finalizar_mensagem()
+        if tem_tool:
+            print(self.controller.get_mensagem_confirmacao())
+
+    def _processar_confirmacao(self, entrada: str):
+        """Processa resposta de confirmação de uma ação pendente."""
+        status, msg = self.controller.processar_confirmacao(entrada)
+
+        if status is True:
+            print(f"\n[SISTEMA] {msg}")
+        elif status is False:
+            print(f"\n{msg}")
+        else:  # None = ambíguo
+            print(f"\n{msg}")
+
+    # ── Loop principal ────────────────────────────────────────
+
+    def iniciar(self):
+        """Ponto de entrada da interface. Exibe banner e entra no loop."""
+        # Configurar encoding UTF-8 (Windows)
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except AttributeError:
+            pass
+
+        # Inicializar controller
+        try:
+            self.controller.inicializar()
+        except Exception as e:
+            print(f"\n[ERRO] Falha ao inicializar: {e}")
+            return
+
+        # Exibir banner
+        exibir_banner(imagem=self.imagem_banner)
+        print("\nOlá! Eu sou a MARIA, sua assistente de escritório.")
+        print("Rodando 100% localmente no seu computador, sem internet.\n")
+        print("Como posso ajudar você hoje?")
+
+        # Loop de chat
+        while True:
+            try:
+                self.exibir_prompt()
+                entrada = input().strip()
+
+                if not entrada:
+                    continue
+
+                # Comandos especiais (funcionam mesmo com ação pendente)
+                if self._processar_comando(entrada):
+                    break
+                # Se _processar_comando retornou False, pode ter sido um comando
+                # reconhecido (ajuda, limpar, retomar) ou não. Precisamos verificar
+                # se a entrada era de fato um comando conhecido.
+                # Mas como os comandos são verificados por lower() exato,
+                # uma mensagem normal não bate. No entanto, precisamos de uma
+                # forma de saber se foi tratado. Vamos verificar novamente.
+                if entrada.lower() in ("ajuda", "limpar", "retomar"):
+                    continue
+
+                # Ação pendente → confirmação
+                if self.controller.tem_acao_pendente():
+                    self._processar_confirmacao(entrada)
+                    continue
+
+                # Mensagem normal
+                self._processar_mensagem_normal(entrada)
+
+            except KeyboardInterrupt:
+                print("\n\nInterrupção detectada. Digite 'sair' para encerrar ou continue digitando.")
+                continue
+            except EOFError:
+                print("\n\nFim de arquivo detectado. Encerrando.")
+                break
+
+        print("\nObrigado por usar MARIA!\n")
+        self.controller.finalizar()
+
+
+# ═══════════════════════════════════════════════════════════════
+# Ponto de entrada standalone (para testar o banner isoladamente)
+# ═══════════════════════════════════════════════════════════════
+
+def _main_standalone():
     ap = argparse.ArgumentParser(description="Banner da MARIA no terminal.")
     ap.add_argument("--imagem", default="maria_opening.png",
                     help="Caminho da imagem (padrão: maria_opening.png)")
@@ -305,4 +504,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _main_standalone()

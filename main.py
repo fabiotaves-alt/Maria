@@ -1,40 +1,37 @@
 """
 Script principal da MARIA - Assistente de IA de Escritório.
-Interface CLI para interação com o usuário via terminal.
+
+Responsabilidades:
+    - Inicializar o controller (lógica de negócio)
+    - Delegar toda a interface para ui_terminal.InterfaceTerminal
+    - Encapsular: OllamaClient, ChatSession, ferramentas, persistência
 
 Uso:
     python main.py
-
-Comandos especiais:
-    sair, exit - Encerra a aplicação
-    limpar - Limpa o histórico da conversa
-    ajuda - Mostra comandos disponíveis
 """
 
 import sys
 import logging
 from datetime import datetime
+
 from core.config import (
-    OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT, LOG_LEVEL,
-    MAX_MENSAGENS_HISTORICO, MAX_PASSOS_LEITURA
+    OLLAMA_BASE_URL,
+    OLLAMA_MODEL,
+    OLLAMA_TIMEOUT,
+    LOG_LEVEL,
+    MAX_MENSAGENS_HISTORICO,
 )
 from core.ollama_client import OllamaClient, OllamaClientError
 from core.chat_session import ChatSession, interpretar_confirmacao
-from core.tools_schema import (
-    TOOLS_SCHEMA, executar_ferramenta_real,
-    FERRAMENTAS_LEITURA, executar_ferramenta_leitura
-)
+from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real
 from core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
 
+from ui_terminal import InterfaceTerminal
 
-# Configurar encoding do stdout para UTF-8 (evita erros no Windows)
-try:
-    sys.stdout.reconfigure(encoding="utf-8")
-except AttributeError:
-    # Python < 3.7 não tem reconfigure, ignorar silenciosamente
-    pass
 
-# Configurar logging
+# ───────────────────────────────────────────────────────────────
+# Logging
+# ───────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -42,331 +39,239 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def mostrar_boas_vindas():
-    """Exibe mensagem de boas-vindas ao usuário."""
-    print("\n" + "=" * 60)
-    print("       MARIA - Assistente de IA de Escritório")
-    print("=" * 60)
-    print("\nOlá! Eu sou a MARIA, sua assistente de escritório.")
-    print("Rodando 100% localmente no seu computador, sem internet.\n")
-    print("Como posso ajudar você hoje?")
-    print("-" * 60)
-    print("Comandos: 'ajuda' | 'limpar' | 'retomar' | 'sair'\n")
+# ═══════════════════════════════════════════════════════════════
+# Controller — lógica de negócio
+# ═══════════════════════════════════════════════════════════════
 
-
-def mostrar_ajuda():
-    """Exibe lista de comandos disponíveis."""
-    print("\n--- Comandos Disponíveis ---")
-    print("  ajuda    - Mostra esta mensagem de ajuda")
-    print("  limpar   - Limpa o histórico da conversa")
-    print("  retomar  - Retoma uma conversa salva de uma execução anterior")
-    print("  sair     - Encerra a aplicação")
-    print("  exit     - Encerra a aplicação (alternativo)")
-    print("-" * 30)
-    print("\nDica: você pode pedir em linguagem natural, como")
-    print("  'crie uma planilha de gastos' ou")
-    print("  'crie um documento com uma carta de apresentação'.")
-    print("A MARIA identificará automaticamente e perguntará antes de criar.\n")
-
-
-def gerar_mensagem_confirmacao(tool_call: dict) -> str:
+class MariaController:
     """
-    Gera uma mensagem legível de confirmação para o usuário.
-    
-    Args:
-        tool_call: Dicionário com 'name' e 'arguments' da tool call
-        
-    Returns:
-        String com a mensagem de confirmação
+    Encapsula toda a lógica de negócio da MARIA:
+    conexão com Ollama, sessão de chat, ferramentas e persistência.
     """
-    nome = tool_call.get("name", "")
-    args = tool_call.get("arguments", {})
-    
-    if nome == "criar_planilha":
-        nome_arquivo = args.get("nome_arquivo", "planilha")
-        colunas = args.get("colunas", [])
-        lista_colunas = ", ".join(colunas) if colunas else "sem colunas definidas"
-        return (f'Entendi! Vou criar uma planilha chamada "{nome_arquivo}" '
-                f'com as colunas: {lista_colunas}.\n'
-                f'Posso seguir com a criação? (responda sim ou não)')
-    
-    elif nome == "criar_documento":
-        nome_arquivo = args.get("nome_arquivo", "documento")
-        titulo = args.get("titulo", "Sem título")
-        conteudo = args.get("conteudo", "")
-        preview = conteudo[:80].strip()
-        if len(conteudo) > 80:
-            preview += "..."
-        preview_texto = f'\nInício do conteúdo: "{preview}"' if preview else ""
-        return (f'Entendi! Vou criar um documento chamado "{nome_arquivo}" '
+
+    def __init__(self):
+        self.cliente: OllamaClient | None = None
+        self.sessao: ChatSession | None = None
+        self.nome_sessao: str = ""
+        self._tool_call_final = None
+        self._resposta_textual = ""
+
+    # ── Ciclo de vida ─────────────────────────────────────────
+
+    def inicializar(self):
+        """Cria cliente, sessão e define nome do arquivo de persistência."""
+        self.cliente = OllamaClient()
+        self.sessao = ChatSession(max_mensagens=MAX_MENSAGENS_HISTORICO)
+        self.nome_sessao = self._gerar_nome_sessao()
+        self._tool_call_final = None
+        self._resposta_textual = ""
+
+    def finalizar(self):
+        """Cleanup opcional ao encerrar."""
+        pass
+
+    # ── Sessão e persistência ─────────────────────────────────
+
+    @staticmethod
+    def _gerar_nome_sessao() -> str:
+        return f"sessao_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+
+    def _salvar_silenciosamente(self):
+        try:
+            salvar_sessao(self.sessao.to_dict(), self.nome_sessao)
+        except (PermissionError, OSError) as error:
+            logger.warning(f"Falha ao salvar sessão automaticamente: {error}")
+            print(f"\n[AVISO] Não foi possível salvar a sessão automaticamente: {error}")
+
+    def listar_sessoes(self):
+        """Retorna lista de sessões salvas (mais recentes primeiro)."""
+        return listar_sessoes_salvas()
+
+    def retomar_sessao(self, indice: int) -> tuple[bool, str]:
+        """
+        Retoma uma sessão salva pelo índice (1-based).
+        Retorna (sucesso, mensagem).
+        """
+        sessoes = listar_sessoes_salvas()
+        if not sessoes:
+            return False, "Nenhuma sessão salva encontrada."
+
+        try:
+            info = sessoes[indice - 1]
+        except IndexError:
+            return False, "Índice inválido."
+
+        try:
+            dados = carregar_sessao(info["caminho"])
+            self.sessao = ChatSession.from_dict(dados)
+            self.nome_sessao = info["nome_arquivo"]
+            return (
+                True,
+                f"Sessão '{info['nome_arquivo']}' retomada com "
+                f"{self.sessao.contar_mensagens()} mensagem(ns)."
+            )
+        except ValueError as error:
+            return False, f"[ERRO] Não foi possível retomar a sessão: {error}"
+
+    # ── Estado da conversa ────────────────────────────────────
+
+    def tem_acao_pendente(self) -> bool:
+        return self.sessao.tem_acao_pendente()
+
+    def limpar_acao_pendente(self):
+        self.sessao.limpar_acao_pendente()
+        self.sessao.tentativas_confirmacao_ambigua = 0
+
+    def limpar_historico(self):
+        self.sessao.limpar_historico()
+        self.sessao.limpar_acao_pendente()
+
+    # ── Envio de mensagens ────────────────────────────────────
+
+    def enviar_mensagem(self, entrada: str):
+        """
+        Prepara o envio da mensagem ao modelo.
+        Retorna um generator que yield pares (chunk_texto, tool_chunk).
+        """
+        historico_atual = self.sessao.get_historico_com_system()
+        self.sessao.adicionar_mensagem("user", entrada)
+        self._tool_call_final = None
+        self._resposta_textual = ""
+
+        return self.cliente.chat_com_tools_stream(
+            mensagem_usuario=entrada,
+            historico=historico_atual,
+            tools=TOOLS_SCHEMA
+        )
+
+    def processar_chunk(self, chunk, tool_chunk):
+        """Acumula chunks durante o streaming."""
+        if chunk is not None:
+            self._resposta_textual += chunk
+        if tool_chunk is not None:
+            self._tool_call_final = tool_chunk
+
+    def finalizar_mensagem(self) -> tuple[bool, dict | None]:
+        """
+        Finaliza o processamento após o streaming.
+        Registra no histórico, salva sessão e retorna se há tool call pendente.
+        """
+        if self._tool_call_final:
+            self.sessao.definir_acao_pendente(self._tool_call_final)
+            if self._resposta_textual.strip():
+                self.sessao.adicionar_mensagem("assistant", self._resposta_textual)
+            self._salvar_silenciosamente()
+            return True, self._tool_call_final
+
+        if self._resposta_textual.strip():
+            self.sessao.adicionar_mensagem("assistant", self._resposta_textual)
+        self._salvar_silenciosamente()
+        return False, None
+
+    # ── Confirmação de ações ──────────────────────────────────
+
+    def get_mensagem_confirmacao(self) -> str:
+        """Gera mensagem amigável de confirmação para o usuário."""
+        acao = self.sessao.acao_pendente
+        nome = acao.get("name", "")
+        args = acao.get("arguments", {})
+
+        if nome == "criar_planilha":
+            nome_arquivo = args.get("nome_arquivo", "planilha")
+            colunas = args.get("colunas", [])
+            lista = ", ".join(colunas) if colunas else "sem colunas definidas"
+            return (
+                f'Entendi! Vou criar uma planilha chamada "{nome_arquivo}" '
+                f'com as colunas: {lista}.\n'
+                f'Posso seguir com a criação? (responda sim ou não)'
+            )
+
+        if nome == "criar_documento":
+            nome_arquivo = args.get("nome_arquivo", "documento")
+            titulo = args.get("titulo", "Sem título")
+            conteudo = args.get("conteudo", "")
+            preview = conteudo[:80].strip()
+            if len(conteudo) > 80:
+                preview += "..."
+            preview_texto = f'\nInício do conteúdo: "{preview}"' if preview else ""
+            return (
+                f'Entendi! Vou criar um documento chamado "{nome_arquivo}" '
                 f'com o título "{titulo}".{preview_texto}\n'
-                f'Posso seguir com a criação? (responda sim ou não)')
+                f'Posso seguir com a criação? (responda sim ou não)'
+            )
 
-    elif nome == "editar_planilha":
-        nome_arquivo = args.get("nome_arquivo", "planilha")
-        colunas = args.get("colunas", [])
-        lista_colunas = ", ".join(colunas) if colunas else "sem colunas definidas"
-        qtd_linhas = len(args.get("linhas") or [])
-        return (f'Entendi! Vou SOBRESCREVER a planilha "{nome_arquivo}" '
-                f'com as colunas: {lista_colunas} ({qtd_linhas} linha(s) de dados).\n'
-                f'Esta ação substitui o conteúdo atual do arquivo. Posso seguir? (responda sim ou não)')
-    
-    else:
+        if nome == "editar_planilha":
+            nome_arquivo = args.get("nome_arquivo", "planilha")
+            colunas = args.get("colunas", [])
+            lista = ", ".join(colunas) if colunas else "sem colunas definidas"
+            qtd = len(args.get("linhas") or [])
+            return (
+                f'Entendi! Vou SOBRESCREVER a planilha "{nome_arquivo}" '
+                f'com as colunas: {lista} ({qtd} linha(s) de dados).\n'
+                f'Esta ação substitui o conteúdo atual do arquivo. Posso seguir? (responda sim ou não)'
+            )
+
         return f'Vou executar a ação "{nome}". Posso prosseguir? (responda sim ou não)'
 
+    def processar_confirmacao(self, entrada: str) -> tuple[bool | None, str]:
+        """
+        Processa a resposta de confirmação do usuário.
+        Retorna (status, mensagem):
+            status=True  → confirmado e executado
+            status=False → negado ou cancelado
+            status=None  → ambíguo (perguntar novamente)
+        """
+        resultado = interpretar_confirmacao(entrada)
 
-def gerar_nome_sessao() -> str:
-    """Gera o nome do arquivo da sessão atual com base no timestamp de início."""
-    return f"sessao_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-
-
-def salvar_sessao_silenciosamente(sessao: ChatSession, nome_sessao: str) -> None:
-    """Salva a sessão em disco sem interromper o loop de chat em caso de falha."""
-    try:
-        salvar_sessao(sessao.to_dict(), nome_sessao)
-    except (PermissionError, OSError) as error:
-        logger.warning(f"Falha ao salvar sessão automaticamente: {error}")
-        print(f"\n[AVISO] Não foi possível salvar a sessão automaticamente: {error}")
-
-
-def tratar_comando_retomar(sessao: ChatSession, nome_sessao_atual: str) -> tuple[ChatSession, str]:
-    """
-    Trata o comando 'retomar': lista sessões salvas e carrega a escolhida.
-
-    Returns:
-        Tupla (sessao, nome_sessao_atual) — a mesma sessão/nome recebidos
-        se a retomada for cancelada ou falhar.
-    """
-    if sessao.tem_acao_pendente():
-        sessao.limpar_acao_pendente()
-        print("\nAção pendente cancelada para retomar outra sessão.")
-
-    sessoes_disponiveis = listar_sessoes_salvas()
-    if not sessoes_disponiveis:
-        print("\nNenhuma sessão salva encontrada.")
-        return sessao, nome_sessao_atual
-
-    print("\n--- Sessões salvas (mais recentes primeiro) ---")
-    for indice, info in enumerate(sessoes_disponiveis, start=1):
-        print(f"  {indice}. {info['nome_arquivo']} ({info['qtd_mensagens']} mensagens)")
-
-    escolha = input("Digite o número da sessão para retomar (ou Enter para cancelar): ").strip()
-    if not escolha:
-        print("\nRetomada cancelada.")
-        return sessao, nome_sessao_atual
-
-    try:
-        indice_escolhido = int(escolha)
-        sessao_escolhida = sessoes_disponiveis[indice_escolhido - 1]
-    except (ValueError, IndexError):
-        print("\nSeleção inválida. Retomada cancelada.")
-        return sessao, nome_sessao_atual
-
-    try:
-        dados_sessao = carregar_sessao(sessao_escolhida["caminho"])
-        nova_sessao = ChatSession.from_dict(dados_sessao)
-        print(f"\nSessão '{sessao_escolhida['nome_arquivo']}' retomada com "
-              f"{nova_sessao.contar_mensagens()} mensagem(ns).")
-        return nova_sessao, sessao_escolhida["nome_arquivo"]
-    except ValueError as error:
-        print(f"\n[ERRO] Não foi possível retomar a sessão: {error}")
-        return sessao, nome_sessao_atual
-
-
-def loop_chat():
-    """
-    Loop principal de interação com o usuário.
-    """
-    # Inicializar componentes
-    try:
-        cliente = OllamaClient()
-    except Exception as e:
-        logger.error(f"Erro ao inicializar cliente: {e}")
-        print(f"\nErro ao inicializar cliente: {e}")
-        return
-    
-    sessao = ChatSession(max_mensagens=MAX_MENSAGENS_HISTORICO)
-    nome_sessao_atual = gerar_nome_sessao()
-    
-    mostrar_boas_vindas()
-    
-    while True:
-        try:
-            # Ler entrada do usuário
-            entrada = input("\nVocê: ").strip()
-            
-            # Verificar comandos especiais (funcionam mesmo com ação pendente)
-            if entrada.lower() in ["sair", "exit"]:
-                print("\nEncerrando MARIA. Até logo!")
-                break
-            
-            if entrada.lower() == "ajuda":
-                mostrar_ajuda()
-                continue
-            
-            if entrada.lower() == "limpar":
-                sessao.limpar_historico()
-                sessao.limpar_acao_pendente()  # Cancela qualquer ação pendente
-                print("\nHistórico da conversa limpo!")
-                continue
-            
-            if entrada.lower() == "retomar":
-                sessao, nome_sessao_atual = tratar_comando_retomar(sessao, nome_sessao_atual)
-                continue
-            
-            if not entrada:
-                continue
-            
-            # Se há ação pendente, tratar entrada como resposta de confirmação
-            if sessao.tem_acao_pendente():
-                resultado = interpretar_confirmacao(entrada)
-                
-                if resultado is True:
-                    # Confirmado - executar ação real
-                    try:
-                        nome_acao = sessao.acao_pendente["name"]
-                        argumentos = sessao.acao_pendente["arguments"]
-                        caminho = executar_ferramenta_real(nome_acao, argumentos)
-                        print(f"\n[SISTEMA] {caminho}")
-                        sessao.adicionar_mensagem("assistant", caminho)
-                        sessao.limpar_acao_pendente()
-                        salvar_sessao_silenciosamente(sessao, nome_sessao_atual)
-                    except (PermissionError, OSError, ValueError) as e:
-                        logger.error(f"Erro ao executar ferramenta: {e}")
-                        print(f"\n[ERRO] Não foi possível criar o arquivo: {e}")
-                        sessao.limpar_acao_pendente()
-                    except Exception as e:
-                        logger.error(f"Erro inesperado ao executar ferramenta: {e}")
-                        print(f"\n[ERRO] Ocorreu um erro inesperado: {e}")
-                        sessao.limpar_acao_pendente()
-                
-                elif resultado is False:
-                    # Negado - cancelar ação
-                    print("\nAção cancelada.")
-                    sessao.limpar_acao_pendente()
-                
-                else:
-                    # Ambíguo - incrementar contador e verificar
-                    sessao.tentativas_confirmacao_ambigua += 1
-                    
-                    if sessao.tentativas_confirmacao_ambigua >= 2:
-                        # Segunda ambiguidade consecutiva - cancelar automaticamente
-                        print("\nNão consegui confirmar, cancelando a ação por segurança.")
-                        sessao.limpar_acao_pendente()
-                    else:
-                        # Primeira ambiguidade - pedir novamente
-                        print("\nNão entendi. Você confirma a criação? Responda sim ou não.")
-                
-                continue
-            
-            # Enviar mensagem para o modelo (apenas se não houver ação pendente)
+        if resultado is True:
             try:
-                historico_atual = sessao.get_historico_com_system()
-                sessao.adicionar_mensagem("user", entrada)
+                nome_acao = self.sessao.acao_pendente["name"]
+                argumentos = self.sessao.acao_pendente["arguments"]
+                caminho = executar_ferramenta_real(nome_acao, argumentos)
+                self.sessao.adicionar_mensagem("assistant", caminho)
+                self.sessao.limpar_acao_pendente()
+                self._salvar_silenciosamente()
+                return True, caminho
+            except (PermissionError, OSError, ValueError) as e:
+                logger.error(f"Erro ao executar ferramenta: {e}")
+                self.sessao.limpar_acao_pendente()
+                return False, f"[ERRO] Não foi possível criar o arquivo: {e}"
+            except Exception as e:
+                logger.error(f"Erro inesperado ao executar ferramenta: {e}")
+                self.sessao.limpar_acao_pendente()
+                return False, f"[ERRO] Ocorreu um erro inesperado: {e}"
 
-                print("\nMARIA: ", end="", flush=True)
-                resposta_textual = ""
-                tool_call_final = None
+        if resultado is False:
+            self.sessao.limpar_acao_pendente()
+            return False, "Ação cancelada."
 
-                for chunk, tool_chunk in cliente.chat_com_tools_stream(
-                    mensagem_usuario=entrada,
-                    historico=historico_atual,
-                    tools=TOOLS_SCHEMA
-                ):
-                    if chunk is not None:
-                        print(chunk, end="", flush=True)
-                        resposta_textual += chunk
-                    if tool_chunk is not None:
-                        tool_call_final = tool_chunk
+        # Ambíguo
+        self.sessao.tentativas_confirmacao_ambigua += 1
+        if self.sessao.tentativas_confirmacao_ambigua >= 2:
+            self.sessao.limpar_acao_pendente()
+            return False, "Não consegui confirmar, cancelando a ação por segurança."
+        return None, "Não entendi. Você confirma a criação? Responda sim ou não."
 
-                # Encadeamento de ferramentas de LEITURA (sem confirmação)
-                passos = 0
-                while (
-                    tool_call_final
-                    and tool_call_final.get("name") in FERRAMENTAS_LEITURA
-                    and passos < MAX_PASSOS_LEITURA
-                ):
-                    try:
-                        resultado_ferramenta = executar_ferramenta_leitura(
-                            tool_call_final["name"], tool_call_final.get("arguments", {})
-                        )
-                    except (PermissionError, OSError, ValueError) as e:
-                        logger.error(f"Erro ao executar ferramenta de leitura: {e}")
-                        resultado_ferramenta = f"Erro ao acessar o sistema de arquivos: {e}"
 
-                    historico_continuacao = sessao.get_historico_com_system()
-                    novo_tool_call = None
-
-                    for chunk, tool_chunk in cliente.continuar_com_resultado_ferramenta_stream(
-                        historico=historico_continuacao,
-                        tool_call=tool_call_final,
-                        resultado=resultado_ferramenta,
-                        tools=TOOLS_SCHEMA,
-                    ):
-                        if chunk is not None:
-                            print(chunk, end="", flush=True)
-                            resposta_textual += chunk
-                        if tool_chunk is not None:
-                            novo_tool_call = tool_chunk
-
-                    tool_call_final = novo_tool_call
-                    passos += 1
-
-                if tool_call_final and tool_call_final.get("name") in FERRAMENTAS_LEITURA:
-                    # Limite de passos atingido sem uma resposta final em texto
-                    logger.warning("Limite de passos de leitura atingido sem resposta final.")
-                    aviso_limite = (
-                        "\n\nNão consegui concluir a consulta após várias tentativas. "
-                        "Tente reformular o pedido."
-                    )
-                    print(aviso_limite, end="", flush=True)
-                    resposta_textual += aviso_limite
-                    tool_call_final = None
-
-                print()
-
-                if tool_call_final:
-                    sessao.definir_acao_pendente(tool_call_final)
-                    print(gerar_mensagem_confirmacao(tool_call_final))
-                    if resposta_textual.strip():
-                        sessao.adicionar_mensagem("assistant", resposta_textual)
-                else:
-                    if resposta_textual.strip():
-                        sessao.adicionar_mensagem("assistant", resposta_textual)
-                salvar_sessao_silenciosamente(sessao, nome_sessao_atual)
-                
-            except OllamaClientError as e:
-                print(f"\n[Erro] {e}")
-                print("\nDicas:")
-                print("  1. Verifique se o Ollama está rodando: ollama serve")
-                print("  2. Verifique se o modelo está instalado: ollama pull qwen2.5:7b")
-                print("  3. Verifique se a URL http://localhost:11434 está acessível")
-                logger.error(f"Erro OllamaClientError: {e}")
-                
-        except KeyboardInterrupt:
-            print("\n\nInterrupção detectada. Digite 'sair' para encerrar ou continue digitando.")
-            continue
-        except EOFError:
-            print("\n\nFim de arquivo detectado. Encerrando.")
-            break
-    
-    print("\nObrigado por usar MARIA!\n")
-
+# ═══════════════════════════════════════════════════════════════
+# Ponto de entrada
+# ═══════════════════════════════════════════════════════════════
 
 def main():
-    """
-    Ponto de entrada principal da aplicação.
-    """
     # Verificar dependências
     try:
-        import requests
+        import requests  # noqa: F401
     except ImportError:
         print("\n[ERRO] A biblioteca 'requests' não está instalada.")
         print("Instale com: pip install requests\n")
         sys.exit(1)
-    
-    # Executar loop principal
-    loop_chat()
+
+    # Criar controller e interface
+    controller = MariaController()
+    interface = InterfaceTerminal(controller, imagem_banner="maria_opening.png")
+
+    # Delegar totalmente para a interface
+    interface.iniciar()
 
 
 if __name__ == "__main__":
