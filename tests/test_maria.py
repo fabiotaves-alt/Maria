@@ -641,6 +641,10 @@ class TestRegressao(unittest.TestCase):
                 self.chamadas += 1
                 raise OllamaTimeoutError("timeout de teste")
 
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                self.chamadas += 1
+                raise OllamaTimeoutError("timeout de teste")
+
         cliente = ClienteComTimeout()
         runner = MariaRunner(cliente=cliente)
         task = MariaTask(999, "Timeout", "Teste", "Olá")
