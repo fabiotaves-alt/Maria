@@ -51,7 +51,8 @@ class OllamaClient:
         self,
         base_url: str = OLLAMA_BASE_URL,
         model: str = OLLAMA_MODEL,
-        timeout: int = OLLAMA_TIMEOUT
+        timeout: int = OLLAMA_TIMEOUT,
+        num_predict: int | None = None,
     ):
         """
         Inicializa o cliente Ollama.
@@ -60,10 +61,13 @@ class OllamaClient:
             base_url: URL da API do Ollama (padrão: localhost:11434)
             model: Nome do modelo a usar (padrão: qwen2.5:7b)
             timeout: Timeout para requisições em segundos (padrão: 120)
+            num_predict: Override do número de tokens previstos pelo modelo.
+                Quando None, usa OLLAMA_NUM_PREDICT da configuração.
         """
         self.base_url = base_url.rstrip('/')
         self.model = model
         self.timeout = timeout
+        self.num_predict = num_predict
         self._session = requests.Session()
         self._connection_checked = False
     
@@ -198,7 +202,7 @@ class OllamaClient:
             "stream": stream,
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": OLLAMA_NUM_PREDICT,
+                "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
                 "num_thread": OLLAMA_NUM_THREAD
             },
             "keep_alive": OLLAMA_KEEP_ALIVE
@@ -304,7 +308,7 @@ class OllamaClient:
             "stream": False,
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": OLLAMA_NUM_PREDICT,
+                "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
                 "num_thread": OLLAMA_NUM_THREAD
             },
             "keep_alive": OLLAMA_KEEP_ALIVE
@@ -372,7 +376,7 @@ class OllamaClient:
             "stream": True,
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": OLLAMA_NUM_PREDICT,
+                "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
                 "num_thread": OLLAMA_NUM_THREAD
             },
             "keep_alive": OLLAMA_KEEP_ALIVE
@@ -487,7 +491,7 @@ class OllamaClient:
             "stream": True,
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": OLLAMA_NUM_PREDICT,
+                "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
                 "num_thread": OLLAMA_NUM_THREAD
             },
             "keep_alive": OLLAMA_KEEP_ALIVE

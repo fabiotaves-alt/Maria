@@ -2,6 +2,26 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.8.0] - Correções de Alta Prioridade e Validação de Argumentos
+
+### ✅ Correções aplicadas
+
+- **TOCTOU em criação de pastas corrigido**: substituído o padrão de `exists()` + `makedirs()` por `os.makedirs(..., exist_ok=True)` em `core/file_utils.py` e `core/session_storage.py`, eliminando a condição de corrida entre checagem e criação da pasta.
+- **Imports não utilizados removidos**: limpeza dirigida em `main.py`, `core/word_handler.py` e `tests/test_maria.py`, sempre com confirmação textual da ausência de referências antes da remoção.
+- **Validação de argumentos obrigatórios implementada**: adicionado `CAMPOS_OBRIGATORIOS` e `validar_argumentos_obrigatorios()` em `core/tools_schema.py`, com chamada no início de `executar_ferramenta_real` antes da execução de cada ferramenta real.
+- **Tratamento de erro reforçado**: campos obrigatórios ausentes ou vazios agora geram `ValueError` claro, evitando execução de ferramentas com arquivos vazios ou incompletos.
+- **Cobertura de regressão expandida**: novos testes cobrindo ausência de campo obrigatório e string vazia em campos obrigatórios.
+- **Documentação de benchmark atualizada**: README geral e `benchmark/README.md` agora mencionam a taxa de conformidade de idioma gerada pelo relatório.
+
+### ✅ Status dos Testes
+
+- **42/42 testes passaram** (`python -m unittest tests.test_maria -v`)
+- **Compilação sem erros** (`python -m py_compile main.py core/config.py core/file_utils.py core/tools_schema.py core/ollama_client.py core/chat_session.py core/session_storage.py core/excel_handler.py core/word_handler.py tests/test_maria.py`)
+
+### 📊 Cobertura de Código
+
+- Validação de argumentos antes da execução real de ferramentas, tratamento de TOCTOU em criação de diretórios, remoção segura de imports e regressões em testes de execução real.
+
 ## [2.7.0] - Integração das Ferramentas de Leitura no Controller
 
 ### ✅ Funcionalidades implementadas

@@ -22,6 +22,7 @@ from ..benchmark_config import (
     BENCHMARK_RETRY_BACKOFF_SECONDS,
     BENCHMARK_TASK_TIMEOUT,
 )
+from ..analysis.language_check import resposta_em_portugues
 from ..tasks.task_schema import MariaTask, MariaTaskResult
 
 logger = logging.getLogger(__name__)
@@ -30,8 +31,8 @@ logger = logging.getLogger(__name__)
 class MariaRunner:
     """Executa tarefas MARIA sem passar pelo loop interativo da CLI."""
 
-    def __init__(self, cliente: OllamaClient | None = None):
-        self.cliente = cliente or OllamaClient()
+    def __init__(self, cliente: OllamaClient | None = None, num_predict: int | None = None):
+        self.cliente = cliente or OllamaClient(num_predict=num_predict)
 
     def run(self, task: MariaTask) -> MariaTaskResult:
         original_pasta = os.environ.get("PASTA_ARQUIVOS_GERADOS")
@@ -108,6 +109,7 @@ class MariaRunner:
             not task.expected_keywords
             or any(keyword.lower() in resposta_textual.lower() for keyword in task.expected_keywords)
         )
+        language_ok = resposta_em_portugues(resposta_textual)
 
         return MariaTaskResult(
             task_id=task.id,
@@ -123,6 +125,7 @@ class MariaRunner:
             latency_ms=latency_ms,
             errors=errors,
             raw_tool_args=(tool_call_final or {}).get("arguments", {}),
+            language_ok=language_ok,
         )
 
     @staticmethod
@@ -175,3 +178,7 @@ class MariaRunner:
                     BENCHMARK_RETRY_BACKOFF_SECONDS,
                 )
                 time.sleep(BENCHMARK_RETRY_BACKOFF_SECONDS)
+
+    def run_repeated(self, task: "MariaTask", repeticoes: int) -> list["MariaTaskResult"]:
+        """Executa a mesma tarefa N vezes e retorna a lista de resultados individuais."""
+        return [self.run(task) for _ in range(repeticoes)]

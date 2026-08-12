@@ -25,9 +25,8 @@ def garantir_pasta_sessoes() -> str:
         Caminho absoluto da pasta de sessões salvas.
     """
     pasta = _pasta_sessoes()
-    if not os.path.exists(pasta):
-        os.makedirs(pasta)
-        logger.debug(f"Pasta '{pasta}' criada.")
+    os.makedirs(pasta, exist_ok=True)
+    logger.debug(f"Pasta '{pasta}' garantida.")
     return os.path.abspath(pasta)
 
 

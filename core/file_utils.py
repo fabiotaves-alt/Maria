@@ -24,9 +24,8 @@ def garantir_pasta_arquivos() -> str:
         Caminho absoluto da pasta de arquivos gerados
     """
     pasta = _pasta_arquivos_gerados()
-    if not os.path.exists(pasta):
-        os.makedirs(pasta)
-        logger.debug(f"Pasta '{pasta}' criada.")
+    os.makedirs(pasta, exist_ok=True)
+    logger.debug(f"Pasta '{pasta}' garantida.")
     
     return os.path.abspath(pasta)
 

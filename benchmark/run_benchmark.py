@@ -5,9 +5,9 @@ import sys
 import time
 from datetime import datetime
 
-from .analysis.metrics import calculate_maria_metrics
+from .analysis.metrics import calculate_maria_metrics, aggregate_by_task
 from .analysis.report import generate_report
-from .benchmark_config import BENCHMARK_RESULTS_DIR, BENCHMARK_WARMUP_TIMEOUT
+from .benchmark_config import BENCHMARK_RESULTS_DIR, BENCHMARK_WARMUP_TIMEOUT, BENCHMARK_REPETICOES
 from .runners.maria_runner import MariaRunner
 from .tasks import load_all_maria_tasks
 
@@ -26,6 +26,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--category", type=str, help="Categoria exata, por exemplo criar_planilha")
     parser.add_argument("--output-dir", default=BENCHMARK_RESULTS_DIR, help="Diretório base dos resultados")
     parser.add_argument("--delay", type=float, default=0.0, help="Espera entre tarefas em segundos")
+    parser.add_argument("--repeticoes", type=int, default=BENCHMARK_REPETICOES,
+                        help="Número de repetições por tarefa (padrão: BENCHMARK_REPETICOES)")
+    parser.add_argument("--num-predict", type=int, default=None,
+                        help="Override do número de tokens previstos pelo modelo no benchmark")
     return parser.parse_args()
 
 
@@ -82,28 +86,36 @@ def main() -> int:
     print(f"Executando {len(tasks)} tarefa(s) em sequência. Resultados: {run_dir}")
 
     # Um único runner reduz reconexões; a execução sequencial evita sobrecarga da GPU.
-    runner = MariaRunner()
-    results = []
-    for index, task in enumerate(tasks, start=1):
-        print(f"[{index}/{len(tasks)}] Tarefa {task.id}: {task.name}")
-        result = runner.run(task)
-        results.append(result)
-        status = "OK" if result.runtime_ok and result.tool_correct else "FALHA"
-        print(
-            f"  {status} tool={result.tool_detected or '-'} "
-            f"runtime={result.runtime_ok} lat={result.latency_ms:.0f}ms"
-        )
-        if args.delay and index < len(tasks):
-            time.sleep(args.delay)
+    runner = MariaRunner(num_predict=args.num_predict)
+    resultados_individuais_todas_tarefas = []
+    agregados_todas_tarefas = []
 
-    metrics = calculate_maria_metrics(results)
-    generate_report(results, metrics, run_dir)
+    for index, task in enumerate(tasks, start=1):
+        print(f"[{index}/{len(tasks)}] Tarefa {task.id}: {task.name} ({BENCHMARK_REPETICOES}x)")
+        resultados_task = runner.run_repeated(task, BENCHMARK_REPETICOES)
+        resultados_individuais_todas_tarefas.extend(resultados_task)
+        agregados_todas_tarefas.append(aggregate_by_task(resultados_task))
+
+    # log.json final com estrutura individual + agregado_por_tarefa
+    log_final = {
+        "individual": [r.__dict__ for r in resultados_individuais_todas_tarefas],
+        "agregado_por_tarefa": [a.__dict__ for a in agregados_todas_tarefas],
+    }
+    log_path = os.path.join(run_dir, "log.json")
+    with open(log_path, "w", encoding="utf-8") as log_file:
+        import json
+        json.dump(log_final, log_file, ensure_ascii=False, indent=2)
+
+    generate_report(resultados_individuais_todas_tarefas,
+                    calculate_maria_metrics(resultados_individuais_todas_tarefas),
+                    run_dir)
+
     print("\nResumo")
-    print(f"Tarefas: {metrics.total_tasks}")
-    print(f"Tool accuracy: {metrics.tool_accuracy * 100:.1f}%")
-    print(f"Confirmação: {metrics.confirmation_success_rate * 100:.1f}%")
-    print(f"Runtime: {metrics.runtime_success_rate * 100:.1f}%")
-    print(f"Latência média: {metrics.avg_latency_ms:.1f} ms")
+    print(f"Tarefas: {calculate_maria_metrics(resultados_individuais_todas_tarefas).total_tasks}")
+    print(f"Tool accuracy: {calculate_maria_metrics(resultados_individuais_todas_tarefas).tool_accuracy * 100:.1f}%")
+    print(f"Confirmação: {calculate_maria_metrics(resultados_individuais_todas_tarefas).confirmation_success_rate * 100:.1f}%")
+    print(f"Runtime: {calculate_maria_metrics(resultados_individuais_todas_tarefas).runtime_success_rate * 100:.1f}%")
+    print(f"Latência média: {calculate_maria_metrics(resultados_individuais_todas_tarefas).avg_latency_ms:.1f} ms")
     print(f"Relatório: {os.path.join(run_dir, 'report.md')}")
     return 0
 

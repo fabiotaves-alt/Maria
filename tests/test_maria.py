@@ -15,10 +15,8 @@ from core.chat_session import ChatSession, interpretar_confirmacao
 from core.tools_schema import (
     simular_execucao_ferramenta,
     executar_ferramenta_real,
+    validar_argumentos_obrigatorios,
     FERRAMENTA_CRIAR_PLANILHA,
-    FERRAMENTA_CRIAR_DOCUMENTO,
-    FERRAMENTA_EDITAR_PLANILHA,
-    FERRAMENTAS_LEITURA,
     executar_ferramenta_leitura,
 )
 from core.excel_handler import criar_planilha_real, editar_planilha_real
@@ -30,6 +28,9 @@ from core.file_utils import (
     ler_documento,
 )
 from core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
+from benchmark.analysis.language_check import resposta_em_portugues
+from benchmark.analysis.metrics import calculate_maria_metrics
+from benchmark.tasks.task_schema import MariaTaskResult
 
 
 class TestChatSession(unittest.TestCase):
@@ -221,10 +222,132 @@ class TestExecucaoReal(unittest.TestCase):
         self.assertTrue(os.path.exists(caminho))
         self.assertTrue(caminho.endswith("teste_edicao.xlsx"))
 
+
+class TestBenchmarkLanguageCompliance(unittest.TestCase):
+    """Testes para a checagem de conformidade de idioma do benchmark."""
+
+    def test_resposta_em_portugues_identifica_portugues(self):
+        self.assertTrue(resposta_em_portugues("Por favor, responda em português."))
+        self.assertTrue(resposta_em_portugues("Claro, vou ajudar você com isso."))
+
+    def test_resposta_em_portugues_rejeita_inglês_significativo(self):
+        self.assertFalse(resposta_em_portugues("Please provide the details in English."))
+        self.assertFalse(resposta_em_portugues("Sure, I can help you with that."))
+
+    def test_resposta_em_portugues_tolerancia_a_texto_misto(self):
+        self.assertFalse(resposta_em_portugues("Por favor, please continue em português."))
+        self.assertTrue(resposta_em_portugues("Por favor, não use termos em inglês."))
+
+
+class TestBenchmarkMetrics(unittest.TestCase):
+    """Testes para cálculo de métricas agregadas do benchmark."""
+
+    def test_calculate_maria_metrics_includes_language_compliance(self):
+        results = [
+            MariaTaskResult(
+                task_id=1,
+                task_name="Teste 1",
+                category="categoria",
+                model="maria",
+                tool_detected="criar_planilha",
+                tool_correct=True,
+                confirmation_completed=True,
+                keyword_match=True,
+                runtime_ok=True,
+                final_message="Tudo certo.",
+                latency_ms=100.0,
+                errors=[],
+                raw_tool_args={},
+                language_ok=True,
+            ),
+            MariaTaskResult(
+                task_id=2,
+                task_name="Teste 2",
+                category="categoria",
+                model="maria",
+                tool_detected="criar_planilha",
+                tool_correct=False,
+                confirmation_completed=False,
+                keyword_match=False,
+                runtime_ok=False,
+                final_message="Houve um problema.",
+                latency_ms=200.0,
+                errors=[{"kind": "OllamaClientError", "message": "Falha"}],
+                raw_tool_args={},
+                language_ok=False,
+            ),
+        ]
+
+        metrics = calculate_maria_metrics(results)
+
+        self.assertEqual(metrics.total_tasks, 2)
+        self.assertAlmostEqual(metrics.language_compliance_rate, 0.5)
+        self.assertEqual(metrics.error_distribution.get("OllamaClientError"), 1)
+
+    def test_diagnostico_falha_sem_erro_detecta_tool_incorreto(self):
+        result = MariaTaskResult(
+            task_id=3,
+            task_name="Teste 3",
+            category="categoria",
+            model="maria",
+            tool_detected="editar_planilha",
+            tool_correct=False,
+            confirmation_completed=True,
+            keyword_match=True,
+            runtime_ok=True,
+            final_message="Ferramenta incorreta.",
+            latency_ms=150.0,
+            errors=[],
+            raw_tool_args={},
+            language_ok=True,
+        )
+        from benchmark.analysis.report import _diagnosticar_falha
+        self.assertEqual(_diagnosticar_falha(result), "Tool call incorreto ou ferramenta inesperada")
+
+    def test_diagnostico_falha_por_idioma_incorreto(self):
+        result = MariaTaskResult(
+            task_id=4,
+            task_name="Teste 4",
+            category="categoria",
+            model="maria",
+            tool_detected="criar_documento",
+            tool_correct=True,
+            confirmation_completed=True,
+            keyword_match=True,
+            runtime_ok=True,
+            final_message="This is a response in English.",
+            latency_ms=120.0,
+            errors=[],
+            raw_tool_args={},
+            language_ok=False,
+        )
+        from benchmark.analysis.report import _diagnosticar_falha
+        self.assertEqual(_diagnosticar_falha(result), "Resposta em idioma incorreto")
+
     def test_editar_planilha_real_arquivo_inexistente_levanta_value_error(self):
         """Testa erro ao editar uma planilha inexistente."""
         with self.assertRaises(ValueError):
             editar_planilha_real("planilha_que_nao_existe", colunas=["A", "B"])
+
+
+class TestValidacaoArgumentos(unittest.TestCase):
+    """Testes para validação de campos obrigatórios em ferramentas."""
+
+    def test_validar_argumentos_obrigatorios_ausente_levanta_value_error(self):
+        """Campo obrigatório ausente deve ser rejeitado antes da execução."""
+        with self.assertRaisesRegex(ValueError, "colunas"):
+            validar_argumentos_obrigatorios(
+                "criar_planilha",
+                {"nome_arquivo": "teste"}
+            )
+
+    def test_validar_argumentos_obrigatorios_vazio_levanta_value_error(self):
+        """String vazia deve ser tratada como campo obrigatório ausente."""
+        with self.assertRaisesRegex(ValueError, "titulo"):
+            validar_argumentos_obrigatorios(
+                "criar_documento",
+                {"nome_arquivo": "x", "titulo": "   ", "conteudo": "y"}
+            )
 
 
 class TestGerarNomeUnico(unittest.TestCase):

@@ -42,3 +42,18 @@ class MariaTaskResult:
     latency_ms: float
     errors: list[dict] = field(default_factory=list)
     raw_tool_args: dict = field(default_factory=dict)
+    language_ok: bool = True
+
+
+@dataclass
+class MariaTaskAggregateResult:
+    task_id: int
+    task_name: str
+    category: str
+    execucoes: int
+    tool_accuracy: float
+    confirmation_success_rate: float
+    keyword_match_rate: float
+    runtime_success_rate: float
+    avg_latency_ms: float
+    stddev_latency_ms: float

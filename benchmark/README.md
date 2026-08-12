@@ -1,6 +1,6 @@
 # Benchmark MARIA
 
-O benchmark mede o comportamento real da MARIA usando o Ollama local e o modelo configurado, normalmente `qwen2.5:7b`. Não há modo `--reference-only`: é necessário executar `ollama serve` e manter o modelo instalado.
+O benchmark mede o comportamento real da MARIA usando o Ollama local e o modelo configurado, normalmente `qwen2.5:7b`. Não há modo `--reference-only`: é necessário executar `ollama serve` e manter o modelo instalado. O relatório inclui agora a taxa de conformidade de idioma (`language_compliance_rate`) nas respostas finais, além das métricas de tool calling, confirmação, execução, erros e latência.
 
 ## Executar
 

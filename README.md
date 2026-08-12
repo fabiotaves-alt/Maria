@@ -257,7 +257,7 @@ python -m unittest tests.test_maria -v
 
 ### Benchmark
 
-O sistema de benchmark live mede tool calling, confirmação, execução, erros e latência usando o Ollama local:
+O sistema de benchmark live mede tool calling, confirmação, execução, erros, latência e conformidade de idioma usando o Ollama local. O relatório gerado inclui a taxa de conformidade de idioma (`language_compliance_rate`) nas respostas finais.
 
 ```bash
 python -m benchmark.run_benchmark --tasks 25

@@ -16,6 +16,27 @@ def _format_errors(errors: dict[str, int]) -> str:
     return "\n".join(lines)
 
 
+def _diagnosticar_falha(result: MariaTaskResult) -> str:
+    if result.errors:
+        first_error = result.errors[0]
+        kind = first_error.get("kind", "Erro")
+        message = first_error.get("message", "").strip()
+        return f"{kind}: {message}" if message else kind
+
+    if not result.runtime_ok:
+        return "Falha de execução (runtime)"
+    if not result.tool_correct:
+        return "Tool call incorreto ou ferramenta inesperada"
+    if not result.confirmation_completed:
+        return "Confirmação não concluída"
+    if not result.language_ok:
+        return "Resposta em idioma incorreto"
+    if not result.keyword_match:
+        return "Palavras-chave esperadas não encontradas"
+
+    return "Falha não identificada"
+
+
 def generate_report(
     results: list[MariaTaskResult],
     metrics: MariaBenchmarkMetrics,
@@ -25,7 +46,11 @@ def generate_report(
     generated_at = datetime.now().isoformat(timespec="seconds")
     failed = [
         result for result in results
-        if not result.tool_correct or not result.runtime_ok
+        if not result.tool_correct
+        or not result.runtime_ok
+        or not result.confirmation_completed
+        or not result.language_ok
+        or not result.keyword_match
     ]
 
     report = f"""# Relatório do Benchmark MARIA
@@ -41,6 +66,7 @@ Gerado em: {generated_at}
 | Taxa de confirmação | {metrics.confirmation_success_rate * 100:.1f}% |
 | Taxa de palavras-chave | {metrics.keyword_match_rate * 100:.1f}% |
 | Taxa de execução | {metrics.runtime_success_rate * 100:.1f}% |
+| Taxa de conformidade de idioma | {metrics.language_compliance_rate * 100:.1f}% |
 | Latência média | {metrics.avg_latency_ms:.1f} ms |
 
 ## Métricas por categoria
@@ -54,10 +80,10 @@ Gerado em: {generated_at}
     report += "\n## Distribuição de erros\n\n" + _format_errors(metrics.error_distribution)
     report += "\n\n## Tarefas com falha\n\n"
     if failed:
-        report += "| ID | Tarefa | Erro resumido |\n|---:|---|---|\n"
+        report += "| ID | Tarefa | Motivo da falha |\n|---:|---|---|\n"
         for result in failed:
-            error = result.errors[0].get("message", "tool calling incorreto") if result.errors else "tool calling incorreto"
-            report += f"| {result.task_id} | {result.task_name} | {error.replace('|', '/')[:200]} |\n"
+            reason = _diagnosticar_falha(result).replace("|", "/")[:200]
+            report += f"| {result.task_id} | {result.task_name} | {reason} |\n"
     else:
         report += "Nenhuma tarefa falhou.\n"
 

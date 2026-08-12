@@ -2,7 +2,7 @@
 
 ## 📅 Última alteração: 2026-08-11
 
-## 📈 Percentual Total Concluído: 95%
+## 📈 Percentual Total Concluído: 97%
 
 ---
 
@@ -48,7 +48,7 @@
 - [x] Pacote `benchmark/` criado
 - [x] 25 casos de benchmark (conversa, arquivos, confirmação, cancelamento, ambiguidade, sanitização)
 - [x] `MariaRunner` com streaming real e sessões isoladas
-- [x] Métricas de acurácia, confirmação, palavras-chave, execução, latência e erros
+- [x] Métricas de acurácia, confirmação, palavras-chave, execução, latência, conformidade de idioma e erros
 - [x] Relatórios Markdown com `log.json`
 - [x] CLI com filtros (IDs, quantidade, categoria, diretório, atraso)
 
@@ -97,6 +97,15 @@
 - [x] `ui_terminal.py` intacto — interface continua iterando `(chunk, tool_chunk)` sem alteração
 - [x] Validado: 40/40 testes + 3 cenários de encadeamento com mocks (leitura→escrita, leitura simples, limite)
 
+### Fase 2.8 — Correções de Alta Prioridade e Validação de Argumentos (v2.8.0) ✅
+- [x] `TOCTOU` corrigido em `core/file_utils.py` e `core/session_storage.py` via `os.makedirs(..., exist_ok=True)`
+- [x] Eliminadas ocorrências do padrão perigoso `if not os.path.exists(...): os.makedirs(...)` em `core/`
+- [x] Imports não utilizados removidos de `main.py`, `core/word_handler.py` e `tests/test_maria.py`
+- [x] `CAMPOS_OBRIGATORIOS` e `validar_argumentos_obrigatorios()` adicionados em `core/tools_schema.py`
+- [x] Chamada de validação inserida no início de `executar_ferramenta_real` antes da execução das ferramentas reais
+- [x] Testes de regressão adicionados para campo obrigatório ausente e string vazia
+- [x] Validado: 42/42 testes passando e compilação dos módulos afetados sem erros
+
 ### Funcionalidades Futuras
 - [ ] Preferências do usuário persistidas (próxima etapa)
 - [ ] Retomada automática de sessão sem comando explícito
@@ -117,10 +126,11 @@
 | **2.5.0** | **40** | ✅ **Passando** |
 | **2.6.0** | **40** | ✅ **Passando (sem alteração de lógica)** |
 | **2.7.0** | **40** | ✅ **Passando (integração leitura no controller)** |
+| **2.8.0** | **42** | ✅ **Passando (correções de alta prioridade e validação de argumentos)** |
 
 **Comando:** `python -m unittest tests.test_maria -v`
 
-**Última execução (2026-08-11):** 40/40 testes passaram.
+**Última execução (2026-08-11):** 42/42 testes passaram.
 
 ---
 
@@ -138,6 +148,7 @@
 | **2.5.0** | **2026-08-11** | **Ferramentas de leitura: listagem e resumo de documentos** |
 | **2.6.0** | **2026-08-11** | **Exibição de comandos na tela inicial (banner)** |
 | **2.7.0** | **2026-08-11** | **Integração das ferramentas de leitura no controller** |
+| **2.8.0** | **2026-08-11** | **Correções de alta prioridade e validação de argumentos obrigatórios** |
 
 ---
 
@@ -166,3 +177,4 @@ maria/
 ├── CHANGELOG.md                # Histórico de mudanças
 ├── README.md                   # Documentação principal
 └── requirements.txt            # Dependências
+

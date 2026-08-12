@@ -6,7 +6,6 @@ Usa a biblioteca python-docx para gerar arquivos .docx.
 import os
 import logging
 from docx import Document
-from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from core.file_utils import garantir_pasta_arquivos, gerar_nome_unico
 from core.config import PASTA_ARQUIVOS_GERADOS

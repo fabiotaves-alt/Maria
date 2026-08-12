@@ -17,14 +17,11 @@ from datetime import datetime
 
 
 from core.config import (
-    OLLAMA_BASE_URL,
-    OLLAMA_MODEL,
-    OLLAMA_TIMEOUT,
     LOG_LEVEL,
     MAX_MENSAGENS_HISTORICO,
     MAX_PASSOS_LEITURA,
 )
-from core.ollama_client import OllamaClient, OllamaClientError
+from core.ollama_client import OllamaClient
 from core.chat_session import ChatSession, interpretar_confirmacao
 from core.tools_schema import (
     TOOLS_SCHEMA,

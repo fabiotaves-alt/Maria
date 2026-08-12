@@ -11,6 +11,12 @@ import logging
 # Configurar logger do módulo
 logger = logging.getLogger(__name__)
 
+CAMPOS_OBRIGATORIOS = {
+    "criar_planilha": ["nome_arquivo", "colunas"],
+    "criar_documento": ["nome_arquivo", "titulo", "conteudo"],
+    "editar_planilha": ["nome_arquivo", "colunas"],
+}
+
 # Esquema JSON para a ferramenta de criação de planilha
 FERRAMENTA_CRIAR_PLANILHA = {
     "type": "function",
@@ -178,6 +184,32 @@ TOOLS_SCHEMA = [
 ]
 
 
+def validar_argumentos_obrigatorios(nome_funcao: str, argumentos: dict) -> None:
+    """
+    Valida se todos os campos obrigatórios da ferramenta estão presentes
+    e não vazios em `argumentos`.
+
+    Raises:
+        ValueError: se algum campo obrigatório estiver ausente, None,
+            string vazia/só espaços, ou lista vazia.
+    """
+    campos = CAMPOS_OBRIGATORIOS.get(nome_funcao, [])
+    faltando = []
+    for campo in campos:
+        valor = argumentos.get(campo)
+        if valor is None:
+            faltando.append(campo)
+        elif isinstance(valor, str) and not valor.strip():
+            faltando.append(campo)
+        elif isinstance(valor, list) and len(valor) == 0:
+            faltando.append(campo)
+    if faltando:
+        raise ValueError(
+            f"Não foi possível executar '{nome_funcao}': "
+            f"campo(s) obrigatório(s) ausente(s) ou vazio(s): {', '.join(faltando)}."
+        )
+
+
 def simular_execucao_ferramenta(nome_funcao: str, argumentos: dict) -> str:
     """
     Simula a execução de uma ferramenta (utilitário de debug/teste).
@@ -215,6 +247,7 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
         ValueError: Se a função não for reconhecida
     """
     logger.info(f"Executando ferramenta real: {nome_funcao}({argumentos})")
+    validar_argumentos_obrigatorios(nome_funcao, argumentos)
     
     if nome_funcao == "criar_planilha":
         from core.excel_handler import criar_planilha_real
