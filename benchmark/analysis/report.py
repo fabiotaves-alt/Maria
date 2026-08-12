@@ -67,6 +67,7 @@ Gerado em: {generated_at}
 | Taxa de palavras-chave | {metrics.keyword_match_rate * 100:.1f}% |
 | Taxa de execução | {metrics.runtime_success_rate * 100:.1f}% |
 | Taxa de conformidade de idioma | {metrics.language_compliance_rate * 100:.1f}% |
+| Tokens por segundo (média) | {metrics.avg_tokens_por_segundo:.1f} tok/s |
 | Latência média | {metrics.avg_latency_ms:.1f} ms |
 
 ## Métricas por categoria

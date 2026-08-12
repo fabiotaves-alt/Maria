@@ -17,12 +17,13 @@ class MariaBenchmarkMetrics:
     error_distribution: dict[str, int]
     by_category: dict[str, dict[str, float]]
     language_compliance_rate: float = 0.0
+    avg_tokens_por_segundo: float = 0.0
 
 
 def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMetrics:
     total = len(results)
     if not total:
-        return MariaBenchmarkMetrics(0, 0, 0, 0, 0, 0, {}, 0.0)
+        return MariaBenchmarkMetrics(0, 0, 0, 0, 0, 0, {}, 0.0, 0.0)
 
     error_distribution = defaultdict(int)
     by_category = defaultdict(lambda: {"total": 0, "tool_correct": 0})
@@ -43,6 +44,11 @@ def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMet
         for category, values in by_category.items()
     }
 
+    avg_tokens_por_segundo = (
+        sum(result.tokens_por_segundo for result in results) / total
+        if total else 0.0
+    )
+
     return MariaBenchmarkMetrics(
         total_tasks=total,
         tool_accuracy=sum(result.tool_correct for result in results) / total,
@@ -53,6 +59,7 @@ def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMet
         error_distribution=dict(error_distribution),
         by_category=category_metrics,
         language_compliance_rate=language_ok_count / total,
+        avg_tokens_por_segundo=avg_tokens_por_segundo,
     )
 
 
@@ -63,6 +70,9 @@ def aggregate_by_task(resultados: list["MariaTaskResult"]) -> MariaTaskAggregate
 
     n = len(resultados)
     latencias = [r.latency_ms for r in resultados]
+
+    tokens_por_segundo = [r.tokens_por_segundo for r in resultados]
+    tokens_gerados = [r.tokens_gerados for r in resultados]
 
     return MariaTaskAggregateResult(
         task_id=resultados[0].task_id,
@@ -75,4 +85,6 @@ def aggregate_by_task(resultados: list["MariaTaskResult"]) -> MariaTaskAggregate
         runtime_success_rate=sum(1 for r in resultados if r.runtime_ok) / n,
         avg_latency_ms=sum(latencias) / n,
         stddev_latency_ms=statistics.stdev(latencias) if n > 1 else 0.0,
+        avg_tokens_por_segundo=sum(tokens_por_segundo) / n,
+        avg_tokens_gerados=sum(tokens_gerados) / n,
     )

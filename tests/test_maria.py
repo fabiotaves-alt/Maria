@@ -31,6 +31,7 @@ from core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_
 from benchmark.analysis.language_check import resposta_em_portugues
 from benchmark.analysis.metrics import calculate_maria_metrics
 from benchmark.tasks.task_schema import MariaTaskResult
+from core.ollama_client import OllamaClient
 
 
 class TestChatSession(unittest.TestCase):
@@ -283,6 +284,75 @@ class TestBenchmarkMetrics(unittest.TestCase):
         self.assertEqual(metrics.total_tasks, 2)
         self.assertAlmostEqual(metrics.language_compliance_rate, 0.5)
         self.assertEqual(metrics.error_distribution.get("OllamaClientError"), 1)
+
+    def test_calculate_maria_metrics_includes_avg_tokens_per_second(self):
+        results = [
+            MariaTaskResult(
+                task_id=1,
+                task_name="Teste 1",
+                category="categoria",
+                model="maria",
+                tool_detected="criar_planilha",
+                tool_correct=True,
+                confirmation_completed=True,
+                keyword_match=True,
+                runtime_ok=True,
+                final_message="Tudo certo.",
+                latency_ms=100.0,
+                errors=[],
+                raw_tool_args={},
+                language_ok=True,
+                tokens_gerados=120,
+                tokens_por_segundo=20.0,
+            ),
+            MariaTaskResult(
+                task_id=2,
+                task_name="Teste 2",
+                category="categoria",
+                model="maria",
+                tool_detected="criar_planilha",
+                tool_correct=False,
+                confirmation_completed=False,
+                keyword_match=False,
+                runtime_ok=False,
+                final_message="Erro.",
+                latency_ms=200.0,
+                errors=[{"kind": "OllamaClientError", "message": "Falha"}],
+                raw_tool_args={},
+                language_ok=False,
+                tokens_gerados=80,
+                tokens_por_segundo=10.0,
+            ),
+        ]
+
+        metrics = calculate_maria_metrics(results)
+        self.assertAlmostEqual(metrics.avg_tokens_por_segundo, 15.0)
+
+    def test_chat_com_tools_stream_com_metricas_acumula_tokens(self):
+        class FakeResponse:
+            def __init__(self, payloads):
+                self.payloads = payloads
+
+            def iter_lines(self):
+                for payload in self.payloads:
+                    yield payload
+
+        client = OllamaClient(timeout=10)
+        client._make_request = lambda payload, stream=False: FakeResponse([
+            json.dumps({"message": {"content": "Olá "}}).encode("utf-8"),
+            json.dumps({"message": {"content": "mundo"}, "done": True, "eval_count": 15}).encode("utf-8"),
+        ])
+
+        texto, tool_call, tokens_gerados, tokens_por_segundo = client.chat_com_tools_stream_com_metricas(
+            "teste",
+            historico=None,
+            tools=None,
+        )
+
+        self.assertEqual(texto, "Olá mundo")
+        self.assertEqual(tokens_gerados, 15)
+        self.assertGreater(tokens_por_segundo, 0)
+        self.assertIsNone(tool_call)
 
     def test_diagnostico_falha_sem_erro_detecta_tool_incorreto(self):
         result = MariaTaskResult(

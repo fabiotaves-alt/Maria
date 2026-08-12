@@ -48,10 +48,12 @@ class MariaRunner:
         errors: list[dict] = []
         tool_call_final = None
         resposta_textual = ""
+        tokens_gerados = 0
+        tokens_por_segundo = 0.0
         confirmation_completed = not task.confirm_sequence
 
         try:
-            resposta_textual, tool_call_final = self._enviar_com_retry(sessao, task)
+            resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo = self._enviar_com_retry(sessao, task)
             if time.monotonic() - inicio > BENCHMARK_TASK_TIMEOUT:
                 raise TimeoutError(
                     f"Tarefa excedeu o timeout de {BENCHMARK_TASK_TIMEOUT} segundos."
@@ -126,6 +128,8 @@ class MariaRunner:
             errors=errors,
             raw_tool_args=(tool_call_final or {}).get("arguments", {}),
             language_ok=language_ok,
+            tokens_gerados=tokens_gerados,
+            tokens_por_segundo=tokens_por_segundo,
         )
 
     @staticmethod
@@ -152,6 +156,17 @@ class MariaRunner:
         while True:
             try:
                 historico = sessao.get_historico_com_system()
+                metodo_metricas = getattr(self.cliente, "chat_com_tools_stream_com_metricas", None)
+                if callable(metodo_metricas):
+                    resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo = (
+                        metodo_metricas(
+                            mensagem_usuario=task.user_message,
+                            historico=historico,
+                            tools=TOOLS_SCHEMA,
+                        )
+                    )
+                    return resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo
+
                 resposta_textual = ""
                 tool_call_final = None
                 for chunk, tool_chunk in self.cliente.chat_com_tools_stream(
@@ -163,7 +178,7 @@ class MariaRunner:
                         resposta_textual += chunk
                     if tool_chunk is not None:
                         tool_call_final = tool_chunk
-                return resposta_textual, tool_call_final
+                return resposta_textual, tool_call_final, 0, 0.0
             except OllamaTimeoutError:
                 raise
             except OllamaClientError:

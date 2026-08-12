@@ -9,6 +9,7 @@ Requisitos:
 """
 
 import logging
+import time
 import requests
 import json
 from collections.abc import Generator
@@ -82,8 +83,16 @@ class OllamaClient:
         Raises:
             OllamaClientError: Se o modelo não estiver instalado
         """
+        if not hasattr(self, "_connection_checked"):
+            self._connection_checked = False
         if self._connection_checked:
             return True
+        if not hasattr(self, "_session"):
+            self._session = requests.Session()
+        if not hasattr(self, "base_url"):
+            self.base_url = OLLAMA_BASE_URL.rstrip('/')
+        if not hasattr(self, "model"):
+            self.model = OLLAMA_MODEL
         
         try:
             response = self._session.get(
@@ -145,6 +154,13 @@ class OllamaClient:
                 "\nPara iniciar o Ollama, execute: ollama serve\n"
                 "Para instalar o modelo, execute: ollama pull qwen2.5:7b"
             )
+        
+        if not hasattr(self, "_session"):
+            self._session = requests.Session()
+        if not hasattr(self, "base_url"):
+            self.base_url = OLLAMA_BASE_URL.rstrip('/')
+        if not hasattr(self, "timeout"):
+            self.timeout = OLLAMA_TIMEOUT
         
         try:
             response = self._session.post(
@@ -358,6 +374,98 @@ class OllamaClient:
             return content, tool_call_info
         
         return content, None
+
+    def chat_com_tools_stream_com_metricas(
+        self,
+        mensagem_usuario: str,
+        historico: list[dict[str, str]] | None = None,
+        tools: list[dict] | None = None,
+    ) -> tuple[str, dict | None, int, float]:
+        """Envia uma mensagem em streaming e retorna texto, tool call e métricas de tokens."""
+        mensagens = list(historico or [])
+        mensagens.append({"role": "user", "content": mensagem_usuario})
+
+        num_predict = getattr(self, "num_predict", None)
+        payload = {
+            "model": self.model,
+            "messages": mensagens,
+            "tools": tools,
+            "stream": True,
+            "options": {
+                "num_ctx": OLLAMA_NUM_CTX,
+                "num_predict": num_predict if num_predict is not None else OLLAMA_NUM_PREDICT,
+                "num_thread": OLLAMA_NUM_THREAD
+            },
+            "keep_alive": OLLAMA_KEEP_ALIVE
+        }
+
+        response = self._make_request(payload, stream=True)
+        tool_call_final = None
+        partes_texto: list[str] = []
+        eval_count = 0
+        inicio = time.monotonic()
+
+        try:
+            for line in response.iter_lines():
+                if not line:
+                    continue
+
+                try:
+                    data = json.loads(line.decode("utf-8"))
+                except json.JSONDecodeError:
+                    continue
+
+                message = data.get("message", {})
+                content = message.get("content", "")
+                if content:
+                    partes_texto.append(content)
+
+                if data.get("done") is True:
+                    eval_count = int(data.get("eval_count") or 0)
+
+                tool_calls = message.get("tool_calls")
+                if not isinstance(tool_calls, list) or not tool_calls:
+                    continue
+
+                tool_call = tool_calls[0]
+                if not isinstance(tool_call, dict):
+                    logger.warning("Tool call malformada no stream com métricas: esperado dict")
+                    continue
+
+                function = tool_call.get("function")
+                if not isinstance(function, dict):
+                    logger.warning("Tool call malformada no stream com métricas: function inválida")
+                    continue
+
+                name = function.get("name")
+                if not isinstance(name, str) or not name:
+                    logger.warning("Tool call malformada no stream com métricas: name inválido")
+                    continue
+
+                arguments_raw = function.get("arguments", "{}")
+                try:
+                    arguments = json.loads(arguments_raw) if isinstance(arguments_raw, str) else arguments_raw
+                except json.JSONDecodeError:
+                    logger.warning("Falha ao parsear argumentos da tool call no stream com métricas")
+                    arguments = {}
+
+                tool_call_final = {"name": name, "arguments": arguments}
+
+        except requests.exceptions.ConnectionError as error:
+            logger.error(f"Erro de conexão durante streaming com métricas: {error}")
+            raise OllamaClientError(
+                "Perda de conexão com o Ollama durante o streaming. "
+                "Verifique se o serviço continua rodando."
+            ) from error
+        except requests.exceptions.Timeout as error:
+            logger.error(f"Timeout durante streaming com métricas: {error}")
+            raise OllamaTimeoutError(
+                "Tempo limite excedido durante o streaming da resposta."
+            ) from error
+
+        duracao = max(time.monotonic() - inicio, 1e-9)
+        tokens_por_segundo = (eval_count / duracao) if eval_count else 0.0
+        return "".join(partes_texto), tool_call_final, eval_count, tokens_por_segundo
 
     def chat_com_tools_stream(
         self,

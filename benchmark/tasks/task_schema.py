@@ -43,6 +43,8 @@ class MariaTaskResult:
     errors: list[dict] = field(default_factory=list)
     raw_tool_args: dict = field(default_factory=dict)
     language_ok: bool = True
+    tokens_gerados: int = 0
+    tokens_por_segundo: float = 0.0
 
 
 @dataclass
@@ -57,3 +59,5 @@ class MariaTaskAggregateResult:
     runtime_success_rate: float
     avg_latency_ms: float
     stddev_latency_ms: float
+    avg_tokens_por_segundo: float = 0.0
+    avg_tokens_gerados: float = 0.0
