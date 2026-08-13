@@ -102,11 +102,12 @@ class MariaRunner:
 
         latency_ms = (time.monotonic() - inicio) * 1000
         detected_name = tool_call_final.get("name") if tool_call_final else None
-        tool_correct = (
-            detected_name == task.expected_tool
-            if task.expected_tool is not None
-            else detected_name is None
-        )
+        if task.tools_aceitos is not None:
+            tool_correct = detected_name in task.tools_aceitos
+        elif task.expected_tool is not None:
+            tool_correct = detected_name == task.expected_tool
+        else:
+            tool_correct = detected_name is None
         keyword_match = (
             not task.expected_keywords
             or any(keyword.lower() in resposta_textual.lower() for keyword in task.expected_keywords)

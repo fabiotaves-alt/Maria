@@ -9,6 +9,7 @@ Requisitos:
 """
 
 import logging
+import re
 import time
 import requests
 import json
@@ -36,6 +37,43 @@ class OllamaClientError(Exception):
 class OllamaTimeoutError(OllamaClientError):
     """Indica que uma requisição excedeu o timeout configurado."""
     pass
+
+
+def _tentar_extrair_tool_call_textual(conteudo: str) -> dict | None:
+    """
+    Fallback: alguns modelos, em vez de preencher o campo estruturado
+    'tool_calls' da API do Ollama, vazam a chamada de ferramenta como
+    texto no campo 'content', geralmente terminando com a tag literal
+    '</tool_call>'. Esta função tenta detectar e extrair esse padrão.
+
+    Args:
+        conteudo: texto acumulado de 'content' de uma resposta (streaming
+            ou não).
+
+    Returns:
+        {"name": str, "arguments": dict} se um padrão válido de tool call
+        for encontrado no texto, None caso contrário.
+    """
+    if '"name"' not in conteudo or '"arguments"' not in conteudo:
+        return None
+
+    match = re.search(r'\{.*"name"\s*:\s*"[^"]+".*"arguments"\s*:\s*\{.*?\}\s*\}', conteudo, re.DOTALL)
+    if not match:
+        return None
+
+    try:
+        dados = json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return None
+
+    nome = dados.get("name")
+    argumentos = dados.get("arguments", {})
+    if not isinstance(nome, str) or not nome:
+        return None
+    if not isinstance(argumentos, dict):
+        return None
+
+    return {"name": nome, "arguments": argumentos}
 
 
 class OllamaClient:
@@ -216,6 +254,7 @@ class OllamaClient:
             "model": self.model,
             "messages": mensagens,
             "stream": stream,
+            "think": False,
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
@@ -322,6 +361,7 @@ class OllamaClient:
             "messages": mensagens,
             "tools": tools,
             "stream": False,
+            "think": False,
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
@@ -493,6 +533,7 @@ class OllamaClient:
         response = self._make_request(payload, stream=True)
         tool_call_final = None
         houve_conteudo = False
+        conteudo_acumulado = ""
 
         try:
             for line in response.iter_lines():
@@ -508,6 +549,7 @@ class OllamaClient:
                 content = message.get("content", "")
                 if content:
                     houve_conteudo = True
+                    conteudo_acumulado += content
                     yield content, None
 
                 tool_calls = message.get("tool_calls")
@@ -553,6 +595,15 @@ class OllamaClient:
             raise OllamaTimeoutError(
                 "Tempo limite excedido durante o streaming da resposta."
             ) from error
+
+        if tool_call_final is None and conteudo_acumulado:
+            tool_call_textual = _tentar_extrair_tool_call_textual(conteudo_acumulado)
+            if tool_call_textual is not None:
+                logger.warning(
+                    "Tool call detectada como texto vazado no content (fallback textual): %s",
+                    tool_call_textual["name"],
+                )
+                tool_call_final = tool_call_textual
 
         if tool_call_final is None and not houve_conteudo:
             logger.debug(
@@ -608,6 +659,7 @@ class OllamaClient:
         response = self._make_request(payload, stream=True)
         tool_call_final = None
         houve_conteudo = False
+        conteudo_acumulado = ""
 
         try:
             for line in response.iter_lines():
@@ -622,6 +674,7 @@ class OllamaClient:
                 content = message.get("content", "")
                 if content:
                     houve_conteudo = True
+                    conteudo_acumulado += content
                     yield content, None
 
                 tool_calls = message.get("tool_calls")
@@ -663,6 +716,15 @@ class OllamaClient:
             raise OllamaTimeoutError(
                 "Tempo limite excedido durante o streaming da resposta."
             ) from error
+
+        if tool_call_final is None and conteudo_acumulado:
+            tool_call_textual = _tentar_extrair_tool_call_textual(conteudo_acumulado)
+            if tool_call_textual is not None:
+                logger.warning(
+                    "Tool call detectada como texto vazado no content (fallback textual): %s",
+                    tool_call_textual["name"],
+                )
+                tool_call_final = tool_call_textual
 
         if tool_call_final is None and not houve_conteudo:
             logger.debug("Resposta de continuação sem tool call e sem conteúdo textual.")

@@ -75,7 +75,7 @@ NÃO use para dados estruturados em colunas ou tabelas.""",
                 },
                 "titulo": {
                     "type": "string",
-                    "description": "Título principal do documento. Ex: 'Relatório de Vendas - Janeiro 2025'"
+                    "description": "Título principal do documento. Campo obrigatório: se o usuário não indicar um título explícito, gere um título curto e apropriado com base no conteúdo. Ex: 'Relatório de Vendas - Janeiro 2025', ou 'Carta de Apresentação' para uma carta sem título informado."
                 },
                 "conteudo": {
                     "type": "string",

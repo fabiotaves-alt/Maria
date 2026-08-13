@@ -17,6 +17,7 @@ from core.tools_schema import (
     executar_ferramenta_real,
     validar_argumentos_obrigatorios,
     FERRAMENTA_CRIAR_PLANILHA,
+    FERRAMENTA_EDITAR_PLANILHA,
     executar_ferramenta_leitura,
 )
 from core.excel_handler import criar_planilha_real, editar_planilha_real
@@ -625,6 +626,39 @@ class TestRegressao(unittest.TestCase):
 
         self.assertEqual("".join(chunk for chunk, _ in chunks if chunk), "Olá!")
         self.assertIsNone(chunks[-1][1])
+
+    @patch('core.ollama_client.requests.Session')
+    def test_chat_com_tools_stream_tool_call_vazada_como_texto(self, mock_session_class):
+        """Testa que uma tool call vazada como texto no content é detectada via fallback."""
+        from core.ollama_client import OllamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        conteudo_vazado = (
+            'brtc\n{"name": "editar_planilha", "arguments": '
+            '{"nome_arquivo": "estoque", "colunas": ["Produto", "Quantidade"]}}\n</tool_call>'
+        )
+        linhas_stream = [
+            json.dumps({"message": {"content": conteudo_vazado, "tool_calls": []}, "done": True}).encode("utf-8"),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas_stream)
+        mock_session.post.return_value = mock_response
+        mock_session.get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"models": [{"name": "qwen2.5:7b"}]}
+        )
+
+        chunks = list(OllamaClient(model="qwen2.5:7b").chat_com_tools_stream(
+            mensagem_usuario="edite a planilha",
+            historico=[],
+            tools=[FERRAMENTA_EDITAR_PLANILHA]
+        ))
+
+        tool_call_final = chunks[-1][1]
+        self.assertIsNotNone(tool_call_final)
+        self.assertEqual(tool_call_final["name"], "editar_planilha")
+        self.assertEqual(tool_call_final["arguments"]["nome_arquivo"], "estoque")
 
     def test_timeout_de_streaming_nao_faz_retry(self):
         """Testa que timeout de geração é propagado sem nova tentativa."""

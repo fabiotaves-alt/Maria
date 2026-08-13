@@ -1,0 +1,83 @@
+TO DO
+
+Memória que se organiza ao desligar, salva prefeferencias, guarda referencias, organiza "castelo mental"
+warmup do modelo com algum ulele
+benchmark com mais métricas, pesquisar padrão e adaptar
+possibilidade de escolher o modelo ao iniciar o main.py -m "modelo"
+verificar bug do leitor de arquivos
+
+"MARIA CLI v1.0.0
+Digite 'ajuda' para ver os comandos disponíveis.
+maria@assistente:~$ você pode verificar os arquivos que você tem acesso no momento?
+
+MARIA: 2026-08-12 20:51:51,696 - core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+2026-08-12 20:51:51,702 - __main__ - ERROR - Erro ao executar ferramenta de leitura: A pasta 'arquivos_gerados' não existe ou não é um diretório.
+Peço desculpas, mas parece que não há nenhum arquivo na pasta padrão. Você pode me fornecer mais detalhes sobre os arquivos ou pastas específicas que você precisa verificar?"
+
+Interface de usuário no javafx?
+visualizador e editor de tabelas e arquivos simples, Maria edita na sua frente
+cara da maria na lateral com a janela de dialogo
+tela inicial com opções de arrastar e soltar arquivos para edição
+tarefas pré-estabelecidas, rotinas diárias
+
+voz 
+
+cada maria é única, aprende com o tempo
+maria dorme, organiza memórias, mini fine-tunning diário
+Salva preferencias, se especializa em funções
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%??*?%%%%%%%%%%%?%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%??%%?%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%?%%%%????%%%%%%%%%%%%%??%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%??%%%%%%%%%%?%%%%%%?%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%??%%%%%%??%%?%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%??%%%%%%%%????????????????*?*****????????%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%??%%%%%%%%%%%%?*******??%%%%%%???**++++++++++++**???%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%??%%%%%%%%%%%%??*+++*?%%%??%%%%%SSSSSS%%????%%?**++;;;+**??%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%?%
+%%%%%%%%%%%%%%%%%%%%??%%%%%%%%%%%%???*+;+*?%%%%%SSSS#SS#######SSS%%?%SSSS%%?**+;;;*?%%%%%%%%%??%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%?%%%%%%%%%%%%????**+***%%%SSSSSSS###########SSSSS%??%%SSSSS%%?+;;+*%%%%%%%%??%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%??%%%%%%%%%%%????*++**?%?%%SSSSSS###S############SSSSS%%??%%%SSS%%*+;;*?%%%%%%%??%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%?%%%%%%%%%%%???*++**?%SSS?%%SSSS##S##################S###SS%%%%%%%S%%?*++*?%%%%%%%?%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%?%%%%%%%%%%%%??*++??%SS###S%%%S#############S###########SS#####SSS%%%%%??+;+??%%%%%%??%?%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%??%%%%%%%%%%%%??*+*?%SS###S????%%S##########################SS#######SSS%%?**+*??%%%%%%??%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%?%%%%%%%%%%%%?*+;*%SS###S?+;;+*%%%S###############@@@@@#######SSSS####SSSSS%**;*?%%%%%%%??%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%?%%%%%%%%%%%??+;;*%SS##S?+:::::+?S%%S###################@#########SSSS%SS%%%%%?*;+??%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%??%%%%%%%%%%%%?;:+?%SS##S?;::,,::;+?S%S#####@@#########@@@@#@@#####@######SS%%%??*+;*??%??%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%*?%%%%%%%%%%??+:+?SSS###?;:,,,:::;;+?%SS######@@@########@@@@@###############SS%%??*+*?%%%%%%%%%?%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%?%%%%%%%+;*?SSS##SS+:,,,,::::;;*?SSS######@@@@######S######@#############SSS%?**++*?%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%*:+%%%S##SS?:,,,,::;*??%%SSSS#######@@@@@@@@@#####################SSSSS%??+;+*%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%?+;??*S#S#SS+,,,,::*%????*+;+???%#######@@@@@@@@@@@######SS#########SS%%%%?**++*%%%%%%%%%???????%%%
+%%%%%%%%%%%%%%%%%%%%%*++**%SSS##?::,,::+*+*??+;,:;+??*%SSS#######################SSS######SS%???*+?+??%%%%%%%%??%?%??%%%
+%%%%%%%%%%%%%%%%%%%%%?*+;?%S%%%S%%*:,:;;:+???***????%?%%SSS#############@##########SSSS#####S%?*?+****%%%%%%%????????%%%
+%%%%%%%%%%%%%%%%%%%%%?+;?%%*+???*?*;:;;:;?%%SSSSSSS%SSS%%SSS###@@@@@@@@@@@@@@@########SSSSSSS%%?***++??%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%??+??*:+?%S%:+**+;+:+*?%SSSS%?%%SS%????%%%S####@@@@@@@@@@@@@##########SSS%%?*++++*?%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%**%*:;?%SSS???%+,;++**+*????**??*++++**??%SS##@@@@@@@@@@@@@@#@#@##@####SSSSS%*+;;+*%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%???;:+%SSSS#%?+:;+*?*+++++;;;*+;:;;;++*???%S###@@@@####@@@@#####@########SS%%%?*+;++?%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%??*;:+?%SSSS?+,;+***+;:::,,,;;,:::;;++**???%S###@@#########@@#############S%**?*+*???%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%???:+?%%SS%;,;+*****+;:::;;:::;;;+++***??%%S###############@@############SS%++?++*??%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%?%;:*%%S%::;++++**?**++;;::;;;+++***????%%%S####SSSS########@@###SS#####SSS%*?**??%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%???;;+%%*:+*???*+*??*+;;;;;;+++*****?????%%SS###S%S###SSS#########SSS#SSS%%%%*+??%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%??*++*?%+:*?%S%?%?*+*++++++******?*??????%%SS###SSSS%%SSSS#@@@#S#SSSSSSS%%%%?+??%%%%%%%%S%%%%%%%
+%%%%%%%%%%%*%%%%%%%%%%%%%?*%%%SS;,;:**??**+++****?*??????????????%%%SSSSSSS?*%%S##@@@######S%?S??SS%**%%%%%%%%%%%%%%%S%%
+%%%%%%%%%%%??%%%%%%%%%%??*??**??:,,,;;+*******???????????????????%%%%SSSSS%?%S#@@#@#####S###S%%??%?+*%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%?%%%%%%%%%%?*??**+*?+,,:+?%%%%%%%%S%%????????????????%%%%SSS#####@@@########S####S??%*+;*??%%%%%%%%%S%S%%S%%
+SS%%%%%%%%%%%%%%%%%%%%%%%%???*++?;,;*????%%%%%?**??????????????%%%%%SSS######@#@@######SS###S%??%%?**?%%%%%SS%SSSSSSSSS%
+SSS%%%%%S%%%%?%%%%%%%%%%%%%%??++??;;:+*?%????***???????????????%%%%%SS#SS########@#####S%SSSS%*?*?%%%%%%%SSS%%SSSSSS%%%%
+SSSSSS%%S%%%%%?%%%%%%%%%%%%%?*+???*,:+*?%?????*???????%%%%%?%%%%%%%SSSS################S?%%SS*+*??%%%%%%SSSS%SSSSS%%S%%%
+SSSSSSS%%SSS%S%?%%%%%%%%%%%%%??????+,:++*******????????%%%%%%%%%%SSSSSS##############SSS%*?%**+**?%%%S%SSSS%SSSSSS%%SSSS
+SSSSSSSS%%SSS%S%?%%%%S%%%%%%%%%?????;,:;;++****?????%?%%%%%%%%SSSSSSSSS############S%SSS%%*+++*??%%SS%SSSS%%SSSSSS%SSSSS
+SSSSSSSSS%SSSS%S%?%S%%%%%%%%%%%%%???+,:;;+***????%%%%%%%%%%SSSSSSSSSSSS#S#S######SS%%%SSS%?++*??%%SS%%SSSS%SSSSSS%SSSSSS
+SSSSSSSSSS%SSSS%S%?%S%%%S%%%%%%%%%%%*,:++**???%%%%%%%%%SSSSSSSSSSSSSSSSSSSSS####SSS%%?**?%?+*?%%SSS%SSSSS%SSSSS%SSSSSSSS
+SSSSSSSSSSS%%SSS%%%%%S%%%S%%%%%%%%%%%*;;+**????????%%SSSSSSSSSSSSSSSSSSSSS%%SSS%%?****???%%%%SSSSS%%SSSS%SSSSS%SSSSSSSSS
+SSSSSSSSSSSS%%SSS%SS%%%S%%SSS%%%SS%%%%%???*????%%?+;*?%%SSSSSSSSSSS%SS%%%%?*???*+***?%%%%%%SSSSSS%SSSSS%SSSSSSSSSSSSSSSS
+SSSSSSSSSSSSS%%SSSSSS%%%SS%%SSS%%%SSS%%%%%%%%%??%%%;:*?%%SSSSSSSSSS%%%%%%?*:,:*???%%%%%%%%SSSSSSSSSSSS%SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSS%SSSSSSS%%%SSSSSSS%%%%SSSSSSS%%%%%??*,:*?%%SSSSSS%%%%%%%%%?*;,.+??+;?%%%%SSSSSSSSSSS%%%SSSSSSSSSSSSSS%%%S
+SSSSSSSSSSSSSSSS%%SSSSSSS%%%SS%SSSSS%%%SSSSSS%%%%%%?:,;*%%%SSSS%%%%%%%%%%%??***?*+:*%%%SSSSS%SSSSS%%%SSSSSSSSSSSSSSS?;*S
+SSSSSSSSSSSSSSSSSS%%SSSSSSS%%%SSSSSSSS%%%%%%%%%%%%%%*,;*?%%%%%%%SSSSSSSSSSSSSS%%%?+;%%%%%%SSSSSS%%%SSSSSSSSSSSSSSSSS%?%S
+SSSSSSSSSSSSSSSSSSSS%SSSSSSSS%%%%SSSSSSSSSS%%%%%?*?%%;+*?%%SSSSSSS#S##SSSSSSSSSS%??+;?%%%%SSSSS%%%SSSSSSSSSSSSSSSSSS?*?S
+SSSSSSSSSSSSSSSSSSSSSS%SSSSSSSSS%S%%SSSSSSSSS%S%?*?%%%%%SSSS#SSS#S##########SSSS%%??+;*%%%%%%%%%SSSSSSSSSSSSSSSSSSSS%??S
+SSSSSSSS%SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS%SS%?%SSSS######################SSSS%%??*;;+*?%%%SSSSSSSSSSSSSSSSSSSSSS%??S
+SSSSSSSS%SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS%S%%SSS%%??SSSS####################S#SSSS%%%%??*+;;+*?%%%%%SSSSSSSSSSSSSSSSS?;*S
+SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS%%%%?%SSSS##############S####SSSSSSSS%%%%%????*+;+*?%SSSSSSSSSSSSSSSSSSSSSS
