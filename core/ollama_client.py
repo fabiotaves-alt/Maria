@@ -431,6 +431,7 @@ class OllamaClient:
             "messages": mensagens,
             "tools": tools,
             "stream": True,
+            "think": False,
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": num_predict if num_predict is not None else OLLAMA_NUM_PREDICT,
@@ -522,6 +523,7 @@ class OllamaClient:
             "messages": mensagens,
             "tools": tools,
             "stream": True,
+            "think": False,
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
@@ -648,6 +650,7 @@ class OllamaClient:
             "messages": mensagens,
             "tools": tools,
             "stream": True,
+            "think": False,
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
