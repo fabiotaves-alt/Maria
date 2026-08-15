@@ -79,13 +79,13 @@ def _tentar_extrair_tool_call_textual(conteudo: str) -> dict | None:
 class OllamaClient:
     """
     Cliente para comunicação com a API do Ollama rodando localmente.
-    
+
     Atributos:
         base_url (str): URL base da API do Ollama
         model (str): Nome do modelo a ser usado
         timeout (int): Timeout em segundos para as requisições
     """
-    
+
     def __init__(
         self,
         base_url: str = OLLAMA_BASE_URL,
@@ -95,7 +95,7 @@ class OllamaClient:
     ):
         """
         Inicializa o cliente Ollama.
-        
+
         Args:
             base_url: URL da API do Ollama (padrão: localhost:11434)
             model: Nome do modelo a usar (padrão: qwen3.5:4b)
@@ -109,15 +109,15 @@ class OllamaClient:
         self.num_predict = num_predict
         self._session = requests.Session()
         self._connection_checked = False
-    
+
     def _check_connection(self) -> bool:
         """
         Verifica se o Ollama está acessível e se o modelo está instalado.
         Verificação é feita apenas uma vez por sessão para otimização.
-        
+
         Returns:
             True se conectado e modelo instalado, False caso contrário
-            
+
         Raises:
             OllamaClientError: Se o modelo não estiver instalado
         """
@@ -131,7 +131,7 @@ class OllamaClient:
             self.base_url = OLLAMA_BASE_URL.rstrip('/')
         if not hasattr(self, "model"):
             self.model = OLLAMA_MODEL
-        
+
         try:
             response = self._session.get(
                 f"{self.base_url}/api/tags",
@@ -140,22 +140,22 @@ class OllamaClient:
             if response.status_code == 200:
                 data = response.json()
                 models = data.get("models", [])
-                
+
                 # Verificar se o modelo especificado está na lista
                 model_names = [m.get("name", "") for m in models]
                 # Normalizar nomes para comparação (remover tags como :latest)
                 model_names_normalized = [m.split(":")[0] if ":" in m else m for m in model_names]
-                
+
                 # Verificar se o modelo está instalado (comparação exata ou parcial)
                 model_existe = self.model in model_names or self.model.split(":")[0] in model_names_normalized
-                
+
                 if not model_existe:
                     raise OllamaClientError(
                         f"Modelo '{self.model}' não está instalado no Ollama.\n"
                         f"Modelos disponíveis: {', '.join(model_names) if model_names else 'nenhum'}\n\n"
                         f"Para instalar o modelo, execute: ollama pull {self.model}"
                     )
-                
+
                 self._connection_checked = True
                 return True
             return False
@@ -163,7 +163,7 @@ class OllamaClient:
             return False
         except requests.exceptions.Timeout:
             return False
-    
+
     def _make_request(
         self,
         payload: dict,
@@ -172,14 +172,14 @@ class OllamaClient:
         """
         Faz a requisição HTTP para a API do Ollama.
         Método centralizado para evitar duplicação de código.
-        
+
         Args:
             payload: Dicionário com os dados da requisição
             stream: Se True, habilita streaming na requisição
-            
+
         Returns:
             Objeto Response da requisição
-            
+
         Raises:
             OllamaClientError: Se houver erro de conexão ou HTTP
         """
@@ -192,14 +192,14 @@ class OllamaClient:
                 "\nPara iniciar o Ollama, execute: ollama serve\n"
                 "Para instalar o modelo, execute: ollama pull qwen3.5:4b"
             )
-        
+
         if not hasattr(self, "_session"):
             self._session = requests.Session()
         if not hasattr(self, "base_url"):
             self.base_url = OLLAMA_BASE_URL.rstrip('/')
         if not hasattr(self, "timeout"):
             self.timeout = OLLAMA_TIMEOUT
-        
+
         try:
             response = self._session.post(
                 f"{self.base_url}/api/chat",
@@ -207,15 +207,15 @@ class OllamaClient:
                 timeout=self.timeout,
                 stream=stream
             )
-            
+
             if response.status_code != 200:
                 raise OllamaClientError(
                     f"Erro na API do Ollama: status {response.status_code}\n"
                     f"Detalhes: {response.text}"
                 )
-            
+
             return response
-                
+
         except requests.exceptions.ConnectionError:
             raise OllamaClientError(
                 "Perda de conexão com o Ollama durante a requisição. "
@@ -226,7 +226,7 @@ class OllamaClient:
                 "Tempo limite excedido ao aguardar resposta do modelo. "
                 "O modelo pode estar processando uma requisição complexa."
             )
-    
+
     def enviar_mensagem(
         self,
         mensagens: list[dict[str, str]],
@@ -235,17 +235,17 @@ class OllamaClient:
     ) -> Generator[str, None, None] | str:
         """
         Envia uma conversa (histórico de mensagens) para o modelo.
-        
+
         Args:
             mensagens: Lista de dicionários com as mensagens no formato
                       [{"role": "user|assistant|system", "content": "..."}]
             tools: Lista de ferramentas (function calling) opcionais
             stream: Se True, retorna um generator para streaming
-            
+
         Returns:
             Se stream=False: string com a resposta completa
             Se stream=True: generator que yielda chunks da resposta
-            
+
         Raises:
             OllamaClientError: Se houver erro de conexão ou resposta inválida
         """
@@ -262,42 +262,42 @@ class OllamaClient:
             },
             "keep_alive": OLLAMA_KEEP_ALIVE
         }
-        
+
         # Adicionar tools se fornecidas
         if tools:
             payload["tools"] = tools
-        
+
         response = self._make_request(payload, stream=stream)
-        
+
         if stream:
             return self._process_stream(response)
         else:
             return self._process_response(response)
-    
+
     def _process_response(self, response: requests.Response) -> str:
         """
         Processa uma resposta não-streaming da API.
-        
+
         Args:
             response: Objeto Response do requests
-            
+
         Returns:
             Conteúdo da mensagem do assistente
         """
         data = response.json()
         return data.get("message", {}).get("content", "")
-    
+
     def _process_stream(self, response: requests.Response) -> Generator[str, None, None]:
         """
         Processa uma resposta em streaming da API.
         Inclui tratamento de erro durante a iteração do generator.
-        
+
         Args:
             response: Objeto Response do requests em modo stream
-            
+
         Yields:
             Chunks de texto da resposta
-            
+
         Raises:
             OllamaClientError: Se houver erro de conexão durante o streaming
         """
@@ -322,7 +322,7 @@ class OllamaClient:
             raise OllamaTimeoutError(
                 "Tempo limite excedido durante o streaming da resposta."
             )
-    
+
     def chat_com_tools(
         self,
         mensagem_usuario: str,
@@ -332,30 +332,38 @@ class OllamaClient:
         """
         Envia mensagem com suporte a function calling e extrai tool calls.
         Reutiliza a lógica de _make_request para evitar duplicação de código.
-        
+
         Args:
             mensagem_usuario: Texto da mensagem do usuário
             historico: Histórico opcional de mensagens anteriores
             tools: Ferramentas para function calling
-            
+
         Returns:
             Tupla (resposta_texto, tool_call_info) onde:
             - resposta_texto: String com a resposta do modelo
             - tool_call_info: Dict {"name": str, "arguments": dict} se houver call, None caso contrário
         """
         mensagens = []
-        
+
         if historico:
             mensagens.extend(historico)
-        
+
+        # Adicionar system prompt reforçando o uso de ferramentas para qwen3.5
+        system_prompt = """Você é a MARIA, uma assistente virtual de escritório.
+Quando o usuário pedir para criar planilhas, documentos ou editar arquivos, você DEVE usar as ferramentas disponíveis.
+Responda sempre em português do Brasil."""
+
+        # Inserir system message no início
+        mensagens.insert(0, {"role": "system", "content": system_prompt})
         mensagens.append({"role": "user", "content": mensagem_usuario})
-        
+
         if not tools:
             # Sem tools, comportamento normal
             resposta = self.enviar_mensagem(mensagens, tools=None, stream=False)
             return resposta, None
-        
+
         # Com tools, preparar payload completo com parâmetros de otimização
+        # Para qwen3.5:4b, usar formato específico do Ollama
         payload = {
             "model": self.model,
             "messages": mensagens,
@@ -365,54 +373,61 @@ class OllamaClient:
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
-                "num_thread": OLLAMA_NUM_THREAD
+                "num_thread": OLLAMA_NUM_THREAD,
+                "temperature": 0.1  # Reduzir temperatura para mais determinismo em tool calling
             },
             "keep_alive": OLLAMA_KEEP_ALIVE
         }
-        
+
         # Reutilizar _make_request para fazer a chamada HTTP
         response = self._make_request(payload, stream=False)
-        
+
         data = response.json()
         message = data.get("message", {})
         content = message.get("content", "")
-        
-        # Verificar se há tool_calls na resposta
+
+        # Verificar se há tool_calls na resposta (formato padrão Ollama)
         tool_calls = message.get("tool_calls", [])
-        
+
         if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
             # Validar estrutura da tool call antes de acessar
             tc = tool_calls[0]
             if not isinstance(tc, dict):
                 logger.warning(f"Tool call malformada: esperado dict, obtido {type(tc)}")
                 return content, None
-            
+
             funcao = tc.get("function")
             if not isinstance(funcao, dict):
                 logger.warning(f"Tool call malformada: 'function' não é um dict: {funcao}")
                 return content, None
-            
+
             nome = funcao.get("name")
             if not nome or not isinstance(nome, str):
                 logger.warning(f"Tool call malformada: 'name' ausente ou inválido: {nome}")
                 return content, None
-            
+
             argumentos_str = funcao.get("arguments", "{}")
-            
+
             try:
                 argumentos = json.loads(argumentos_str) if isinstance(argumentos_str, str) else argumentos_str
             except json.JSONDecodeError:
                 logger.warning(f"Falha ao parsear argumentos da tool call: {argumentos_str}")
                 argumentos = {}
-            
+
             tool_call_info = {
                 "name": nome,
                 "arguments": argumentos
             }
-            
+
             logger.debug(f"Tool call detectada: {nome}({argumentos})")
             return content, tool_call_info
-        
+
+        # Fallback: tentar extrair tool call do conteúdo textual (qwen3.5 pode outputar JSON no content)
+        tool_call_textual = _tentar_extrair_tool_call_textual(content)
+        if tool_call_textual:
+            logger.info(f"Tool call extraída via fallback textual: {tool_call_textual['name']}")
+            return content, tool_call_textual
+
         return content, None
 
     def chat_com_tools_stream_com_metricas(
@@ -425,6 +440,12 @@ class OllamaClient:
         métricas de tokens, incluindo TTFT (tempo até o primeiro token)
         separado da velocidade de decodificação."""
         mensagens = list(historico or [])
+
+        # Adicionar system prompt reforçando o uso de ferramentas para qwen3.5
+        system_prompt = """Você é a MARIA, uma assistente virtual de escritório.
+Quando o usuário pedir para criar planilhas, documentos ou editar arquivos, você DEVE usar as ferramentas disponíveis.
+Responda sempre em português do Brasil."""
+        mensagens.insert(0, {"role": "system", "content": system_prompt})
         mensagens.append({"role": "user", "content": mensagem_usuario})
 
         num_predict = getattr(self, "num_predict", None)
@@ -437,7 +458,8 @@ class OllamaClient:
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": num_predict if num_predict is not None else OLLAMA_NUM_PREDICT,
-                "num_thread": OLLAMA_NUM_THREAD
+                "num_thread": OLLAMA_NUM_THREAD,
+                "temperature": 0.1  # Reduzir temperatura para mais determinismo em tool calling
             },
             "keep_alive": OLLAMA_KEEP_ALIVE
         }
@@ -548,6 +570,12 @@ class OllamaClient:
     ) -> Generator[tuple[str | None, dict | None], None, None]:
         """Envia uma mensagem com function calling e retorna a resposta em chunks."""
         mensagens = list(historico or [])
+
+        # Adicionar system prompt reforçando o uso de ferramentas para qwen3.5
+        system_prompt = """Você é a MARIA, uma assistente virtual de escritório.
+Quando o usuário pedir para criar planilhas, documentos ou editar arquivos, você DEVE usar as ferramentas disponíveis.
+Responda sempre em português do Brasil."""
+        mensagens.insert(0, {"role": "system", "content": system_prompt})
         mensagens.append({"role": "user", "content": mensagem_usuario})
 
         payload = {
@@ -559,7 +587,8 @@ class OllamaClient:
             "options": {
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": self.num_predict if self.num_predict is not None else OLLAMA_NUM_PREDICT,
-                "num_thread": OLLAMA_NUM_THREAD
+                "num_thread": OLLAMA_NUM_THREAD,
+                "temperature": 0.1  # Reduzir temperatura para mais determinismo em tool calling
             },
             "keep_alive": OLLAMA_KEEP_ALIVE
         }
