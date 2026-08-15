@@ -50,10 +50,11 @@ class MariaRunner:
         resposta_textual = ""
         tokens_gerados = 0
         tokens_por_segundo = 0.0
+        ttft_ms = None
         confirmation_completed = not task.confirm_sequence
 
         try:
-            resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo = self._enviar_com_retry(sessao, task)
+            resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms = self._enviar_com_retry(sessao, task)
             if time.monotonic() - inicio > BENCHMARK_TASK_TIMEOUT:
                 raise TimeoutError(
                     f"Tarefa excedeu o timeout de {BENCHMARK_TASK_TIMEOUT} segundos."
@@ -108,6 +109,9 @@ class MariaRunner:
             tool_correct = detected_name == task.expected_tool
         else:
             tool_correct = detected_name is None
+        args_correct = self._argumentos_compativeis(
+            (tool_call_final or {}).get("arguments", {}), task.expected_args_subset
+        )
         keyword_match = (
             not task.expected_keywords
             or any(keyword.lower() in resposta_textual.lower() for keyword in task.expected_keywords)
@@ -131,6 +135,24 @@ class MariaRunner:
             language_ok=language_ok,
             tokens_gerados=tokens_gerados,
             tokens_por_segundo=tokens_por_segundo,
+            args_correct=args_correct,
+            ttft_ms=ttft_ms,
+        )
+
+    @staticmethod
+    def _argumentos_compativeis(obtidos: dict, esperados: dict | None) -> bool:
+        """Verifica se os argumentos obtidos contêm, com valores iguais,
+        todas as chaves declaradas em `esperados` (comparação de
+        subconjunto — campos extras nos argumentos obtidos, como
+        'descricao', não invalidam o resultado). Retorna True quando
+        `esperados` é None (tarefa não define critério de argumento)."""
+        if esperados is None:
+            return True
+        if not isinstance(obtidos, dict):
+            return False
+        return all(
+            chave in obtidos and obtidos[chave] == valor
+            for chave, valor in esperados.items()
         )
 
     @staticmethod
@@ -159,14 +181,14 @@ class MariaRunner:
                 historico = sessao.get_historico_com_system()
                 metodo_metricas = getattr(self.cliente, "chat_com_tools_stream_com_metricas", None)
                 if callable(metodo_metricas):
-                    resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo = (
+                    resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms = (
                         metodo_metricas(
                             mensagem_usuario=task.user_message,
                             historico=historico,
                             tools=TOOLS_SCHEMA,
                         )
                     )
-                    return resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo
+                    return resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms
 
                 resposta_textual = ""
                 tool_call_final = None
@@ -179,7 +201,7 @@ class MariaRunner:
                         resposta_textual += chunk
                     if tool_chunk is not None:
                         tool_call_final = tool_chunk
-                return resposta_textual, tool_call_final, 0, 0.0
+                return resposta_textual, tool_call_final, 0, 0.0, None
             except OllamaTimeoutError:
                 raise
             except OllamaClientError:

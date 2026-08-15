@@ -447,6 +447,10 @@ class InterfaceTerminal:
         exibir_banner(imagem=self.imagem_banner)
         print("\nOlá! Eu sou a MARIA, sua assistente de escritório.")
         print("Rodando 100% localmente no seu computador, sem internet.\n")
+
+        print("Aquecendo o modelo, aguarde um instante...")
+        self.controller.aquecer_modelo()
+
         print("Como posso ajudar você hoje?")
 
         # Loop de chat

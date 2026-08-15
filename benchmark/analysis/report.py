@@ -67,7 +67,11 @@ Gerado em: {generated_at}
 | Taxa de palavras-chave | {metrics.keyword_match_rate * 100:.1f}% |
 | Taxa de execução | {metrics.runtime_success_rate * 100:.1f}% |
 | Taxa de conformidade de idioma | {metrics.language_compliance_rate * 100:.1f}% |
+| Acurácia de argumentos | {metrics.args_accuracy * 100:.1f}% |
 | Tokens por segundo (média) | {metrics.avg_tokens_por_segundo:.1f} tok/s |
+| TTFT médio (1º token) | {f"{metrics.avg_ttft_ms:.1f} ms" if metrics.avg_ttft_ms is not None else "N/D"} |
+| Latência p50 | {metrics.p50_latency_ms:.1f} ms |
+| Latência p90 | {metrics.p90_latency_ms:.1f} ms |
 | Latência média | {metrics.avg_latency_ms:.1f} ms |
 
 ## Métricas por categoria

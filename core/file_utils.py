@@ -124,12 +124,23 @@ def resolver_caminho_permitido(caminho_bruto: str) -> Path:
 def listar_arquivos(pasta: str = "") -> list[dict]:
     """Lista nome e tamanho (KB) dos arquivos de uma pasta permitida.
 
+    Quando `pasta` não é informada, usa a primeira pasta permitida como
+    padrão e a cria automaticamente se ainda não existir (equivalente a
+    "nenhum arquivo ainda", não um erro).
+
     Raises:
-        ValueError: pasta inexistente, não é diretório, ou fora das pastas permitidas.
-        PermissionError: sem permissão de leitura na pasta.
+        ValueError: pasta explicitamente informada não existe, não é
+            diretório, ou está fora das pastas permitidas.
+        PermissionError: sem permissão de leitura/criação na pasta.
     """
     pastas_permitidas = _pastas_permitidas()
-    base = resolver_caminho_permitido(pasta or pastas_permitidas[0])
+
+    if pasta:
+        base = resolver_caminho_permitido(pasta)
+    else:
+        base = Path(pastas_permitidas[0]).resolve()
+        os.makedirs(base, exist_ok=True)
+
     if not base.is_dir():
         raise ValueError(f"A pasta '{base.name}' não existe ou não é um diretório.")
 

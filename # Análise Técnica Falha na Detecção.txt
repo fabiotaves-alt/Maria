@@ -1,0 +1,280 @@
+# Análise Técnica: Falha na Detecção de Tool Calls
+
+## 📋 Resumo Executivo
+
+**Problema Identificado:** 94.7% das tarefas (71/75) não estão detectando tool calls, mesmo quando o modelo gera tokens e responde adequadamente.
+
+**Causa Raiz:** O modelo **qwen3.5:4b** está retornando tool calls em um formato que não está sendo corretamente parseado pelo código atual do `ollama_client.py`.
+
+---
+
+## 🔍 Evidências Coletadas
+
+### 1. Distribuição por Categoria
+
+| Categoria | Total | Tool Null | % Falha |
+|-----------|-------|-----------|---------|
+| criar_planilha | 15 | 15 | 100% |
+| criar_documento | 15 | 15 | 100% |
+| confirmacao | 6 | 6 | 100% |
+| cancelamento | 6 | 6 | 100% |
+| conversa | 6 | 6 | 100% |
+| editar_planilha | 18 | 17 | 94.4% |
+| ambiguidade | 9 | 6 | 66.7% |
+
+### 2. Padrão de Tokens Gerados
+
+**Tool NULL (falha):**
+- Tokens gerados: 52-66 (média: 57.2)
+- Mensagens finais: 49/71 vazias ou sem conteúdo útil
+- Latência média: 35.179ms
+- `tokens_por_segundo`: valores anômalos (>100.000)
+
+**Tool NON-NULL (sucesso):**
+- Tokens gerados: 16-40 (média: 22.0)
+- Mensagens finais: conteúdo presente
+- Latência média: 9.697ms
+- `tokens_por_segundo`: 31-121 (valores normais)
+
+### 3. Análise do Código (`ollama_client.py`)
+
+O método `chat_com_tools_stream_com_metricas` extrai tool calls assim:
+
+```python
+tool_calls = message.get("tool_calls")
+if not isinstance(tool_calls, list) or not tool_calls:
+    continue
+
+tool_call = tool_calls[0]
+function = tool_call.get("function")
+name = function.get("name")
+arguments_raw = function.get("arguments", "{}")
+```
+
+**Problema:** O código assume que `tool_calls` virá no formato estruturado da API do Ollama, mas o modelo qwen3.5:4b pode estar:
+1. Retornando tool calls como texto no campo `content`
+2. Usando um formato diferente do esperado
+3. A estrutura `tool_calls` pode estar em outro nível do JSON
+
+### 4. Fallback Textual Já Existe
+
+O código já possui uma função `_tentar_extrair_tool_call_textual()` que tenta extrair tool calls do conteúdo textual:
+
+```python
+def _tentar_extrair_tool_call_textual(conteudo: str) -> dict | None:
+    # Procura padrão JSON com "name" e "arguments" no content
+    match = re.search(r'\{.*"name"\s*:\s*"[^"]+".*"arguments"\s*:\s*\{.*?\}\s*\}', conteudo, re.DOTALL)
+```
+
+**Porém**, esta função só é chamada no método `chat_com_tools_stream()`, **NÃO** no `chat_com_tools_stream_com_metricas()`.
+
+---
+
+## 🎯 Hipótese Principal
+
+O benchmark está usando o método `chat_com_tools_stream_com_metricas()` (via `maria_runner.py`), que:
+1. ✅ Captura `eval_count` corretamente (tokens_gerados = 52-66)
+2. ✅ Captura conteúdo textual (`partes_texto`)
+3. ❌ **NÃO** aplica fallback textual para tool calls
+4. ❌ **NÃO** verifica se o modelo vazou a tool call no `content`
+
+Quando o modelo retorna tool calls embutidas no texto (comum em modelos menores como qwen3.5:4b), o código descarta essa informação e retorna `tool_call_final = None`.
+
+---
+
+## 🔧 Soluções Propostas
+
+### Solução 1: Adicionar Fallback Textual ao `chat_com_tools_stream_com_metricas`
+
+**Arquivo:** `/workspace/core/ollama_client.py`
+
+**Modificação:** Após o loop de streaming, adicionar:
+
+```python
+# Fallback: tentar extrair tool call do conteúdo textual
+if tool_call_final is None and partes_texto:
+    conteudo_acumulado = "".join(partes_texto)
+    tool_call_textual = _tentar_extrair_tool_call_textual(conteudo_acumulado)
+    if tool_call_textual is not None:
+        logger.warning(
+            "Tool call detectada via fallback textual: %s",
+            tool_call_textual["name"]
+        )
+        tool_call_final = tool_call_textual
+```
+
+### Solução 2: Verificar Formato Alternativo do Ollama
+
+O Ollama pode estar retornando tool calls em formato diferente. Adicionar logging temporário:
+
+```python
+# Dentro do loop, após parsear o JSON
+logger.debug("Data chunk: %s", json.dumps(data, indent=2)[:500])
+```
+
+Isso revelará a estrutura exata que o Ollama está retornando.
+
+### Solução 3: Ajustar System Prompt
+
+O system prompt pode não estar incentivando suficientemente o uso de tool calls estruturadas. Revisar o prompt em `/workspace/core/chat_session.py`:
+
+```python
+SYSTEM_PROMPT = """...
+IMPORTANTE: Quando o usuário pedir para criar planilhas ou documentos,
+USE SEMPRE as ferramentas disponíveis (criar_planilha, criar_documento).
+Não apenas descreva o que faria - CHAME a ferramenta explicitamente.
+..."""
+```
+
+### Solução 4: Testar com Modelo Diferente
+
+O qwen3.5:4b pode ter limitações com function calling. Considerar:
+- qwen3.5:7b ou superior
+- llama3.1:8b (melhor suporte a tools)
+- mistral:7b-instruct
+
+---
+
+## 📊 Impacto Esperado
+
+Se a **Solução 1** for implementada:
+- Tool detection deve subir de ~5% para 80-95%
+- Categorias `criar_planilha` e `criar_documento` devem ter melhoria significativa
+- Métrica `tool_correct` deve aumentar proporcionalmente
+
+---
+
+## 🧪 Próximos Passos Recomendados
+
+1. **Imediato:** Implementar Solução 1 (fallback textual)
+2. **Curto prazo:** Adicionar logging debug para analisar formato real das respostas
+3. **Médio prazo:** Testar com modelo alternativo (qwen3.5:7b ou llama3.1:8b)
+4. **Longo prazo:** Fine-tune do modelo com dataset de tool calls
+
+---
+
+## 📝 Metodologia de Análise
+
+- Dados analisados: Run `run_20260814_111941` (75 tarefas, 14/08/2026)
+- Comparação com runs anteriores: `run_20260814_101117`, `run_20260813_223656`
+- Ferramentas: Python 3, análise estatística simples
+- Tempo de análise: ~30 minutos
+
+---
+
+**Autor:** Assistente de Análise de Benchmark
+**Data:** 14/08/2026
+**Status:** Aguardando implementação das correções
+# Relatório de Benchmark - Análise dos Resultados
+
+**Data do Relatório:** 2026-08-14
+**Modelo Testado:** qwen3.5:4b
+
+---
+
+## 📊 Resumo Executivo
+
+Foram analisados os dois runs de benchmark mais recentes, cada um contendo **75 tarefas** distribuídas em 7 categorias. Ambos os testes utilizaram o modelo **qwen3.5:4b**.
+
+### Métricas Gerais Comparativas
+
+| Métrica | Run Mais Recente (111941) | Run Anterior (101117) | Variação |
+|---------|---------------------------|----------------------|----------|
+| **Total de Tarefas** | 75 | 75 | - |
+| **Runtime OK** | 100% | 100% | = |
+| **Tool Correct** | 20.0% | 21.3% | ▼ -1.3pp |
+| **Keyword Match** | 20.0% | 22.7% | ▼ -2.7pp |
+| **Language OK** | 100% | 100% | = |
+| **Latência Média** | 33.8s | 30.7s | ▲ +10% |
+| **Tokens/segundo** | 34.90 | 10.61 | ▲ +229%* |
+
+\* *Variação significativa devido a outliers filtrados nas medições de TPS*
+
+---
+
+## 📈 Análise por Categoria
+
+### Run Mais Recente: `run_20260814_111941`
+
+| Categoria | Tasks | Runtime OK | Tool Correct | Keyword Match | Latência Média |
+|-----------|-------|------------|--------------|---------------|----------------|
+| conversa | 6 | 100% | **100%** | 50% | 32.1s |
+| editar_planilha | 18 | 100% | 50% | 39% | 31.1s |
+| ambiguidade | 9 | 100% | 0% | 33% | 32.4s |
+| criar_documento | 15 | 100% | 0% | 13% | 31.6s |
+| criar_planilha | 15 | 100% | 0% | 0% | 33.3s |
+| cancelamento | 6 | 100% | 0% | 0% | 46.3s |
+| confirmacao | 6 | 100% | 0% | 0% | 40.3s |
+
+### Run Anterior: `run_20260814_101117`
+
+| Categoria | Tasks | Runtime OK | Tool Correct | Keyword Match | Latência Média |
+|-----------|-------|------------|--------------|---------------|----------------|
+| conversa | 6 | 100% | **100%** | 50% | 43.0s |
+| editar_planilha | 18 | 100% | 50% | 44% | 29.5s |
+| ambiguidade | 9 | 100% | 0% | 11% | 30.0s |
+| criar_documento | 15 | 100% | 0% | 27% | 28.9s |
+| criar_planilha | 15 | 100% | 7% | 7% | 29.0s |
+| cancelamento | 6 | 100% | 0% | 0% | 32.2s |
+| confirmacao | 6 | 100% | 0% | 0% | 30.6s |
+
+---
+
+## 🔍 Principais Observações
+
+### ✅ Pontos Positivos
+
+1. **Estabilidade do Runtime**: 100% das tarefas foram executadas sem erros em ambos os runs
+2. **Categoria "Conversa"**: Performance consistente com 100% de tool detection correta
+3. **Processamento de Linguagem**: 100% das respostas estão no idioma correto
+4. **Categoria "Editar Planilha"**: Melhor desempenho relativo com 50% de tool correct em ambos os runs
+
+### ⚠️ Pontos de Atenção
+
+1. **Detecção de Ferramentas**:
+   - Categorias `criar_planilha`, `criar_documento`, `cancelamento` e `confirmacao` tiveram 0% de detecção correta de ferramentas
+   - Isso indica que o modelo não está identificando quando deve chamar ferramentas específicas
+
+2. **Keyword Match Baixo**:
+   - Média geral de apenas 20% de correspondência de palavras-chave
+   - Categorias críticas como `criar_planilha` e `cancelamento` com 0%
+
+3. **Aumento de Latência**:
+   - Latência média aumentou ~10% no run mais recente (33.8s vs 30.7s)
+   - Categorias `cancelamento` e `confirmacao` apresentam latências acima de 40s
+
+4. **Regressão em Criar Planilha**:
+   - Drop de 7% para 0% em tool correct na categoria criar_planilha
+
+---
+
+## 📋 Recomendações
+
+### Prioridade Alta
+
+1. **Investigar falha na detecção de ferramentas** para categorias de criação de documentos e planilhas
+2. **Revisar prompts ou exemplos** nas categorias com 0% de keyword match
+3. **Otimizar tempo de resposta** nas categorias cancelamento e confirmação
+
+### Prioridade Média
+
+4. Analisar causa do aumento de latência entre os dois runs
+5. Melhorar detecção de intenção em cenários de ambiguidade (atualmente 33%)
+
+### Prioridade Baixa
+
+6. Manter monitoramento da categoria "conversa" que apresenta performance estável
+7. Documentar casos de sucesso da categoria "editar_planilha" como referência
+
+---
+
+## 📝 Metodologia
+
+- **Dados analisados**: Logs JSON dos runs de benchmark
+- **Métricas calculadas**: Taxas de sucesso, latência média, tokens por segundo
+- **Filtro aplicado**: Valores de TPS > 10000 considerados outliers e excluídos da média
+- **Período**: Runs realizados em 14 de agosto de 2026
+
+---
+
+*Relatório gerado automaticamente a partir dos dados de benchmark*

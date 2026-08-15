@@ -10,6 +10,7 @@ import unittest
 import tempfile
 import os
 import json
+import time
 from unittest.mock import patch, MagicMock
 from core.chat_session import ChatSession, interpretar_confirmacao
 from core.tools_schema import (
@@ -336,6 +337,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
 
             def iter_lines(self):
                 for payload in self.payloads:
+                    time.sleep(0.03)
                     yield payload
 
         client = OllamaClient(timeout=10)
@@ -344,7 +346,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
             json.dumps({"message": {"content": "mundo"}, "done": True, "eval_count": 15}).encode("utf-8"),
         ])
 
-        texto, tool_call, tokens_gerados, tokens_por_segundo = client.chat_com_tools_stream_com_metricas(
+        texto, tool_call, tokens_gerados, tokens_por_segundo, ttft_ms = client.chat_com_tools_stream_com_metricas(
             "teste",
             historico=None,
             tools=None,
@@ -353,7 +355,37 @@ class TestBenchmarkMetrics(unittest.TestCase):
         self.assertEqual(texto, "Olá mundo")
         self.assertEqual(tokens_gerados, 15)
         self.assertGreater(tokens_por_segundo, 0)
+        self.assertIsNotNone(ttft_ms)
+        self.assertGreaterEqual(ttft_ms, 0)
         self.assertIsNone(tool_call)
+
+    def test_chat_com_tools_stream_com_metricas_guarda_contra_duracao_irreal(self):
+        """Reproduz o padrão observado em produção (eval_count alto, duração
+        quase nula) e garante que tokens_por_segundo não retorna um valor
+        fisicamente implausível."""
+        class FakeResponse:
+            def __init__(self, payloads):
+                self.payloads = payloads
+
+            def iter_lines(self):
+                yield from self.payloads
+
+        client = OllamaClient(timeout=10)
+        client._make_request = lambda payload, stream=False: FakeResponse([
+            json.dumps({
+                "message": {"content": "resposta completa em um único chunk"},
+                "done": True,
+                "eval_count": 400,
+            }).encode("utf-8"),
+        ])
+
+        _, _, tokens_gerados, tokens_por_segundo, ttft_ms = client.chat_com_tools_stream_com_metricas(
+            "teste", historico=None, tools=None,
+        )
+
+        self.assertEqual(tokens_gerados, 400)
+        self.assertEqual(tokens_por_segundo, 0.0)
+        self.assertIsNotNone(ttft_ms)
 
     def test_diagnostico_falha_sem_erro_detecta_tool_incorreto(self):
         result = MariaTaskResult(
@@ -754,7 +786,7 @@ class TestRegressao(unittest.TestCase):
         )
 
         cliente = OllamaClient(model="qwen3.5:4b")
-        texto, tool_call, tokens_gerados, tokens_por_segundo = cliente.chat_com_tools_stream_com_metricas(
+        texto, tool_call, tokens_gerados, tokens_por_segundo, ttft_ms = cliente.chat_com_tools_stream_com_metricas(
             "crie uma planilha de gastos",
             historico=[],
             tools=[FERRAMENTA_CRIAR_PLANILHA],
@@ -792,7 +824,7 @@ class TestRegressao(unittest.TestCase):
         )
 
         cliente = OllamaClient(model="qwen3.5:4b")
-        texto, tool_call, tokens_gerados, tokens_por_segundo = cliente.chat_com_tools_stream_com_metricas(
+        texto, tool_call, tokens_gerados, tokens_por_segundo, ttft_ms = cliente.chat_com_tools_stream_com_metricas(
             "atualize a planilha estoque",
             historico=[],
             tools=[FERRAMENTA_EDITAR_PLANILHA],
@@ -974,6 +1006,19 @@ class TestAcessoLeitura(unittest.TestCase):
         """Testa que uma pasta permitida vazia retorna lista vazia."""
         self.assertEqual(listar_arquivos(), [])
 
+    def test_listar_pasta_padrao_ausente_nao_gera_caminho_duplicado(self):
+        """Testa que listar_arquivos() sem pasta explícita não duplica o
+        caminho e cria a pasta padrão automaticamente se ainda não existir."""
+        pasta_inexistente = os.path.join(self.temp_dir.name, "ainda_nao_criada")
+        os.environ["PASTAS_PERMITIDAS"] = pasta_inexistente
+
+        self.assertFalse(os.path.isdir(pasta_inexistente))
+
+        itens = listar_arquivos()
+
+        self.assertEqual(itens, [])
+        self.assertTrue(os.path.isdir(pasta_inexistente))
+
     def test_leitura_truncada(self):
         """Testa que um arquivo maior que max_chars é truncado corretamente."""
         caminho_arquivo = os.path.join(self.temp_dir.name, "grande.txt")
@@ -1045,6 +1090,66 @@ class TestFerramentasLeitura(unittest.TestCase):
     def test_executar_ferramenta_desconhecida(self):
         with self.assertRaises(ValueError):
             executar_ferramenta_leitura("apagar_tudo", {})
+
+
+class TestSelecaoModeloCLI(unittest.TestCase):
+    """Testes para a seleção de modelo via argumento -m/--modelo (main.py)."""
+
+    def test_controller_usa_modelo_informado(self):
+        from main import MariaController
+        controller = MariaController(modelo="qwen3:8b")
+        controller.inicializar()
+        self.assertEqual(controller.cliente.model, "qwen3:8b")
+
+    def test_controller_usa_modelo_padrao_quando_nao_informado(self):
+        from main import MariaController
+        from core.config import OLLAMA_MODEL
+        controller = MariaController()
+        controller.inicializar()
+        self.assertEqual(controller.cliente.model, OLLAMA_MODEL)
+
+
+class TestAquecimentoModelo(unittest.TestCase):
+    """Testes para o warmup do modelo na inicialização interativa (main.py)."""
+
+    def test_aquecer_modelo_chama_enviar_mensagem(self):
+        from main import MariaController
+        controller = MariaController()
+        controller.inicializar()
+        controller.cliente.enviar_mensagem = MagicMock(return_value="ok")
+
+        controller.aquecer_modelo()
+
+        controller.cliente.enviar_mensagem.assert_called_once()
+
+    def test_aquecer_modelo_nao_propaga_excecao(self):
+        from main import MariaController
+        from core.ollama_client import OllamaClientError
+        controller = MariaController()
+        controller.inicializar()
+        controller.cliente.enviar_mensagem = MagicMock(side_effect=OllamaClientError("falha"))
+
+        controller.aquecer_modelo()  # não deve levantar exceção
+
+
+class TestAcuraciaDeArgumentos(unittest.TestCase):
+    """Testes para a comparação de argumentos do benchmark (MariaRunner)."""
+
+    def test_argumentos_compativeis_sem_criterio_retorna_true(self):
+        from benchmark.runners.maria_runner import MariaRunner
+        self.assertTrue(MariaRunner._argumentos_compativeis({"a": 1}, None))
+
+    def test_argumentos_compativeis_subconjunto_correto(self):
+        from benchmark.runners.maria_runner import MariaRunner
+        obtidos = {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"], "descricao": "extra"}
+        esperados = {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}
+        self.assertTrue(MariaRunner._argumentos_compativeis(obtidos, esperados))
+
+    def test_argumentos_incompativeis_detecta_divergencia(self):
+        from benchmark.runners.maria_runner import MariaRunner
+        obtidos = {"nome_arquivo": "gastos_errado", "colunas": ["Data", "Valor"]}
+        esperados = {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}
+        self.assertFalse(MariaRunner._argumentos_compativeis(obtidos, esperados))
 
 
 if __name__ == "__main__":

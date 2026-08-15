@@ -13,6 +13,9 @@ METRIC_LABELS = {
     "keyword_match_rate": "Keyword match rate",
     "runtime_success_rate": "Runtime success rate",
     "avg_latency_ms": "Average latency (ms)",
+    "args_accuracy": "Args accuracy",
+    "p50_latency_ms": "P50 latency (ms)",
+    "p90_latency_ms": "P90 latency (ms)",
 }
 
 

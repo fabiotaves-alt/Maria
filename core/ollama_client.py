@@ -420,8 +420,10 @@ class OllamaClient:
         mensagem_usuario: str,
         historico: list[dict[str, str]] | None = None,
         tools: list[dict] | None = None,
-    ) -> tuple[str, dict | None, int, float]:
-        """Envia uma mensagem em streaming e retorna texto, tool call e métricas de tokens."""
+    ) -> tuple[str, dict | None, int, float, float | None]:
+        """Envia uma mensagem em streaming e retorna texto, tool call e
+        métricas de tokens, incluindo TTFT (tempo até o primeiro token)
+        separado da velocidade de decodificação."""
         mensagens = list(historico or [])
         mensagens.append({"role": "user", "content": mensagem_usuario})
 
@@ -446,6 +448,7 @@ class OllamaClient:
         partes_thinking: list[str] = []
         eval_count = 0
         inicio = time.monotonic()
+        t_primeiro_token: float | None = None
 
         try:
             for line in response.iter_lines():
@@ -460,6 +463,8 @@ class OllamaClient:
                 message = data.get("message", {})
                 content = message.get("content", "")
                 if content:
+                    if t_primeiro_token is None:
+                        t_primeiro_token = time.monotonic()
                     partes_texto.append(content)
 
                 thinking = message.get("thinking", "")
@@ -522,9 +527,18 @@ class OllamaClient:
                 )
                 tool_call_final = tool_call_textual
 
-        duracao = max(time.monotonic() - inicio, 1e-9)
-        tokens_por_segundo = (eval_count / duracao) if eval_count else 0.0
-        return conteudo_final, tool_call_final, eval_count, tokens_por_segundo
+        fim = time.monotonic()
+        ttft_ms = ((t_primeiro_token - inicio) * 1000) if t_primeiro_token is not None else None
+
+        LIMIAR_MIN_DECODE_S = 0.01  # abaixo disso, a medição não é confiável
+        duracao_decode = (fim - t_primeiro_token) if t_primeiro_token is not None else (fim - inicio)
+
+        if eval_count and duracao_decode >= LIMIAR_MIN_DECODE_S:
+            tokens_por_segundo = eval_count / duracao_decode
+        else:
+            tokens_por_segundo = 0.0
+
+        return conteudo_final, tool_call_final, eval_count, tokens_por_segundo, ttft_ms
 
     def chat_com_tools_stream(
         self,

@@ -11,6 +11,7 @@ Uso:
 """
 
 import sys
+import argparse
 import logging
 from datetime import datetime
 
@@ -54,22 +55,39 @@ class MariaController:
     conexão com Ollama, sessão de chat, ferramentas e persistência.
     """
 
-    def __init__(self):
+    def __init__(self, modelo: str | None = None):
         self.cliente: OllamaClient | None = None
         self.sessao: ChatSession | None = None
         self.nome_sessao: str = ""
         self._tool_call_final = None
         self._resposta_textual = ""
+        self.modelo = modelo
 
     # ── Ciclo de vida ─────────────────────────────────────────
 
     def inicializar(self):
         """Cria cliente, sessão e define nome do arquivo de persistência."""
-        self.cliente = OllamaClient()
+        self.cliente = OllamaClient(model=self.modelo) if self.modelo else OllamaClient()
         self.sessao = ChatSession(max_mensagens=MAX_MENSAGENS_HISTORICO)
         self.nome_sessao = self._gerar_nome_sessao()
         self._tool_call_final = None
         self._resposta_textual = ""
+
+    def aquecer_modelo(self) -> None:
+        """
+        Envia uma mensagem mínima ao modelo para forçar o carregamento em
+        memória antes da primeira interação real do usuário. Best-effort:
+        falhas aqui não interrompem a aplicação, pois o mesmo erro será
+        reportado de forma amigável na primeira mensagem real, se persistir.
+        """
+        try:
+            self.cliente.enviar_mensagem(
+                mensagens=[{"role": "user", "content": "Responda apenas com a palavra ok."}],
+                tools=None,
+                stream=False,
+            )
+        except Exception as error:
+            logger.warning(f"Aquecimento do modelo falhou (não crítico): {error}")
 
     def finalizar(self):
         """Cleanup opcional ao encerrar."""
@@ -325,6 +343,16 @@ class MariaController:
 # ═══════════════════════════════════════════════════════════════
 
 def main():
+    parser = argparse.ArgumentParser(description="MARIA - Assistente de IA de Escritório")
+    parser.add_argument(
+        "-m", "--modelo",
+        dest="modelo",
+        default=None,
+        help="Nome do modelo Ollama a usar nesta execução (ex: qwen3:8b). "
+             "Se omitido, usa OLLAMA_MODEL do ambiente/config.py."
+    )
+    args = parser.parse_args()
+
     # Verificar dependências
     try:
         import requests  # noqa: F401
@@ -334,7 +362,7 @@ def main():
         sys.exit(1)
 
     # Criar controller e interface
-    controller = MariaController()
+    controller = MariaController(modelo=args.modelo)
     interface = InterfaceTerminal(controller, imagem_banner="maria_opening.png")
 
     # Delegar totalmente para a interface

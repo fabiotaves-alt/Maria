@@ -26,6 +26,7 @@ class MariaTask:
     context: list[dict] = field(default_factory=list)
     category: MariaTaskCategory = MariaTaskCategory.CONVERSA
     tools_aceitos: list[str | None] | None = None
+    expected_args_subset: dict | None = None
 
 
 @dataclass
@@ -46,6 +47,8 @@ class MariaTaskResult:
     language_ok: bool = True
     tokens_gerados: int = 0
     tokens_por_segundo: float = 0.0
+    args_correct: bool = True
+    ttft_ms: float | None = None
 
 
 @dataclass
