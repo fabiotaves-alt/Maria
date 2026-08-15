@@ -522,7 +522,7 @@ class TestRegressao(unittest.TestCase):
         mock_session.post.return_value = mock_response
         mock_session.get.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"models": [{"name": "qwen2.5:7b"}]}
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
         )
         
         cliente = OllamaClient()
@@ -554,7 +554,7 @@ class TestRegressao(unittest.TestCase):
         mock_session.post.return_value = mock_response
         mock_session.get.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"models": [{"name": "qwen2.5:7b"}]}
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
         )
         
         cliente = OllamaClient()
@@ -586,7 +586,7 @@ class TestRegressao(unittest.TestCase):
         mock_session.post.return_value = mock_response
         mock_session.get.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"models": [{"name": "qwen2.5:7b"}]}
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
         )
         
         cliente = OllamaClient()
@@ -615,10 +615,10 @@ class TestRegressao(unittest.TestCase):
         mock_session.post.return_value = mock_response
         mock_session.get.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"models": [{"name": "qwen2.5:7b"}]}
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
         )
 
-        chunks = list(OllamaClient(model="qwen2.5:7b").chat_com_tools_stream(
+        chunks = list(OllamaClient(model="qwen3.5:4b").chat_com_tools_stream(
             mensagem_usuario="oi",
             historico=[],
             tools=[FERRAMENTA_CRIAR_PLANILHA]
@@ -646,10 +646,10 @@ class TestRegressao(unittest.TestCase):
         mock_session.post.return_value = mock_response
         mock_session.get.return_value = MagicMock(
             status_code=200,
-            json=lambda: {"models": [{"name": "qwen2.5:7b"}]}
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
         )
 
-        chunks = list(OllamaClient(model="qwen2.5:7b").chat_com_tools_stream(
+        chunks = list(OllamaClient(model="qwen3.5:4b").chat_com_tools_stream(
             mensagem_usuario="edite a planilha",
             historico=[],
             tools=[FERRAMENTA_EDITAR_PLANILHA]
@@ -668,7 +668,7 @@ class TestRegressao(unittest.TestCase):
 
         class ClienteComTimeout(OllamaClient):
             def __init__(self):
-                self.model = "qwen2.5:7b"
+                self.model = "qwen3.5:4b"
                 self.chamadas = 0
 
             def chat_com_tools_stream(self, **kwargs):
@@ -687,6 +687,157 @@ class TestRegressao(unittest.TestCase):
             runner._enviar_com_retry(ChatSession(), task)
 
         self.assertEqual(cliente.chamadas, 1)
+
+    @patch('core.ollama_client.requests.Session')
+    def test_chat_com_tools_stream_recupera_tool_call_do_campo_thinking(self, mock_session_class):
+        """Tool call presa em 'thinking' (bug do Qwen3.5) deve ser recuperada mesmo com content vazio."""
+        from core.ollama_client import OllamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        thinking_com_tool_call = (
+            'Vou criar a planilha.\n<tool_call>\n'
+            '{"name": "criar_planilha", "arguments": '
+            '{"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}}\n'
+            '</tool_call>'
+        )
+        linhas_stream = [
+            json.dumps({
+                "message": {"content": "", "thinking": thinking_com_tool_call, "tool_calls": []},
+                "done": True,
+            }).encode("utf-8"),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas_stream)
+        mock_session.post.return_value = mock_response
+        mock_session.get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
+        )
+
+        cliente = OllamaClient(model="qwen3.5:4b")
+        chunks = list(cliente.chat_com_tools_stream(
+            mensagem_usuario="crie uma planilha de gastos",
+            historico=[],
+            tools=[FERRAMENTA_CRIAR_PLANILHA],
+        ))
+
+        tool_call_final = chunks[-1][1]
+        self.assertIsNotNone(tool_call_final)
+        self.assertEqual(tool_call_final["name"], "criar_planilha")
+        self.assertEqual(tool_call_final["arguments"]["nome_arquivo"], "gastos")
+
+    @patch('core.ollama_client.requests.Session')
+    def test_chat_com_tools_stream_com_metricas_recupera_tool_call_vazada_como_texto(self, mock_session_class):
+        """chat_com_tools_stream_com_metricas hoje não tem fallback textual — este teste cobre o gap."""
+        from core.ollama_client import OllamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        conteudo_vazado = (
+            '{"name": "criar_planilha", "arguments": '
+            '{"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}}'
+        )
+        linhas_stream = [
+            json.dumps({
+                "message": {"content": conteudo_vazado, "tool_calls": []},
+                "done": True,
+                "eval_count": 40,
+            }).encode("utf-8"),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas_stream)
+        mock_session.post.return_value = mock_response
+        mock_session.get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
+        )
+
+        cliente = OllamaClient(model="qwen3.5:4b")
+        texto, tool_call, tokens_gerados, tokens_por_segundo = cliente.chat_com_tools_stream_com_metricas(
+            "crie uma planilha de gastos",
+            historico=[],
+            tools=[FERRAMENTA_CRIAR_PLANILHA],
+        )
+
+        self.assertIsNotNone(tool_call)
+        self.assertEqual(tool_call["name"], "criar_planilha")
+        self.assertEqual(tool_call["arguments"]["nome_arquivo"], "gastos")
+        self.assertEqual(tokens_gerados, 40)
+
+    @patch('core.ollama_client.requests.Session')
+    def test_chat_com_tools_stream_com_metricas_recupera_tool_call_do_campo_thinking(self, mock_session_class):
+        """Combina os dois gaps: campo 'thinking' + método de métricas do benchmark."""
+        from core.ollama_client import OllamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        thinking_com_tool_call = (
+            '<tool_call>\n{"name": "editar_planilha", "arguments": '
+            '{"nome_arquivo": "estoque", "colunas": ["Produto", "Quantidade"]}}\n</tool_call>'
+        )
+        linhas_stream = [
+            json.dumps({
+                "message": {"content": "", "thinking": thinking_com_tool_call, "tool_calls": []},
+                "done": True,
+                "eval_count": 55,
+            }).encode("utf-8"),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas_stream)
+        mock_session.post.return_value = mock_response
+        mock_session.get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
+        )
+
+        cliente = OllamaClient(model="qwen3.5:4b")
+        texto, tool_call, tokens_gerados, tokens_por_segundo = cliente.chat_com_tools_stream_com_metricas(
+            "atualize a planilha estoque",
+            historico=[],
+            tools=[FERRAMENTA_EDITAR_PLANILHA],
+        )
+
+        self.assertIsNotNone(tool_call)
+        self.assertEqual(tool_call["name"], "editar_planilha")
+        self.assertEqual(tokens_gerados, 55)
+
+    @patch('core.ollama_client.requests.Session')
+    def test_continuar_com_resultado_ferramenta_stream_recupera_tool_call_do_campo_thinking(self, mock_session_class):
+        """Mesma cobertura de 'thinking' para o método de continuação (após leitura de arquivo)."""
+        from core.ollama_client import OllamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        thinking_com_tool_call = (
+            '<tool_call>\n{"name": "criar_planilha", "arguments": '
+            '{"nome_arquivo": "novo", "colunas": ["A", "B"]}}\n</tool_call>'
+        )
+        linhas_stream = [
+            json.dumps({
+                "message": {"content": "", "thinking": thinking_com_tool_call, "tool_calls": []},
+                "done": True,
+            }).encode("utf-8"),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas_stream)
+        mock_session.post.return_value = mock_response
+        mock_session.get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
+        )
+
+        cliente = OllamaClient(model="qwen3.5:4b")
+        chunks = list(cliente.continuar_com_resultado_ferramenta_stream(
+            historico=[{"role": "system", "content": "sistema"}],
+            tool_call={"name": "listar_arquivos", "arguments": {}},
+            resultado="A pasta está vazia.",
+            tools=[FERRAMENTA_CRIAR_PLANILHA],
+        ))
+
+        tool_call_final = chunks[-1][1]
+        self.assertIsNotNone(tool_call_final)
+        self.assertEqual(tool_call_final["name"], "criar_planilha")
 
 
 class TestSessionStorage(unittest.TestCase):
@@ -776,7 +927,7 @@ class TestOllamaClientErrorModeloNaoInstalado(unittest.TestCase):
         }
         mock_session.get.return_value = mock_tags_response
         
-        cliente = OllamaClient(model="qwen2.5:7b")
+        cliente = OllamaClient(model="qwen3.5:4b")
         
         with self.assertRaises(OllamaClientError) as context:
             cliente._check_connection()
@@ -784,7 +935,7 @@ class TestOllamaClientErrorModeloNaoInstalado(unittest.TestCase):
         # Verificar mensagem de erro clara
         erro_msg = str(context.exception)
         self.assertIn("não está instalado", erro_msg)
-        self.assertIn("qwen2.5:7b", erro_msg)
+        self.assertIn("qwen3.5:4b", erro_msg)
         self.assertIn("ollama pull", erro_msg)
 
 

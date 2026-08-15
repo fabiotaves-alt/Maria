@@ -1,6 +1,6 @@
 """
 Módulo cliente para comunicação com a API local do Ollama.
-Responsável por enviar mensagens ao modelo Qwen2.5-3B e receber respostas.
+Responsável por enviar mensagens ao modelo Qwen3.5-4B e receber respostas.
 
 Requisitos:
 - Comunicação apenas via localhost (sem dependência de internet)
@@ -98,7 +98,7 @@ class OllamaClient:
         
         Args:
             base_url: URL da API do Ollama (padrão: localhost:11434)
-            model: Nome do modelo a usar (padrão: qwen2.5:7b)
+            model: Nome do modelo a usar (padrão: qwen3.5:4b)
             timeout: Timeout para requisições em segundos (padrão: 120)
             num_predict: Override do número de tokens previstos pelo modelo.
                 Quando None, usa OLLAMA_NUM_PREDICT da configuração.
@@ -188,9 +188,9 @@ class OllamaClient:
             raise OllamaClientError(
                 "Não foi possível conectar ao Ollama. "
                 "Verifique se o Ollama está rodando em http://localhost:11434 "
-                "e se o modelo 'qwen2.5:7b' está instalado.\n"
+                "e se o modelo 'qwen3.5:4b' está instalado.\n"
                 "\nPara iniciar o Ollama, execute: ollama serve\n"
-                "Para instalar o modelo, execute: ollama pull qwen2.5:7b"
+                "Para instalar o modelo, execute: ollama pull qwen3.5:4b"
             )
         
         if not hasattr(self, "_session"):
@@ -443,6 +443,7 @@ class OllamaClient:
         response = self._make_request(payload, stream=True)
         tool_call_final = None
         partes_texto: list[str] = []
+        partes_thinking: list[str] = []
         eval_count = 0
         inicio = time.monotonic()
 
@@ -460,6 +461,10 @@ class OllamaClient:
                 content = message.get("content", "")
                 if content:
                     partes_texto.append(content)
+
+                thinking = message.get("thinking", "")
+                if thinking:
+                    partes_thinking.append(thinking)
 
                 if data.get("done") is True:
                     eval_count = int(data.get("eval_count") or 0)
@@ -504,9 +509,22 @@ class OllamaClient:
                 "Tempo limite excedido durante o streaming da resposta."
             ) from error
 
+        conteudo_final = "".join(partes_texto)
+
+        if tool_call_final is None and (partes_texto or partes_thinking):
+            texto_busca = conteudo_final + "\n" + "".join(partes_thinking)
+            tool_call_textual = _tentar_extrair_tool_call_textual(texto_busca)
+            if tool_call_textual is not None:
+                origem = "thinking" if not conteudo_final.strip() and partes_thinking else "content"
+                logger.warning(
+                    "Tool call detectada via fallback textual no stream com métricas (origem=%s): %s",
+                    origem, tool_call_textual["name"],
+                )
+                tool_call_final = tool_call_textual
+
         duracao = max(time.monotonic() - inicio, 1e-9)
         tokens_por_segundo = (eval_count / duracao) if eval_count else 0.0
-        return "".join(partes_texto), tool_call_final, eval_count, tokens_por_segundo
+        return conteudo_final, tool_call_final, eval_count, tokens_por_segundo
 
     def chat_com_tools_stream(
         self,
@@ -536,6 +554,7 @@ class OllamaClient:
         tool_call_final = None
         houve_conteudo = False
         conteudo_acumulado = ""
+        thinking_acumulado = ""
 
         try:
             for line in response.iter_lines():
@@ -553,6 +572,10 @@ class OllamaClient:
                     houve_conteudo = True
                     conteudo_acumulado += content
                     yield content, None
+
+                thinking = message.get("thinking", "")
+                if thinking:
+                    thinking_acumulado += thinking
 
                 tool_calls = message.get("tool_calls")
                 if not isinstance(tool_calls, list) or not tool_calls:
@@ -598,16 +621,18 @@ class OllamaClient:
                 "Tempo limite excedido durante o streaming da resposta."
             ) from error
 
-        if tool_call_final is None and conteudo_acumulado:
-            tool_call_textual = _tentar_extrair_tool_call_textual(conteudo_acumulado)
+        if tool_call_final is None and (conteudo_acumulado or thinking_acumulado):
+            texto_busca = conteudo_acumulado + "\n" + thinking_acumulado
+            tool_call_textual = _tentar_extrair_tool_call_textual(texto_busca)
             if tool_call_textual is not None:
+                origem = "thinking" if not conteudo_acumulado.strip() and thinking_acumulado.strip() else "content"
                 logger.warning(
-                    "Tool call detectada como texto vazado no content (fallback textual): %s",
-                    tool_call_textual["name"],
+                    "Tool call detectada via fallback textual (origem=%s): %s",
+                    origem, tool_call_textual["name"],
                 )
                 tool_call_final = tool_call_textual
 
-        if tool_call_final is None and not houve_conteudo:
+        if tool_call_final is None and not houve_conteudo and not thinking_acumulado:
             logger.debug(
                 "Resposta do Ollama sem tool call e sem conteúdo textual "
                 "para o modelo '%s'.", self.model
@@ -663,6 +688,7 @@ class OllamaClient:
         tool_call_final = None
         houve_conteudo = False
         conteudo_acumulado = ""
+        thinking_acumulado = ""
 
         try:
             for line in response.iter_lines():
@@ -679,6 +705,10 @@ class OllamaClient:
                     houve_conteudo = True
                     conteudo_acumulado += content
                     yield content, None
+
+                thinking = message.get("thinking", "")
+                if thinking:
+                    thinking_acumulado += thinking
 
                 tool_calls = message.get("tool_calls")
                 if not isinstance(tool_calls, list) or not tool_calls:
@@ -720,16 +750,18 @@ class OllamaClient:
                 "Tempo limite excedido durante o streaming da resposta."
             ) from error
 
-        if tool_call_final is None and conteudo_acumulado:
-            tool_call_textual = _tentar_extrair_tool_call_textual(conteudo_acumulado)
+        if tool_call_final is None and (conteudo_acumulado or thinking_acumulado):
+            texto_busca = conteudo_acumulado + "\n" + thinking_acumulado
+            tool_call_textual = _tentar_extrair_tool_call_textual(texto_busca)
             if tool_call_textual is not None:
+                origem = "thinking" if not conteudo_acumulado.strip() and thinking_acumulado.strip() else "content"
                 logger.warning(
-                    "Tool call detectada como texto vazado no content (fallback textual): %s",
-                    tool_call_textual["name"],
+                    "Tool call detectada via fallback textual na continuação (origem=%s): %s",
+                    origem, tool_call_textual["name"],
                 )
                 tool_call_final = tool_call_textual
 
-        if tool_call_final is None and not houve_conteudo:
+        if tool_call_final is None and not houve_conteudo and not thinking_acumulado:
             logger.debug("Resposta de continuação sem tool call e sem conteúdo textual.")
 
         yield None, tool_call_final

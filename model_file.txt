@@ -1,1 +1,1 @@
-FROM qwen3.5:2b
+FROM qwen3.5:4b
