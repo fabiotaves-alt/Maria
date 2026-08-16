@@ -280,6 +280,14 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
             descricao=argumentos.get("descricao", "")
         )
         return f"Planilha atualizada com sucesso: {caminho}"
+    
+    elif nome_funcao == "listar_arquivos":
+        from core.file_utils import listar_arquivos
+        itens = listar_arquivos(argumentos.get("pasta", ""))
+        if not itens:
+            return "A pasta está vazia (nenhum arquivo encontrado)."
+        linhas = "\n".join(f"- {i['nome']} ({i['tamanho_kb']} KB)" for i in itens)
+        return f"Arquivos encontrados:\n{linhas}"
         
     else:
         raise ValueError(f"Ferramenta desconhecida: {nome_funcao}")
