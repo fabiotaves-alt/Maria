@@ -1,4 +1,4 @@
-```gitignore
+
 # Python
 __pycache__/
 *.pyc
@@ -25,4 +25,4 @@ coverage.xml
 .git/modules/
 .DS_Store
 Thumbs.db
-```
+
