@@ -18,7 +18,7 @@ def criar_planilha_real(nome_arquivo: str, colunas: list[str], descricao: str = 
     Cria uma planilha Excel com as colunas especificadas.
     
     Args:
-        nome_arquivo: Nome do arquivo (sem extensão)
+        nome_arquivo: Nome do arquivo (com ou sem extensão .xlsx - extensão será normalizada)
         colunas: Lista de nomes das colunas
         descricao: Descrição opcional da planilha
         
@@ -30,6 +30,10 @@ def criar_planilha_real(nome_arquivo: str, colunas: list[str], descricao: str = 
         OSError: Se houver erro de disco
     """
     try:
+        # Remover extensão .xlsx se presente para evitar duplicação
+        if nome_arquivo.endswith('.xlsx'):
+            nome_arquivo = nome_arquivo[:-5]
+        
         # Gerar nome único para evitar sobrescrita
         nome_final = gerar_nome_unico(nome_arquivo, ".xlsx")
         pasta_absoluta = garantir_pasta_arquivos()
@@ -94,6 +98,10 @@ def editar_planilha_real(
 ) -> str:
     """Sobrescreve uma planilha existente com novas colunas e linhas."""
     try:
+        # Remover extensão .xlsx se presente para evitar duplicação
+        if nome_arquivo.endswith('.xlsx'):
+            nome_arquivo = nome_arquivo[:-5]
+        
         nome_seguro = sanitizar_nome_arquivo(nome_arquivo)
         pasta_absoluta = garantir_pasta_arquivos()
         caminho_completo = os.path.join(pasta_absoluta, f"{nome_seguro}.xlsx")

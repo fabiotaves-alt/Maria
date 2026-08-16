@@ -18,7 +18,7 @@ def criar_documento_real(nome_arquivo: str, titulo: str, conteudo: str) -> str:
     Cria um documento Word com título e conteúdo textual.
     
     Args:
-        nome_arquivo: Nome do arquivo (sem extensão)
+        nome_arquivo: Nome do arquivo (com ou sem extensão .docx - extensão será normalizada)
         titulo: Título principal do documento
         conteudo: Texto completo, com parágrafos separados por duas quebras de linha
         
@@ -30,6 +30,10 @@ def criar_documento_real(nome_arquivo: str, titulo: str, conteudo: str) -> str:
         OSError: Se houver erro de disco
     """
     try:
+        # Remover extensão .docx se presente para evitar duplicação
+        if nome_arquivo.endswith('.docx'):
+            nome_arquivo = nome_arquivo[:-5]
+        
         # Gerar nome único para evitar sobrescrita
         nome_final = gerar_nome_unico(nome_arquivo, ".docx")
         pasta_absoluta = garantir_pasta_arquivos()
