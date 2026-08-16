@@ -20,17 +20,15 @@ from datetime import datetime
 from core.config import (
     LOG_LEVEL,
     MAX_MENSAGENS_HISTORICO,
-    MAX_PASSOS_LEITURA,
 )
 from core.ollama_client import OllamaClient
 from core.chat_session import ChatSession, interpretar_confirmacao
 from core.tools_schema import (
     TOOLS_SCHEMA,
     executar_ferramenta_real,
-    FERRAMENTAS_LEITURA,
-    executar_ferramenta_leitura,
 )
 from core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
+from core.tool_chaining import encadear_leitura_stream
 
 from ui_terminal import InterfaceTerminal
 
@@ -168,12 +166,10 @@ class MariaController:
 
     def _gerar_resposta_com_encadeamento(self, entrada: str, historico_atual: list[dict]):
         """
-        Generator interno: chama o modelo e, enquanto a tool call retornada
-        for de LEITURA (listar_arquivos/resumir_documento), executa a
-        ferramenta sem pedir confirmação e reenvia o resultado ao modelo via
-        continuar_com_resultado_ferramenta_stream. Uma ferramenta de ESCRITA
-        (ou nenhuma tool call) encerra o encadeamento normalmente, deixando
-        o restante do fluxo (confirmação) inalterado.
+        Generator interno: chama o modelo e delega o encadeamento de leitura
+        (listar_arquivos/resumir_documento) ao módulo compartilhado
+        core.tool_chaining.encadear_leitura_stream, usado também pelo
+        benchmark (MariaRunner) para garantir comportamento idêntico.
         """
         tool_call_atual = None
 
@@ -187,47 +183,10 @@ class MariaController:
             if tool_chunk is not None:
                 tool_call_atual = tool_chunk
 
-        passos = 0
-        while (
-            tool_call_atual
-            and tool_call_atual.get("name") in FERRAMENTAS_LEITURA
-            and passos < MAX_PASSOS_LEITURA
-        ):
-            try:
-                resultado_ferramenta = executar_ferramenta_leitura(
-                    tool_call_atual["name"], tool_call_atual.get("arguments", {})
-                )
-            except (PermissionError, OSError, ValueError) as error:
-                logger.error(f"Erro ao executar ferramenta de leitura: {error}")
-                resultado_ferramenta = f"Erro ao acessar o sistema de arquivos: {error}"
-
-            historico_continuacao = self.sessao.get_historico_com_system()
-            novo_tool_call = None
-
-            for chunk, tool_chunk in self.cliente.continuar_com_resultado_ferramenta_stream(
-                historico=historico_continuacao,
-                tool_call=tool_call_atual,
-                resultado=resultado_ferramenta,
-                tools=TOOLS_SCHEMA,
-            ):
-                if chunk is not None:
-                    yield chunk, None
-                if tool_chunk is not None:
-                    novo_tool_call = tool_chunk
-
-            tool_call_atual = novo_tool_call
-            passos += 1
-
-        if tool_call_atual and tool_call_atual.get("name") in FERRAMENTAS_LEITURA:
-            logger.warning("Limite de passos de leitura atingido sem resposta final.")
-            aviso = (
-                "\n\nNão consegui concluir a consulta após várias tentativas. "
-                "Tente reformular o pedido."
-            )
-            yield aviso, None
-            tool_call_atual = None
-
-        yield None, tool_call_atual
+        historico_continuacao = self.sessao.get_historico_com_system()
+        yield from encadear_leitura_stream(
+            self.cliente, historico_continuacao, tool_call_atual, TOOLS_SCHEMA
+        )
 
     def processar_chunk(self, chunk, tool_chunk):
         """Acumula chunks durante o streaming."""

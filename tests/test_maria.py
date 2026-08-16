@@ -1263,5 +1263,126 @@ class TestAcuraciaDeArgumentos(unittest.TestCase):
         self.assertFalse(MariaRunner._argumentos_compativeis(obtidos, esperados))
 
 
+class TestSystemPromptExcecaoArquivoInexistente(unittest.TestCase):
+    """Testa que o SYSTEM_PROMPT distingue arquivo incerto de arquivo
+    declaradamente inexistente (Fix D)."""
+
+    def test_system_prompt_contem_excecao_para_arquivo_ficticio(self):
+        self.assertIn("SEM chamar listar_arquivos", ChatSession.SYSTEM_PROMPT)
+
+
+class TestReforcoComposicaoDocumento(unittest.TestCase):
+    """Testa que o reforço instrui a redigir documentos sem pedir mais
+    detalhes ao usuário (Fix B)."""
+
+    def test_reforco_instrui_composicao_de_documento_sem_conteudo_literal(self):
+        mensagens = _montar_mensagens_com_reforco(None, "mensagem")
+        texto_system = mensagens[0]["content"]
+        self.assertIn("REDIGIR um conteúdo completo", texto_system)
+
+
+class TestToolChaining(unittest.TestCase):
+    """Testes para o módulo compartilhado core/tool_chaining.py."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.original_pastas = os.environ.get("PASTAS_PERMITIDAS")
+        os.environ["PASTAS_PERMITIDAS"] = self.temp_dir.name
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+        if self.original_pastas:
+            os.environ["PASTAS_PERMITIDAS"] = self.original_pastas
+        else:
+            os.environ.pop("PASTAS_PERMITIDAS", None)
+
+    def test_encadear_leitura_stream_avanca_ate_ferramenta_de_escrita(self):
+        from core.tool_chaining import encadear_leitura_stream
+
+        class ClienteFalso:
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                yield None, {"name": "editar_planilha", "arguments": {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}}
+
+        resultado = list(encadear_leitura_stream(
+            ClienteFalso(),
+            historico_com_system=[{"role": "system", "content": "sistema"}],
+            tool_call_inicial={"name": "listar_arquivos", "arguments": {}},
+            tools=[],
+        ))
+
+        tool_call_final = resultado[-1][1]
+        self.assertEqual(tool_call_final["name"], "editar_planilha")
+
+    def test_encadear_leitura_stream_respeita_limite_de_passos(self):
+        from core.tool_chaining import encadear_leitura_stream
+
+        class ClienteQueSempreLista:
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                yield None, {"name": "listar_arquivos", "arguments": {}}
+
+        resultado = list(encadear_leitura_stream(
+            ClienteQueSempreLista(),
+            historico_com_system=[{"role": "system", "content": "sistema"}],
+            tool_call_inicial={"name": "listar_arquivos", "arguments": {}},
+            tools=[],
+        ))
+
+        tool_call_final = resultado[-1][1]
+        self.assertIsNone(tool_call_final)
+        textos = "".join(chunk for chunk, _ in resultado if chunk)
+        self.assertIn("Não consegui concluir", textos)
+
+    def test_encadear_leitura_stream_propaga_timeout_por_chamada(self):
+        from core.tool_chaining import encadear_leitura_stream
+
+        class ClienteFalso:
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                yield None, {"name": "editar_planilha", "arguments": {}}
+
+        def callback_que_estoura(duracao):
+            raise TimeoutError("timeout de teste")
+
+        with self.assertRaises(TimeoutError):
+            list(encadear_leitura_stream(
+                ClienteFalso(),
+                historico_com_system=[{"role": "system", "content": "sistema"}],
+                tool_call_inicial={"name": "listar_arquivos", "arguments": {}},
+                tools=[],
+                apos_cada_chamada=callback_que_estoura,
+            ))
+
+
+class TestMariaRunnerEncadeamento(unittest.TestCase):
+    """Testa que o MariaRunner encadeia leitura -> escrita (Fix A)."""
+
+    def test_runner_encadeia_listar_arquivos_ate_editar_planilha(self):
+        from benchmark.runners.maria_runner import MariaRunner
+        from benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteFalso:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return ("", {"name": "listar_arquivos", "arguments": {}}, 10, 5.0, 1.0)
+
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                yield None, {
+                    "name": "editar_planilha",
+                    "arguments": {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]},
+                }
+
+        task = MariaTask(
+            9001, "Teste encadeamento", "desc", "edite a planilha gastos",
+            expected_tool="editar_planilha", confirm_sequence=[],
+            category=MariaTaskCategory.EDITAR_PLANILHA,
+        )
+
+        runner = MariaRunner(cliente=ClienteFalso())
+        resultado = runner.run(task)
+
+        self.assertEqual(resultado.tool_detected, "editar_planilha")
+        self.assertTrue(resultado.tool_correct)
+
+
 if __name__ == "__main__":
     unittest.main()

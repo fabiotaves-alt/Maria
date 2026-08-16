@@ -2,6 +2,26 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.9.0] - Correções do Benchmark: Encadeamento de Leitura, Composição de Documentos e Falso Positivo de listar_arquivos
+
+### ✅ Correções aplicadas
+
+- **Encadeamento de leitura compartilhado (Fix A)**: criado o módulo `core/tool_chaining.py` com `encadear_leitura_stream`, usado tanto pela aplicação interativa (`main.py`) quanto pelo benchmark (`benchmark/runners/maria_runner.py`). O benchmark agora reenvia o resultado de `listar_arquivos`/`resumir_documento` ao modelo e captura a ferramenta de escrita seguinte, em vez de marcar `tool_correct=False` na primeira chamada.
+- **Timeout POR CHAMADA no encadeamento**: cada chamada de continuação do encadeamento de leitura no benchmark tem seu próprio orçamento de `BENCHMARK_TASK_TIMEOUT` segundos, medido do início ao fim daquela chamada específica (não acumulado), resolvendo o item em aberto da seção 1.1 de `docs/guia_fase_2.md`.
+- **`main.py` refatorado**: `_gerar_resposta_com_encadeamento` agora delega ao módulo compartilhado; removidos os imports diretos de `MAX_PASSOS_LEITURA`, `FERRAMENTAS_LEITURA` e `executar_ferramenta_leitura`.
+- **Composição de documentos sem conteúdo literal (Fix B)**: o reforço em `core/ollama_client.py` (`_montar_mensagens_com_reforco`) agora instrui o modelo a REDIGIR conteúdo completo para documentos narrativos (carta, relatório, ata, comunicado) sem pedir mais detalhes ao usuário.
+- **Falso positivo de `listar_arquivos` corrigido (Fix D)**: a regra 6 do `SYSTEM_PROMPT` em `core/chat_session.py` agora distingue arquivo incerto de arquivo declaradamente inexistente — responde em texto SEM chamar `listar_arquivos` nem outra ferramenta.
+
+### ✅ Status dos Testes
+
+- **75/75 testes passaram** (`python -m unittest tests.test_maria -v`)
+- **Compilação sem erros** (`python -m py_compile main.py core/tool_chaining.py core/ollama_client.py core/chat_session.py benchmark/runners/maria_runner.py tests/test_maria.py`)
+
+### 📊 Cobertura de Código
+
+- Encadeamento de leitura: avanço até ferramenta de escrita, limite de passos, propagação de timeout por chamada e integração no `MariaRunner`.
+- Reforço de composição de documento e exceção de arquivo fictício no `SYSTEM_PROMPT`.
+
 ## [2.8.0] - Correções de Alta Prioridade e Validação de Argumentos
 
 ### ✅ Correções aplicadas

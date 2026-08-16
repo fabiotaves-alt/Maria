@@ -97,6 +97,9 @@ def _montar_mensagens_com_reforco(historico: list[dict] | None, mensagem_usuario
 - Editar planilhas existentes: use SEMPRE a ferramenta "editar_planilha"
 
 Não responda apenas com texto - chame a ferramenta apropriada preenchendo TODOS os campos obrigatórios.
+
+Se o usuário pedir um documento narrativo (carta, relatório, ata, comunicado) SEM fornecer o texto pronto, você mesmo deve REDIGIR um conteúdo completo e coerente com base no que foi pedido e chamar "criar_documento" imediatamente. NUNCA responda apenas com perguntas pedindo mais detalhes antes de tentar compor o documento - use um conteúdo razoável e genérico quando faltar informação específica.
+
 Responda sempre em português do Brasil."""
 
     mensagens = list(historico or [])

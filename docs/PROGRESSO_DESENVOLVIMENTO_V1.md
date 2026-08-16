@@ -1,6 +1,6 @@
 # 📊 PROGRESSO DE DESENVOLVIMENTO — MARIA V1
 
-## 📅 Última alteração: 2026-08-11
+## 📅 Última alteração: 2026-08-16
 
 ## 📈 Percentual Total Concluído: 97%
 
@@ -106,6 +106,15 @@
 - [x] Testes de regressão adicionados para campo obrigatório ausente e string vazia
 - [x] Validado: 42/42 testes passando e compilação dos módulos afetados sem erros
 
+### Fase 2.9 — Correções do Benchmark: Encadeamento de Leitura, Composição de Documentos e Falso Positivo (v2.9.0) ✅
+- [x] Módulo compartilhado `core/tool_chaining.py` criado com `encadear_leitura_stream`
+- [x] Benchmark (`MariaRunner`) encadeia leitura → escrita, reenviando o resultado ao modelo
+- [x] Timeout POR CHAMADA no encadeamento de leitura (não acumulado) via `BENCHMARK_TASK_TIMEOUT`
+- [x] `main.py` refatorado para delegar ao módulo compartilhado (imports diretos removidos)
+- [x] Reforço de composição de documento sem conteúdo literal em `core/ollama_client.py` (Fix B)
+- [x] Exceção de arquivo fictício/inexistente na regra 6 do `SYSTEM_PROMPT` (Fix D)
+- [x] Validado: 75/75 testes passando e compilação dos módulos afetados sem erros
+
 ### Funcionalidades Futuras
 - [ ] Preferências do usuário persistidas (próxima etapa)
 - [ ] Retomada automática de sessão sem comando explícito
@@ -127,10 +136,11 @@
 | **2.6.0** | **40** | ✅ **Passando (sem alteração de lógica)** |
 | **2.7.0** | **40** | ✅ **Passando (integração leitura no controller)** |
 | **2.8.0** | **42** | ✅ **Passando (correções de alta prioridade e validação de argumentos)** |
+| **2.9.0** | **75** | ✅ **Passando (correções do benchmark: encadeamento de leitura, composição de documentos e falso positivo)** |
 
 **Comando:** `python -m unittest tests.test_maria -v`
 
-**Última execução (2026-08-11):** 42/42 testes passaram.
+**Última execução (2026-08-16):** 75/75 testes passaram.
 
 ---
 
@@ -149,6 +159,7 @@
 | **2.6.0** | **2026-08-11** | **Exibição de comandos na tela inicial (banner)** |
 | **2.7.0** | **2026-08-11** | **Integração das ferramentas de leitura no controller** |
 | **2.8.0** | **2026-08-11** | **Correções de alta prioridade e validação de argumentos obrigatórios** |
+| **2.9.0** | **2026-08-16** | **Correções do benchmark: encadeamento de leitura, composição de documentos e falso positivo de listar_arquivos** |
 
 ---
 

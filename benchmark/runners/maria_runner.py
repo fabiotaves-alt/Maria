@@ -14,7 +14,8 @@ if MARIA_ROOT not in sys.path:
 
 from core.chat_session import ChatSession, interpretar_confirmacao
 from core.ollama_client import OllamaClient, OllamaClientError, OllamaTimeoutError
-from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real
+from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real, FERRAMENTAS_LEITURA
+from core.tool_chaining import encadear_leitura_stream
 
 from ..benchmark_config import (
     BENCHMARK_ARQUIVOS_DIR,
@@ -59,6 +60,35 @@ class MariaRunner:
                 raise TimeoutError(
                     f"Tarefa excedeu o timeout de {BENCHMARK_TASK_TIMEOUT} segundos."
                 )
+
+            if tool_call_final and tool_call_final.get("name") in FERRAMENTAS_LEITURA:
+                historico_continuacao = sessao.get_historico_com_system()
+
+                def _checar_timeout_por_chamada(duracao_chamada: float) -> None:
+                    """Timeout POR CHAMADA (não acumulado): cada chamada de
+                    continuação do encadeamento de leitura tem seu próprio
+                    orçamento de BENCHMARK_TASK_TIMEOUT segundos, independente
+                    da duração das demais chamadas da mesma tarefa."""
+                    if duracao_chamada > BENCHMARK_TASK_TIMEOUT:
+                        raise TimeoutError(
+                            f"Uma chamada de continuação (leitura) excedeu o "
+                            f"timeout de {BENCHMARK_TASK_TIMEOUT} segundos."
+                        )
+
+                resposta_continuacao = ""
+                novo_tool_call_final = None
+                for chunk, tool_chunk in encadear_leitura_stream(
+                    self.cliente, historico_continuacao, tool_call_final, TOOLS_SCHEMA,
+                    apos_cada_chamada=_checar_timeout_por_chamada,
+                ):
+                    if chunk is not None:
+                        resposta_continuacao += chunk
+                    if tool_chunk is not None:
+                        novo_tool_call_final = tool_chunk
+
+                tool_call_final = novo_tool_call_final
+                if resposta_continuacao.strip():
+                    resposta_textual = resposta_continuacao
 
             if tool_call_final and task.confirm_sequence:
                 ambiguidades = 0
