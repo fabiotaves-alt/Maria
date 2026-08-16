@@ -90,18 +90,25 @@ def _montar_mensagens_com_reforco(historico: list[dict] | None, mensagem_usuario
 
     Não muta `historico` nem os dicts originais (retorna uma lista nova).
     """
-    reforco = """Você é a MARIA, uma assistente virtual de escritório.
-Quando o usuário pedir para criar planilhas, documentos ou editar arquivos, você DEVE usar as ferramentas disponíveis.
+    # Reforço específico e direto para tool calling
+    reforco = """IMPORTANTE: Você DEVE usar as ferramentas disponíveis quando o usuário pedir para:
+- Criar planilhas: use SEMPRE a ferramenta "criar_planilha"
+- Criar documentos Word: use SEMPRE a ferramenta "criar_documento"  
+- Editar planilhas existentes: use SEMPRE a ferramenta "editar_planilha"
+
+Não responda apenas com texto - chame a ferramenta apropriada preenchendo TODOS os campos obrigatórios.
 Responda sempre em português do Brasil."""
 
     mensagens = list(historico or [])
 
     if mensagens and mensagens[0].get("role") == "system":
+        # Mesclar reforço ao system prompt existente
         mensagens[0] = {
             "role": "system",
             "content": mensagens[0]["content"].rstrip() + "\n\n" + reforco,
         }
     else:
+        # Criar novo system prompt apenas com o reforço
         mensagens.insert(0, {"role": "system", "content": reforco})
 
     mensagens.append({"role": "user", "content": mensagem_usuario})
