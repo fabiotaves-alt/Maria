@@ -28,7 +28,11 @@ Exemplos de frases-gatilho:
 - "crie uma planilha de gastos"
 - "quero uma tabela com colunas para nome, idade e salário"
 - "preciso de um arquivo Excel para controle de estoque"
-NÃO use para textos corridos ou documentos narrativos.""",
+NÃO use para textos corridos ou documentos narrativos.
+
+IMPORTANTE: O campo 'colunas' deve ser uma LISTA DE STRINGS, não uma string única.
+Exemplo correto: {"nome_arquivo": "gastos", "colunas": ["Data", "Descrição", "Valor", "Categoria"]}
+Exemplo INCORRETO: {"nome_arquivo": "gastos", "conteudo": "Data,Valor"} - NÃO use 'conteudo' para planilhas!""",
         "parameters": {
             "type": "object",
             "properties": {
@@ -41,7 +45,7 @@ NÃO use para textos corridos ou documentos narrativos.""",
                     "items": {
                         "type": "string"
                     },
-                    "description": "Lista de nomes das colunas da planilha. Ex: ['Data', 'Descrição', 'Valor', 'Categoria']"
+                    "description": "LISTA DE STRINGS com os nomes das colunas. Ex: ['Data', 'Descrição', 'Valor', 'Categoria']. NUNCA use uma string única com separadores!"
                 },
                 "descricao": {
                     "type": "string",
@@ -276,6 +280,14 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
             descricao=argumentos.get("descricao", "")
         )
         return f"Planilha atualizada com sucesso: {caminho}"
+    
+    elif nome_funcao == "listar_arquivos":
+        from core.file_utils import listar_arquivos
+        itens = listar_arquivos(argumentos.get("pasta", ""))
+        if not itens:
+            return "A pasta está vazia (nenhum arquivo encontrado)."
+        linhas = "\n".join(f"- {i['nome']} ({i['tamanho_kb']} KB)" for i in itens)
+        return f"Arquivos encontrados:\n{linhas}"
         
     else:
         raise ValueError(f"Ferramenta desconhecida: {nome_funcao}")

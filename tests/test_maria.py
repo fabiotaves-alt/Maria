@@ -885,7 +885,7 @@ class TestRegressao(unittest.TestCase):
         systems = [m for m in mensagens if m["role"] == "system"]
         self.assertEqual(len(systems), 1)
         self.assertIn("PROMPT LONGO ORIGINAL", systems[0]["content"])
-        self.assertIn("DEVE usar as ferramentas disponíveis", systems[0]["content"])
+        self.assertIn("IMPORTANTE: Você DEVE usar as ferramentas disponíveis", systems[0]["content"])
         self.assertEqual(mensagens[-1], {"role": "user", "content": "nova mensagem"})
         self.assertEqual(historico[0]["content"], "PROMPT LONGO ORIGINAL")  # historico não mutado
 
@@ -895,7 +895,7 @@ class TestRegressao(unittest.TestCase):
 
         systems = [m for m in mensagens if m["role"] == "system"]
         self.assertEqual(len(systems), 1)
-        self.assertIn("DEVE usar as ferramentas disponíveis", systems[0]["content"])
+        self.assertIn("IMPORTANTE: Você DEVE usar as ferramentas disponíveis", systems[0]["content"])
 
     @patch('core.ollama_client.requests.Session')
     def test_chat_com_tools_envia_uma_unica_mensagem_system(self, mock_session_class):

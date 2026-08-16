@@ -164,7 +164,12 @@ class MariaRunner:
         if not match:
             return
 
-        caminho = os.path.join(BENCHMARK_ARQUIVOS_DIR, match.group(1) + ".xlsx")
+        # Extrair nome do arquivo sem extensão para evitar duplicação
+        nome_arquivo = match.group(1)
+        if nome_arquivo.endswith('.xlsx'):
+            nome_arquivo = nome_arquivo[:-5]
+        
+        caminho = os.path.join(BENCHMARK_ARQUIVOS_DIR, nome_arquivo + ".xlsx")
         if os.path.exists(caminho):
             return
 
