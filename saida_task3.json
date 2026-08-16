@@ -1,0 +1,42 @@
+{
+  "model": "qwen3.5:4b",
+  "created_at": "2026-08-16T02:31:03.9103721Z",
+  "message": {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "call_1kds4o5k",
+        "function": {
+          "index": 0,
+          "name": "criar_planilha",
+          "arguments": {
+            "nome_arquivo": "controle_gastos",
+            "colunas": [
+              "Data",
+              "Valor"
+            ],
+            "descricao": "Planilha para controle de gastos com datas e valores correspondentes."
+          }
+        }
+      }
+    ]
+  },
+  "done": false
+}
+{
+  "model": "qwen3.5:4b",
+  "created_at": "2026-08-16T02:31:04.4410485Z",
+  "message": {
+    "role": "assistant",
+    "content": ""
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 29444297100,
+  "load_duration": 468058700,
+  "prompt_eval_count": 1535,
+  "prompt_eval_duration": 626494000,
+  "eval_count": 76,
+  "eval_duration": 28289572000
+}

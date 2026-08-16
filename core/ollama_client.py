@@ -76,6 +76,38 @@ def _tentar_extrair_tool_call_textual(conteudo: str) -> dict | None:
     return {"name": nome, "arguments": argumentos}
 
 
+def _montar_mensagens_com_reforco(historico: list[dict] | None, mensagem_usuario: str) -> list[dict]:
+    """
+    Monta a lista de mensagens para o Ollama garantindo uma ÚNICA mensagem
+    role="system" no payload.
+
+    Se `historico` já começar com uma mensagem system (ex.: injetada por
+    ChatSession.get_historico_com_system()), o reforço de uso de ferramentas
+    é mesclado ao final dela. Caso contrário, cria uma nova mensagem system
+    só com o reforço. Isso evita mandar duas mensagens system consecutivas
+    ao Ollama — comportamento que, com Qwen3.5, gera tool calls com
+    argumentos incompletos (ex.: 'nome_arquivo' ausente em criar_documento).
+
+    Não muta `historico` nem os dicts originais (retorna uma lista nova).
+    """
+    reforco = """Você é a MARIA, uma assistente virtual de escritório.
+Quando o usuário pedir para criar planilhas, documentos ou editar arquivos, você DEVE usar as ferramentas disponíveis.
+Responda sempre em português do Brasil."""
+
+    mensagens = list(historico or [])
+
+    if mensagens and mensagens[0].get("role") == "system":
+        mensagens[0] = {
+            "role": "system",
+            "content": mensagens[0]["content"].rstrip() + "\n\n" + reforco,
+        }
+    else:
+        mensagens.insert(0, {"role": "system", "content": reforco})
+
+    mensagens.append({"role": "user", "content": mensagem_usuario})
+    return mensagens
+
+
 class OllamaClient:
     """
     Cliente para comunicação com a API do Ollama rodando localmente.
@@ -343,19 +375,7 @@ class OllamaClient:
             - resposta_texto: String com a resposta do modelo
             - tool_call_info: Dict {"name": str, "arguments": dict} se houver call, None caso contrário
         """
-        mensagens = []
-
-        if historico:
-            mensagens.extend(historico)
-
-        # Adicionar system prompt reforçando o uso de ferramentas para qwen3.5
-        system_prompt = """Você é a MARIA, uma assistente virtual de escritório.
-Quando o usuário pedir para criar planilhas, documentos ou editar arquivos, você DEVE usar as ferramentas disponíveis.
-Responda sempre em português do Brasil."""
-
-        # Inserir system message no início
-        mensagens.insert(0, {"role": "system", "content": system_prompt})
-        mensagens.append({"role": "user", "content": mensagem_usuario})
+        mensagens = _montar_mensagens_com_reforco(historico, mensagem_usuario)
 
         if not tools:
             # Sem tools, comportamento normal
@@ -439,14 +459,7 @@ Responda sempre em português do Brasil."""
         """Envia uma mensagem em streaming e retorna texto, tool call e
         métricas de tokens, incluindo TTFT (tempo até o primeiro token)
         separado da velocidade de decodificação."""
-        mensagens = list(historico or [])
-
-        # Adicionar system prompt reforçando o uso de ferramentas para qwen3.5
-        system_prompt = """Você é a MARIA, uma assistente virtual de escritório.
-Quando o usuário pedir para criar planilhas, documentos ou editar arquivos, você DEVE usar as ferramentas disponíveis.
-Responda sempre em português do Brasil."""
-        mensagens.insert(0, {"role": "system", "content": system_prompt})
-        mensagens.append({"role": "user", "content": mensagem_usuario})
+        mensagens = _montar_mensagens_com_reforco(historico, mensagem_usuario)
 
         num_predict = getattr(self, "num_predict", None)
         payload = {
@@ -569,14 +582,7 @@ Responda sempre em português do Brasil."""
         tools: list[dict] | None = None
     ) -> Generator[tuple[str | None, dict | None], None, None]:
         """Envia uma mensagem com function calling e retorna a resposta em chunks."""
-        mensagens = list(historico or [])
-
-        # Adicionar system prompt reforçando o uso de ferramentas para qwen3.5
-        system_prompt = """Você é a MARIA, uma assistente virtual de escritório.
-Quando o usuário pedir para criar planilhas, documentos ou editar arquivos, você DEVE usar as ferramentas disponíveis.
-Responda sempre em português do Brasil."""
-        mensagens.insert(0, {"role": "system", "content": system_prompt})
-        mensagens.append({"role": "user", "content": mensagem_usuario})
+        mensagens = _montar_mensagens_com_reforco(historico, mensagem_usuario)
 
         payload = {
             "model": self.model,

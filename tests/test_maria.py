@@ -13,6 +13,7 @@ import json
 import time
 from unittest.mock import patch, MagicMock
 from core.chat_session import ChatSession, interpretar_confirmacao
+from core.ollama_client import _montar_mensagens_com_reforco
 from core.tools_schema import (
     simular_execucao_ferramenta,
     executar_ferramenta_real,
@@ -870,6 +871,116 @@ class TestRegressao(unittest.TestCase):
         tool_call_final = chunks[-1][1]
         self.assertIsNotNone(tool_call_final)
         self.assertEqual(tool_call_final["name"], "criar_planilha")
+    
+    def test_montar_mensagens_com_reforco_mescla_system_existente(self):
+
+
+        historico = [
+            {"role": "system", "content": "PROMPT LONGO ORIGINAL"},
+            {"role": "user", "content": "mensagem anterior"},
+            {"role": "assistant", "content": "resposta anterior"},
+        ]
+        mensagens = _montar_mensagens_com_reforco(historico, "nova mensagem")
+
+        systems = [m for m in mensagens if m["role"] == "system"]
+        self.assertEqual(len(systems), 1)
+        self.assertIn("PROMPT LONGO ORIGINAL", systems[0]["content"])
+        self.assertIn("DEVE usar as ferramentas disponíveis", systems[0]["content"])
+        self.assertEqual(mensagens[-1], {"role": "user", "content": "nova mensagem"})
+        self.assertEqual(historico[0]["content"], "PROMPT LONGO ORIGINAL")  # historico não mutado
+
+    def test_montar_mensagens_com_reforco_sem_system_previo(self):
+        from core.ollama_client import _montar_mensagens_com_reforco
+        mensagens = _montar_mensagens_com_reforco(None, "mensagem")
+
+        systems = [m for m in mensagens if m["role"] == "system"]
+        self.assertEqual(len(systems), 1)
+        self.assertIn("DEVE usar as ferramentas disponíveis", systems[0]["content"])
+
+    @patch('core.ollama_client.requests.Session')
+    def test_chat_com_tools_envia_uma_unica_mensagem_system(self, mock_session_class):
+        from core.ollama_client import OllamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_response = MagicMock(status_code=200)
+        mock_response.json.return_value = {"message": {"content": "ok", "tool_calls": []}}
+        mock_session.post.return_value = mock_response
+        mock_session.get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
+        )
+
+        cliente = OllamaClient(model="qwen3.5:4b")
+        historico = [{"role": "system", "content": "PROMPT LONGO DA SESSAO"}]
+        cliente.chat_com_tools(
+            mensagem_usuario="crie uma planilha", historico=historico, tools=[FERRAMENTA_CRIAR_PLANILHA],
+        )
+
+        payload_enviado = mock_session.post.call_args.kwargs["json"]
+        mensagens_system = [m for m in payload_enviado["messages"] if m["role"] == "system"]
+        self.assertEqual(len(mensagens_system), 1)
+        self.assertIn("PROMPT LONGO DA SESSAO", mensagens_system[0]["content"])
+
+    @patch('core.ollama_client.requests.Session')
+    def test_chat_com_tools_stream_envia_uma_unica_mensagem_system(self, mock_session_class):
+        from core.ollama_client import OllamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        linhas_stream = [
+            json.dumps({"message": {"content": "ok", "tool_calls": []}, "done": True}).encode("utf-8"),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas_stream)
+        mock_session.post.return_value = mock_response
+        mock_session.get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
+        )
+
+        cliente = OllamaClient(model="qwen3.5:4b")
+        historico = [{"role": "system", "content": "PROMPT LONGO DA SESSAO"}]
+        list(cliente.chat_com_tools_stream(
+            mensagem_usuario="crie uma planilha", historico=historico, tools=[FERRAMENTA_CRIAR_PLANILHA],
+        ))
+
+        payload_enviado = mock_session.post.call_args.kwargs["json"]
+        mensagens_system = [m for m in payload_enviado["messages"] if m["role"] == "system"]
+        self.assertEqual(len(mensagens_system), 1)
+        self.assertIn("PROMPT LONGO DA SESSAO", mensagens_system[0]["content"])
+
+    @patch('core.ollama_client.requests.Session')
+    def test_chat_com_tools_stream_com_metricas_envia_uma_unica_mensagem_system(self, mock_session_class):
+        from core.ollama_client import OllamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        linhas_stream = [
+            json.dumps({"message": {"content": "ok"}, "done": True, "eval_count": 1}).encode("utf-8"),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas_stream)
+        mock_session.post.return_value = mock_response
+        mock_session.get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
+        )
+
+        cliente = OllamaClient(model="qwen3.5:4b")
+        historico = [{"role": "system", "content": "PROMPT LONGO DA SESSAO"}]
+        cliente.chat_com_tools_stream_com_metricas(
+            "crie uma planilha", historico=historico, tools=[FERRAMENTA_CRIAR_PLANILHA],
+        )
+
+        payload_enviado = mock_session.post.call_args.kwargs["json"]
+        mensagens_system = [m for m in payload_enviado["messages"] if m["role"] == "system"]
+        self.assertEqual(len(mensagens_system), 1)
+        self.assertIn("PROMPT LONGO DA SESSAO", mensagens_system[0]["content"])
+
+
+
+
 
 
 class TestSessionStorage(unittest.TestCase):
