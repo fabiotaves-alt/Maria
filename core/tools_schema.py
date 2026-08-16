@@ -28,7 +28,11 @@ Exemplos de frases-gatilho:
 - "crie uma planilha de gastos"
 - "quero uma tabela com colunas para nome, idade e salário"
 - "preciso de um arquivo Excel para controle de estoque"
-NÃO use para textos corridos ou documentos narrativos.""",
+NÃO use para textos corridos ou documentos narrativos.
+
+IMPORTANTE: O campo 'colunas' deve ser uma LISTA DE STRINGS, não uma string única.
+Exemplo correto: {"nome_arquivo": "gastos", "colunas": ["Data", "Descrição", "Valor", "Categoria"]}
+Exemplo INCORRETO: {"nome_arquivo": "gastos", "conteudo": "Data,Valor"} - NÃO use 'conteudo' para planilhas!""",
         "parameters": {
             "type": "object",
             "properties": {
@@ -41,7 +45,7 @@ NÃO use para textos corridos ou documentos narrativos.""",
                     "items": {
                         "type": "string"
                     },
-                    "description": "Lista de nomes das colunas da planilha. Ex: ['Data', 'Descrição', 'Valor', 'Categoria']"
+                    "description": "LISTA DE STRINGS com os nomes das colunas. Ex: ['Data', 'Descrição', 'Valor', 'Categoria']. NUNCA use uma string única com separadores!"
                 },
                 "descricao": {
                     "type": "string",
