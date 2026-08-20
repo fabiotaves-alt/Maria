@@ -1,0 +1,19 @@
+Acompanhar os resultados das tarefas do benchmark no terminal
+mostrar métricas simplificadas e os resultados
+capturar o modo thinking do modelo para verificar o raciocínio
+
+Tool call detectada via fallback textual no stream com métricas (origem=content): criar planilha
+como fazemos o modelo usar ferramentas corretamente?
+
+quero que o modelo use o manual de redação da presidência da república do brasil para criar documentos .docx
+
+adicionar modo visão para manipular documentos escaneados e fotos de produtos em planilhas
+
+Verificar porque o uso de memória ram aumenta a cada tarefa realizada no benchmark
+
+
+
+
+
+
+

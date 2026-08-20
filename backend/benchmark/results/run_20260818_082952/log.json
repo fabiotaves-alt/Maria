@@ -1,0 +1,74 @@
+[
+  {
+    "task_id": 9,
+    "task_name": "Documento relatório",
+    "category": "criar_documento",
+    "model": "qwen3.5:4b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_reuniao_hoje_3.docx",
+    "latency_ms": 148982.77410000446,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "relatorio_reuniao_hoje.docx",
+      "titulo": "Relatório de Reunião - Expansão Corporativa",
+      "conteudo": "Hoje, realizou-se uma reunião estratégica para discutir e definir o futuro da expansão da empresa. O tema central do encontro foi a análise de um aporte de capital social, que representará 25% do valor atualizado do patrimônio da companhia. Durante os debates, foram detalhadas as implicações financeiras e operacionais desta nova estrutura de investimento, visando garantir uma base sólida para o crescimento sustentável dos negócios.\n\nApós uma análise minuciosa dos dados apresentados pelos sócios e especialistas convidados, a proposta foi unanimemente aceita. A decisão consensual reforça o compromisso da equipe em buscar novas oportunidades de mercado e otimizar recursos internos. O aporte de 25% será distribuído igualmente entre todos os sócios existentes, assegurando uma participação equilibrada e fortalecendo a governança corporativa.\n\nComo próximos passos, será constituída uma comissão interna responsável por redigir o termo de ajuste e complementação (TAC) necessário para formalizar a alteração no capital social. Além disso, serão agendadas reuniões com os bancos parceiros para a abertura da linha de crédito correspondente ao novo aporte. A equipe financeira iniciará imediatamente a atualização dos balanços contábeis para refletir as novas proporções de participação societária."
+    },
+    "language_ok": true,
+    "tokens_gerados": 306,
+    "tokens_por_segundo": 3.3551658065813608,
+    "args_correct": true,
+    "ttft_ms": 0.09089999366551638
+  },
+  {
+    "task_id": 9,
+    "task_name": "Documento relatório",
+    "category": "criar_documento",
+    "model": "qwen3.5:4b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_reuniao_hoje_4.docx",
+    "latency_ms": 80298.51430001145,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "relatorio_reuniao_hoje.docx",
+      "titulo": "Relatório de Reunião - Expansão Corporativa",
+      "conteudo": "A reunião realizada hoje teve como foco principal a discussão sobre a expansão estratégica da empresa, especificamente o aporte de 25% do capital social atual. Durante os debates, foi detalhada a estruturação financeira necessária para viabilizar este investimento e garantir que todos os sócios estivessem alinhados com as novas diretrizes de crescimento.\n\nApós uma análise minuciosa dos interesses individuais e corporativos, a proposta foi unanimemente aceita por todos os participantes. A decisão consensual reforça o compromisso da equipe em buscar oportunidades de mercado que tragam valor agregado para cada sócio, mantendo ao mesmo tempo a estabilidade e a transparência nas relações societárias.\n\nComo próximos passos, será elaborado um plano de ação detalhado para formalizar o aporte do capital social. Este documento incluirá os ajustes contratuais necessários, a definição dos prazos de implementação e a comunicação oficial aos stakeholders envolvidos. A equipe financeira assumirá a responsabilidade pela execução imediata dessas etapas, com o objetivo de concluir as formalidades dentro do prazo estipulado."
+    },
+    "language_ok": true,
+    "tokens_gerados": 266,
+    "tokens_por_segundo": 3.3557236551071243,
+    "args_correct": true,
+    "ttft_ms": 0.10119999933522195
+  },
+  {
+    "task_id": 9,
+    "task_name": "Documento relatório",
+    "category": "criar_documento",
+    "model": "qwen3.5:4b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_reuniao_hoje_5.docx",
+    "latency_ms": 82687.909699991,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "relatorio_reuniao_hoje.docx",
+      "titulo": "Relatório de Reunião - Expansão Corporativa",
+      "conteudo": "Hoje, realizamos uma reunião estratégica dedicada à expansão do nosso negócio. O foco principal foi discutir a possibilidade de aumentar o capital social da empresa através de um aporte de 25%. A proposta foi detalhada com os objetivos de crescimento e a distribuição equitativa entre todos os sócios existentes.\n\nApós análise minuciosa dos benefícios financeiros e operacionais, a assembleia decidiu aceitar a proposta. O aporte de 25% será distribuído igualmente entre cada sócio, garantindo uma participação proporcional e reforçando o compromisso coletivo com o desenvolvimento da organização. Essa decisão visa fortalecer nossa base financeira para investir em novas áreas de atuação e aumentar nossa capacidade competitiva no mercado.\n\nComo próximos passos, iniciaremos imediatamente os trâmites legais necessários para formalizar a alteração no capital social. Em seguida, procederemos à emissão das novas ações correspondentes ao aporte recebido e atualizaremos nossos registros contábeis e estatutários. A equipe financeira acompanhará o fluxo de caixa para assegurar que os recursos sejam aplicados de forma eficiente nas estratégias de expansão previamente definidas."
+    },
+    "language_ok": true,
+    "tokens_gerados": 275,
+    "tokens_por_segundo": 3.3655314008007395,
+    "args_correct": true,
+    "ttft_ms": 0.045599997974932194
+  }
+]
