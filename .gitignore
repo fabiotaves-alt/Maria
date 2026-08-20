@@ -93,3 +93,20 @@ pip-delete-this-directory.txt
 .coverage*
 .nox/
 
+# ── Guia Fase 0 — integração frontend (JavaFX) + backend ──────
+# Python (backend)
+backend/venv/
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+
+# Java / Maven
+frontend/target/
+frontend/maria-frontend/target/
+
+# Banco de dados local compartilhado
+shared/*.db
+shared/*.db-wal
+shared/*.db-shm
+
