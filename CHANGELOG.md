@@ -2,6 +2,25 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [3.0.0] - Frontend JavaFX (Produção) e Reestruturação em Monorepo
+
+### ✅ Alterações aplicadas
+
+- **Reestruturação em monorepo**: o conteúdo antigo da raiz (`main.py`, `core/`, `tests/`, `benchmark/`, `requirements.txt`) foi movido para `backend/`. Novas pastas irmãs `frontend/` (JavaFX) e `shared/` (banco de dados compartilhado, ainda não criado) foram adicionadas na raiz.
+- **Nova interface de produção**: `frontend/` (Maven + JavaFX 21, pacote `com.tristar.maria`) — janela que inicia o backend Python via `ProcessBuilder` e troca mensagens JSON por linha (stdin/stdout).
+- **Modo bridge no backend**: `backend/main.py --bridge` adicionado, respondendo aos comandos `ping`, `chat` e `encerrar`, sem alterar o comportamento da CLI existente quando executado sem a flag.
+- **Papéis das interfaces definidos**: a CLI (`backend/main.py`) passa a ser a interface de **desenvolvimento e testes**; o frontend JavaFX (`frontend/`) passa a ser a interface de **produção**.
+- **Nova documentação**: `docs/INTEGRACAO_FRONTEND.md`, cobrindo o protocolo bridge, as divergências assumidas em relação aos guias originais de Fase 0 e Fase 1, e o checklist de regularização pendente.
+
+### ⚠️ Status conhecido (ver checklist em `docs/INTEGRACAO_FRONTEND.md`)
+
+- Frontend JavaFX ainda não possui banco de dados (`shared/maria.db`) nem a estrutura completa de abas prevista no guia original; apenas o chat está funcional, embutido em `App.java` (sem `ConversarController`/FXML dedicado).
+- `pom.xml` declara `groupId com.nyc.maria`, divergente do pacote Java real `com.tristar.maria` — pendente de correção.
+
+### ✅ Status dos Testes
+
+- Suíte de testes da CLI (`backend/tests/test_maria.py`) inalterada por esta entrada — nenhuma regressão esperada, já que a reestruturação preserva os módulos de `core/` e `benchmark/` sem mudança de lógica.
+
 ## [2.10.0] - Configuração de Modelo Centralizada e Fallback Textual Desativável
 
 ### ✅ Alterações aplicadas
