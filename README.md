@@ -4,7 +4,12 @@
 
 ## Visão Geral
 
-A MARIA é uma assistente de escritório local que usa o Ollama e o modelo `qwen2.5:7b`. A versão atual implementa:
+A MARIA é uma assistente de escritório local que usa o Ollama e o modelo `qwen2.5:7b`. O projeto oferece duas interfaces:
+
+- **CLI (`backend/main.py`)** — interface de **desenvolvimento e testes**: usada para validar ferramentas, rodar o benchmark e depurar o cliente Ollama diretamente no terminal.
+- **JavaFX (`frontend/`)** — interface de **produção**, que se comunica com o backend Python via processo bridge (`backend/main.py --bridge`). Ainda em regularização; consulte [`docs/INTEGRACAO_FRONTEND.md`](docs/INTEGRACAO_FRONTEND.md) para o checklist de pendências.
+
+A versão atual implementa:
 
 - ✅ Cliente de conexão com Ollama (API local)
 - ✅ Loop de chat com histórico de contexto (últimas 12 mensagens)
@@ -22,9 +27,18 @@ A MARIA é uma assistente de escritório local que usa o Ollama e o modelo `qwen
 
 Antes de rodar o projeto, certifique-se de ter:
 
+### Para a CLI (desenvolvimento e testes)
+
 1. **Python 3.11+** instalado
 2. **Ollama** instalado e rodando
 3. **Modelo Qwen2.5:7b** baixado
+
+### Para o frontend JavaFX (produção)
+
+Além dos itens acima (o backend Python continua sendo necessário como processo bridge):
+
+4. **Java 21** instalado
+5. **Maven** instalado
 
 ### Instalação do Ollama
 
@@ -43,6 +57,7 @@ ollama pull qwen2.5:7b
 ### Instalar Dependências Python
 
 ```bash
+cd backend
 pip install -r requirements.txt
 ```
 
@@ -50,50 +65,79 @@ pip install -r requirements.txt
 
 ```
 maria/
-├── .venv/
+├── .venv/                          # Ambiente virtual Python (raiz do monorepo)
 ├── .vscode/
 ├── .gitignore
 ├── README.md
 ├── CHANGELOG.md
-├── requirements.txt
-├── main.py
-├── core/
-│   ├── __init__.py
-│   ├── chat_session.py
-│   ├── config.py
-│   ├── excel_handler.py
-│   ├── file_utils.py
-│   ├── ollama_client.py
-│   ├── session_storage.py
-│   ├── tools_schema.py
-│   └── word_handler.py
-├── arquivos_gerados/
-├── sessoes_salvas/
+├── shared/                         # Banco de dados compartilhado (ainda não criado)
 ├── docs/
-├── benchmark/
-│   ├── __init__.py
-│   ├── benchmark_config.py
-│   ├── run_benchmark.py
-│   ├── compare_runs.py
-│   ├── README.md
-│   ├── tasks/
-│   ├── runners/
-│   ├── analysis/
-│   └── results/
-└── tests/
-    ├── __init__.py
-    └── test_maria.py
+│   ├── INTEGRACAO_FRONTEND.md      # Protocolo bridge e checklist de regularização
+│   └── PROGRESSO_DESENVOLVIMENTO_V1.md
+├── backend/                        # Backend Python — CLI (dev/testes) + modo bridge (produção)
+│   ├── requirements.txt
+│   ├── main.py                     # Suporta execução direta (CLI) e --bridge (JavaFX)
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── chat_session.py
+│   │   ├── config.py
+│   │   ├── excel_handler.py
+│   │   ├── file_utils.py
+│   │   ├── ollama_client.py
+│   │   ├── session_storage.py
+│   │   ├── tool_chaining.py
+│   │   ├── tools_schema.py
+│   │   └── word_handler.py
+│   ├── arquivos_gerados/
+│   ├── sessoes_salvas/
+│   ├── benchmark/
+│   │   ├── __init__.py
+│   │   ├── benchmark_config.py
+│   │   ├── run_benchmark.py
+│   │   ├── compare_runs.py
+│   │   ├── README.md
+│   │   ├── tasks/
+│   │   ├── runners/
+│   │   ├── analysis/
+│   │   └── results/
+│   └── tests/
+│       ├── __init__.py
+│       └── test_maria.py
+└── frontend/                       # Frontend JavaFX (produção)
+    ├── pom.xml
+    └── src/main/java/com/tristar/maria/
+        ├── App.java
+        └── bridge/
+            ├── Requisicao.java
+            ├── Resposta.java
+            └── PythonBridgeService.java
 ```
+
+> Divergências entre esta estrutura e o pacote Java (`com.tristar.maria` vs `groupId com.nyc.maria` no `pom.xml`) estão documentadas e rastreadas em [`docs/INTEGRACAO_FRONTEND.md`](docs/INTEGRACAO_FRONTEND.md).
 
 ## Como Usar
 
-### Iniciar a Aplicação
+### Interface CLI (desenvolvimento e testes)
+
+A partir da raiz do monorepo:
 
 ```bash
+cd backend
 python main.py
 ```
 
-### Comandos Disponíveis
+### Interface JavaFX (produção)
+
+A partir da raiz do monorepo:
+
+```bash
+cd frontend
+mvn javafx:run
+```
+
+O frontend inicia automaticamente o backend Python em modo bridge (`backend/main.py --bridge`) via `ProcessBuilder`. Detalhes do protocolo em [`docs/INTEGRACAO_FRONTEND.md`](docs/INTEGRACAO_FRONTEND.md).
+
+### Comandos Disponíveis (CLI)
 
 | Comando | Descrição |
 |---------|-----------|
@@ -230,6 +274,7 @@ Integração de voz com Whisper.cpp permanece como recurso futuro. A execução 
 ### Erro: "requests não está instalada"
 
 ```bash
+cd backend
 pip install -r requirements.txt
 ```
 
@@ -251,6 +296,8 @@ Isso é normal para modelos rodando localmente. O tempo de resposta depende:
 
 ## Executar Testes
 
+A partir de `backend/`:
+
 ```bash
 python -m unittest tests.test_maria -v
 ```
@@ -258,6 +305,8 @@ python -m unittest tests.test_maria -v
 ### Benchmark
 
 O sistema de benchmark live mede tool calling, confirmação, execução, erros, latência e conformidade de idioma usando o Ollama local. O relatório gerado inclui a taxa de conformidade de idioma (`language_compliance_rate`) nas respostas finais.
+
+A partir de `backend/`:
 
 ```bash
 python -m benchmark.run_benchmark --tasks 25
