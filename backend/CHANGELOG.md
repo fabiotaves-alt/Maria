@@ -2,6 +2,43 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.11.1] - Correção dos Testes Quebrados (Namespace dos Patches)
+
+### ✅ Correções aplicadas
+
+- **Causa raiz**: os decoradores `@patch` usavam o namespace `core.ollama_client.*`, mas o módulo é importado como `backend.core.ollama_client`. Como o pytest adiciona `backend/` ao `sys.path`, o Python registrava dois módulos distintos e o patch era aplicado na instância errada — os flags (`OLLAMA_ENVIAR_THINK_PARAM`, `OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL`) nunca mudavam no código em execução.
+- **Fix**: alvos de patch corrigidos para `backend.core.ollama_client.*` em `tests/test_maria.py` (linhas 1397, 1437–1438), incluindo `requests.Session` por consistência.
+- **Observação**: o comando legado `cd backend && python -m unittest tests.test_maria` está quebrado por design (o arquivo importa `backend.*`). Comando correto a partir da raiz: `python -m unittest backend.tests.test_maria`.
+
+### ✅ Status dos Testes
+
+- **86/86 testes passaram** + 33 subtestes via pytest (raiz do monorepo)
+- **86/86 passaram** via `python -m unittest backend.tests.test_maria` (raiz)
+
+## [2.11.0] - Unificação de Pacotes Java e Documentação do Monorepo
+
+### ✅ Alterações aplicadas
+
+- **Unificação dos pacotes Java em `com.tristar.maria`**: os 10 controllers movidos de `com/nyc/maria/ui/` para `com/tristar/maria/ui/`, com declaração `package` corrigida.
+- **Resources movidos**: 10 FXMLs + 2 CSS de `resources/com/nyc/maria/` para `resources/com/tristar/maria/`; atributos `fx:controller` atualizados nos 10 FXMLs.
+- **`MainController` corrigido**: caminho dinâmico das views atualizado para `/com/tristar/maria/...`; bloco de reflexão morto (`setMainController`) removido.
+- **`pom.xml` alinhado**: groupId alterado para `com.tristar.maria` (mainClass já era `com.tristar.maria.App`).
+- **Pastas `com/nyc/` removidas**; varredura confirma zero referências residuais no código.
+- **Documentação atualizada**: menções a `com.nyc` substituídas em `docs/ARQUITETURA_REAL_SISTEMA.md`, `docs/INTEGRACAO_FRONTEND.md` e `docs/RELATORIO_ACOMPANHAMENTO.md`.
+- **Novos documentos na raiz**: `README.md` do monorepo (arquitetura, pré-requisitos, execução CLI/frontend/bridge) e `requirements.txt` consolidado.
+- **Novo relatório**: `docs/RELATORIO_ESTADO_ATUAL.md` com análise de bugs, erros e inconsistências, percentuais por camada e roadmap priorizado para a GUI ficar funcional.
+
+### ✅ Status dos Testes
+
+- **84/86 testes passaram** (`pytest backend/tests/test_maria.py`) + 33 subtestes
+- 2 falhas **pré-existentes** (não relacionadas a esta tarefa): `test_montar_payload_omite_think_quando_desabilitado` e `test_fallback_desativado_nao_extrai_tool_call`
+- Validação do frontend foi estática (Maven/JDK 21 não instalados na máquina) — pendente `mvn clean compile`
+
+### 📊 Cobertura de Código
+
+- Frontend: estrutura de pacotes 100% consistente (Java + FXML + pom.xml)
+- Backend: sem alterações de lógica nesta versão
+
 ## [2.10.0] - Configuração de Modelo Centralizada e Fallback Textual Desativável
 
 ### ✅ Alterações aplicadas

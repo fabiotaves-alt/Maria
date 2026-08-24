@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.nyc.maria.ui.AutomacoesController" spacing="10">
+      fx:controller="com.tristar.maria.ui.AutomacoesController" spacing="10">
     <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
     <Label text="⚙️ Automações" styleClass="titulo-aba"/>
     <Label text="Regras e gatilhos configuráveis para automação de tarefas" styleClass="subtitulo-aba"/>

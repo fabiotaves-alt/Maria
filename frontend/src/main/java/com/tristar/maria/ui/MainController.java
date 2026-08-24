@@ -1,4 +1,4 @@
-package com.nyc.maria.ui;
+package com.tristar.maria.ui;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -46,15 +46,9 @@ public class MainController {
             return viewsCache.get(nomeAba);
         }
 
-        String fxmlPath = "/com/nyc/maria/" + nomeAba + "-view.fxml";
+        String fxmlPath = "/com/tristar/maria/" + nomeAba + "-view.fxml";
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
         Node view = loader.load();
-
-        // Se o controller tiver método setMainController, chama-o
-        Object controller = loader.getController();
-        if (controller != null && controller.getClass().getMethod("setMainController", MainController.class) != null) {
-            // Método existe, mas não vamos chamar aqui para evitar dependência circular
-        }
 
         viewsCache.put(nomeAba, view);
         return view;
