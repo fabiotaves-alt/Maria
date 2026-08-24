@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.nyc.maria.ui.MainController"
+            prefWidth="1024" prefHeight="768">
+
+    <!-- Sidebar de navegação -->
+    <left>
+        <VBox spacing="4" styleClass="sidebar" prefWidth="200">
+            <padding>
+                <Insets top="20" right="10" bottom="20" left="10"/>
+            </padding>
+            <Label text="MARIA" styleClass="logo"/>
+            
+            <fx:include source="menu-items.fxml"/>
+        </VBox>
+    </left>
+
+    <!-- Área de conteúdo (dinâmica) -->
+    <center>
+        <ScrollPane fitToWidth="true" fitToHeight="true" fx:id="areaConteudo">
+            <content>
+                <VBox fx:id="conteudoAtual" spacing="10">
+                    <padding>
+                        <Insets top="20" right="20" bottom="20" left="20"/>
+                    </padding>
+                    <Label text="Bem-vindo ao Maria — Assistente de IA Pessoal" styleClass="titulo-boas-vindas"/>
+                    <Label text="Selecione uma opção no menu lateral para começar." styleClass="subtitulo"/>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

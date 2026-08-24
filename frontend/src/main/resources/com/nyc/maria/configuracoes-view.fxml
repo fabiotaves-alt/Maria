@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.nyc.maria.ui.ConfiguracoesController" spacing="15">
+    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+    <Label text="⚙️ Configurações" styleClass="titulo-aba"/>
+    
+    <TitledPane text="Aparência" expanded="true">
+        <VBox spacing="10">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Tema:"/>
+                <ChoiceBox fx:id="choiceTema" prefWidth="200"/>
+            </HBox>
+        </VBox>
+    </TitledPane>
+    
+    <TitledPane text="Modelo LLM" expanded="true">
+        <VBox spacing="10">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Modelo Ollama:"/>
+                <TextField fx:id="campoModelo" promptText="ex: llama3.1:8b" HBox.hgrow="ALWAYS"/>
+            </HBox>
+        </VBox>
+    </TitledPane>
+    
+    <TitledPane text="Banco de Dados" expanded="false">
+        <VBox spacing="10">
+            <Label fx:id="labelCaminhoDB" text="Caminho: não configurado" wrapText="true"/>
+            <Button text="Selecionar Local do Banco" onAction="#selecionarCaminhoDB"/>
+        </VBox>
+    </TitledPane>
+    
+    <Button text="Salvar Configurações" onAction="#salvarConfiguracoes"/>
+</VBox>
