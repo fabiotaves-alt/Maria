@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.nyc.maria.ui.ConversarController"
+      spacing="10">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="💬 Conversar" styleClass="titulo-aba"/>
+    <Label text="Chat com Maria (LLM local via Ollama)" styleClass="subtitulo-aba"/>
+
+    <!-- Área de mensagens -->
+    <VBox fx:id="areaMensagens" spacing="8" VBox.vgrow="ALWAYS">
+        <padding>
+            <Insets top="10" right="10" bottom="10" left="10"/>
+        </padding>
+        <Label text="Inicie uma conversa com Maria..." styleClass="mensagem-sistema"/>
+    </VBox>
+
+    <!-- Campo de entrada -->
+    <HBox spacing="8">
+        <TextField fx:id="campoMensagem" promptText="Digite sua mensagem..." HBox.hgrow="ALWAYS"/>
+        <Button text="Enviar" onAction="#enviarMensagem"/>
+    </HBox>
+
+    <Label fx:id="labelStatus" text="Pronto" styleClass="status"/>
+</VBox>

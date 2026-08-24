@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.nyc.maria.ui.MemoriaController" spacing="10">
+    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+    <Label text="🧠 Memória" styleClass="titulo-aba"/>
+    <Label text="Fatos e preferências persistentes sobre o usuário" styleClass="subtitulo-aba"/>
+    <ListView fx:id="listaFatos" VBox.vgrow="ALWAYS"/>
+    <HBox spacing="8">
+        <TextField fx:id="campoNovoFato" promptText="Adicionar novo fato..." HBox.hgrow="ALWAYS"/>
+        <Button text="Adicionar" onAction="#adicionarFato"/>
+    </HBox>
+</VBox>

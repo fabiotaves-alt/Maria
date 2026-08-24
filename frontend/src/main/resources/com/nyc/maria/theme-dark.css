@@ -1,0 +1,81 @@
+/* Tema Escuro - Maria */
+.root {
+    -fx-background-color: #1e1e2e;
+    -fx-text-fill: #cdd6f4;
+}
+
+.sidebar {
+    -fx-background-color: #181825;
+    -fx-border-color: #313244;
+    -fx-border-width: 0 1 0 0;
+}
+
+.logo {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #cba6f7;
+    -fx-padding: 10 0 20 0;
+}
+
+.menu-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cdd6f4;
+    -fx-font-size: 14px;
+    -fx-padding: 10;
+    -fx-background-radius: 8;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.menu-item:hover {
+    -fx-background-color: #313244;
+}
+
+.titulo-aba {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #cba6f7;
+}
+
+.subtitulo-aba {
+    -fx-font-size: 14px;
+    -fx-text-fill: #a6adc8;
+}
+
+.status {
+    -fx-font-size: 12px;
+    -fx-text-fill: #6c7086;
+}
+
+.mensagem-sistema {
+    -fx-text-fill: #a6adc8;
+    -fx-font-style: italic;
+}
+
+.button {
+    -fx-background-color: #89b4fa;
+    -fx-text-fill: #1e1e2e;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16;
+    -fx-background-radius: 6;
+}
+
+.button:hover {
+    -fx-background-color: #b4befe;
+}
+
+.text-field, .text-area, .list-view {
+    -fx-background-color: #313244;
+    -fx-text-fill: #cdd6f4;
+    -fx-border-color: #45475a;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.titled-pane > .title {
+    -fx-background-color: #313244;
+    -fx-text-fill: #cdd6f4;
+}
+
+.titled-pane > .content {
+    -fx-background-color: #1e1e2e;
+}

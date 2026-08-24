@@ -1,0 +1,81 @@
+/* Tema Claro - Maria */
+.root {
+    -fx-background-color: #eff1f5;
+    -fx-text-fill: #4c4f69;
+}
+
+.sidebar {
+    -fx-background-color: #e6e9ef;
+    -fx-border-color: #ccd0da;
+    -fx-border-width: 0 1 0 0;
+}
+
+.logo {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #8839ef;
+    -fx-padding: 10 0 20 0;
+}
+
+.menu-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #4c4f69;
+    -fx-font-size: 14px;
+    -fx-padding: 10;
+    -fx-background-radius: 8;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.menu-item:hover {
+    -fx-background-color: #ccd0da;
+}
+
+.titulo-aba {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #8839ef;
+}
+
+.subtitulo-aba {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6c6f85;
+}
+
+.status {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9ca0b0;
+}
+
+.mensagem-sistema {
+    -fx-text-fill: #6c6f85;
+    -fx-font-style: italic;
+}
+
+.button {
+    -fx-background-color: #1e66f5;
+    -fx-text-fill: #eff1f5;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16;
+    -fx-background-radius: 6;
+}
+
+.button:hover {
+    -fx-background-color: #7287fd;
+}
+
+.text-field, .text-area, .list-view {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #4c4f69;
+    -fx-border-color: #ccd0da;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.titled-pane > .title {
+    -fx-background-color: #ccd0da;
+    -fx-text-fill: #4c4f69;
+}
+
+.titled-pane > .content {
+    -fx-background-color: #eff1f5;
+}

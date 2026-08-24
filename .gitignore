@@ -1,112 +1,43 @@
-# Dependencies
+```gitignore
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.py~
-*.py.class
-*.py.backup
-*.py.swp
-*.py.swo
-*.py.tmp
-*.py.log
-*.py.cache
-*.py.compiled
-*.py.bak
-*.py.save
-*.py~
-
-# Virtual environments
+.Python
+env/
 venv/
 .venv/
-env/
-ENV/
-.ENV/
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-*.egg
-*.whl
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
-*.o
-*.obj
-*.a
-*.lib
-*.class
-
-# Logs
-*.log
-*.log.*
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-*~
-.swp
-.swo
-
-# Environment variables
-.env
-.env.local
-.env.*
-!.env.example
-
-# IDE specific
-.vscode/
-.idea/
-*.iml
-*.ipr
-*.iws
-.settings/
-.project
-.pydevproject
-
-# OS specific
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Coverage reports
-coverage/
-htmlcov/
+.ENV
+.python-version
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
 .coverage
-*.coverage
-
-# Testing
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
 .pytest_cache/
 .mypy_cache/
 .hypothesis/
 
-# Distribution / packaging
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage*
-.nox/
+# Database
+*.sqlite
+*.sqlite3
+.dynamodb/
 
-# ── Guia Fase 0 — integração frontend (JavaFX) + backend ──────
-# Python (backend)
-backend/venv/
-backend/.venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/.pytest_cache/
+# Documentation
+docs/_build/
+docs/build/
 
-# Java / Maven
-frontend/target/
-frontend/maria-frontend/target/
-
-# Banco de dados local compartilhado
-shared/*.db
-shared/*.db-wal
-shared/*.db-shm
-
+# Environment variables
+.env
+.env.local
+.env.dev
+.env.test
+.env.production
+*.env
+```
