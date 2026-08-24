@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.nyc.maria.ui.MemoriaController" spacing="10">
+      fx:controller="com.tristar.maria.ui.MemoriaController" spacing="10">
     <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
     <Label text="🧠 Memória" styleClass="titulo-aba"/>
     <Label text="Fatos e preferências persistentes sobre o usuário" styleClass="subtitulo-aba"/>

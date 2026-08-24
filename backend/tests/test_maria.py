@@ -1394,7 +1394,7 @@ class TestConfiguracaoDeModeloCentralizada(unittest.TestCase):
         payload = cliente._montar_payload([{"role": "user", "content": "oi"}], tools=None, stream=False)
         self.assertIn("think", payload)
 
-    @patch('core.ollama_client.OLLAMA_ENVIAR_THINK_PARAM', False)
+    @patch('backend.core.ollama_client.OLLAMA_ENVIAR_THINK_PARAM', False)
     def test_montar_payload_omite_think_quando_desabilitado(self):
         from backend.core.ollama_client import OllamaClient
         cliente = OllamaClient(model="modelo-teste")
@@ -1434,8 +1434,8 @@ class TestFallbackTextualDesativavel(unittest.TestCase):
     """Testa que o fallback de tool call vazada como texto respeita
     OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL (Item 3)."""
 
-    @patch('core.ollama_client.OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL', False)
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL', False)
+    @patch('backend.core.ollama_client.requests.Session')
     def test_fallback_desativado_nao_extrai_tool_call(self, mock_session_class):
         from backend.core.ollama_client import OllamaClient
 

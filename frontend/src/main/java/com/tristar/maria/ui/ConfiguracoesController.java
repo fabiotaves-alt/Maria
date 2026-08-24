@@ -1,4 +1,4 @@
-package com.nyc.maria.ui;
+package com.tristar.maria.ui;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.ChoiceBox;

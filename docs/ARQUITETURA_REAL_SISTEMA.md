@@ -29,7 +29,7 @@
 │       │   │       ├── Requisicao.java            # POJO para requisições JSON
 │       │   │       └── Resposta.java              # POJO para respostas JSON
 │       │   │
-│       │   └── com/nyc/maria/
+│       │   └── com/tristar/maria/
 │       │       └── ui/
 │       │           ├── MainController.java        # Shell principal: sidebar + área dinâmica
 │       │           ├── MenuItemsController.java   # Botões das 8 abas do menu lateral
@@ -42,7 +42,7 @@
 │       │           ├── AutomacoesController.java  # Controller da aba Automações
 │       │           └── ConfiguracoesController.java # Controller da aba Configurações
 │       │
-│       └── resources/com/nyc/maria/
+│       └── resources/com/tristar/maria/
 │           ├── main-view.fxml         # Layout principal (sidebar + conteúdo dinâmico)
 │           ├── menu-items.fxml        # Definição dos 8 botões do menu lateral
 │           ├── conversar-view.fxml    # UI da aba Conversar
@@ -134,7 +134,7 @@
 
 **Observação:** Existem duas entradas principais no frontend:
 1. `com.tristar.maria.App` — Demo standalone da Fase 0 (chat simples com bridge funcional)
-2. `com.nyc.maria.ui.MainController` — Estrutura completa das 8 abas (ainda sem ponto de entrada JavaFX integrado)
+2. `com.tristar.maria.ui.MainController` — Estrutura completa das 8 abas (ainda sem ponto de entrada JavaFX integrado)
 
 ---
 
@@ -206,7 +206,7 @@
 
 | Seção do Guia | Previsto | Implementado | Gap |
 |---|---|---|---|
-| **Estrutura frontend/** | `com/nyc/maria/` com App.java, bridge/, ui/, model/, dao/ | `com/tristar/maria/` (App + bridge) + `com/nyc/maria/ui/` (controllers) | Pacote `model/` e `dao/` não existem; dois pacotes raiz diferentes (`tristar` vs `nyc`) |
+| **Estrutura frontend/** | `com/tristar/maria/` com App.java, bridge/, ui/, model/, dao/ | `com/tristar/maria/` (App + bridge) + `com/tristar/maria/ui/` (controllers) | Pacote `model/` e `dao/` não existem; dois pacotes raiz diferentes (`tristar` vs `nyc`) |
 | **Estrutura backend/** | `core/`, `modulos/`, `database/`, `tests/` | `core/` ✅, `modulos/` (vazio) ❌, `database/` ✅, `tests/` ✅ | `modulos/` vazio; diretórios extras (`benchmark/`, `arquivo/`) não previstos |
 | **Protocolo JSON** | `id`, `comando`, `payload` / `id`, `status`, `dados`, `mensagemErro` | ✅ Exatamente como previsto | Nenhum |
 | **Comandos bridge** | `ping`, `chat`, `encerrar` | ✅ Implementados | Nenhum |
@@ -222,7 +222,7 @@
 
 1. **Unificar ponto de entrada JavaFX**
    - Problema: Existem dois apps separados (`App.java` da tristar e estrutura `nyc` sem entry point)
-   - Solução: Criar novo `App.java` em `com/nyc/maria/` que usa `MainController` + integra `PythonBridgeService`
+   - Solução: Criar novo `App.java` em `com/tristar/maria/` que usa `MainController` + integra `PythonBridgeService`
 
 2. **Criar schema do banco de dados**
    - Problema: `maria.db` não existe, tabelas não foram criadas
@@ -239,8 +239,8 @@
    - Solução: Mover para `/workspace/experimental/` ou remover
 
 5. **Padronizar pacotes Java**
-   - Problema: Mistura de `com.tristar.maria` e `com.nyc.maria`
-   - Solução: Unificar tudo sob `com.nyc.maria`
+   - Problema: Mistura de `com.tristar.maria` e `com.tristar.maria`
+   - Solução: Unificar tudo sob `com.tristar.maria`
 
 6. **Implementar módulo database/schema.py**
    - Problema: Connection existe, mas não há criação de tabelas
@@ -264,7 +264,7 @@ Para completar a **Fase 0 (Esqueleto Executável)**:
 
 1. **Criar `backend/database/schema.py`** com DDL das 6 tabelas
 2. **Modificar `backend/main.py`** para chamar `init_db()` e `schema.criar_tabelas()` no startup
-3. **Refatorar frontend** para unificar `App.java` sob `com/nyc/maria/` integrando bridge + MainController
+3. **Refatorar frontend** para unificar `App.java` sob `com/tristar/maria/` integrando bridge + MainController
 4. **Testar fluxo completo**: Iniciar JavaFX → Handshake ping/pong → Navegar entre abas → Comando chat funcional
 5. **Criar `maria.db`** automaticamente no primeiro boot em `/workspace/shared/`
 
@@ -291,3 +291,4 @@ Após Fase 0 completa, prosseguir para **Fase 1 (Conversar)**: integrar `Convers
 ---
 
 *Documento gerado automaticamente a partir da análise do código-fonte em `/workspace`.*
+

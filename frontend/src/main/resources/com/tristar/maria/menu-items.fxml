@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.nyc.maria.ui.MenuItemsController"
+      fx:controller="com.tristar.maria.ui.MenuItemsController"
       spacing="4">
 
     <Button text="💬 Conversar" fx:id="btnConversar" onAction="#abrirConversar" styleClass="menu-item"/>

@@ -61,11 +61,11 @@ O processo Python lê uma linha JSON por vez do stdin e responde JSON por linha 
 
 | Item | Guia original | Implementado | Motivo |
 |------|--------------|--------------|--------|
-| Pacote Java | `com.nyc.maria` | `com.tristar.maria` | Manter consistência com código existente |
+| Pacote Java | `com.tristar.maria` | `com.tristar.maria` | Manter consistência com código existente |
 | Jackson | `2.17.2` | `2.22.2` | Manter versão já resolvida no Maven (não corrigir, documentar) |
 | venv | `backend/venv/` | `.venv/` (raiz) | O venv já existe na raiz do monorepo; nenhuma mudança necessária |
 | `database/` | `backend/database/` | não criado | Backend não usa banco próprio; banco compartilhado em `shared/` |
-| Classe App | `com.nyc.maria.App` | `com.tristar.maria.App` | Ajustado ao pacote escolhido |
+| Classe App | `com.tristar.maria.App` | `com.tristar.maria.App` | Ajustado ao pacote escolhido |
 
 ## Como executar
 
@@ -122,3 +122,4 @@ Resultado obtido:
 ```json
 {"id": "1", "status": "ok", "dados": "pong", "mensagemErro": null}
 ```
+

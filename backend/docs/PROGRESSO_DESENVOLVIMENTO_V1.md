@@ -1,12 +1,23 @@
 # 📊 PROGRESSO DE DESENVOLVIMENTO — MARIA V1
 
-## 📅 Última alteração: 2026-08-16
+## 📅 Última alteração: 2026-08-24
 
-## 📈 Percentual Total Concluído: 98%
+## 📈 Percentual Total Concluído: 98% (backend) — GUI pendente de integração (ver docs/RELATORIO_ESTADO_ATUAL.md)
 
 ---
 
 ## ✅ Checklist de Funcionalidades
+
+### Fase 0 — Unificação e Documentação do Monorepo (v2.11.0) ✅
+- [x] Pacotes Java unificados em `com.tristar.maria` (10 controllers + resources movidos)
+- [x] `fx:controller` atualizados nos 10 FXMLs
+- [x] `MainController` com caminho dinâmico corrigido e reflexão morta removida
+- [x] `pom.xml` alinhado (groupId `com.tristar.maria`)
+- [x] Pastas `com/nyc/` removidas sem referências residuais
+- [x] `README.md` do monorepo criado na raiz
+- [x] `requirements.txt` consolidado na raiz
+- [x] `docs/RELATORIO_ESTADO_ATUAL.md` (bugs, inconsistências e roadmap da GUI)
+
 
 ### Fase 1 — Base da MARIA
 - [x] Cliente básico de comunicação com Ollama
@@ -149,10 +160,12 @@
 | **2.8.0** | **42** | ✅ **Passando (correções de alta prioridade e validação de argumentos)** |
 | **2.9.0** | **75** | ✅ **Passando (correções do benchmark: encadeamento de leitura, composição de documentos e falso positivo)** |
 | **2.10.0** | **80** | ✅ **Passando (configuração de modelo centralizada e fallback textual desativável)** |
+| **2.11.0** | **84/86** | ⚠️ 84 passando + 33 subtestes; 2 falhas pré-existentes (`think`/fallback textual). Frontend validado estaticamente |
+| **2.11.1** | **86/86** | ✅ **Passando (correção do namespace dos patches em test_maria.py)** |
 
 **Comando:** `python -m unittest tests.test_maria -v`
 
-**Última execução (2026-08-16):** 80/80 testes passaram.
+**Última execução (2026-08-24):** 84/86 testes passaram via pytest (`backend/tests/test_maria.py`).
 
 ---
 
@@ -173,6 +186,8 @@
 | **2.8.0** | **2026-08-11** | **Correções de alta prioridade e validação de argumentos obrigatórios** |
 | **2.9.0** | **2026-08-16** | **Correções do benchmark: encadeamento de leitura, composição de documentos e falso positivo de listar_arquivos** |
 | **2.10.0** | **2026-08-16** | **Configuração de modelo centralizada em `core/config.py`, `model_file.txt` removido, fallback textual desativável por modelo** |
+| **2.11.0** | **2026-08-24** | **Unificação dos pacotes Java em `com.tristar.maria`; README.md e requirements.txt na raiz; relatório de estado atual** |
+| **2.11.1** | **2026-08-24** | **Correção dos testes quebrados: namespace dos `@patch` alinhado a `backend.core.ollama_client` (86/86 passando)** |
 
 ---
 

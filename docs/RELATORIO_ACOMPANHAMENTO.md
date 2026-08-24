@@ -77,7 +77,7 @@ maria/
 ├── frontend/
 │   ├── pom.xml
 │   └── src/main/
-│       ├── java/com/nyc/maria/
+│       ├── java/com/tristar/maria/
 │       │   ├── App.java
 │       │   ├── bridge/
 │       │   │   ├── PythonBridgeService.java
@@ -94,7 +94,7 @@ maria/
 │       │   │   └── ConfiguracoesController.java
 │       │   ├── model/
 │       │   └── dao/
-│       └── resources/com/nyc/maria/
+│       └── resources/com/tristar/maria/
 │           ├── main-view.fxml
 │           ├── conversar-view.fxml
 │           ├── arquivos-view.fxml
@@ -181,7 +181,7 @@ ESTRUTURA ATUAL:
 | `backend/database/` | ❌ Ausente | Alta |
 | `backend/core/protocolo.py` | ⚠️ Lógica em main.py | Baixa |
 | `shared/maria.db` | ❌ Ausente | Alta |
-| Pacote `com.nyc.maria` | ⚠️ Usando `com.tristar.maria` | Info |
+| Pacote `com.tristar.maria` | ⚠️ Usando `com.tristar.maria` | Info |
 
 ---
 
@@ -287,7 +287,7 @@ ESTRUTURA ATUAL:
 
 | # | Issue | Impacto | Recomendação |
 |---|-------|---------|--------------|
-| 5 | Pacote `com.tristar.maria` vs `com.nyc.maria` | Inconsistência com guia | Decidir padrão e padronizar |
+| 5 | Pacote `com.tristar.maria` vs `com.tristar.maria` | Inconsistência com guia | Decidir padrão e padronizar |
 | 6 | Apache POI ausente no pom.xml | Bloqueia leitura de Excel no frontend | Adicionar dependência |
 | 7 | Sem DAOs no frontend | Acesso direto ao DB sem camada de abstração | Implementar padrão do Catálogo |
 
@@ -306,7 +306,7 @@ ESTRUTURA ATUAL:
 
 1. **Criar estrutura de recursos do frontend**
    ```bash
-   mkdir -p frontend/src/main/resources/com/nyc/maria/
+   mkdir -p frontend/src/main/resources/com/tristar/maria/
    ```
 
 2. **Criar FXMLs básicos para as 8 abas**
@@ -362,3 +362,4 @@ O Projeto Maria está **60% completo na Fase 0**, com:
 ---
 
 *Relatório gerado automaticamente com base na análise do código-fonte em /workspace/*
+
