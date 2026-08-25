@@ -120,7 +120,6 @@ Todas as configurações ficam centralizadas em [`backend/core/config.py`](backe
 
 | Documento | Conteúdo |
 |-----------|----------|
-| [docs/ARQUITETURA_REAL_SISTEMA.md](docs/ARQUITETURA_REAL_SISTEMA.md) | Arquitetura detalhada e issues da Fase 0 |
 | [docs/INTEGRACAO_FRONTEND.md](docs/INTEGRACAO_FRONTEND.md) | Protocolo bridge Java↔Python |
 | [docs/RELATORIO_ESTADO_ATUAL.md](docs/RELATORIO_ESTADO_ATUAL.md) | Estado atual, bugs e roadmap |
 | [backend/README.md](backend/README.md) | Documentação completa do backend/CLI |

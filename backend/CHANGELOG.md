@@ -2,6 +2,28 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.12.0] - Integração do Frontend JavaFX e Organização da Documentação
+
+### ✅ Frontend (Fase 1 do guia de próximos passos)
+
+- **`BridgeManager.java` criado**: singleton estático para o `PythonBridgeService`, compartilhado entre `App.java` e os controllers das abas (`iniciar()`, `getInstance()` com `IllegalStateException` se não iniciado, `encerrar()`).
+- **`App.java` reescrito**: chat standalone removido; agora carrega `main-view.fxml` (sidebar + navegação das 8 abas), aplica `theme-dark.css`, inicia a bridge via `BridgeManager` e encerra o processo Python ao fechar.
+- **Injeção do menu corrigida**: `<fx:include fx:id="menuItems">` em `main-view.fxml`; `MainController` injeta-se no `MenuItemsController` no `initialize()` e carrega a aba "conversar" por padrão — os 8 botões do menu agora funcionam.
+- **`ConversarController` integrado à bridge**: handshake `ping` automático ao abrir a aba; envio real via comando `chat`; respostas do Ollama exibidas na área de mensagens; `exceptionally` tratado também no envio.
+- **Enter envia mensagem**: `onAction="#enviarMensagem"` adicionado ao TextField em `conversar-view.fxml`.
+
+### ✅ Documentação (Fase 0 do guia)
+
+- **`backend/README.md`**: modelo divergente corrigido (`qwen2.5:7b` → `qwen3.5:4b`, alinhado a `core/config.py`).
+- **Documentos obsoletos arquivados** em `docs/archive/` com aviso de obsolescência: `RELATORIO_ACOMPANHAMENTO.md` e `ARQUITETURA_REAL_SISTEMA.md`.
+- **`README.md` (raiz)**: tabela de documentação atualizada.
+- **`docs/DECISOES_BANCO_DADOS.md` criado**: registra as 4 perguntas pendentes antes da implementação de `database/schema.py` (Fase 2 bloqueada por decisão, não por código).
+
+### ⚠️ Validação
+
+- Validação estática concluída: zero referências residuais, pacotes/FXML/controllers consistentes.
+- Compilação/execução real **pendente** de JDK 21 + Maven (não instalados na máquina): rodar `cd frontend && mvn clean compile && mvn javafx:run`.
+
 ## [2.11.1] - Correção dos Testes Quebrados (Namespace dos Patches)
 
 ### ✅ Correções aplicadas

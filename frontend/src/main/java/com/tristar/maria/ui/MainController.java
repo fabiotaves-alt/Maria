@@ -17,11 +17,15 @@ import java.util.Map;
 public class MainController {
 
     @FXML private VBox conteudoAtual;
+    @FXML private MenuItemsController menuItemsController;
 
     private Map<String, Node> viewsCache = new HashMap<>();
 
     public void initialize() {
-        // Cache vazio inicialmente; views são carregadas sob demanda
+        if (menuItemsController != null) {
+            menuItemsController.setMainController(this);
+        }
+        carregarAba("conversar");
     }
 
     /**

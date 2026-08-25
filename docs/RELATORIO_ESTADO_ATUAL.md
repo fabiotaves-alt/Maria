@@ -47,8 +47,8 @@ Antes desta data coexistiam dois pacotes: `com.tristar.maria` (App + bridge) e `
 |---|------|-----------|---------|
 | 1 | Segurança | `backend/.env` contém chave de API exposta (`NOSTROMO_API_KEY=sk-or-v1-…`) versionada no repo, além de um nome de modelo solto (`nvidia/nemotron-3.5-lightning:free`) que o código não usa | Vazamento de credencial |
 | 2 | ~~Testes quebrados~~ ✅ **CORRIGIDO em 2.11.1** | Causa raiz: `@patch` usava namespace `core.ollama_client.*` enquanto o módulo é carregado como `backend.core.ollama_client` (duplo registro devido ao `sys.path`). Corrigido para `backend.core.ollama_client.*` — suíte 86/86 passando. Obs.: o comando legado `cd backend && python -m unittest tests.test_maria` segue quebrado por design do import; usar da raiz: `python -m unittest backend.tests.test_maria` | Suíte verde; risco de regressão silenciosa eliminado |
-| 3 | Integração frontend | `App.java` é janela de chat standalone; **não carrega** `main-view.fxml`, sidebar nem os controllers das 8 abas | GUI sem as 8 abas = sistema não utilizável via interface |
-| 4 | Bridge isolada | `PythonBridgeService` só existe dentro de `App.java`; nenhum controller das abas tem acesso à ponte | Abas impossibilitadas de conversar com o backend |
+| 3 | ~~Integração frontend~~ ✅ **CORRIGIDO em 2.12.0** | `App.java` reescrito: carrega `main-view.fxml`, sidebar com as 8 abas e aba "Conversar" por padrão | GUI com navegação funcional |
+| 4 | ~~Bridge isolada~~ ✅ **CORRIGIDO em 2.12.0** | `BridgeManager` criado como singleton estático; `ConversarController` consome os comandos `ping`/`chat` via futures + `Platform.runLater` | Abas habilitadas a falar com o backend |
 
 ### 🟡 Média prioridade
 

@@ -4,7 +4,7 @@
 
 ## Visão Geral
 
-A MARIA é uma assistente de escritório local que usa o Ollama e o modelo `qwen2.5:7b`. A versão atual implementa:
+A MARIA é uma assistente de escritório local que usa o Ollama e o modelo `qwen3.5:4b`. A versão atual implementa:
 
 - ✅ Cliente de conexão com Ollama (API local)
 - ✅ Loop de chat com histórico de contexto (últimas 12 mensagens)
@@ -24,7 +24,7 @@ Antes de rodar o projeto, certifique-se de ter:
 
 1. **Python 3.11+** instalado
 2. **Ollama** instalado e rodando
-3. **Modelo Qwen2.5:7b** baixado
+3. **Modelo qwen3.5:4b** baixado
 
 ### Instalação do Ollama
 
@@ -37,7 +37,7 @@ Siga as instruções em [ollama.com](https://ollama.com) para instalar o Ollama 
 ollama serve
 
 # Em outro terminal, baixar o modelo
-ollama pull qwen2.5:7b
+ollama pull qwen3.5:4b
 ```
 
 ### Instalar Dependências Python
@@ -218,8 +218,8 @@ Integração de voz com Whisper.cpp permanece como recurso futuro. A execução 
 2. Verifique se o modelo está instalado:
    ```bash
    ollama list
-   # Se não aparecer qwen2.5:7b, execute:
-   ollama pull qwen2.5:7b
+   # Se não aparecer qwen3.5:4b, execute:
+   ollama pull qwen3.5:4b
    ```
 
 3. Teste a conexão manualmente:
@@ -265,7 +265,7 @@ python -m benchmark.run_benchmark --task-ids 1 2 3
 python -m benchmark.run_benchmark --category criar_planilha
 ```
 
-Consulte o [README do benchmark](benchmark/README.md) para comparar execuções e adicionar tarefas. O benchmark exige `ollama serve` e o modelo `qwen2.5:7b` instalado.
+Consulte o [README do benchmark](benchmark/README.md) para comparar execuções e adicionar tarefas. O benchmark exige `ollama serve` e o modelo `qwen3.5:4b` instalado.
 
 ## Changelog
 
@@ -278,3 +278,4 @@ Projeto em desenvolvimento. Todos os direitos reservados.
 ---
 
 **MARIA** - Sua assistente de escritório com IA local, segura e em português do Brasil.
+

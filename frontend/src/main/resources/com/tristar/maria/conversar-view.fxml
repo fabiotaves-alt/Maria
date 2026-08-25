@@ -24,7 +24,7 @@
 
     <!-- Campo de entrada -->
     <HBox spacing="8">
-        <TextField fx:id="campoMensagem" promptText="Digite sua mensagem..." HBox.hgrow="ALWAYS"/>
+        <TextField fx:id="campoMensagem" promptText="Digite sua mensagem..." onAction="#enviarMensagem" HBox.hgrow="ALWAYS"/>
         <Button text="Enviar" onAction="#enviarMensagem"/>
     </HBox>
 

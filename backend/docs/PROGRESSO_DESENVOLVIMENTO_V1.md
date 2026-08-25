@@ -6,6 +6,20 @@
 
 ---
 
+### Fase 0.5 — Integração do Frontend JavaFX (v2.12.0) ✅
+- [x] `BridgeManager` (singleton da bridge Python) criado
+- [x] `App.java` reescrito: carrega `main-view.fxml` + tema escuro via BridgeManager
+- [x] Injeção `MainController` ↔ `MenuItemsController` corrigida (aba "conversar" padrão)
+- [x] `ConversarController` integrado aos comandos ping/chat da bridge
+- [x] Enter envia mensagem (onAction no TextField)
+- [x] Docs: modelo alinhado no backend/README, obsoletos arquivados em docs/archive/
+- [x] `docs/DECISOES_BANCO_DADOS.md` (schema bloqueado até responder 4 perguntas)
+
+## ⏳ Pendências conhecidas
+- [ ] `mvn clean compile` / `mvn javafx:run` (JDK 21 + Maven ausentes na máquina)
+- [ ] Responder perguntas de docs/DECISOES_BANCO_DADOS.md antes do schema.py
+- [ ] Demais abas (Arquivos, Análise de Dados etc.) sem lógica funcional
+
 ## ✅ Checklist de Funcionalidades
 
 ### Fase 0 — Unificação e Documentação do Monorepo (v2.11.0) ✅
@@ -188,6 +202,7 @@
 | **2.10.0** | **2026-08-16** | **Configuração de modelo centralizada em `core/config.py`, `model_file.txt` removido, fallback textual desativável por modelo** |
 | **2.11.0** | **2026-08-24** | **Unificação dos pacotes Java em `com.tristar.maria`; README.md e requirements.txt na raiz; relatório de estado atual** |
 | **2.11.1** | **2026-08-24** | **Correção dos testes quebrados: namespace dos `@patch` alinhado a `backend.core.ollama_client` (86/86 passando)** |
+| **2.12.0** | **2026-08-24** | **Integração do frontend JavaFX (BridgeManager, App com navegação das 8 abas, ConversarController na bridge); docs arquivados; decisões do BD registradas** |
 
 ---
 

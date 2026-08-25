@@ -19,7 +19,7 @@
             </padding>
             <Label text="MARIA" styleClass="logo"/>
             
-            <fx:include source="menu-items.fxml"/>
+            <fx:include fx:id="menuItems" source="menu-items.fxml"/>
         </VBox>
     </left>
 
