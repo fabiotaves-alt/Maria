@@ -121,6 +121,7 @@ Todas as configurações ficam centralizadas em [`backend/core/config.py`](backe
 | Documento | Conteúdo |
 |-----------|----------|
 | [docs/INTEGRACAO_FRONTEND.md](docs/INTEGRACAO_FRONTEND.md) | Protocolo bridge Java↔Python |
+| [docs/PENDENCIAS_INTERFACE.md](docs/PENDENCIAS_INTERFACE.md) | Elementos mockados da interface + como adicionar o avatar |
 | [docs/RELATORIO_ESTADO_ATUAL.md](docs/RELATORIO_ESTADO_ATUAL.md) | Estado atual, bugs e roadmap |
 | [backend/README.md](backend/README.md) | Documentação completa do backend/CLI |
 

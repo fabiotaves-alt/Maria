@@ -1,32 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.tristar.maria.ui.ConversarController"
-      spacing="10">
-    <padding>
-        <Insets top="20" right="20" bottom="20" left="20"/>
-    </padding>
+      styleClass="chat-panel" prefWidth="380" minWidth="300">
 
-    <Label text="💬 Conversar" styleClass="titulo-aba"/>
-    <Label text="Chat com Maria (LLM local via Ollama)" styleClass="subtitulo-aba"/>
-
-    <!-- Área de mensagens -->
-    <VBox fx:id="areaMensagens" spacing="8" VBox.vgrow="ALWAYS">
-        <padding>
-            <Insets top="10" right="10" bottom="10" left="10"/>
-        </padding>
-        <Label text="Inicie uma conversa com Maria..." styleClass="mensagem-sistema"/>
-    </VBox>
-
-    <!-- Campo de entrada -->
-    <HBox spacing="8">
-        <TextField fx:id="campoMensagem" promptText="Digite sua mensagem..." onAction="#enviarMensagem" HBox.hgrow="ALWAYS"/>
-        <Button text="Enviar" onAction="#enviarMensagem"/>
+    <!-- Header do chat -->
+    <HBox styleClass="chat-header" alignment="CENTER_LEFT" spacing="8">
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="CONVERSA ATUAL" styleClass="chat-title"/>
+            <Label fx:id="labelStatus" text="●  online" styleClass="chat-sub"/>
+        </VBox>
+        <Label text="⋯" styleClass="icon-btn"/>
     </HBox>
 
-    <Label fx:id="labelStatus" text="Pronto" styleClass="status"/>
+    <!-- Área de mensagens -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="chat-scroll">
+        <content>
+            <VBox fx:id="areaMensagens" spacing="12" styleClass="chat-area"/>
+        </content>
+    </ScrollPane>
+
+    <!-- Input -->
+    <HBox styleClass="chat-input-row" alignment="CENTER" spacing="8">
+        <Label text="📎" styleClass="icon-btn" mouseTransparent="true" opacity="0.4"/>
+        <TextField fx:id="campoMensagem" promptText="Digite sua mensagem..." onAction="#enviarMensagem"
+                   HBox.hgrow="ALWAYS" styleClass="chat-field"/>
+        <Label text="🎤" styleClass="icon-btn" mouseTransparent="true" opacity="0.4"/>
+        <Button text="➤" styleClass="send-btn" onAction="#enviarMensagem"/>
+    </HBox>
 </VBox>

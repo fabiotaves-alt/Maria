@@ -81,6 +81,29 @@ Antes desta data coexistiam dois pacotes: `com.tristar.maria` (App + bridge) e `
 
 ---
 
+## 6. Adendo — v2.13.0 (Redesign da Interface)
+
+Após a análise original (que descrevia o frontend como "não carregado"), foram executadas as versões 2.11.x–2.13.0:
+
+- **2.11.0** — unificação de pacotes Java em `com.tristar.maria`.
+- **2.11.1** — correção dos testes quebrados (Namespace dos patches) — **86/86 passando**.
+- **2.12.0** — `BridgeManager`, `App` com navegação das 8 abas, `ConversarController` integrado à bridge.
+- **2.13.0** — **redesign da interface** (3 colunas + barras): topbar, sidebar expandida com cards de status/recursos, hero central com ações rápidas e **painel de chat permanente** com bolhas. Temas dark/light reescritos com **alternância em runtime**.
+
+### Resultado atual por camada (após 2.13.0)
+
+| Camada | Estado |
+|---|---|
+| Backend core / CLI / bridge | ✅ Funcional |
+| Frontend: navegação das 8 abas | ✅ Funcional |
+| Frontend: painel de chat (ping/chat) | ✅ Funcional |
+| Frontend: design espelhando mockups | ✅ Layout implementado (elementos mockados listados em `docs/PENDENCIAS_INTERFACE.md`) |
+| Database (schema/tabelas) | ❌ Bloqueada até responder `docs/DECISOES_BANCO_DADOS.md` |
+
+> ⚠️ Compilação/execução real permanece **pendente de JDK 21 + Maven** (ou validação no IntelliJ). Os elementos mockados da v2.13.0 e como adicionar o avatar da Maria estão em `docs/PENDENCIAS_INTERFACE.md`.
+
+---
+
 ## 5. Conclusão
 
 Com a unificação de pacotes concluída, a base estrutural do frontend ficou consistente. Os bloqueios restantes para uma GUI funcional são concentrados e bem definidos: **integração entry point ↔ MainController ↔ bridge** (itens 3–4 do roadmap) e a criação do schema do banco. O backend já suporta tudo isso hoje via modo `--bridge`.

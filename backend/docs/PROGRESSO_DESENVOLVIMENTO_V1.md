@@ -6,6 +6,21 @@
 
 ---
 
+## 📅 Última alteração: 2026-08-24
+
+## 📈 Percentual Total Concluído: 98% (backend) — GUI em redesign (v2.13.0), pendências em docs/PENDENCIAS_INTERFACE.md
+
+---
+
+### Fase 0.6 — Edição de Interface (v2.13.0) ✅
+- [x] Layout 3 colunas + barras em `main-view.fxml` (topbar, sidebar 260px, hero + chat 380px, status bar)
+- [x] Temas `theme-dark.css` / `theme-light.css` reescritos (dark rosa / light terracota) + alternância runtime
+- [x] `hero-view.fxml` + `HeroController` (título, avatar placeholder, 3 cards, 4 ações rápidas)
+- [x] `ConversarController` como painel de chat permanente (bolhas, timestamps, ping/chat)
+- [x] `MenuItemsController.destacar()` para aba ativa
+- [x] `App.java` 1280×800 + `setCena`
+- [x] `docs/PENDENCIAS_INTERFACE.md` (itens mockados + como adicionar avatar)
+
 ### Fase 0.5 — Integração do Frontend JavaFX (v2.12.0) ✅
 - [x] `BridgeManager` (singleton da bridge Python) criado
 - [x] `App.java` reescrito: carrega `main-view.fxml` + tema escuro via BridgeManager
@@ -203,6 +218,7 @@
 | **2.11.0** | **2026-08-24** | **Unificação dos pacotes Java em `com.tristar.maria`; README.md e requirements.txt na raiz; relatório de estado atual** |
 | **2.11.1** | **2026-08-24** | **Correção dos testes quebrados: namespace dos `@patch` alinhado a `backend.core.ollama_client` (86/86 passando)** |
 | **2.12.0** | **2026-08-24** | **Integração do frontend JavaFX (BridgeManager, App com navegação das 8 abas, ConversarController na bridge); docs arquivados; decisões do BD registradas** |
+| **2.13.0** | **2026-08-24** | **Redesign da interface: layout 3 colunas + barras, temas dark/light, hero com ações rápidas, painel de chat permanente com bolhas** |
 
 ---
 

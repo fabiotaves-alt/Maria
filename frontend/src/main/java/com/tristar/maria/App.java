@@ -1,6 +1,7 @@
 package com.tristar.maria;
 
 import com.tristar.maria.bridge.BridgeManager;
+import com.tristar.maria.ui.MainController;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -43,9 +44,15 @@ public class App extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/tristar/maria/main-view.fxml"));
         Parent raiz = loader.load();
 
-        Scene cena = new Scene(raiz, 1024, 768);
+        Scene cena = new Scene(raiz, 1280, 800);
         cena.getStylesheets().add(getClass().getResource("/com/tristar/maria/theme-dark.css").toExternalForm());
         palco.setScene(cena);
+
+        // Conecta a cena ao controller para permitir a alternância de tema.
+        Object ctrl = loader.getController();
+        if (ctrl instanceof MainController) {
+            ((MainController) ctrl).setCena(cena);
+        }
 
         palco.setOnCloseRequest(e -> encerrar());
         palco.show();
