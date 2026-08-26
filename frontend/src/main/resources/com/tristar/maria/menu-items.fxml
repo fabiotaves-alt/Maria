@@ -5,9 +5,9 @@
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.tristar.maria.ui.MenuItemsController"
-      spacing="4">
+      spacing="8">
 
-    <Button text="💬 Conversar" fx:id="btnConversar" onAction="#abrirConversar" styleClass="menu-item"/>
+    <Button text="💬 Conversar" fx:id="btnConversar" onAction="#abrirConversar" styleClass="menu-item menu-item-selected"/>
     <Button text="📁 Arquivos" fx:id="btnArquivos" onAction="#abrirArquivos" styleClass="menu-item"/>
     <Button text="📊 Análise de Dados" fx:id="btnAnaliseDados" onAction="#abrirAnaliseDados" styleClass="menu-item"/>
     <Button text="👁️ Visão" fx:id="btnVisao" onAction="#abrirVisao" styleClass="menu-item"/>
