@@ -1,3 +1,6 @@
+> ⚠️ **Documento obsoleto.** Descreve um estado do projeto anterior à unificação de pacotes Java (v2.11.0) e não reflete o estado atual. Consulte `docs/RELATORIO_ESTADO_ATUAL.md`.
+
+
 # Relatório de Acompanhamento — Projeto Maria
 **Data:** 2025-01-XX  
 **Status Geral:** Fase 0 (Esqueleto) — **Parcialmente Implementada**

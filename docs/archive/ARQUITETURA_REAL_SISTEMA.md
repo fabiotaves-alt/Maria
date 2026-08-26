@@ -1,3 +1,6 @@
+> ⚠️ **Documento obsoleto.** Descreve um estado do projeto anterior à unificação de pacotes Java (v2.11.0) e não reflete o estado atual. Consulte `docs/RELATORIO_ESTADO_ATUAL.md`.
+
+
 # Arquitetura Real do Sistema Maria — Documento Técnico
 
 **Data de geração:** Dezembro 2024  

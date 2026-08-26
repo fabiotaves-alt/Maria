@@ -47,8 +47,8 @@ Antes desta data coexistiam dois pacotes: `com.tristar.maria` (App + bridge) e `
 |---|------|-----------|---------|
 | 1 | Segurança | `backend/.env` contém chave de API exposta (`NOSTROMO_API_KEY=sk-or-v1-…`) versionada no repo, além de um nome de modelo solto (`nvidia/nemotron-3.5-lightning:free`) que o código não usa | Vazamento de credencial |
 | 2 | ~~Testes quebrados~~ ✅ **CORRIGIDO em 2.11.1** | Causa raiz: `@patch` usava namespace `core.ollama_client.*` enquanto o módulo é carregado como `backend.core.ollama_client` (duplo registro devido ao `sys.path`). Corrigido para `backend.core.ollama_client.*` — suíte 86/86 passando. Obs.: o comando legado `cd backend && python -m unittest tests.test_maria` segue quebrado por design do import; usar da raiz: `python -m unittest backend.tests.test_maria` | Suíte verde; risco de regressão silenciosa eliminado |
-| 3 | Integração frontend | `App.java` é janela de chat standalone; **não carrega** `main-view.fxml`, sidebar nem os controllers das 8 abas | GUI sem as 8 abas = sistema não utilizável via interface |
-| 4 | Bridge isolada | `PythonBridgeService` só existe dentro de `App.java`; nenhum controller das abas tem acesso à ponte | Abas impossibilitadas de conversar com o backend |
+| 3 | ~~Integração frontend~~ ✅ **CORRIGIDO em 2.12.0** | `App.java` reescrito: carrega `main-view.fxml`, sidebar com as 8 abas e aba "Conversar" por padrão | GUI com navegação funcional |
+| 4 | ~~Bridge isolada~~ ✅ **CORRIGIDO em 2.12.0** | `BridgeManager` criado como singleton estático; `ConversarController` consome os comandos `ping`/`chat` via futures + `Platform.runLater` | Abas habilitadas a falar com o backend |
 
 ### 🟡 Média prioridade
 
@@ -78,6 +78,29 @@ Antes desta data coexistiam dois pacotes: `com.tristar.maria` (App + bridge) e `
 7. **Database:** criar `database/schema.py` com DDL e chamar `init_db()` no startup do backend
 8. **Padronizar modelo LLM** (uma única fonte de verdade em `config.py`)
 9. Demais abas (Arquivos, Análise de Dados, etc.) conforme fases 2–7
+
+---
+
+## 6. Adendo — v2.13.0 (Redesign da Interface)
+
+Após a análise original (que descrevia o frontend como "não carregado"), foram executadas as versões 2.11.x–2.13.0:
+
+- **2.11.0** — unificação de pacotes Java em `com.tristar.maria`.
+- **2.11.1** — correção dos testes quebrados (Namespace dos patches) — **86/86 passando**.
+- **2.12.0** — `BridgeManager`, `App` com navegação das 8 abas, `ConversarController` integrado à bridge.
+- **2.13.0** — **redesign da interface** (3 colunas + barras): topbar, sidebar expandida com cards de status/recursos, hero central com ações rápidas e **painel de chat permanente** com bolhas. Temas dark/light reescritos com **alternância em runtime**.
+
+### Resultado atual por camada (após 2.13.0)
+
+| Camada | Estado |
+|---|---|
+| Backend core / CLI / bridge | ✅ Funcional |
+| Frontend: navegação das 8 abas | ✅ Funcional |
+| Frontend: painel de chat (ping/chat) | ✅ Funcional |
+| Frontend: design espelhando mockups | ✅ Layout implementado (elementos mockados listados em `docs/PENDENCIAS_INTERFACE.md`) |
+| Database (schema/tabelas) | ❌ Bloqueada até responder `docs/DECISOES_BANCO_DADOS.md` |
+
+> ⚠️ Compilação/execução real permanece **pendente de JDK 21 + Maven** (ou validação no IntelliJ). Os elementos mockados da v2.13.0 e como adicionar o avatar da Maria estão em `docs/PENDENCIAS_INTERFACE.md`.
 
 ---
 

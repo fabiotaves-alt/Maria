@@ -4,38 +4,99 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.shape.Circle?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.tristar.maria.ui.MainController"
-            prefWidth="1024" prefHeight="768">
+            prefWidth="1280" prefHeight="800">
 
-    <!-- Sidebar de navegação -->
+    <!-- TOPBAR -->
+    <top>
+        <HBox styleClass="topbar" alignment="CENTER_LEFT" spacing="14">
+            <Label text="✿ MARIA" styleClass="app-title"/>
+            <Label styleClass="pill-modo" text="●  MODO LOCAL"/>
+            <Label styleClass="pill-modelo" fx:id="labelModelo" text="Llama 3.1 8B · via Ollama"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="☀" fx:id="botaoTema" styleClass="icon-btn"
+                   onMouseClicked="#alternarTema"/>
+        </HBox>
+    </top>
+
+    <!-- SIDEBAR -->
     <left>
-        <VBox spacing="4" styleClass="sidebar" prefWidth="200">
-            <padding>
-                <Insets top="20" right="10" bottom="20" left="10"/>
-            </padding>
+        <VBox styleClass="sidebar" prefWidth="260" spacing="10">
+            <padding><Insets top="20" right="14" bottom="14" left="14"/></padding>
+
             <Label text="MARIA" styleClass="logo"/>
-            
-            <fx:include source="menu-items.fxml"/>
+            <Label text="Assistente local e privada" styleClass="logo-sub"/>
+
+            <fx:include fx:id="menuItems" source="menu-items.fxml"/>
+
+            <!-- Card de status local -->
+            <VBox styleClass="sidebar-card" spacing="6">
+                <Label text="FUNCIONANDO LOCALMENTE" styleClass="card-title"/>
+                <HBox alignment="CENTER_LEFT" spacing="6">
+                    <Region styleClass="dot-on"/>
+                    <Label text="●  Local · sem nuvem" styleClass="status-text"/>
+                </HBox>
+            </VBox>
+
+            <!-- Card de recursos (mockado) -->
+            <VBox styleClass="sidebar-card" spacing="8">
+                <Label text="RECURSOS DO SISTEMA" styleClass="card-title"/>
+                <VBox styleClass="resource-row" spacing="4">
+                    <Label text="CPU  42%" styleClass="resource-label"/>
+                    <HBox alignment="CENTER_LEFT" styleClass="resource-bar-bg">
+                        <HBox prefWidth="92" minWidth="92" maxWidth="92" styleClass="resource-bar-fill cpu"/>
+                    </HBox>
+                </VBox>
+                <VBox styleClass="resource-row" spacing="4">
+                    <Label text="RAM  61%" styleClass="resource-label"/>
+                    <HBox alignment="CENTER_LEFT" styleClass="resource-bar-bg">
+                        <HBox prefWidth="130" minWidth="130" maxWidth="130" styleClass="resource-bar-fill ram"/>
+                    </HBox>
+                </VBox>
+                <VBox styleClass="resource-row" spacing="4">
+                    <Label text="GPU  18%" styleClass="resource-label"/>
+                    <HBox alignment="CENTER_LEFT" styleClass="resource-bar-bg">
+                        <HBox prefWidth="40" minWidth="40" maxWidth="40" styleClass="resource-bar-fill gpu"/>
+                    </HBox>
+                </VBox>
+            </VBox>
+
+            <!-- Rodapé do sidebar -->
+            <Region VBox.vgrow="ALWAYS"/>
+            <Label text="MARIA v0.1.0" styleClass="sidebar-footer"/>
         </VBox>
     </left>
 
-    <!-- Área de conteúdo (dinâmica) -->
+    <!-- COLUNA CENTRAL: hero (abas) + painel de chat permanente -->
     <center>
-        <ScrollPane fitToWidth="true" fitToHeight="true" fx:id="areaConteudo">
-            <content>
-                <VBox fx:id="conteudoAtual" spacing="10">
-                    <padding>
-                        <Insets top="20" right="20" bottom="20" left="20"/>
-                    </padding>
-                    <Label text="Bem-vindo ao Maria — Assistente de IA Pessoal" styleClass="titulo-boas-vindas"/>
-                    <Label text="Selecione uma opção no menu lateral para começar." styleClass="subtitulo"/>
-                </VBox>
-            </content>
-        </ScrollPane>
+        <HBox>
+            <!-- Conteúdo dinâmico das abas (hero e demais) -->
+            <ScrollPane fitToWidth="true" fitToHeight="true" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                <content>
+                    <VBox fx:id="conteudoAtual" spacing="12">
+                        <padding><Insets top="24" right="24" bottom="24" left="24"/></padding>
+                        <Label text="Bem-vindo ao Maria" styleClass="hero-title"/>
+                        <Label text="Sua assistente de IA pessoal e privada." styleClass="hero-subtitle"/>
+                    </VBox>
+                </content>
+            </ScrollPane>
+
+            <!-- Painel de chat permanente -->
+            <fx:include fx:id="painelChat" source="conversar-view.fxml"/>
+        </HBox>
     </center>
 
+    <!-- STATUS BAR -->
+    <bottom>
+        <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="8">
+            <Region styleClass="status-dot"/>
+            <Label fx:id="labelStatusBar" styleClass="status-text" text="MARIA está pronta para ajudar você."/>
+        </HBox>
+    </bottom>
 </BorderPane>

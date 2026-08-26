@@ -1,81 +1,61 @@
-/* Tema Claro - Maria */
-.root {
-    -fx-background-color: #eff1f5;
-    -fx-text-fill: #4c4f69;
-}
+/* ==========================================================================
+   MARIA — Tema Claro (v2.13.0)
+   Paleta: fundo #f7f3ec · cards #efe9df · accent terracota #c47b54
+========================================================================== */
 
-.sidebar {
-    -fx-background-color: #e6e9ef;
-    -fx-border-color: #ccd0da;
-    -fx-border-width: 0 1 0 0;
-}
+.root { -fx-background-color: #f7f3ec; -fx-text-fill: #3a352e; -fx-font-family: "Segoe UI", "System"; }
 
-.logo {
-    -fx-font-size: 24px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #8839ef;
-    -fx-padding: 10 0 20 0;
-}
+/* ── Topbar ─────────────────────────────────────────────── */
+.topbar { -fx-background-color: #ffffff; -fx-border-color: transparent transparent #e3ddd2 transparent; -fx-padding: 10 16; }
+.topbar .app-title { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #b5602f; }
+.pill-modo { -fx-background-color: #efe9df; -fx-background-radius: 12; -fx-border-color: #d8cfc2; -fx-border-radius: 12; -fx-padding: 3 10; -fx-text-fill: #5a4f41; }
+.pill-modelo { -fx-background-color: #efe9df; -fx-background-radius: 10; -fx-padding: 2 10; -fx-text-fill: #8a8072; -fx-font-size: 12px; }
 
-.menu-item {
-    -fx-background-color: transparent;
-    -fx-text-fill: #4c4f69;
-    -fx-font-size: 14px;
-    -fx-padding: 10;
-    -fx-background-radius: 8;
-    -fx-alignment: CENTER_LEFT;
-}
+/* ── Sidebar ────────────────────────────────────────────── */
+.sidebar { -fx-background-color: #ffffff; -fx-border-color: transparent #e3ddd2 transparent transparent; -fx-border-width: 0 1 0 0; }
+.sidebar .logo { -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #b5602f; }
+.sidebar .logo-sub { -fx-font-size: 11px; -fx-text-fill: #a09787; }
+.menu-item { -fx-background-color: transparent; -fx-text-fill: #5a5348; -fx-font-size: 14px; -fx-padding: 10 12; -fx-background-radius: 8; -fx-alignment: CENTER_LEFT; -fx-cursor: hand; }
+.menu-item:hover { -fx-background-color: #f1ece3; -fx-text-fill: #2e2a24; }
+.menu-item-selected, .menu-item:selected { -fx-background-color: #f3e2d5; -fx-text-fill: #b5602f; -fx-font-weight: bold; }
+.sidebar-card { -fx-background-color: #efe9df; -fx-background-radius: 10; -fx-padding: 12; }
+.sidebar-card .card-title { -fx-font-size: 11px; -fx-text-fill: #a09787; -fx-font-weight: bold; }
+.sidebar-card .status-text { -fx-text-fill: #5a5348; -fx-font-size: 12px; }
+.resource-row .resource-label { -fx-text-fill: #8a8072; -fx-font-size: 11px; }
+.resource-bar-bg { -fx-background-color: #ddd5C8; -fx-background-radius: 4; -fx-min-height: 6; -fx-max-height: 6; }
+.resource-bar-fill { -fx-background-radius: 4; -fx-min-height: 6; -fx-max-height: 6; }
+.resource-bar-fill.cpu { -fx-background-color: #c47b54; }
+.resource-bar-fill.ram { -fx-background-color: #a06bb5; }
+.resource-bar-fill.gpu { -fx-background-color: #4f9d82; }
+.sidebar-footer { -fx-font-size: 10px; -fx-text-fill: #b3a99b; }
 
-.menu-item:hover {
-    -fx-background-color: #ccd0da;
-}
+/* ── Hero central ───────────────────────────────────────── */
+.hero-section { -fx-padding: 28; }
+.hero-title { -fx-font-size: 44px; -fx-font-weight: bold; -fx-text-fill: #3a352e; }
+.hero-subtitle { -fx-font-size: 16px; -fx-text-fill: #7d7468; -fx-padding: 0 0 24 0; }
+.card-feature { -fx-background-color: #efe9df; -fx-background-radius: 14; -fx-padding: 20; -fx-border-color: #e3ddd2; -fx-border-radius: 14; }
+.card-feature .card-title { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #b5602f; }
+.card-feature .card-text { -fx-font-size: 13px; -fx-text-fill: #5a5348; }
+.quick-action { -fx-background-color: #efe9df; -fx-background-radius: 10; -fx-border-color: #ddd5c8; -fx-border-radius: 10; -fx-padding: 10 14; -fx-text-fill: #3a352e; -fx-cursor: hand; -fx-font-size: 13px; }
+.quick-action:hover { -fx-background-color: #e5dccf; -fx-border-color: #c47b54; }
+/* ── Painel de chat ─────────────────────────────────────── */
+.chat-panel { -fx-background-color: #ffffff; -fx-border-color: transparent transparent transparent #e3ddd2; -fx-border-width: 0 0 0 1; }
+.chat-header { -fx-background-color: #faf7f2; -fx-padding: 14 16; -fx-border-color: transparent transparent #e3ddd2 transparent; }
+.chat-header .chat-title { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #3a352e; }
+.chat-header .chat-sub { -fx-font-size: 11px; -fx-text-fill: #4f9d82; }
+.chat-area { -fx-background-color: #fbf9f5; -fx-padding: 16; }
+.msg-meta { -fx-font-size: 10px; -fx-text-fill: #a09787; }
+.avatar { -fx-background-radius: 18; -fx-min-width: 36; -fx-min-height: 36; -fx-max-width: 36; -fx-max-height: 36; -fx-background-color: #c47b54; -fx-text-fill: #ffffff; -fx-font-weight: bold; -fx-font-size: 16px; -fx-alignment: CENTER; }
+.avatar-hero { -fx-min-width: 88; -fx-min-height: 88; -fx-max-width: 88; -fx-max-height: 88; -fx-background-radius: 44; -fx-font-size: 40px; -fx-background-color: linear-gradient(to bottom right, #c47b54, #a06bb5); }
+.bubble-user { -fx-background-color: #f3e2d5; -fx-background-radius: 14 14 2 14; -fx-padding: 10 12; -fx-text-fill: #3a352e; }
+.bubble-maria { -fx-background-color: #ffffff; -fx-background-radius: 14 14 14 2; -fx-padding: 10 12; -fx-text-fill: #3a352e; -fx-border-color: #e3ddd2; }
+.chat-input-row { -fx-padding: 12; -fx-background-color: #ffffff; -fx-border-color: #e3ddd2 transparent transparent transparent; }
+.chat-field { -fx-background-color: #f1ece3; -fx-background-radius: 8; -fx-border-color: transparent; -fx-border-radius: 8; -fx-padding: 10 12; -fx-text-fill: #3a352e; }
+.icon-btn { -fx-background-color: transparent; -fx-text-fill: #8a8072; -fx-font-size: 16px; -fx-padding: 6; -fx-background-radius: 6; -fx-cursor: hand; }
+.icon-btn:hover { -fx-background-color: #efe9df; }
+.send-btn { -fx-background-color: #c47b54; -fx-background-radius: 8; -fx-text-fill: #ffffff; -fx-font-weight: bold; -fx-padding: 10 16; -fx-cursor: hand; }
+.send-btn:hover { -fx-background-color: #b06846; }
 
-.titulo-aba {
-    -fx-font-size: 28px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #8839ef;
-}
-
-.subtitulo-aba {
-    -fx-font-size: 14px;
-    -fx-text-fill: #6c6f85;
-}
-
-.status {
-    -fx-font-size: 12px;
-    -fx-text-fill: #9ca0b0;
-}
-
-.mensagem-sistema {
-    -fx-text-fill: #6c6f85;
-    -fx-font-style: italic;
-}
-
-.button {
-    -fx-background-color: #1e66f5;
-    -fx-text-fill: #eff1f5;
-    -fx-font-weight: bold;
-    -fx-padding: 8 16;
-    -fx-background-radius: 6;
-}
-
-.button:hover {
-    -fx-background-color: #7287fd;
-}
-
-.text-field, .text-area, .list-view {
-    -fx-background-color: #ffffff;
-    -fx-text-fill: #4c4f69;
-    -fx-border-color: #ccd0da;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-}
-
-.titled-pane > .title {
-    -fx-background-color: #ccd0da;
-    -fx-text-fill: #4c4f69;
-}
-
-.titled-pane > .content {
-    -fx-background-color: #eff1f5;
-}
+/* ── Status bar ─────────────────────────────────────────── */
+.status-bar { -fx-background-color: #ffffff; -fx-padding: 6 16; -fx-border-color: #e3ddd2 transparent transparent transparent; }
+.status-bar .status-text { -fx-font-size: 12px; -fx-text-fill: #8a8072; }

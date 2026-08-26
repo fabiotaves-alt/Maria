@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.tristar.maria.ui.HeroController"
+      styleClass="hero-section" spacing="20">
+
+    <!-- Título + avatar -->
+    <HBox alignment="CENTER_LEFT" spacing="24">
+        <VBox spacing="4" HBox.hgrow="ALWAYS">
+            <Label text="MARIA" styleClass="hero-title"/>
+            <Label text="Sua assistente de IA pessoal e privada."
+                   styleClass="hero-subtitle"/>
+        </VBox>
+        <Label fx:id="avatarMaria" text="M" styleClass="avatar avatar-hero"/>
+    </HBox>
+
+    <!-- 3 cards de funcionalidades -->
+    <HBox spacing="16">
+        <VBox styleClass="card-feature" spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="🔒 Privacidade total" styleClass="card-title"/>
+            <Label text="100% local, sem nuvem, seus dados nunca saem da sua máquina."
+                   styleClass="card-text"/>
+        </VBox>
+        <VBox styleClass="card-feature" spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="🧠 Inteligência local" styleClass="card-title"/>
+            <Label text="Raciocínio e inferência via LLM executado inteiramente offline."
+                   styleClass="card-text"/>
+        </VBox>
+        <VBox styleClass="card-feature" spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="⚡ Pronta para ajudar" styleClass="card-title"/>
+            <Label text="Planilhas, documentos, análise de dados e conversa natural."
+                   styleClass="card-text"/>
+        </VBox>
+    </HBox>
+
+    <!-- 4 ações rápidas -->
+    <VBox spacing="10">
+        <Label text="O que você gostaria de fazer?" styleClass="card-title"/>
+        <GridPane hgap="12" vgap="12">
+            <Button text="📄 Analisar Documento" styleClass="quick-action" onAction="#acaoAnalisarDocumento" maxWidth="Infinity" GridPane.hgrow="ALWAYS"/>
+            <Button text="📊 Analisar Dados" styleClass="quick-action" onAction="#acaoAnalisarDados" GridPane.columnIndex="1" maxWidth="Infinity" GridPane.hgrow="ALWAYS"/>
+            <Button text="✍️ Gerar Texto" styleClass="quick-action" onAction="#acaoGerarTexto" GridPane.rowIndex="1" maxWidth="Infinity" GridPane.hgrow="ALWAYS"/>
+            <Button text="🎤 Responder com Voz" styleClass="quick-action" onAction="#acaoResponderVoz" GridPane.columnIndex="1" GridPane.rowIndex="1" maxWidth="Infinity" GridPane.hgrow="ALWAYS"/>
+        </GridPane>
+    </VBox>
+</VBox>

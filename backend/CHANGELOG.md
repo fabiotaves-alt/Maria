@@ -2,6 +2,48 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.13.0] - Redesign da Interface (3 colunas + barras)
+
+### ✅ Interface JavaFX
+
+- **Novo layout em `main-view.fxml`**: topbar (logo, pill MODO LOCAL, modelo mock, botão de tema ☀/☾), sidebar expandida (260px), coluna central com hero + painel de chat permanente (380px), status bar inferior.
+- **`theme-dark.css` e `theme-light.css` reescritos** (~70 regras cada): novas paletas (dark: fundo `#0e0e16`, accent rosa `#e05d8a`; light: fundo `#f7f3ec`, accent terracota `#c47b54`), com classes `.topbar`, `.pill-modo`, `.sidebar-card`, `.resource-bar-*`, `.card-feature`, `.quick-action`, `.bubble-user`, `.bubble-maria`, `.chat-panel`, `.avatar-hero`, `.menu-item-selected`, `.status-bar`.
+- **`hero-view.fxml` + `HeroController.java` criados**: tela inicial central com título, subtítulo, avatar placeholder (gradiente + letra "M"), 3 cards de funcionalidades e 4 ações rápidas.
+- **`ConversarController` reescrito** para painel de chat permanente: bolhas alinhadas (usuário à direita, Maria à esquerda com avatar), timestamps, header "CONVERSA ATUAL", input com 📎/🎤 desabilitados e botão enviar. Handshake `ping` + comando `chat` preservados.
+- **`MainController` reescrito**: navegação troca apenas a coluna central; opção "Conversar" exibe o hero; alternância de tema em runtime (`alternarTema`); ações rápidas preenchem o campo do chat; `setCena` conectado pelo `App`.
+- **`MenuItemsController`**: novo `destacar(...)` para realçar a aba ativa (`.menu-item-selected`).
+- **`App.java`**: janela 1280×800, carga de `theme-dark.css` e `setCena` no controller.
+- **`Image folder criada**: `resources/.../images/` para receber `avatar.png`.
+
+### ⚠️ Elementos mockados nesta fase
+Recursos do sistema (CPU/RAM/GPU), MODO LOCAL/modelo, ações rápidas (preenchem o input), anexar/voz (desabilitados) e dropdown "⋯" sem ação. Ver `docs/PENDENCIAS_INTERFACE.md`.
+
+### ✅ Validação
+- Estática: handlers `onAction`/`onMouseClicked` de todos os FXMLs mapeados aos controllers; zero typos de cor no CSS.
+- Compilação/visual pendente de execução no IntelliJ (Maven/JDK não presentes na CLI).
+
+## [2.12.0] - Integração do Frontend JavaFX e Organização da Documentação
+
+### ✅ Frontend (Fase 1 do guia de próximos passos)
+
+- **`BridgeManager.java` criado**: singleton estático para o `PythonBridgeService`, compartilhado entre `App.java` e os controllers das abas (`iniciar()`, `getInstance()` com `IllegalStateException` se não iniciado, `encerrar()`).
+- **`App.java` reescrito**: chat standalone removido; agora carrega `main-view.fxml` (sidebar + navegação das 8 abas), aplica `theme-dark.css`, inicia a bridge via `BridgeManager` e encerra o processo Python ao fechar.
+- **Injeção do menu corrigida**: `<fx:include fx:id="menuItems">` em `main-view.fxml`; `MainController` injeta-se no `MenuItemsController` no `initialize()` e carrega a aba "conversar" por padrão — os 8 botões do menu agora funcionam.
+- **`ConversarController` integrado à bridge**: handshake `ping` automático ao abrir a aba; envio real via comando `chat`; respostas do Ollama exibidas na área de mensagens; `exceptionally` tratado também no envio.
+- **Enter envia mensagem**: `onAction="#enviarMensagem"` adicionado ao TextField em `conversar-view.fxml`.
+
+### ✅ Documentação (Fase 0 do guia)
+
+- **`backend/README.md`**: modelo divergente corrigido (`qwen2.5:7b` → `qwen3.5:4b`, alinhado a `core/config.py`).
+- **Documentos obsoletos arquivados** em `docs/archive/` com aviso de obsolescência: `RELATORIO_ACOMPANHAMENTO.md` e `ARQUITETURA_REAL_SISTEMA.md`.
+- **`README.md` (raiz)**: tabela de documentação atualizada.
+- **`docs/DECISOES_BANCO_DADOS.md` criado**: registra as 4 perguntas pendentes antes da implementação de `database/schema.py` (Fase 2 bloqueada por decisão, não por código).
+
+### ⚠️ Validação
+
+- Validação estática concluída: zero referências residuais, pacotes/FXML/controllers consistentes.
+- Compilação/execução real **pendente** de JDK 21 + Maven (não instalados na máquina): rodar `cd frontend && mvn clean compile && mvn javafx:run`.
+
 ## [2.11.1] - Correção dos Testes Quebrados (Namespace dos Patches)
 
 ### ✅ Correções aplicadas
