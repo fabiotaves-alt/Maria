@@ -3,6 +3,8 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -11,6 +13,7 @@
 
 <BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.tristar.maria.ui.MainController"
+            styleClass="app-root"
             prefWidth="1280" prefHeight="800">
 
     <!-- TOPBAR -->
@@ -30,8 +33,12 @@
         <VBox styleClass="sidebar" prefWidth="260" spacing="10">
             <padding><Insets top="20" right="14" bottom="14" left="14"/></padding>
 
-            <Label text="MARIA" styleClass="logo"/>
-            <Label text="Assistente local e privada" styleClass="logo-sub"/>
+            <!-- Logo como imagem -->
+            <ImageView fitWidth="160" preserveRatio="true">
+                <image>
+                    <Image url="@/com/tristar/maria/maria-logo.png"/>
+                </image>
+            </ImageView>
 
             <fx:include fx:id="menuItems" source="menu-items.fxml"/>
 

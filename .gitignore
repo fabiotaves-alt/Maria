@@ -1,112 +1,37 @@
-# Dependencies
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.py~
-*.py.class
-*.py.backup
-*.py.swp
-*.py.swo
-*.py.tmp
-*.py.log
-*.py.cache
-*.py.compiled
-*.py.bak
-*.py.save
-*.py~
-
-# Virtual environments
-venv/
-.venv/
-env/
-ENV/
-.ENV/
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-*.egg
-*.whl
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
+```
+# Compiled and build artifacts
+*.class
 *.o
 *.obj
-*.a
-*.lib
-*.class
+*.out
+build/
+target/
+
+# Dependencies
+.gradle/
+.mypy_cache/
+.pytest_cache/
+__pycache__/
+coverage/
+htmlcov/
+*.coverage
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# System
+.DS_Store
+Thumbs.db
 
 # Logs
 *.log
-*.log.*
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-*~
-.swp
-.swo
-
-# Environment variables
-.env
-.env.local
-.env.*
-!.env.example
-
-# IDE specific
-.vscode/
-.idea/
-*.iml
-*.ipr
-*.iws
-.settings/
-.project
-.pydevproject
-
-# OS specific
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-*.coverage
-
-# Testing
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
-
-# Distribution / packaging
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage*
-.nox/
-
-# ── Guia Fase 0 — integração frontend (JavaFX) + backend ──────
-# Python (backend)
-backend/venv/
-backend/.venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/.pytest_cache/
-
-# Java / Maven
-frontend/target/
-frontend/maria-frontend/target/
-
-# Banco de dados local compartilhado
-shared/*.db
-shared/*.db-wal
-shared/*.db-shm
-
+```

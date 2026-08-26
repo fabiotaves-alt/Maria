@@ -11,7 +11,10 @@
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.tristar.maria.ui.ConversarController"
-      styleClass="chat-panel" prefWidth="380" minWidth="300">
+      styleClass="chat-panel chat-panel-modern" prefWidth="380" minWidth="300">
+    
+    <!-- Adicione um padding geral para o painel flutuar -->
+    <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
 
     <!-- Header do chat -->
     <HBox styleClass="chat-header" alignment="CENTER_LEFT" spacing="8">
@@ -23,7 +26,7 @@
     </HBox>
 
     <!-- Área de mensagens -->
-    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="chat-scroll">
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="chat-scroll chat-scroll-modern">
         <content>
             <VBox fx:id="areaMensagens" spacing="12" styleClass="chat-area"/>
         </content>
