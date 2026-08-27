@@ -1,112 +1,84 @@
+```
 # Dependencies
+venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.py~
-*.py.class
-*.py.backup
-*.py.swp
-*.py.swo
-*.py.tmp
-*.py.log
-*.py.cache
-*.py.compiled
-*.py.bak
-*.py.save
-*.py~
-
-# Virtual environments
-venv/
-.venv/
+node_modules/
+.Python
 env/
-ENV/
-.ENV/
+.venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Build artifacts
 build/
 dist/
-*.egg-info/
 *.egg
-*.whl
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
-*.o
-*.obj
-*.a
-*.lib
-*.class
+*.egg-info/
+.sconsign.dblite
+._build/
+cover/
 
 # Logs
 *.log
 *.log.*
 
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-*~
-.swp
-.swo
-
 # Environment variables
 .env
 .env.local
 .env.*
-!.env.example
+.env~*
 
-# IDE specific
+# IDE
 .vscode/
 .idea/
-*.iml
-*.ipr
-*.iws
-.settings/
-.project
-.pydevproject
-
-# OS specific
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-*.coverage
 
 # Testing
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
-
-# Distribution / packaging
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
+.coverage
+htmlcov/
 .tox/
-.coverage*
 .nox/
+coverage.xml
+*.cover
 
-# ── Guia Fase 0 — integração frontend (JavaFX) + backend ──────
-# Python (backend)
-backend/venv/
-backend/.venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/.pytest_cache/
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*$pyc.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg-link
 
-# Java / Maven
-frontend/target/
-frontend/maria-frontend/target/
-
-# Banco de dados local compartilhado
-shared/*.db
-shared/*.db-wal
-shared/*.db-shm
-
+# Java specific (since there are Java files in frontend)
+target/
+.gradle/
+*.class
+*.jar
+*.war
+*.ear
+!frontend/src/main/java/**/*
+!backend/**
+```

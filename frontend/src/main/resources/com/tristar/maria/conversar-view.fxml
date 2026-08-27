@@ -22,7 +22,16 @@
             <Label text="CONVERSA ATUAL" styleClass="chat-title"/>
             <Label fx:id="labelStatus" text="●  online" styleClass="chat-sub"/>
         </VBox>
-        <Label text="⋯" styleClass="icon-btn"/>
+        <!-- Dropdown de opções do chat -->
+        <fx:define>
+            <fx:collection fx:id="menuOpcoesChat"/>
+        </fx:define>
+        <MenuButton text="⋯" styleClass="icon-btn">
+            <items>
+                <MenuItem text="Limpar Conversa" onAction="#limparConversa"/>
+                <MenuItem text="Exportar Conversa (.txt)" onAction="#exportarConversa"/>
+            </items>
+        </MenuButton>
     </HBox>
 
     <!-- Área de mensagens -->
@@ -34,10 +43,10 @@
 
     <!-- Input -->
     <HBox styleClass="chat-input-row" alignment="CENTER" spacing="8">
-        <Label text="📎" styleClass="icon-btn" mouseTransparent="true" opacity="0.4"/>
+        <Label fx:id="btnAnexar" text="📎" styleClass="icon-btn" onMouseClicked="#onAnexar"/>
         <TextField fx:id="campoMensagem" promptText="Digite sua mensagem..." onAction="#enviarMensagem"
                    HBox.hgrow="ALWAYS" styleClass="chat-field"/>
-        <Label text="🎤" styleClass="icon-btn" mouseTransparent="true" opacity="0.4"/>
+        <Label fx:id="btnVoz" text="🎤" styleClass="icon-btn" onMouseClicked="#onVoz"/>
         <Button text="➤" styleClass="send-btn" onAction="#enviarMensagem"/>
     </HBox>
 </VBox>
