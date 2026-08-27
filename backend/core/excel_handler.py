@@ -152,3 +152,68 @@ def editar_planilha_real(
     except Exception as error:
         logger.error(f"Erro inesperado ao editar planilha: {error}")
         raise
+
+
+def ler_planilha_resumo(caminho: str) -> str:
+    """
+    Lê uma planilha Excel e retorna um resumo com informações básicas.
+    
+    Args:
+        caminho: Caminho completo para o arquivo Excel
+        
+    Returns:
+        String com resumo da planilha (linhas, colunas, primeiras células)
+        
+    Raises:
+        FileNotFoundError: Se o arquivo não existir
+        ValueError: Se o arquivo não for uma planilha válida
+    """
+    try:
+        from openpyxl import load_workbook
+        
+        if not os.path.exists(caminho):
+            raise FileNotFoundError(f"Arquivo não encontrado: {caminho}")
+        
+        wb = load_workbook(caminho, read_only=True, data_only=True)
+        ws = wb.active
+        
+        # Contar linhas e colunas
+        max_row = ws.max_row
+        max_col = ws.max_column
+        
+        # Ler cabeçalhos (primeira linha)
+        cabecalhos = []
+        for col in range(1, min(max_col + 1, 10)):  # Limitar a 10 colunas
+            cell = ws.cell(row=1, column=col)
+            cabecalhos.append(str(cell.value) if cell.value else f"Col{col}")
+        
+        # Ler primeiras 3 linhas de dados
+        amostra_dados = []
+        for row in range(2, min(max_row + 1, 5)):  # Linhas 2-4
+            linha_dados = []
+            for col in range(1, min(max_col + 1, 5)):  # Limitar a 5 colunas
+                cell = ws.cell(row=row, column=col)
+                linha_dados.append(str(cell.value) if cell.value else "")
+            amostra_dados.append(" | ".join(linha_dados))
+        
+        wb.close()
+        
+        resumo = [
+            f"Planilha: {os.path.basename(caminho)}",
+            f"Linhas totais: {max_row - 1} (excluindo cabeçalho)",
+            f"Colunas totais: {max_col}",
+            f"Cabeçalhos: {', '.join(cabecalhos[:10])}",
+        ]
+        
+        if amostra_dados:
+            resumo.append("Amostra de dados (primeiras 3 linhas):")
+            for i, linha in enumerate(amostra_dados, 1):
+                resumo.append(f"  Linha {i}: {linha}")
+        
+        return "\\n".join(resumo)
+        
+    except FileNotFoundError:
+        raise
+    except Exception as error:
+        logger.error(f"Erro ao ler planilha: {error}")
+        raise ValueError(f"Não foi possível ler a planilha: {error}")

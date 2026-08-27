@@ -2,6 +2,33 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [2.14.0] — Desmockagem e Funcionalidades Reais
+
+### ✅ Backend (Python)
+
+- **Novo comando `status`**: Retorna métricas reais de CPU, RAM e GPU via `psutil`. Inclui modelo atual (`qwen3.5:4b`) na resposta.
+- **Handler `analisar_arquivo`**: Lê documentos (.docx, .txt, .md, .csv, .log) e planilhas (.xlsx), retornando conteúdo ou resumo.
+- **Handler `analisar_dados`**: Gera sumário de planilhas Excel (linhas, colunas, cabeçalhos, amostra de dados).
+- **Handler `upload_arquivo`**: Copia arquivos para `backend/arquivos_gerados/` com nome único.
+- **Handler `transcrever_audio`**: Integração com whisper.cpp (binário externo) para transcrição de áudio WAV. Fallback informativo se não instalado.
+- **Nova dependência**: `psutil>=5.9.0` adicionada ao `requirements.txt`.
+- **Função `ler_planilha_resumo()`**: Criada em `core/excel_handler.py` para leitura eficiente de planilhas.
+
+### ✅ Frontend (JavaFX)
+
+- **Sidebar com dados reais**: Barras de progresso (CPU/RAM/GPU) atualizadas a cada 5 segundos via comando `status`. Labels exibem porcentagem em tempo real.
+- **Modelo dinâmico**: Texto do modelo na topbar é atualizado automaticamente via backend (agora exibe `qwen3.5:4b · via Ollama`).
+- **Dropdown do chat funcional**: Menu "⋯" no header com opções "Limpar Conversa" e "Exportar Conversa (.txt)".
+- **Botão anexar (📎) habilitado**: Abre FileChooser, envia arquivo via `upload_arquivo` e exibe confirmação no chat.
+- **Botão de voz (🎤) habilitado**: Grava áudio via `javax.sound.sampled`, salva como WAV temporário e envia para transcrição. Indicador visual durante gravação.
+- **Ações rápidas do Hero**: Botões agora preenchem o campo de mensagem com prompts contextuais prontos para envio.
+
+### ⚠️ Notas
+
+- **GPU**: Exibida como 0% se não houver GPU NVIDIA ou `pynvml` não estiver instalado.
+- **Whisper.cpp**: Requer instalação manual do binário `whisper-main`. Sem fallback de transcrição se não disponível.
+- **Avatar real**: Imagem `avatar.png` já carregada no hero. Pendente aplicação nas bolhas de mensagem.
+
 ## [2.13.0] - Redesign da Interface (3 colunas + barras)
 
 ### ✅ Interface JavaFX
