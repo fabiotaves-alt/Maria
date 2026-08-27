@@ -1,17 +1,12 @@
 /* ==========================================================================
-   MARIA — Tema Escuro (v3.0 - Conceito Original)
-   Paleta: Fundo #0a0a12 · Vidro rgba(28,28,40,0.6) · Aura Rosa #e05d8a
+   MARIA — Tema Escuro (v3.0 - Refinado)
+   Paleta: Fundo #141922 · Vidro rgba(28,28,40,0.6) · Aura #272b33
 ========================================================================== */
 
 .root {
-    -fx-background-color: #0a0a12;
+    -fx-background-color: linear-gradient(to bottom, #1a1e27, #141922);
     -fx-font-family: "Segoe UI", sans-serif;
     -fx-text-fill: #ffffff;
-}
-
-/* ── Gradiente de Fundo (Main Layout) ─────────────────── */
-.app-root {
-    -fx-background-color: radial-gradient(center 50% 50%, radius 100%, #1c1c28 0%, #0a0a12 70%);
 }
 
 /* ── Topbar (Transparente) ────────────────────────────── */
@@ -23,11 +18,12 @@
 
 /* ── Sidebar (Efeito de Vidro) ─────────────────────────── */
 .sidebar {
-    -fx-background-color: rgba(20, 20, 32, 0.4);
-    -fx-border-color: transparent rgba(255,255,255,0.08) transparent transparent;
-    -fx-background-radius: 0 20 20 0; /* Cantos arredondados à direita */
-    -fx-border-radius: 0 20 20 0;
+    -fx-background-color: rgba(20, 25, 34, 0.7);
+    -fx-border-color: transparent rgba(255,255,255,0.06) transparent transparent;
+    -fx-background-radius: 0 16px 16px 0;
+    -fx-border-radius: 0 16px 16px 0;
     -fx-padding: 20 14;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 8, 0.1, 2, 0);
 }
 
 .menu-item {
@@ -56,13 +52,16 @@
 }
 
 /* ── Hero Section (Tela Inicial) ───────────────────────── */
-.hero-section { -fx-padding: 40; }
+.hero-section {
+    -fx-padding: 40;
+    -fx-background-color: transparent;
+}
 
 .hero-title {
     -fx-font-size: 48px;
     -fx-font-weight: 900;
     -fx-text-fill: linear-gradient(to right, #ffffff, #e05d8a);
-    -fx-effect: dropshadow(gaussian, rgba(224,93,138,0.3), 10, 0.2, 0, 0); /* Brilho sutil */
+    -fx-effect: dropshadow(gaussian, rgba(224,93,138,0.3), 10, 0.2, 0, 0);
 }
 
 .hero-subtitle {
@@ -76,8 +75,8 @@
 }
 
 .avatar-glow {
-    -fx-fill: radial-gradient(center 50% 50%, radius 50%, rgba(224,93,138,0.4), rgba(224,93,138,0.0));
-    -fx-effect: dropshadow(gaussian, rgba(224,93,138,0.6), 50, 0.5, 0, 0); /* Aura externa */
+    -fx-fill: radial-gradient(center 50% 50%, radius 50%, rgba(60, 50, 55, 0.5), transparent);
+    -fx-effect: dropshadow(gaussian, rgba(224,93,138,0.4), 40, 0.4, 0, 0);
 }
 
 .avatar-image {
@@ -90,10 +89,10 @@
 
 /* ── Cards de Funcionalidades (Glassmorphism) ──────────── */
 .card-feature {
-    -fx-background-color: rgba(28, 28, 40, 0.4);
+    -fx-background-color: rgba(28, 28, 40, 0.6);
     -fx-background-radius: 16;
     -fx-padding: 24;
-    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-color: rgba(255, 255, 255, 0.08);
     -fx-border-radius: 16;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 20, 0.2, 0, 10);
     -fx-border-insets: 1;
@@ -135,12 +134,13 @@
 
 /* ── Painel de Chat Moderno ─────────────────────────────── */
 .chat-panel {
-    -fx-background-color: rgba(20, 20, 32, 0.4);
-    -fx-background-radius: 20;
+    -fx-background-color: rgba(28, 28, 40, 0.8);
+    -fx-background-radius: 16px 0 0 16px;
     -fx-padding: 10;
-    -fx-border-color: rgba(255, 255, 255, 0.1);
-    -fx-border-radius: 20;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 30, 0.2, 0, 0);
+    -fx-border-color: rgba(255, 255, 255, 0.06) transparent transparent transparent;
+    -fx-border-radius: 16px 0 0 16px;
+    -fx-border-width: 0 0 0 1px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 20, 0, -4, 0);
 }
 
 .chat-header {
@@ -195,7 +195,7 @@
 
 /* ── Sidebar Card e Recursos ───────────────────────────── */
 .sidebar-card {
-    -fx-background-color: rgba(28, 28, 40, 0.4);
+    -fx-background-color: rgba(28, 28, 40, 0.6);
     -fx-background-radius: 10;
     -fx-padding: 12;
 }
@@ -258,7 +258,7 @@
 }
 
 .pill-modo {
-    -fx-background-color: #1c1c28;
+    -fx-background-color: rgba(28, 28, 40, 0.8);
     -fx-background-radius: 12;
     -fx-border-color: #2e2e40;
     -fx-border-radius: 12;
@@ -267,7 +267,7 @@
 }
 
 .pill-modelo {
-    -fx-background-color: #1c1c28;
+    -fx-background-color: rgba(28, 28, 40, 0.8);
     -fx-background-radius: 10;
     -fx-padding: 2 10;
     -fx-text-fill: #8b8ba0;
@@ -285,7 +285,7 @@
 }
 
 .icon-btn:hover {
-    -fx-background-color: #26263a;
+    -fx-background-color: rgba(38, 38, 58, 0.6);
 }
 
 /* ── Chat scroll ────────────────────────────────────────── */
@@ -296,6 +296,7 @@
 .chat-area {
     -fx-background-color: transparent;
     -fx-padding: 16;
+    -fx-effect: innershadow(gaussian, rgba(0,0,0,0.2), 20, 0.1, 0, 0);
 }
 
 .msg-meta {
