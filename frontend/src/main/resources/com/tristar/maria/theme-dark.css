@@ -4,9 +4,14 @@
 ========================================================================== */
 
 .root {
-    -fx-background-color: linear-gradient(to bottom, #1a1e27, #141922);
-    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-background-color: #0a0a12;
+    -fx-font-family: "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "System";
     -fx-text-fill: #ffffff;
+}
+
+/* ── Gradiente de Fundo (Main Layout) ─────────────────── */
+.app-root {
+    -fx-background-color: radial-gradient(center 50% 35%, radius 120%, #1c1c28 0%, #141922 55%, #0a0a12 100%);
 }
 
 /* ── Topbar (Transparente) ────────────────────────────── */
@@ -18,12 +23,12 @@
 
 /* ── Sidebar (Efeito de Vidro) ─────────────────────────── */
 .sidebar {
-    -fx-background-color: rgba(20, 25, 34, 0.7);
-    -fx-border-color: transparent rgba(255,255,255,0.06) transparent transparent;
-    -fx-background-radius: 0 16px 16px 0;
-    -fx-border-radius: 0 16px 16px 0;
+    -fx-background-color: rgba(20, 25, 34, 0.75);
+    -fx-border-color: transparent rgba(255,255,255,0.08) transparent transparent;
+    -fx-background-radius: 0 20 20 0; /* Cantos arredondados à direita */
+    -fx-border-radius: 0 20 20 0;
     -fx-padding: 20 14;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 8, 0.1, 2, 0);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 24, 0, 6, 0);
 }
 
 .menu-item {
@@ -79,11 +84,14 @@
     -fx-effect: dropshadow(gaussian, rgba(224,93,138,0.4), 40, 0.4, 0, 0);
 }
 
+.avatar-ring {
+    -fx-fill: transparent;
+    -fx-stroke: rgba(255,255,255,0.25);
+    -fx-stroke-width: 2;
+}
+
 .avatar-image {
     -fx-background-radius: 50%;
-    -fx-border-radius: 50%;
-    -fx-border-color: rgba(255, 255, 255, 0.2);
-    -fx-border-width: 2;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 20, 0.2, 0, 0);
 }
 
@@ -116,6 +124,7 @@
     -fx-border-color: rgba(255, 255, 255, 0.1);
     -fx-border-radius: 12;
     -fx-padding: 14 20;
+    -fx-min-height: 46;
     -fx-text-fill: #e8e6ef;
     -fx-font-weight: 600;
     -fx-cursor: hand;
@@ -134,13 +143,12 @@
 
 /* ── Painel de Chat Moderno ─────────────────────────────── */
 .chat-panel {
-    -fx-background-color: rgba(28, 28, 40, 0.8);
-    -fx-background-radius: 16px 0 0 16px;
+    -fx-background-color: rgba(20, 25, 34, 0.75);
+    -fx-background-radius: 20 0 0 20;
     -fx-padding: 10;
-    -fx-border-color: rgba(255, 255, 255, 0.06) transparent transparent transparent;
-    -fx-border-radius: 16px 0 0 16px;
-    -fx-border-width: 0 0 0 1px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 20, 0, -4, 0);
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 20 0 0 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 24, 0, -6, 0);
 }
 
 .chat-header {

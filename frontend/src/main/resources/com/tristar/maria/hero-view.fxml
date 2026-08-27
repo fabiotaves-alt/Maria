@@ -5,6 +5,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -24,10 +25,11 @@
                    styleClass="hero-subtitle"/>
         </VBox>
         
-        <!-- Novíssimo container do avatar com brilho -->
+        <!-- Container do avatar com brilho e anel -->
         <StackPane styleClass="avatar-container">
             <Circle fx:id="avatarGlow" styleClass="avatar-glow" radius="90" />
-            <ImageView fitWidth="180" fitHeight="180" preserveRatio="true" styleClass="avatar-image">
+            <Circle styleClass="avatar-ring" radius="90" />
+            <ImageView fx:id="avatarImage" fitWidth="180" fitHeight="180" preserveRatio="true" styleClass="avatar-image">
                 <image>
                     <Image url="@/com/tristar/maria/maria-avatar.png"/>
                 </image>
@@ -38,19 +40,19 @@
     <!-- 3 cards de funcionalidades -->
     <HBox spacing="16">
         <VBox styleClass="card-feature" spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="🔒 Privacidade total" styleClass="card-title"/>
+            <Label text="🔒 Privacidade total" styleClass="card-title" wrapText="true"/>
             <Label text="100% local, sem nuvem, seus dados nunca saem da sua máquina."
-                   styleClass="card-text"/>
+                   styleClass="card-text" wrapText="true"/>
         </VBox>
         <VBox styleClass="card-feature" spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="🧠 Inteligência local" styleClass="card-title"/>
+            <Label text="🧠 Inteligência local" styleClass="card-title" wrapText="true"/>
             <Label text="Raciocínio e inferência via LLM executado inteiramente offline."
-                   styleClass="card-text"/>
+                   styleClass="card-text" wrapText="true"/>
         </VBox>
         <VBox styleClass="card-feature" spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="⚡ Pronta para ajudar" styleClass="card-title"/>
+            <Label text="⚡ Pronta para ajudar" styleClass="card-title" wrapText="true"/>
             <Label text="Planilhas, documentos, análise de dados e conversa natural."
-                   styleClass="card-text"/>
+                   styleClass="card-text" wrapText="true"/>
         </VBox>
     </HBox>
 
@@ -58,10 +60,14 @@
     <VBox spacing="10">
         <Label text="O que você gostaria de fazer?" styleClass="card-title"/>
         <GridPane hgap="12" vgap="12">
-            <Button text="📄 Analisar Documento" styleClass="quick-action" onAction="#acaoAnalisarDocumento" maxWidth="Infinity" GridPane.hgrow="ALWAYS"/>
-            <Button text="📊 Analisar Dados" styleClass="quick-action" onAction="#acaoAnalisarDados" GridPane.columnIndex="1" maxWidth="Infinity" GridPane.hgrow="ALWAYS"/>
-            <Button text="✍️ Gerar Texto" styleClass="quick-action" onAction="#acaoGerarTexto" GridPane.rowIndex="1" maxWidth="Infinity" GridPane.hgrow="ALWAYS"/>
-            <Button text="🎤 Responder com Voz" styleClass="quick-action" onAction="#acaoResponderVoz" GridPane.columnIndex="1" GridPane.rowIndex="1" maxWidth="Infinity" GridPane.hgrow="ALWAYS"/>
+            <columnConstraints>
+                <ColumnConstraints percentWidth="50" hgrow="ALWAYS"/>
+                <ColumnConstraints percentWidth="50" hgrow="ALWAYS"/>
+            </columnConstraints>
+            <Button text="📄 Analisar Documento" styleClass="quick-action" onAction="#acaoAnalisarDocumento" maxWidth="Infinity" wrapText="true" GridPane.hgrow="ALWAYS"/>
+            <Button text="📊 Analisar Dados" styleClass="quick-action" onAction="#acaoAnalisarDados" GridPane.columnIndex="1" maxWidth="Infinity" wrapText="true" GridPane.hgrow="ALWAYS"/>
+            <Button text="✍️ Gerar Texto" styleClass="quick-action" onAction="#acaoGerarTexto" GridPane.rowIndex="1" maxWidth="Infinity" wrapText="true" GridPane.hgrow="ALWAYS"/>
+            <Button text="🎤 Responder com Voz" styleClass="quick-action" onAction="#acaoResponderVoz" GridPane.columnIndex="1" GridPane.rowIndex="1" maxWidth="Infinity" wrapText="true" GridPane.hgrow="ALWAYS"/>
         </GridPane>
     </VBox>
 </VBox>

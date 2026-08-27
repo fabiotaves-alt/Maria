@@ -3,10 +3,10 @@
    Paleta: fundo #e0dddb · destaque #f7f3ec · accent terracota #c47b54
 ========================================================================== */
 
-.root {
-    -fx-background-color: linear-gradient(to bottom, #e8e5e3, #e0dddb);
-    -fx-text-fill: #3a352e;
-    -fx-font-family: "Segoe UI", "System";
+.root { -fx-background-color: #f7f3ec; -fx-text-fill: #3a352e; -fx-font-family: "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "System"; }
+
+.app-root {
+    -fx-background-color: radial-gradient(center 50% 35%, radius 120%, #ffffff 0%, #f1ece3 55%, #e0dddb 100%);
 }
 
 /* ── Topbar ─────────────────────────────────────────────── */
@@ -20,14 +20,14 @@
 .pill-modo { -fx-background-color: rgba(247, 243, 236, 0.9); -fx-background-radius: 12; -fx-border-color: #d8cfc2; -fx-border-radius: 12; -fx-padding: 3 10; -fx-text-fill: #5a4f41; }
 .pill-modelo { -fx-background-color: rgba(247, 243, 236, 0.9); -fx-background-radius: 10; -fx-padding: 2 10; -fx-text-fill: #8a8072; -fx-font-size: 12px; }
 
-/* ── Sidebar (Glassmorphism) ───────────────────────────── */
+/* ── Sidebar ────────────────────────────────────────────── */
 .sidebar {
-    -fx-background-color: rgba(255, 255, 255, 0.9);
-    -fx-background-radius: 0 16px 16px 0;
-    -fx-border-color: transparent rgba(0, 0, 0, 0.05) transparent transparent;
-    -fx-border-width: 0 1px 0 0;
-    -fx-border-radius: 0 16px 16px 0;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 8, 0.1, 2, 0);
+    -fx-background-color: rgba(255, 255, 255, 0.92);
+    -fx-background-radius: 0 20 20 0;
+    -fx-border-color: transparent rgba(0,0,0,0.05) transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-border-radius: 0 20 20 0;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 20, 0, 4, 0);
 }
 .sidebar .logo { -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #b5602f; }
 .sidebar .logo-sub { -fx-font-size: 11px; -fx-text-fill: #a09787; }
@@ -71,22 +71,35 @@
 }
 .card-feature .card-title { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #b5602f; }
 .card-feature .card-text { -fx-font-size: 13px; -fx-text-fill: #5a5348; }
-.quick-action { -fx-background-color: rgba(239, 233, 223, 0.9); -fx-background-radius: 10; -fx-border-color: rgba(221, 213, 200, 0.8); -fx-border-radius: 10; -fx-padding: 10 14; -fx-text-fill: #3a352e; -fx-cursor: hand; -fx-font-size: 13px; }
-.quick-action:hover { -fx-background-color: rgba(229, 220, 207, 0.95); -fx-border-color: #c47b54; }
 
-/* ── Painel de chat (Glassmorphism) ─────────────────────── */
+/* Avatar (Hero) */
+.avatar-glow {
+    -fx-fill: radial-gradient(center 50% 50%, radius 50%, rgba(196,123,84,0.35), rgba(196,123,84,0.0));
+    -fx-effect: dropshadow(gaussian, rgba(196,123,84,0.45), 45, 0.4, 0, 0);
+}
+.avatar-ring {
+    -fx-fill: transparent;
+    -fx-stroke: rgba(0,0,0,0.12);
+    -fx-stroke-width: 2;
+}
+.avatar-image {
+    -fx-background-radius: 50%;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 16, 0.15, 0, 8);
+}
+
+.quick-action { -fx-background-color: #efe9df; -fx-background-radius: 10; -fx-border-color: #ddd5c8; -fx-border-radius: 10; -fx-padding: 10 14; -fx-min-height: 46; -fx-text-fill: #3a352e; -fx-cursor: hand; -fx-font-size: 13px; }
+.quick-action:hover { -fx-background-color: #e5dccf; -fx-border-color: #c47b54; }
+
+/* ── Painel de chat ─────────────────────────────────────── */
 .chat-panel {
-    -fx-background-color: #ffffff;
-    -fx-background-radius: 16px 0 0 16px;
-    -fx-border-color: transparent transparent transparent rgba(227, 221, 210, 0.6);
-    -fx-border-width: 0 0 0 1px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 20, 0, -4, 0);
+    -fx-background-color: rgba(255, 255, 255, 0.97);
+    -fx-background-radius: 20 0 0 20;
+    -fx-border-color: transparent transparent transparent rgba(0,0,0,0.05);
+    -fx-border-width: 0 0 0 1;
+    -fx-border-radius: 20 0 0 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 20, 0, -4, 0);
 }
-.chat-header {
-    -fx-background-color: rgba(250, 247, 242, 0.9);
-    -fx-padding: 14 16;
-    -fx-border-color: transparent transparent rgba(227, 221, 210, 0.6) transparent;
-}
+.chat-header { -fx-background-color: #faf7f2; -fx-padding: 14 16; -fx-border-color: transparent transparent #e3ddd2 transparent; }
 .chat-header .chat-title { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #3a352e; }
 .chat-header .chat-sub { -fx-font-size: 11px; -fx-text-fill: #4f9d82; }
 .chat-area {
