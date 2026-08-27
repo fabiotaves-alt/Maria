@@ -123,7 +123,8 @@ Todas as configurações ficam centralizadas em [`backend/core/config.py`](backe
 | Documento | Conteúdo |
 |-----------|----------|
 | [docs/ARQUITETURA_SISTEMA.md](docs/ARQUITETURA_SISTEMA.md) | Arquitetura real do sistema (v2.13.0) |
-| [docs/GUIA_DESENVOLVIMENTO.md](docs/GUIA_DESENVOLVIMENTO.md) | Guia prático para desenvolvedores |
+| [docs/GUIA_DESENVOLVIMENTO.md](docs/GUIA_DESENVOLVIMENTO.md) | Guia prático para desenvolvedores (Fase 2) |
+| [docs/GUIA_DESENVOLVIMENTO_FASE3.md](docs/GUIA_DESENVOLVIMENTO_FASE3.md) | **Guia da Fase 3: Integração e Ferramentas** |
 | [docs/RELATORIO_ESTADO_ATUAL.md](docs/RELATORIO_ESTADO_ATUAL.md) | Estado atual, bugs e roadmap |
 | [docs/PENDENCIAS_INTERFACE.md](docs/PENDENCIAS_INTERFACE.md) | Elementos mockados da interface + avatar |
 | [docs/DECISOES_BANCO_DADOS.md](docs/DECISOES_BANCO_DADOS.md) | Decisões pendentes sobre banco de dados |
