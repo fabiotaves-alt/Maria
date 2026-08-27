@@ -677,6 +677,63 @@ def _modo_bridge(modelo: str | None = None):
                 logger.error(f"Erro ao criar automação: {error}")
                 _responder_bridge(identificador, "erro", mensagem_erro=str(error))
 
+        elif comando == "listar_automacoes":
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, nome, descricao, passos_json, gatilho, ativa, criado_em
+                    FROM automacoes
+                    ORDER BY criado_em DESC
+                """)
+                colunas = ["id", "nome", "descricao", "passos", "gatilho", "ativa", "criado_em"]
+                automacoes = [dict(zip(colunas, linha)) for linha in cursor.fetchall()]
+                conn.close()
+                _responder_bridge(identificador, "ok", dados=automacoes)
+            except Exception as error:
+                logger.error(f"Erro ao listar automações: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "deletar_automacao":
+            automacao_id = payload.get("id")
+            if automacao_id is None:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'id' vazio.")
+                continue
+            
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM automacoes WHERE id = ?", (automacao_id,))
+                conn.commit()
+                conn.close()
+                _responder_bridge(identificador, "ok", dados="automação deletada")
+            except Exception as error:
+                logger.error(f"Erro ao deletar automação: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "toggle_automacao":
+            automacao_id = payload.get("id")
+            if automacao_id is None:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'id' vazio.")
+                continue
+            
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE automacoes SET ativa = NOT ativa WHERE id = ?
+                """, (automacao_id,))
+                conn.commit()
+                
+                cursor.execute("SELECT ativa FROM automacoes WHERE id = ?", (automacao_id,))
+                resultado = cursor.fetchone()
+                conn.close()
+                
+                _responder_bridge(identificador, "ok", dados={"ativa": bool(resultado[0]) if resultado else False})
+            except Exception as error:
+                logger.error(f"Erro ao toggle automação: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
         else:
             _responder_bridge(identificador, "erro", mensagem_erro=f"Comando desconhecido: {comando}")
 

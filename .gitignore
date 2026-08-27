@@ -5,12 +5,11 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Database
-maria.db
+# Database files
+*.db
 
-# Logs and temp files
+# Logs
 *.log
-*.tmp
 
 # Environment
 .env
@@ -20,8 +19,6 @@ maria.db
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
 # Dependencies
 venv/

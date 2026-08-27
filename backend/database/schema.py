@@ -17,7 +17,7 @@ Para evitar conflitos de escrita concorrente:
 - WAL mode já está ativo em connection.py para permitir leituras simultâneas
 """
 
-from backend.database.connection import get_connection
+from database.connection import get_connection
 
 
 def init_db():

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.tristar.maria.ui.MenuItemsController"
+      spacing="8">
+
+    <Button text="💬 Conversar" fx:id="btnConversar" onAction="#abrirConversar" styleClass="menu-item menu-item-selected"/>
+    <Button text="📁 Arquivos" fx:id="btnArquivos" onAction="#abrirArquivos" styleClass="menu-item"/>
+    <Button text="📊 Análise de Dados" fx:id="btnAnaliseDados" onAction="#abrirAnaliseDados" styleClass="menu-item"/>
+    <Button text="👁️ Visão" fx:id="btnVisao" onAction="#abrirVisao" styleClass="menu-item"/>
+    <Button text="🎤 Voz" fx:id="btnVoz" onAction="#abrirVoz" styleClass="menu-item"/>
+    <Button text="🧠 Memória" fx:id="btnMemoria" onAction="#abrirMemoria" styleClass="menu-item"/>
+    <Button text="⚙️ Automações" fx:id="btnAutomacoes" onAction="#abrirAutomacoes" styleClass="menu-item"/>
+    <Button text="⚙️ Configurações" fx:id="btnConfiguracoes" onAction="#abrirConfiguracoes" styleClass="menu-item"/>
+
+</VBox>

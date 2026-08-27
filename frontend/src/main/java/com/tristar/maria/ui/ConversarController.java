@@ -2,6 +2,8 @@ package com.tristar.maria.ui;
 
 import com.tristar.maria.bridge.BridgeManager;
 import com.tristar.maria.bridge.Resposta;
+import com.tristar.maria.dao.DatabaseManager;
+import com.tristar.maria.dao.ConversaDAO;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -20,14 +22,19 @@ import java.io.*;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Controller da aba Conversar — painel de chat permanente à direita,
- * integrado à bridge Python (comandos ping/chat).
+ * integrado à bridge Python (comandos ping/chat) e ao banco de dados SQLite.
  */
 public class ConversarController {
 
     private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm");
+    
+    private DatabaseManager dbManager;
+    private ConversaDAO conversaDAO;
+    private String sessionId;
 
     @FXML private VBox areaMensagens;
     @FXML private TextField campoMensagem;
@@ -46,6 +53,15 @@ public class ConversarController {
     }
 
     public void initialize() {
+        // Inicializar banco de dados
+        try {
+            dbManager = DatabaseManager.getInstance();
+            conversaDAO = dbManager.getConversaDAO();
+            sessionId = UUID.randomUUID().toString();
+        } catch (Exception e) {
+            System.err.println("Erro ao inicializar banco de dados: " + e.getMessage());
+        }
+        
         atualizarStatus("●  conectando...", "#f59e0b");
         try {
             BridgeManager.getInstance().enviar("ping", null)
@@ -81,6 +97,14 @@ public class ConversarController {
         if (texto.isEmpty()) {
             return;
         }
+        
+        // Salvar mensagem do usuário no banco
+        try {
+            conversaDAO.salvarMensagem("user", texto, sessionId);
+        } catch (Exception e) {
+            System.err.println("Erro ao salvar mensagem: " + e.getMessage());
+        }
+        
         adicionarBalaoUsuario(texto);
         campoMensagem.clear();
         atualizarStatus("●  pensando...", "#f59e0b");
@@ -101,12 +125,22 @@ public class ConversarController {
     }
 
     private void processarResposta(Resposta resposta) {
+        String respostaTexto;
         if ("ok".equals(resposta.getStatus())) {
             Object dados = resposta.getDados();
-            adicionarBalaoMaria(dados != null ? dados.toString() : "(sem resposta)");
+            respostaTexto = dados != null ? dados.toString() : "(sem resposta)";
         } else {
-            adicionarBalaoMaria("[erro] " + resposta.getMensagemErro());
+            respostaTexto = "[erro] " + resposta.getMensagemErro();
         }
+        
+        // Salvar resposta da Maria no banco
+        try {
+            conversaDAO.salvarMensagem("assistant", respostaTexto, sessionId);
+        } catch (Exception e) {
+            System.err.println("Erro ao salvar resposta: " + e.getMessage());
+        }
+        
+        adicionarBalaoMaria(respostaTexto);
         atualizarStatus("●  online", "#22c55e");
     }
 
@@ -114,6 +148,13 @@ public class ConversarController {
     @FXML
     private void limparConversa() {
         areaMensagens.getChildren().clear();
+        // Limpar também no banco de dados
+        try {
+            conversaDAO.limparSessao(sessionId);
+            sessionId = UUID.randomUUID().toString(); // Nova sessão
+        } catch (Exception e) {
+            System.err.println("Erro ao limpar sessão: " + e.getMessage());
+        }
     }
 
     @FXML
