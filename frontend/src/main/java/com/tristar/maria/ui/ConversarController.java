@@ -5,10 +5,14 @@ import com.tristar.maria.bridge.Resposta;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -36,25 +40,30 @@ public class ConversarController {
     private ByteArrayOutputStream bufferAudio;
     private boolean gravando = false;
 
+    private void atualizarStatus(String texto, String corHex) {
+        labelStatus.setText(texto);
+        labelStatus.setStyle("-fx-text-fill: " + corHex + ";");
+    }
+
     public void initialize() {
-        labelStatus.setText("●  conectando...");
+        atualizarStatus("●  conectando...", "#f59e0b");
         try {
             BridgeManager.getInstance().enviar("ping", null)
                     .thenAccept(resposta -> Platform.runLater(() -> processarHandshake(resposta)))
                     .exceptionally(erro -> {
-                        Platform.runLater(() -> labelStatus.setText("●  offline: " + erro.getMessage()));
+                        Platform.runLater(() -> atualizarStatus("●  offline: " + erro.getMessage(), "#ef4444"));
                         return null;
                     });
         } catch (IOException e) {
-            labelStatus.setText("●  offline: " + e.getMessage());
+            atualizarStatus("●  offline: " + e.getMessage(), "#ef4444");
         }
     }
 
     private void processarHandshake(Resposta resposta) {
         if ("ok".equals(resposta.getStatus()) && "pong".equals(resposta.getDados())) {
-            labelStatus.setText("●  online");
+            atualizarStatus("●  online", "#22c55e");
         } else {
-            labelStatus.setText("●  offline: " + resposta.getMensagemErro());
+            atualizarStatus("●  offline: " + resposta.getMensagemErro(), "#ef4444");
         }
     }
 
@@ -74,7 +83,7 @@ public class ConversarController {
         }
         adicionarBalaoUsuario(texto);
         campoMensagem.clear();
-        labelStatus.setText("●  pensando...");
+        atualizarStatus("●  pensando...", "#f59e0b");
 
         try {
             BridgeManager.getInstance().enviar("chat", Map.of("mensagem", texto))
@@ -82,12 +91,12 @@ public class ConversarController {
                     .exceptionally(erro -> {
                         Platform.runLater(() -> {
                             adicionarBalaoMaria("[erro] " + erro.getMessage());
-                            labelStatus.setText("●  online");
+                            atualizarStatus("●  online", "#22c55e");
                         });
                         return null;
                     });
         } catch (IOException e) {
-            labelStatus.setText("●  off: " + e.getMessage());
+            atualizarStatus("●  off: " + e.getMessage(), "#ef4444");
         }
     }
 
@@ -98,7 +107,7 @@ public class ConversarController {
         } else {
             adicionarBalaoMaria("[erro] " + resposta.getMensagemErro());
         }
-        labelStatus.setText("●  online");
+        atualizarStatus("●  online", "#22c55e");
     }
 
     // ── Ações do header (dropdown) ─────────────────────────────
@@ -144,7 +153,6 @@ public class ConversarController {
             }
         }
     }
-
     // ── Ação de anexar arquivo ─────────────────────────────
     @FXML
     private void onAnexar() {
@@ -156,7 +164,7 @@ public class ConversarController {
         
         if (file != null) {
             adicionarBalaoUsuario("📎 Anexando: " + file.getName());
-            labelStatus.setText("●  enviando...");
+            atualizarStatus("●  enviando...", "#f59e0b");
             
             try {
                 BridgeManager.getInstance().enviar("upload_arquivo", Map.of("caminho", file.getAbsolutePath()))
@@ -166,17 +174,17 @@ public class ConversarController {
                         } else {
                             adicionarBalaoMaria("✗ Erro: " + resposta.getMensagemErro());
                         }
-                        labelStatus.setText("●  online");
+                        atualizarStatus("●  online", "#22c55e");
                     }))
                     .exceptionally(erro -> {
                         Platform.runLater(() -> {
                             adicionarBalaoMaria("✗ Erro: " + erro.getMessage());
-                            labelStatus.setText("●  online");
+                            atualizarStatus("●  online", "#22c55e");
                         });
                         return null;
                     });
             } catch (IOException e) {
-                labelStatus.setText("●  off: " + e.getMessage());
+                atualizarStatus("●  off: " + e.getMessage(), "#ef4444");
             }
         }
     }
@@ -214,7 +222,7 @@ public class ConversarController {
                 }
             }).start();
             
-            labelStatus.setText("●  gravando...");
+            atualizarStatus("●  gravando...", "#ef4444");
         } catch (Exception e) {
             Platform.runLater(() -> {
                 adicionarBalaoMaria("✗ Erro ao iniciar gravação: " + e.getMessage());
@@ -231,7 +239,7 @@ public class ConversarController {
         }
         
         if (btnVoz != null) btnVoz.setStyle("");
-        labelStatus.setText("●  transcrevendo...");
+        atualizarStatus("●  transcrevendo...", "#f59e0b");
         
         // Salvar áudio em arquivo temporário
         File tempFile = new File(System.getProperty("java.io.tmpdir"), "maria_audio_" + System.currentTimeMillis() + ".wav");
@@ -248,19 +256,19 @@ public class ConversarController {
                     } else {
                         adicionarBalaoMaria("✗ Erro na transcrição: " + resposta.getMensagemErro());
                     }
-                    labelStatus.setText("●  online");
+                    atualizarStatus("●  online", "#22c55e");
                 }))
                 .exceptionally(erro -> {
                     Platform.runLater(() -> {
                         adicionarBalaoMaria("✗ Erro: " + erro.getMessage());
-                        labelStatus.setText("●  online");
+                        atualizarStatus("●  online", "#22c55e");
                     });
                     return null;
                 });
         } catch (IOException e) {
             Platform.runLater(() -> {
                 adicionarBalaoMaria("✗ Erro ao salvar áudio: " + e.getMessage());
-                labelStatus.setText("●  online");
+                atualizarStatus("●  online", "#22c55e");
             });
         }
     }
@@ -286,8 +294,7 @@ public class ConversarController {
     }
 
     private void adicionarBalaoMaria(String texto) {
-        Label avatar = new Label("M");
-        avatar.getStyleClass().add("avatar");
+        Node avatar = criarAvatarMaria();
 
         Label balao = new Label(texto);
         balao.setWrapText(true);
@@ -303,5 +310,20 @@ public class ConversarController {
         HBox linha = new HBox(8, avatar, grupo);
         linha.setAlignment(Pos.CENTER_LEFT);
         areaMensagens.getChildren().add(linha);
+    }
+
+    private Node criarAvatarMaria() {
+        java.net.URL recurso = getClass().getResource("/com/tristar/maria/maria-avatar-circle.png");
+        if (recurso != null) {
+            ImageView avatar = new ImageView(new Image(recurso.toExternalForm()));
+            avatar.setFitWidth(36);
+            avatar.setFitHeight(36);
+            avatar.setPreserveRatio(false);
+            avatar.setClip(new Circle(18, 18, 18));
+            return avatar;
+        }
+        Label fallback = new Label("M");
+        fallback.getStyleClass().add("avatar");
+        return fallback;
     }
 }

@@ -3,7 +3,11 @@
    Paleta: fundo #f7f3ec · cards #efe9df · accent terracota #c47b54
 ========================================================================== */
 
-.root { -fx-background-color: #f7f3ec; -fx-text-fill: #3a352e; -fx-font-family: "Segoe UI", "System"; }
+.root { -fx-background-color: #f7f3ec; -fx-text-fill: #3a352e; -fx-font-family: "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "System"; }
+
+.app-root {
+    -fx-background-color: radial-gradient(center 50% 35%, radius 120%, #ffffff 0%, #f1ece3 55%, #e0dddb 100%);
+}
 
 /* ── Topbar ─────────────────────────────────────────────── */
 .topbar { -fx-background-color: #ffffff; -fx-border-color: transparent transparent #e3ddd2 transparent; -fx-padding: 10 16; }
@@ -12,7 +16,14 @@
 .pill-modelo { -fx-background-color: #efe9df; -fx-background-radius: 10; -fx-padding: 2 10; -fx-text-fill: #8a8072; -fx-font-size: 12px; }
 
 /* ── Sidebar ────────────────────────────────────────────── */
-.sidebar { -fx-background-color: #ffffff; -fx-border-color: transparent #e3ddd2 transparent transparent; -fx-border-width: 0 1 0 0; }
+.sidebar {
+    -fx-background-color: rgba(255, 255, 255, 0.92);
+    -fx-background-radius: 0 20 20 0;
+    -fx-border-color: transparent rgba(0,0,0,0.05) transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-border-radius: 0 20 20 0;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 20, 0, 4, 0);
+}
 .sidebar .logo { -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #b5602f; }
 .sidebar .logo-sub { -fx-font-size: 11px; -fx-text-fill: #a09787; }
 .menu-item { -fx-background-color: transparent; -fx-text-fill: #5a5348; -fx-font-size: 14px; -fx-padding: 10 12; -fx-background-radius: 8; -fx-alignment: CENTER_LEFT; -fx-cursor: hand; }
@@ -36,10 +47,34 @@
 .card-feature { -fx-background-color: #efe9df; -fx-background-radius: 14; -fx-padding: 20; -fx-border-color: #e3ddd2; -fx-border-radius: 14; }
 .card-feature .card-title { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #b5602f; }
 .card-feature .card-text { -fx-font-size: 13px; -fx-text-fill: #5a5348; }
-.quick-action { -fx-background-color: #efe9df; -fx-background-radius: 10; -fx-border-color: #ddd5c8; -fx-border-radius: 10; -fx-padding: 10 14; -fx-text-fill: #3a352e; -fx-cursor: hand; -fx-font-size: 13px; }
+
+/* Avatar (Hero) */
+.avatar-glow {
+    -fx-fill: radial-gradient(center 50% 50%, radius 50%, rgba(196,123,84,0.35), rgba(196,123,84,0.0));
+    -fx-effect: dropshadow(gaussian, rgba(196,123,84,0.45), 45, 0.4, 0, 0);
+}
+.avatar-ring {
+    -fx-fill: transparent;
+    -fx-stroke: rgba(0,0,0,0.12);
+    -fx-stroke-width: 2;
+}
+.avatar-image {
+    -fx-background-radius: 50%;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 16, 0.15, 0, 8);
+}
+
+.quick-action { -fx-background-color: #efe9df; -fx-background-radius: 10; -fx-border-color: #ddd5c8; -fx-border-radius: 10; -fx-padding: 10 14; -fx-min-height: 46; -fx-text-fill: #3a352e; -fx-cursor: hand; -fx-font-size: 13px; }
 .quick-action:hover { -fx-background-color: #e5dccf; -fx-border-color: #c47b54; }
+
 /* ── Painel de chat ─────────────────────────────────────── */
-.chat-panel { -fx-background-color: #ffffff; -fx-border-color: transparent transparent transparent #e3ddd2; -fx-border-width: 0 0 0 1; }
+.chat-panel {
+    -fx-background-color: rgba(255, 255, 255, 0.97);
+    -fx-background-radius: 20 0 0 20;
+    -fx-border-color: transparent transparent transparent rgba(0,0,0,0.05);
+    -fx-border-width: 0 0 0 1;
+    -fx-border-radius: 20 0 0 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 20, 0, -4, 0);
+}
 .chat-header { -fx-background-color: #faf7f2; -fx-padding: 14 16; -fx-border-color: transparent transparent #e3ddd2 transparent; }
 .chat-header .chat-title { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #3a352e; }
 .chat-header .chat-sub { -fx-font-size: 11px; -fx-text-fill: #4f9d82; }

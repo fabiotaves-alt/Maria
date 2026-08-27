@@ -24,10 +24,6 @@
             <Label text="CONVERSA ATUAL" styleClass="chat-title"/>
             <Label fx:id="labelStatus" text="●  online" styleClass="chat-sub"/>
         </VBox>
-        <!-- Dropdown de opções do chat -->
-        <fx:define>
-            <fx:collection fx:id="menuOpcoesChat"/>
-        </fx:define>
         <MenuButton text="⋯" styleClass="icon-btn">
             <items>
                 <MenuItem text="Limpar Conversa" onAction="#limparConversa"/>
