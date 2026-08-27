@@ -14,6 +14,23 @@
     -fx-background-color: linear-gradient(to bottom right, #0B101D 0%, #060A12 100%);
 }
 
+/* ScrollPane transparente (apenas nos painéis da aplicação; o seletor genérico
+   .scroll-pane também atingia as scrollbars e gerava avisos do Modena) */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+
+/* Coluna central: gradiente um pouco mais claro que a sidebar (#111625) */
+.scroll-pane-central {
+    -fx-background-color: linear-gradient(to bottom right, #18223C 0%, #101726 100%);
+    -fx-background: linear-gradient(to bottom right, #18223C 0%, #101726 100%);
+}
+
 /* ── Topbar (Transparente) ────────────────────────────── */
 .topbar {
     -fx-background-color: transparent;
@@ -75,7 +92,11 @@
     -fx-text-fill: #8F9CAE;
     -fx-font-size: 14px;
     -fx-padding: 10 16;
-    -fx-pref-height: 40;
+    -fx-pref-height: 44;
+    -fx-min-height: 44;
+    -fx-max-height: 44;
+    -fx-pref-width: Infinity;
+    -fx-max-width: Infinity;
     -fx-background-radius: 8;
     -fx-border-radius: 8;
     -fx-alignment: CENTER_LEFT;
@@ -87,12 +108,12 @@
     -fx-background-color: rgba(255,255,255,0.05);
     -fx-text-fill: #FFFFFF;
 }
-/* Item ativo: fundo translúcido + traço oval rosa à esquerda */
+/* Item ativo com o mesmo visual dos demais (sem destaque) */
 .menu-item-selected {
-    -fx-background-color: rgba(255,255,255,0.05);
-    -fx-text-fill: #FFFFFF;
-    -fx-font-weight: bold;
-    -fx-border-color: transparent transparent transparent #F43F5E;
+    -fx-background-color: transparent;
+    -fx-text-fill: #8F9CAE;
+    -fx-font-weight: normal;
+    -fx-border-color: transparent transparent transparent transparent;
     -fx-border-radius: 8;
 }
 
@@ -214,7 +235,7 @@
 
 /* ── Painel de Chat (sólido, canto esquerdo) ───────────── */
 .chat-panel {
-    -fx-background-color: #111625;
+    -fx-background-color: linear-gradient(to bottom right, #141C30 0%, #101726 100%);
     -fx-border-color: transparent transparent transparent #1E2538;
     -fx-border-width: 0 0 0 1;
     -fx-padding: 10;
@@ -234,7 +255,8 @@
     -fx-text-fill: #8F9CAE;
 }
 .chat-area {
-    -fx-background-color: transparent;
+    -fx-background-color: rgba(30,41,59,0.55);
+    -fx-background-radius: 12;
     -fx-padding: 16;
 }
 .chat-scroll-modern { -fx-background-color: transparent; }

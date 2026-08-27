@@ -1,13 +1,8 @@
 package com.tristar.maria.ui;
 
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.scene.image.ImageView;
 import javafx.scene.shape.Circle;
-import javafx.util.Duration;
 
 /**
  * Controller do hero (tela inicial central).
@@ -23,7 +18,6 @@ public class HeroController {
     @FXML
     private ImageView avatarImage;
 
-    private Timeline timeline;
 
     public void setMainController(MainController mainController) {
         this.mainController = mainController;
@@ -31,16 +25,6 @@ public class HeroController {
 
     @FXML
     public void initialize() {
-        // Animação de "pulsação" do brilho
-        if (avatarGlow != null) {
-            timeline = new Timeline(
-                new KeyFrame(Duration.ZERO, new KeyValue(avatarGlow.radiusProperty(), 80)),
-                new KeyFrame(Duration.seconds(2), new KeyValue(avatarGlow.radiusProperty(), 100)),
-                new KeyFrame(Duration.seconds(4), new KeyValue(avatarGlow.radiusProperty(), 80))
-            );
-            timeline.setCycleCount(Animation.INDEFINITE);
-            timeline.play();
-        }
 
         // Recorte circular real do avatar (ImageView não aceita border-radius)
         if (avatarImage != null) {

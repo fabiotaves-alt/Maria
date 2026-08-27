@@ -97,7 +97,7 @@
     <center>
         <HBox>
             <!-- Conteúdo dinâmico das abas (hero e demais) -->
-            <ScrollPane fitToWidth="true" fitToHeight="true" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+            <ScrollPane styleClass="scroll-pane-central" fitToWidth="true" fitToHeight="true" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
                 <content>
                     <VBox fx:id="conteudoAtual" spacing="12">
                         <padding><Insets top="24" right="24" bottom="24" left="24"/></padding>
