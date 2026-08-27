@@ -21,7 +21,10 @@
     <top>
         <HBox styleClass="topbar" alignment="CENTER_LEFT" spacing="14">
             <Label text="✿ MARIA" styleClass="app-title"/>
-            <Label styleClass="pill-modo" text="●  MODO LOCAL"/>
+            <HBox styleClass="pill-modo" alignment="CENTER" spacing="6">
+            <Region styleClass="pill-dot"/>
+            <Label text="MODO LOCAL"/>
+        </HBox>
             <Label styleClass="pill-modelo" fx:id="labelModelo" text="qwen3.5:4b · via Ollama"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label text="☀" fx:id="botaoTema" styleClass="icon-btn"

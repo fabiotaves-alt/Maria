@@ -322,8 +322,12 @@ public class ConversarController {
             avatar.setClip(new Circle(18, 18, 18));
             return avatar;
         }
-        Label fallback = new Label("M");
-        fallback.getStyleClass().add("avatar");
-        return fallback;
+        Label circ = new Label("M");
+        circ.getStyleClass().add("avatar");
+        Label nome = new Label("Maria");
+        nome.getStyleClass().add("avatar-chat-nome");
+        HBox cont = new HBox(6, circ, nome);
+        cont.setAlignment(Pos.CENTER_LEFT);
+        return cont;
     }
 }
