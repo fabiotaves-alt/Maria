@@ -6,7 +6,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ### ✅ Interface JavaFX
 
-- **Novo layout em `main-view.fxml`**: topbar (logo, pill MODO LOCAL, modelo mock, botão de tema ☀/☾), sidebar expandida (260px), coluna central com hero + painel de chat permanente (380px), status bar inferior.
+- **Novo layout em `main-view.fxml`**: topbar (logo, pill MODO LOCAL, modelo **qwen3.5:4b**, botão de tema ☀/☾), sidebar expandida (260px), coluna central com hero + painel de chat permanente (380px), status bar inferior.
 - **`theme-dark.css` e `theme-light.css` reescritos** (~70 regras cada): novas paletas (dark: fundo `#0e0e16`, accent rosa `#e05d8a`; light: fundo `#f7f3ec`, accent terracota `#c47b54`), com classes `.topbar`, `.pill-modo`, `.sidebar-card`, `.resource-bar-*`, `.card-feature`, `.quick-action`, `.bubble-user`, `.bubble-maria`, `.chat-panel`, `.avatar-hero`, `.menu-item-selected`, `.status-bar`.
 - **`hero-view.fxml` + `HeroController.java` criados**: tela inicial central com título, subtítulo, avatar placeholder (gradiente + letra "M"), 3 cards de funcionalidades e 4 ações rápidas.
 - **`ConversarController` reescrito** para painel de chat permanente: bolhas alinhadas (usuário à direita, Maria à esquerda com avatar), timestamps, header "CONVERSA ATUAL", input com 📎/🎤 desabilitados e botão enviar. Handshake `ping` + comando `chat` preservados.
@@ -14,9 +14,10 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - **`MenuItemsController`**: novo `destacar(...)` para realçar a aba ativa (`.menu-item-selected`).
 - **`App.java`**: janela 1280×800, carga de `theme-dark.css` e `setCena` no controller.
 - **`Image folder criada**: `resources/.../images/` para receber `avatar.png`.
+- **Modelo LLM atualizado**: interface agora reflete o modelo real `qwen3.5:4b` (substituindo referências mockadas ao Llama 3.1 8B).
 
 ### ⚠️ Elementos mockados nesta fase
-Recursos do sistema (CPU/RAM/GPU), MODO LOCAL/modelo, ações rápidas (preenchem o input), anexar/voz (desabilitados) e dropdown "⋯" sem ação. Ver `docs/PENDENCIAS_INTERFACE.md`.
+Recursos do sistema (CPU/RAM/GPU), ações rápidas (preenchem o input), anexar/voz (desabilitados) e dropdown "⋯" sem ação. Ver `docs/PENDENCIAS_INTERFACE.md`.
 
 ### ✅ Validação
 - Estática: handlers `onAction`/`onMouseClicked` de todos os FXMLs mapeados aos controllers; zero typos de cor no CSS.
@@ -34,9 +35,9 @@ Recursos do sistema (CPU/RAM/GPU), MODO LOCAL/modelo, ações rápidas (preenche
 
 ### ✅ Documentação (Fase 0 do guia)
 
-- **`backend/README.md`**: modelo divergente corrigido (`qwen2.5:7b` → `qwen3.5:4b`, alinhado a `core/config.py`).
+- **`backend/README.md`**: modelo divergente corrigido (`qwen3.5:4b`, alinhado a `core/config.py`).
 - **Documentos obsoletos arquivados** em `docs/archive/` com aviso de obsolescência: `RELATORIO_ACOMPANHAMENTO.md` e `ARQUITETURA_REAL_SISTEMA.md`.
-- **`README.md` (raiz)**: tabela de documentação atualizada.
+- **`README.md` (raiz)**: tabela de documentação atualizada e modelo LLM atualizado para `qwen3.5:4b`.
 - **`docs/DECISOES_BANCO_DADOS.md` criado**: registra as 4 perguntas pendentes antes da implementação de `database/schema.py` (Fase 2 bloqueada por decisão, não por código).
 
 ### ⚠️ Validação
@@ -274,7 +275,7 @@ Recursos do sistema (CPU/RAM/GPU), MODO LOCAL/modelo, ações rápidas (preenche
 - **Sanitização de nomes**: nomes de arquivos removem componentes de caminho e caracteres inseguros antes da escrita.
 - **Isolamento de testes**: a pasta `PASTA_ARQUIVOS_GERADOS` é lida dinamicamente, permitindo diretórios temporários por teste.
 - **Streaming defensivo**: chunks com `tool_calls: []`, tool calls malformadas e JSON inválido não derrubam o cliente.
-- **Modelo padrão**: documentação, mensagens e testes alinhados ao `qwen2.5:7b`.
+- **Modelo padrão**: documentação, mensagens e testes alinhados ao `qwen3.5:4b`.
 - **Limpeza de histórico**: removido o parâmetro sem efeito `manter_system` de `ChatSession.limpar_historico()`.
 
 ### 🧪 Testes

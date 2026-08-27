@@ -40,7 +40,7 @@ public class MainController {
         if (menuItemsController != null) {
             menuItemsController.setMainController(this);
         }
-        labelModelo.setText("Llama 3.1 8B · via Ollama  (mockado)");
+        labelModelo.setText("qwen3.5:4b · via Ollama");
         carregarAba("conversar");
     }
 

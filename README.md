@@ -63,7 +63,7 @@ maria/
 |-----------|--------|------------|
 | Python | 3.11+ | venv na raiz (`.venv/`) |
 | Ollama | atual | [ollama.com](https://ollama.com) |
-| Modelo LLM | ver `OLLAMA_MODEL` em `backend/core/config.py` | ex.: `ollama pull qwen2.5:7b` |
+| Modelo LLM | ver `OLLAMA_MODEL` em `backend/core/config.py` | ex.: `ollama pull qwen3.5:4b` |
 | JDK | 21 | OpenJDK/Temurin |
 | Maven | 3.9+ | ou wrapper da IDE |
 
@@ -76,7 +76,7 @@ python -m venv .venv
 
 # 2. Ollama + modelo
 ollama serve
-ollama pull qwen2.5:7b
+ollama pull qwen3.5:4b
 ```
 
 ## Como Executar
@@ -118,12 +118,28 @@ Todas as configurações ficam centralizadas em [`backend/core/config.py`](backe
 
 ## Documentação
 
+### Documentos Ativos
+
 | Documento | Conteúdo |
 |-----------|----------|
-| [docs/INTEGRACAO_FRONTEND.md](docs/INTEGRACAO_FRONTEND.md) | Protocolo bridge Java↔Python |
-| [docs/PENDENCIAS_INTERFACE.md](docs/PENDENCIAS_INTERFACE.md) | Elementos mockados da interface + como adicionar o avatar |
+| [docs/ARQUITETURA_SISTEMA.md](docs/ARQUITETURA_SISTEMA.md) | Arquitetura real do sistema (v2.13.0) |
+| [docs/GUIA_DESENVOLVIMENTO.md](docs/GUIA_DESENVOLVIMENTO.md) | Guia prático para desenvolvedores |
 | [docs/RELATORIO_ESTADO_ATUAL.md](docs/RELATORIO_ESTADO_ATUAL.md) | Estado atual, bugs e roadmap |
+| [docs/PENDENCIAS_INTERFACE.md](docs/PENDENCIAS_INTERFACE.md) | Elementos mockados da interface + avatar |
+| [docs/DECISOES_BANCO_DADOS.md](docs/DECISOES_BANCO_DADOS.md) | Decisões pendentes sobre banco de dados |
+
+### Documentos Legados
+
+Documentos obsoletos foram movidos para [`docs/archive/`](docs/archive/):
+- `ARQUITETURA_REAL_SISTEMA.md` (estado anterior à v2.11.0)
+- `RELATORIO_ACOMPANHAMENTO.md` (acompanhamento Fase 0)
+
+### Backend
+
+| Documento | Conteúdo |
+|-----------|----------|
 | [backend/README.md](backend/README.md) | Documentação completa do backend/CLI |
+| [backend/CHANGELOG.md](backend/CHANGELOG.md) | Histórico de mudanças do backend |
 
 ## Licença
 
