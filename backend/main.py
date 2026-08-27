@@ -43,6 +43,7 @@ from backend.core.tools_schema import (
     TOOLS_SCHEMA,
     executar_ferramenta_real,
 )
+from backend.database.connection import get_connection
 from backend.core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
 from backend.core.tool_chaining import encadear_leitura_stream
 
@@ -376,6 +377,15 @@ def _modo_bridge(modelo: str | None = None):
     Responde JSON por linha no stdout no formato:
         {"id": "...", "status": "ok|erro", "dados": ..., "mensagemErro": ...}
     """
+    # Inicializar banco de dados
+    from backend.database.schema import init_db
+    
+    try:
+        init_db()
+        logger.info("Banco de dados inicializado")
+    except Exception as e:
+        logger.warning(f"Falha ao inicializar DB: {e}")
+    
     controller = MariaController(modelo=modelo)
     try:
         controller.inicializar()
@@ -563,6 +573,166 @@ def _modo_bridge(modelo: str | None = None):
         elif comando == "encerrar":
             _responder_bridge(identificador, "ok", dados="encerrando")
             break
+
+        # ── Comandos de sessão/histórico ────────────────────────
+        elif comando == "limpar_conversa":
+            controller.sessao.limpar_historico()
+            _responder_bridge(identificador, "ok", dados="conversa limpa")
+
+        elif comando == "exportar_conversa":
+            formato = payload.get("formato", "txt")
+            from backend.core.session_storage import exportar_sessao
+            
+            try:
+                arquivo_saida = exportar_sessao(controller.sessao, formato=formato)
+                _responder_bridge(identificador, "ok", dados=f"Exportado: {arquivo_saida}")
+            except Exception as error:
+                logger.error(f"Erro ao exportar conversa: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "listar_sessoes":
+            from backend.core.session_storage import listar_sessoes_salvas
+            sessoes = listar_sessoes_salvas()
+            _responder_bridge(identificador, "ok", dados=sessoes)
+
+        elif comando == "carregar_sessao":
+            nome = payload.get("nome", "")
+            from backend.core.session_storage import carregar_sessao
+            
+            try:
+                sessao = carregar_sessao(nome)
+                # Converter sessão para formato serializável
+                mensagens = [
+                    {"role": m["role"], "conteudo": m["content"]} 
+                    for m in sessao.historico
+                ]
+                _responder_bridge(identificador, "ok", dados=mensagens)
+            except Exception as error:
+                logger.error(f"Erro ao carregar sessão: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        # ── Comandos de memória (banco de dados) ────────────────
+        elif comando == "salvar_memoria":
+            fato = payload.get("fato", "")
+            categoria = payload.get("categoria", "geral")
+            relevancia = payload.get("relevancia", 1.0)
+            
+            if not fato:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'fato' vazio.")
+                continue
+            
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT OR IGNORE INTO memoria (fato, categoria, relevancia)
+                    VALUES (?, ?, ?)
+                """, (fato, categoria, relevancia))
+                conn.commit()
+                conn.close()
+                _responder_bridge(identificador, "ok", dados="memória salva")
+            except Exception as error:
+                logger.error(f"Erro ao salvar memória: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "listar_memoria":
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT fato, categoria, relevancia FROM memoria ORDER BY criado_em DESC")
+                rows = cursor.fetchall()
+                conn.close()
+                
+                memorias = [
+                    {"fato": row["fato"], "categoria": row["categoria"], "relevancia": row["relevancia"]}
+                    for row in rows
+                ]
+                _responder_bridge(identificador, "ok", dados=memorias)
+            except Exception as error:
+                logger.error(f"Erro ao listar memória: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        # ── Comandos de automação (banco de dados) ─────────────
+        elif comando == "criar_automacao":
+            nome = payload.get("nome", "")
+            descricao = payload.get("descricao", "")
+            passos = payload.get("passos", [])
+            gatilho = payload.get("gatilho", "")
+            
+            if not nome:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'nome' vazio.")
+                continue
+            
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT OR REPLACE INTO automacoes (nome, descricao, passos_json, gatilho)
+                    VALUES (?, ?, ?, ?)
+                """, (nome, descricao, json.dumps(passos), gatilho))
+                conn.commit()
+                conn.close()
+                _responder_bridge(identificador, "ok", dados="automação criada")
+            except Exception as error:
+                logger.error(f"Erro ao criar automação: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "listar_automacoes":
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, nome, descricao, passos_json, gatilho, ativa, criado_em
+                    FROM automacoes
+                    ORDER BY criado_em DESC
+                """)
+                colunas = ["id", "nome", "descricao", "passos", "gatilho", "ativa", "criado_em"]
+                automacoes = [dict(zip(colunas, linha)) for linha in cursor.fetchall()]
+                conn.close()
+                _responder_bridge(identificador, "ok", dados=automacoes)
+            except Exception as error:
+                logger.error(f"Erro ao listar automações: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "deletar_automacao":
+            automacao_id = payload.get("id")
+            if automacao_id is None:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'id' vazio.")
+                continue
+            
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM automacoes WHERE id = ?", (automacao_id,))
+                conn.commit()
+                conn.close()
+                _responder_bridge(identificador, "ok", dados="automação deletada")
+            except Exception as error:
+                logger.error(f"Erro ao deletar automação: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "toggle_automacao":
+            automacao_id = payload.get("id")
+            if automacao_id is None:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'id' vazio.")
+                continue
+            
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE automacoes SET ativa = NOT ativa WHERE id = ?
+                """, (automacao_id,))
+                conn.commit()
+                
+                cursor.execute("SELECT ativa FROM automacoes WHERE id = ?", (automacao_id,))
+                resultado = cursor.fetchone()
+                conn.close()
+                
+                _responder_bridge(identificador, "ok", dados={"ativa": bool(resultado[0]) if resultado else False})
+            except Exception as error:
+                logger.error(f"Erro ao toggle automação: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
 
         else:
             _responder_bridge(identificador, "erro", mensagem_erro=f"Comando desconhecido: {comando}")

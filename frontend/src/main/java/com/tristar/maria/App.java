@@ -1,6 +1,7 @@
 package com.tristar.maria;
 
 import com.tristar.maria.bridge.BridgeManager;
+import com.tristar.maria.dao.DatabaseManager;
 import com.tristar.maria.ui.MainController;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -12,14 +13,16 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 
 /**
  * MARIA — ponto de entrada JavaFX.
  *
  * Responsabilidades:
+ *     - Inicializar banco de dados SQLite via DatabaseManager
  *     - Iniciar o processo Python via BridgeManager (../backend/main.py --bridge)
  *     - Carregar main-view.fxml (sidebar + navegação entre as 8 abas)
- *     - Encerrar o processo Python ao fechar a janela
+ *     - Encerrar o processo Python e fechar conexão DB ao fechar a janela
  */
 public class App extends Application {
 
@@ -29,6 +32,16 @@ public class App extends Application {
     @Override
     public void start(Stage palco) throws IOException {
         palco.setTitle("MARIA — Assistente de IA Pessoal");
+
+        // Inicializa banco de dados
+        try {
+            DatabaseManager dbManager = DatabaseManager.getInstance();
+            dbManager.inicializarTabelas();
+            System.out.println("[INFO] Banco de dados inicializado com sucesso.");
+        } catch (SQLException e) {
+            System.err.println("[ERRO] Falha ao inicializar banco de dados: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         Path raizProjeto = Paths.get("").toAbsolutePath().normalize();
         String caminhoPython = raizProjeto.resolve(CAMINHO_PYTHON).toString();
@@ -60,6 +73,7 @@ public class App extends Application {
 
     private void encerrar() {
         BridgeManager.encerrar();
+        DatabaseManager.getInstance().fechar();
         Platform.exit();
     }
 
