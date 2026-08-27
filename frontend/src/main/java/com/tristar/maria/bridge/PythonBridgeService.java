@@ -32,7 +32,7 @@ public class PythonBridgeService {
      * @throws IOException se o executável Python ou o script não forem encontrados.
      */
     public void iniciar(String caminhoPython, String caminhoScriptMain) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder(caminhoPython, caminhoScriptMain);
+        ProcessBuilder pb = new ProcessBuilder(caminhoPython, caminhoScriptMain, "--bridge");
         pb.redirectErrorStream(false);
         processo = pb.start();
 
