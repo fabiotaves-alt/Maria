@@ -14,8 +14,15 @@ import sys
 import json
 import argparse
 import logging
+import os
+import platform
 from datetime import datetime
 from pathlib import Path
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 
 # Garantir que a raiz do monorepo esteja no sys.path quando o script é
@@ -321,6 +328,39 @@ def _responder_bridge(identificador: str, status: str, dados=None, mensagem_erro
     print(json.dumps(resposta, ensure_ascii=False), flush=True)
 
 
+def _get_system_status():
+    """Obtém métricas reais de CPU, RAM e GPU do sistema."""
+    if psutil is None:
+        return {
+            "cpu": 0.0,
+            "ram": 0.0,
+            "gpu": 0.0,
+            "plataforma": platform.system(),
+            "aviso": "psutil não instalado"
+        }
+    
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+    ram_percent = psutil.virtual_memory().percent
+    
+    # GPU é opcional — tentar via pynvml se disponível (NVIDIA)
+    gpu_percent = 0.0
+    try:
+        import pynvml
+        pynvml.nvmlInit()
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        gpu_percent = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
+        pynvml.nvmlShutdown()
+    except Exception:
+        pass  # Sem GPU NVIDIA ou pynvml não instalado
+    
+    return {
+        "cpu": cpu_percent,
+        "ram": ram_percent,
+        "gpu": gpu_percent,
+        "plataforma": platform.system()
+    }
+
+
 def _modo_bridge(modelo: str | None = None):
     """
     Modo de integração com o frontend JavaFX.
@@ -360,6 +400,139 @@ def _modo_bridge(modelo: str | None = None):
 
         if comando == "ping":
             _responder_bridge(identificador, "ok", dados="pong")
+
+        elif comando == "status":
+            # Retorna métricas reais de CPU/RAM/GPU
+            dados_status = _get_system_status()
+            # Adicionar modelo atual ao status
+            dados_status["modelo"] = controller.modelo or OLLAMA_MODEL
+            _responder_bridge(identificador, "ok", dados=dados_status)
+
+        elif comando == "analisar_arquivo":
+            # Handler para analisar arquivo (docx, xlsx, pdf, txt)
+            caminho = payload.get("caminho", "")
+            if not caminho:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'caminho' vazio.")
+                continue
+            
+            try:
+                from backend.core.file_utils import ler_documento
+                from backend.core.excel_handler import ler_planilha_resumo
+                
+                caminho_lower = caminho.lower()
+                if caminho_lower.endswith(('.docx', '.txt', '.md', '.csv', '.log')):
+                    doc = ler_documento(caminho)
+                    resultado = f"Arquivo: {doc['nome']}\\nConteúdo (parcial):\\n{doc['texto'][:500]}"
+                    if doc['truncado']:
+                        resultado += f"\\n[Conteúdo truncado em {doc['total_chars']} caracteres]"
+                elif caminho_lower.endswith(('.xlsx', '.xls')):
+                    resumo = ler_planilha_resumo(caminho)
+                    resultado = f"Planilha: {caminho}\\n{resumo}"
+                else:
+                    resultado = f"Tipo de arquivo não suportado: {caminho}"
+                
+                _responder_bridge(identificador, "ok", dados=resultado)
+            except Exception as error:
+                logger.error(f"Erro ao analisar arquivo: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "analisar_dados":
+            # Handler para analisar dados de planilha
+            caminho = payload.get("caminho", "")
+            if not caminho:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'caminho' vazio.")
+                continue
+            
+            try:
+                from backend.core.excel_handler import ler_planilha_resumo
+                resumo = ler_planilha_resumo(caminho)
+                _responder_bridge(identificador, "ok", dados=resumo)
+            except Exception as error:
+                logger.error(f"Erro ao analisar dados: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "upload_arquivo":
+            # Handler para upload de arquivo (copia para pasta de arquivos gerados)
+            caminho = payload.get("caminho", "")
+            if not caminho:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'caminho' vazio.")
+                continue
+            
+            try:
+                import shutil
+                from pathlib import Path
+                from backend.core.file_utils import garantir_pasta_arquivos
+                
+                origem = Path(caminho)
+                if not origem.exists():
+                    raise ValueError(f"Arquivo não encontrado: {caminho}")
+                
+                pasta_destino = Path(garantir_pasta_arquivos())
+                nome_destino = pasta_destino / origem.name
+                
+                # Gerar nome único se já existir
+                contador = 1
+                while nome_destino.exists():
+                    nome_destino = pasta_destino / f"{origem.stem}_{contador}{origem.suffix}"
+                    contador += 1
+                
+                shutil.copy2(origem, nome_destino)
+                _responder_bridge(identificador, "ok", dados=f"Arquivo copiado para: {nome_destino}")
+            except Exception as error:
+                logger.error(f"Erro ao fazer upload: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "transcrever_audio":
+            # Handler para transcrever áudio usando whisper.cpp (binário externo)
+            caminho = payload.get("caminho", "")
+            if not caminho:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'caminho' vazio.")
+                continue
+            
+            try:
+                import subprocess
+                from pathlib import Path
+                
+                audio_path = Path(caminho)
+                if not audio_path.exists():
+                    raise ValueError(f"Arquivo de áudio não encontrado: {caminho}")
+                
+                # Tentar usar whisper.cpp como binário externo (mais leve que openai-whisper)
+                # O usuário deve ter whisper.cpp instalado e no PATH
+                whisper_bin = os.getenv("WHISPER_BIN", "whisper-main")
+                
+                try:
+                    # whisper.cpp: whisper-main -f audio.wav -otxt -of output.txt
+                    resultado = subprocess.run(
+                        [whisper_bin, "-f", str(audio_path), "-otxt", "-of", "temp_whisper"],
+                        capture_output=True,
+                        text=True,
+                        timeout=60
+                    )
+                    
+                    # Ler arquivo de saída do whisper.cpp
+                    output_file = Path("temp_whisper.txt")
+                    if output_file.exists():
+                        transcricao = output_file.read_text(encoding="utf-8")
+                        output_file.unlink()  # Remover arquivo temporário
+                    else:
+                        transcricao = "[Transcrição não gerada - verificar whisper.cpp]"
+                    
+                    # Limpar arquivo de áudio temporário
+                    audio_path.unlink(missing_ok=True)
+                    
+                except FileNotFoundError:
+                    # Fallback: mensagem informativa se whisper.cpp não estiver disponível
+                    transcricao = f"[Whisper.cpp não encontrado. Instale whisper.cpp ou use o áudio: {audio_path.name}]"
+                    # Manter arquivo para debug
+                    logger.warning(f"whisper.cpp não encontrado. Arquivo mantido: {audio_path}")
+                
+                _responder_bridge(identificador, "ok", dados=transcricao)
+            except subprocess.TimeoutExpired:
+                _responder_bridge(identificador, "erro", mensagem_erro="Tempo esgotado na transcrição")
+            except Exception as error:
+                logger.error(f"Erro ao transcrever áudio: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
 
         elif comando == "chat":
             mensagem = payload.get("mensagem", "")

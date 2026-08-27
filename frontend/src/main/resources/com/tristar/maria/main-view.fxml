@@ -21,7 +21,7 @@
         <HBox styleClass="topbar" alignment="CENTER_LEFT" spacing="14">
             <Label text="✿ MARIA" styleClass="app-title"/>
             <Label styleClass="pill-modo" text="●  MODO LOCAL"/>
-            <Label styleClass="pill-modelo" fx:id="labelModelo" text="Llama 3.1 8B · via Ollama"/>
+            <Label styleClass="pill-modelo" fx:id="labelModelo" text="qwen3.5:4b · via Ollama"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label text="☀" fx:id="botaoTema" styleClass="icon-btn"
                    onMouseClicked="#alternarTema"/>
@@ -51,25 +51,34 @@
                 </HBox>
             </VBox>
 
-            <!-- Card de recursos (mockado) -->
+            <!-- Card de recursos (com dados reais) -->
             <VBox styleClass="sidebar-card" spacing="8">
                 <Label text="RECURSOS DO SISTEMA" styleClass="card-title"/>
                 <VBox styleClass="resource-row" spacing="4">
-                    <Label text="CPU  42%" styleClass="resource-label"/>
+                    <HBox alignment="CENTER_LEFT" spacing="6">
+                        <Label text="CPU" styleClass="resource-label"/>
+                        <Label fx:id="cpuLabel" text="--%" styleClass="resource-percent"/>
+                    </HBox>
                     <HBox alignment="CENTER_LEFT" styleClass="resource-bar-bg">
-                        <HBox prefWidth="92" minWidth="92" maxWidth="92" styleClass="resource-bar-fill cpu"/>
+                        <ProgressBar fx:id="cpuBar" progress="0.0" prefWidth="140" styleClass="resource-bar cpu"/>
                     </HBox>
                 </VBox>
                 <VBox styleClass="resource-row" spacing="4">
-                    <Label text="RAM  61%" styleClass="resource-label"/>
+                    <HBox alignment="CENTER_LEFT" spacing="6">
+                        <Label text="RAM" styleClass="resource-label"/>
+                        <Label fx:id="ramLabel" text="--%" styleClass="resource-percent"/>
+                    </HBox>
                     <HBox alignment="CENTER_LEFT" styleClass="resource-bar-bg">
-                        <HBox prefWidth="130" minWidth="130" maxWidth="130" styleClass="resource-bar-fill ram"/>
+                        <ProgressBar fx:id="ramBar" progress="0.0" prefWidth="140" styleClass="resource-bar ram"/>
                     </HBox>
                 </VBox>
                 <VBox styleClass="resource-row" spacing="4">
-                    <Label text="GPU  18%" styleClass="resource-label"/>
+                    <HBox alignment="CENTER_LEFT" spacing="6">
+                        <Label text="GPU" styleClass="resource-label"/>
+                        <Label fx:id="gpuLabel" text="--%" styleClass="resource-percent"/>
+                    </HBox>
                     <HBox alignment="CENTER_LEFT" styleClass="resource-bar-bg">
-                        <HBox prefWidth="40" minWidth="40" maxWidth="40" styleClass="resource-bar-fill gpu"/>
+                        <ProgressBar fx:id="gpuBar" progress="0.0" prefWidth="140" styleClass="resource-bar gpu"/>
                     </HBox>
                 </VBox>
             </VBox>

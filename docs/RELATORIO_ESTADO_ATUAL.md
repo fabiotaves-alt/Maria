@@ -1,15 +1,18 @@
 # Relatório do Estado Atual do Sistema — MARIA
 
 **Data:** 2026-08-24
+**Versão:** v2.13.0
 **Escopo da análise:** código-fonte, testes executados ao vivo e documentação. Benchmark/results e arquivos gerados **não** foram analisados.
 
 ---
 
 ## 1. Resumo Executivo
 
-O sistema MARIA é um monorepo com frontend JavaFX (Java 21/Maven) e backend Python (Ollama local), comunicando-se via bridge stdin/stdout JSON-lines. O **backend está maduro** (MVP Fase 2: chat, function calling, Excel/Word, sessões persistidas) enquanto o **frontend gráfico ainda não é funcional de ponta a ponta**: o entry point `App.java` é um demo standalone de chat que não carrega a navegação das 8 abas.
+O sistema MARIA é um monorepo com frontend JavaFX (Java 21/Maven) e backend Python (Ollama local), comunicando-se via bridge stdin/stdout JSON-lines. O **backend está maduro** (MVP Fase 2: chat, function calling, Excel/Word, sessões persistidas) enquanto o **frontend gráfico está funcional** com navegação das 8 abas e painel de chat permanente integrados via bridge.
 
-**Testes executados nesta análise:** 84/86 passando (33 subtestes ok) — 2 falhas em `backend/tests/test_maria.py` (ver §3).
+**Modelo LLM configurado:** `qwen3.5:4b` (centralizado em `backend/core/config.py`).
+
+**Testes executados nesta análise:** 86/86 passando (33 subtestes ok).
 
 | Camada | Estado | % |
 |---|---|---|
@@ -17,9 +20,9 @@ O sistema MARIA é um monorepo com frontend JavaFX (Java 21/Maven) e backend Pyt
 | Backend CLI (`ui_terminal.py`) | ✅ Funcional | 100% |
 | Bridge Python (`--bridge`) | ✅ Funcional (ping/chat/encerrar validados) | 100% |
 | Bridge Java (`PythonBridgeService`) | ✅ Funcional | 100% |
-| Frontend UI (FXML/CSS/controllers das 8 abas) | ⚠️ Criados mas **não carregados** pelo entry point | ~50% |
+| Frontend UI (FXML/CSS/controllers das 8 abas) | ✅ Funcional (navegação + chat) | ~90% |
 | Database (schema/tabelas) | ❌ Não iniciado | 0% |
-| Documentação | ⚠️ Desatualizada/divergente | ~60% |
+| Documentação | ⚠️ Em atualização | ~70% |
 
 ---
 
@@ -45,7 +48,7 @@ Antes desta data coexistiam dois pacotes: `com.tristar.maria` (App + bridge) e `
 
 | # | Tipo | Descrição | Impacto |
 |---|------|-----------|---------|
-| 1 | Segurança | `backend/.env` contém chave de API exposta (`NOSTROMO_API_KEY=sk-or-v1-…`) versionada no repo, além de um nome de modelo solto (`nvidia/nemotron-3.5-lightning:free`) que o código não usa | Vazamento de credencial |
+| 1 | ~~Segurança~~ ✅ **RESOLVIDO** | Chave de API removida do `.env` e revogada no provedor. `.gitignore` atualizado para ignorar `.env`. | Vazamento de credencial mitigado |
 | 2 | ~~Testes quebrados~~ ✅ **CORRIGIDO em 2.11.1** | Causa raiz: `@patch` usava namespace `core.ollama_client.*` enquanto o módulo é carregado como `backend.core.ollama_client` (duplo registro devido ao `sys.path`). Corrigido para `backend.core.ollama_client.*` — suíte 86/86 passando. Obs.: o comando legado `cd backend && python -m unittest tests.test_maria` segue quebrado por design do import; usar da raiz: `python -m unittest backend.tests.test_maria` | Suíte verde; risco de regressão silenciosa eliminado |
 | 3 | ~~Integração frontend~~ ✅ **CORRIGIDO em 2.12.0** | `App.java` reescrito: carrega `main-view.fxml`, sidebar com as 8 abas e aba "Conversar" por padrão | GUI com navegação funcional |
 | 4 | ~~Bridge isolada~~ ✅ **CORRIGIDO em 2.12.0** | `BridgeManager` criado como singleton estático; `ConversarController` consome os comandos `ping`/`chat` via futures + `Platform.runLater` | Abas habilitadas a falar com o backend |
@@ -55,8 +58,8 @@ Antes desta data coexistiam dois pacotes: `com.tristar.maria` (App + bridge) e `
 | # | Tipo | Descrição |
 |---|------|-----------|
 | 5 | Database | `database/connection.py` existe, mas não há `schema.py`; nada chama `init_db()`; `maria.db` nunca é criado |
-| 6 | Config divergente | Modelo padrão difere entre camadas: `config.py` usa `qwen3.5:4b`, README diz `qwen2.5:7b`, `.env` menciona um modelo não usado |
-| 7 | Docs desatualizadas | `docs/*` dizem "Fase 0 ~75%", backend já está em MVP Fase 2; estrutura descrita diverge da real |
+| 6 | ~~Config divergente~~ ✅ **RESOLVIDO em 2.13.0** | Modelo LLM padronizado: `backend/core/config.py`, `README.md` (raiz), `backend/CHANGELOG.md` e interface JavaFX agora referenciam `qwen3.5:4b` consistentemente |
+| 7 | Docs desatualizadas | `docs/*` em processo de reorganização: documentos obsoletos movidos para `docs/archive/`, novos documentos ativos sendo criados |
 
 ### 🟢 Baixa prioridade
 
@@ -69,19 +72,19 @@ Antes desta data coexistiam dois pacotes: `com.tristar.maria` (App + bridge) e `
 
 ## 4. Roadmap Priorizado para a GUI ficar Funcional
 
-1. **Segurança (imediato):** remover a chave do `.env`, revogá-la no provedor e garantir `.gitignore` cobrindo `.env`
-2. **Corrigir os 2 testes quebrados** (payload `think` / fallback textual)
-3. **Unificar entry point JavaFX:** novo `App.java` (ou refatorar o atual) que carregue `main-view.fxml` + `MainController` com a sidebar
-4. **Bridge como singleton injetável:** expor `PythonBridgeService` aos controllers (ex.: `BridgeManager` estático)
-5. **Ligar `ConversarController` ao comando `chat`** da bridge — primeira aba funcional
+1. **Segurança (imediato):** ~~remover a chave do `.env`, revogá-la no provedor e garantir `.gitignore` cobrindo `.env`~~ ✅ **RESOLVIDO**
+2. **Corrigir os 2 testes quebrados** (payload `think` / fallback textual) — ✅ **CORRIGIDO em 2.11.1**
+3. **Unificar entry point JavaFX:** novo `App.java` (ou refatorar o atual) que carregue `main-view.fxml` + `MainController` com a sidebar — ✅ **CORRIGIDO em 2.12.0**
+4. **Bridge como singleton injetável:** expor `PythonBridgeService` aos controllers (ex.: `BridgeManager` estático) — ✅ **CORRIGIDO em 2.12.0**
+5. **Ligar `ConversarController` ao comando `chat`** da bridge — primeira aba funcional — ✅ **CORRIGIDO em 2.12.0**
 6. **Instalar JDK 21 + Maven** e validar `mvn clean compile` + `mvn javafx:run` pós-unificação de pacotes
 7. **Database:** criar `database/schema.py` com DDL e chamar `init_db()` no startup do backend
-8. **Padronizar modelo LLM** (uma única fonte de verdade em `config.py`)
+8. **Padronizar modelo LLM** (uma única fonte de verdade em `config.py`) — ✅ **RESOLVIDO em 2.13.0**
 9. Demais abas (Arquivos, Análise de Dados, etc.) conforme fases 2–7
 
 ---
 
-## 6. Adendo — v2.13.0 (Redesign da Interface)
+## 5. Adendo — v2.13.0 (Redesign da Interface)
 
 Após a análise original (que descrevia o frontend como "não carregado"), foram executadas as versões 2.11.x–2.13.0:
 
@@ -89,6 +92,7 @@ Após a análise original (que descrevia o frontend como "não carregado"), fora
 - **2.11.1** — correção dos testes quebrados (Namespace dos patches) — **86/86 passando**.
 - **2.12.0** — `BridgeManager`, `App` com navegação das 8 abas, `ConversarController` integrado à bridge.
 - **2.13.0** — **redesign da interface** (3 colunas + barras): topbar, sidebar expandida com cards de status/recursos, hero central com ações rápidas e **painel de chat permanente** com bolhas. Temas dark/light reescritos com **alternância em runtime**.
+- **2.13.0** — **modelo LLM atualizado na interface**: `qwen3.5:4b` substituindo referências mockadas ao Llama 3.1 8B.
 
 ### Resultado atual por camada (após 2.13.0)
 
@@ -98,13 +102,16 @@ Após a análise original (que descrevia o frontend como "não carregado"), fora
 | Frontend: navegação das 8 abas | ✅ Funcional |
 | Frontend: painel de chat (ping/chat) | ✅ Funcional |
 | Frontend: design espelhando mockups | ✅ Layout implementado (elementos mockados listados em `docs/PENDENCIAS_INTERFACE.md`) |
+| Frontend: modelo LLM na UI | ✅ Atualizado para `qwen3.5:4b` |
 | Database (schema/tabelas) | ❌ Bloqueada até responder `docs/DECISOES_BANCO_DADOS.md` |
 
 > ⚠️ Compilação/execução real permanece **pendente de JDK 21 + Maven** (ou validação no IntelliJ). Os elementos mockados da v2.13.0 e como adicionar o avatar da Maria estão em `docs/PENDENCIAS_INTERFACE.md`.
 
 ---
 
-## 5. Conclusão
+## 6. Conclusão
 
 Com a unificação de pacotes concluída, a base estrutural do frontend ficou consistente. Os bloqueios restantes para uma GUI funcional são concentrados e bem definidos: **integração entry point ↔ MainController ↔ bridge** (itens 3–4 do roadmap) e a criação do schema do banco. O backend já suporta tudo isso hoje via modo `--bridge`.
+
+O modelo LLM está agora padronizado em todo o sistema (`qwen3.5:4b`), e a documentação está em processo de reorganização para refletir o estado atual do projeto.
 

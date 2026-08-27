@@ -1,38 +1,49 @@
-# Pendências de Interface — MARIA (v2.13.0)
+# Pendências de Interface — MARIA (v2.14.0)
 
-**Data:** 2026-08-24
-**Escopo:** redesign da interface JavaFX espelhando os mockups (3 colunas + barras).
+**Data:** 2026-08-27
+**Escopo:** desmockagem da interface JavaFX — funcionalidades reais integradas ao backend Python.
 
 ---
 
-## 1. Elementos mockados (que aguardam implementação futura)
+## 1. ✅ Elementos implementados na fase de desmockagem (v2.14.0)
 
 | Elemento | Onde aparece | Situação atual |
 |----------|-------------|----------------|
-| **Recursos do sistema (CPU/RAM/GPU)** | Sidebar → card "RECURSOS DO SISTEMA" | Valores fixos de exemplo (42/61/18%). Barras reais podem usar `com.sun.management.OperatingSystemMXBean` (CPU/RAM) — GPU não é exposta de forma portátil pelo JDK |
-| **MODO LOCAL / MODELO** | Topbar (pill) e sidebar | Fixos e estáticos: "● MODO LOCAL", "Llama 3.1 8B · via Ollama (mockado)". Ideal: novo comando bridge `status` no backend para popular com dados reais |
-| **Ações rápidas (hero)** | Hero central → 4 botões | Ao clicar, preenchem o campo de mensagem do chat com um prompt pré-definido (ex.: "Analisar Documento"). Funcionalidade real (enviar o arquivo/navegação) fica para fases futuras |
-| **Anexar (📎)** | Input do chat | Desabilitado visualmente (`mouseTransparent`, opacidade 0.4) — upload de arquivos é futuro |
-| **Voz (🎤)** | Input do chat | Desabilitado — integração com Whisper.cpp é recurso futuro |
-| **Dropdown "⋯" do chat** | Header do painel de chat | Sem ação configurada ainda |
-| **Minimizar/Maximizar/Fechar customizados** | Topbar | Mantidas as decorações nativas da janela (não customizamos o `Stage`) nesta fase |
+| **Recursos do sistema (CPU/RAM/GPU)** | Sidebar → card "RECURSOS DO SISTEMA" | ✅ **Dados reais** via comando `status` do backend (psutil). Atualização a cada 5 segundos. Barras de progresso e labels dinâmicos. |
+| **MODO LOCAL / MODELO** | Topbar (labelModelo) | ✅ **Dinâmico**: Backend retorna modelo real (`qwen3.5:4b`) no comando `status`. Texto atualizado automaticamente. |
+| **Ações rápidas (hero)** | Hero central → 4 botões | ✅ **Funcionais**: Preenchem campo de mensagem com prompts contextuais prontos para envio. |
+| **Anexar (📎)** | Input do chat | ✅ **Habilitado**: FileChooser abre, arquivo enviado via `upload_arquivo`, confirmação exibida no chat. |
+| **Voz (🎤)** | Input do chat | ✅ **Habilitado**: Gravação via `javax.sound.sampled`, envio para `transcrever_audio`, texto transcrito preenchido no campo. |
+| **Dropdown "⋯" do chat** | Header do painel de chat | ✅ **Funcional**: Opções "Limpar Conversa" e "Exportar Conversa (.txt)" implementadas. |
 
-## 2. Como inserir a foto da Maria (avatar)
+---
 
-O avatar da tela inicial usa um **placeholder** (círculo gradiente rosa + letra "M") via CSS `.avatar-hero`.
+## 2. ⚠️ Pendências restantes
 
-Para usar a foto/ilustração real:
+| Elemento | Onde aparece | Situação atual | Próximo passo |
+|----------|-------------|----------------|---------------|
+| **Avatar nas bolhas de chat** | Mensagens da Maria | Placeholder "M" mantido | Carregar `avatar.png` dinamicamente se existir, fallback para "M" |
+| **Whisper.cpp** | Transcrição de voz | Requer instalação manual do binário | Documentar instalação ou empacotar binário |
+| **GPU NVIDIA** | Sidebar (GPU bar) | Exibe 0% se sem pynvml | Opcional: detectar GPU AMD/Intel via outras libs |
 
-1. Coloque a imagem em:
+---
+
+## 3. Como inserir a foto da Maria (avatar nas bolhas)
+
+O avatar da tela inicial já usa imagem real (`maria-avatar.png`). Para aplicar também nas **bolhas de chat**:
+
+1. Certifique-se que a imagem existe em:
    `frontend/src/main/resources/com/tristar/maria/images/avatar.png`
-2. No `hero-view.fxml`, troque o `<Label ... styleClass="avatar avatar-hero">` por um `<ImageView>` circular referenciando a imagem em `@../images/avatar.png`, mantendo `styleClass="avatar-hero"`.
-3. O avatar das **bolhas de chat** (canto esquerdo das mensagens da Maria) também poderá usar a mesma imagem — hoje é um `Label "M"` no `ConversarController`.
+2. No `ConversarController.java`, modificar o método `adicionarBalaoMaria()`:
+   - Substituir `Label avatar = new Label("M");` por um `ImageView` carregando a imagem via `getClass().getResource(...)`
+   - Manter fallback para "M" se a imagem não existir
 
-> O código Java do `ConversarController` pode ser ampliado para carregar a imagem via `getClass().getResource(...)` se ela existir, caindo no placeholder caso contrário.
+---
 
-## 3. Próximas evoluções sugeridas
+## 4. Próximas evoluções sugeridas (pós-v2.14.0)
 
-- Comando bridge `status` para popular MODO LOCAL + MODELO + recursos reais.
-- Ação "Analisar Documento" real: abrir seletor de arquivo e enviar pelo chat/ferramentas do backend.
-- Alternância de tema já funcional (☀/☾ no topbar) — persistir a preferência.
-- Navegabilidade entre as 8 abas já funcional (hero + painel de chat permanente).
+- Persistir preferência de tema (claro/escuro) entre sessões.
+- Empacotar whisper.cpp com o instalador da MARIA.
+- Adicionar suporte a mais formatos de áudio (MP3, OGG) via conversão.
+- Implementar notificações nativas ao receber resposta longa.
+- Histórico de conversas salvas com carregamento via dropdown.

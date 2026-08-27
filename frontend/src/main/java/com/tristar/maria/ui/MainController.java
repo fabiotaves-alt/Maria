@@ -24,10 +24,19 @@ public class MainController {
     @FXML private Label labelStatusBar;
     @FXML private MenuItemsController menuItemsController;
     @FXML private ConversarController painelChatController;
+    
+    // Recursos do sistema (sidebar)
+    @FXML private javafx.scene.control.ProgressBar cpuBar;
+    @FXML private javafx.scene.control.ProgressBar ramBar;
+    @FXML private javafx.scene.control.ProgressBar gpuBar;
+    @FXML private Label cpuLabel;
+    @FXML private Label ramLabel;
+    @FXML private Label gpuLabel;
 
     private Map<String, Node> viewsCache = new HashMap<>();
     private Scene cena;
     private boolean temaClaro = false;
+    private javafx.animation.Timeline timelineStatus;
 
     /** O hero (tela inicial central) é reusado como conteúdo da opção "Conversar". */
     private Node heroNode;
@@ -40,8 +49,82 @@ public class MainController {
         if (menuItemsController != null) {
             menuItemsController.setMainController(this);
         }
-        labelModelo.setText("Llama 3.1 8B · via Ollama  (mockado)");
+        labelModelo.setText("qwen3.5:4b · via Ollama");
+        
+        // Iniciar atualização periódica dos recursos do sistema (a cada 5 segundos)
+        iniciarAtualizacaoStatus();
+        
         carregarAba("conversar");
+    }
+    
+    private void iniciarAtualizacaoStatus() {
+        timelineStatus = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(5), e -> atualizarStatusSistema())
+        );
+        timelineStatus.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        timelineStatus.play();
+        // Primeira atualização imediata
+        atualizarStatusSistema();
+    }
+    
+    private void atualizarStatusSistema() {
+        try {
+            com.tristar.maria.bridge.BridgeManager.getInstance()
+                .enviar("status", null)
+                .thenAccept(resposta -> {
+                    if ("ok".equals(resposta.getStatus())) {
+                        Object dadosObj = resposta.getDados();
+                        if (dadosObj instanceof java.util.Map) {
+                            @SuppressWarnings("unchecked")
+                            java.util.Map<String, Object> dados = (java.util.Map<String, Object>) dadosObj;
+                            
+                            javafx.application.Platform.runLater(() -> {
+                                // Atualizar barras de progresso e labels
+                                Double cpu = getDoubleOrNull(dados.get("cpu"));
+                                Double ram = getDoubleOrNull(dados.get("ram"));
+                                Double gpu = getDoubleOrNull(dados.get("gpu"));
+                                String modelo = getStringOrNull(dados.get("modelo"));
+                                
+                                if (cpu != null && cpuBar != null) {
+                                    cpuBar.setProgress(cpu / 100.0);
+                                    if (cpuLabel != null) cpuLabel.setText(String.format("%.0f%%", cpu));
+                                }
+                                if (ram != null && ramBar != null) {
+                                    ramBar.setProgress(ram / 100.0);
+                                    if (ramLabel != null) ramLabel.setText(String.format("%.0f%%", ram));
+                                }
+                                if (gpu != null && gpuBar != null) {
+                                    gpuBar.setProgress(gpu / 100.0);
+                                    if (gpuLabel != null) gpuLabel.setText(String.format("%.0f%%", gpu));
+                                }
+                                if (modelo != null && labelModelo != null) {
+                                    labelModelo.setText(modelo + " · via Ollama");
+                                }
+                            });
+                        }
+                    }
+                })
+                .exceptionally(erro -> {
+                    // Silencioso em caso de erro (backend pode não estar rodando)
+                    return null;
+                });
+        } catch (Exception e) {
+            // Bridge não inicializada ou outro erro
+        }
+    }
+    
+    private Double getDoubleOrNull(Object obj) {
+        if (obj instanceof Number) {
+            return ((Number) obj).doubleValue();
+        }
+        return null;
+    }
+    
+    private String getStringOrNull(Object obj) {
+        if (obj instanceof String) {
+            return (String) obj;
+        }
+        return null;
     }
 
     public void carregarAba(String nomeAba) {

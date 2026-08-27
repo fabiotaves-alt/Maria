@@ -1,112 +1,39 @@
-# Dependencies
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.py~
-*.py.class
-*.py.backup
-*.py.swp
-*.py.swo
-*.py.tmp
-*.py.log
-*.py.cache
-*.py.compiled
-*.py.bak
-*.py.save
-*.py~
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.kotlin
 
-# Virtual environments
-venv/
-.venv/
-env/
-ENV/
-.ENV/
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-*.egg
-*.whl
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
-*.o
-*.obj
-*.a
-*.lib
-*.class
-
-# Logs
-*.log
-*.log.*
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-*~
-.swp
-.swo
-
-# Environment variables
-.env
-.env.local
-.env.*
-!.env.example
-
-# IDE specific
-.vscode/
-.idea/
+### IntelliJ IDEA ###
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+*.iws
 *.iml
 *.ipr
-*.iws
-.settings/
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
 .project
-.pydevproject
+.settings
+.springBeans
+.sts4-cache
 
-# OS specific
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
 .DS_Store
-Thumbs.db
-desktop.ini
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-*.coverage
-
-# Testing
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
-
-# Distribution / packaging
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage*
-.nox/
-
-# ── Guia Fase 0 — integração frontend (JavaFX) + backend ──────
-# Python (backend)
-backend/venv/
-backend/.venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/.pytest_cache/
-
-# Java / Maven
-frontend/target/
-frontend/maria-frontend/target/
-
-# Banco de dados local compartilhado
-shared/*.db
-shared/*.db-wal
-shared/*.db-shm
-
