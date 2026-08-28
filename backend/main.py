@@ -652,6 +652,35 @@ def _modo_bridge(modelo: str | None = None):
                 logger.error(f"Erro ao listar memória: {error}")
                 _responder_bridge(identificador, "erro", mensagem_erro=str(error))
 
+        elif comando == "deletar_memoria":
+            memoria_id = payload.get("id")
+            if memoria_id is None:
+                _responder_bridge(identificador, "erro", mensagem_erro="Campo 'id' vazio.")
+                continue
+            
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM memoria WHERE id = ?", (memoria_id,))
+                conn.commit()
+                conn.close()
+                _responder_bridge(identificador, "ok", dados="memória deletada")
+            except Exception as error:
+                logger.error(f"Erro ao deletar memória: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
+        elif comando == "limpar_memorias":
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM memoria")
+                conn.commit()
+                conn.close()
+                _responder_bridge(identificador, "ok", dados="memórias limpas")
+            except Exception as error:
+                logger.error(f"Erro ao limpar memórias: {error}")
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+
         # ── Comandos de automação (banco de dados) ─────────────
         elif comando == "criar_automacao":
             nome = payload.get("nome", "")
