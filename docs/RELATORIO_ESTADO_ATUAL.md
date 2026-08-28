@@ -1,22 +1,22 @@
 # Relatório do Estado Atual do Sistema — MARIA
 
-**Data:** 2026-08-24
-**Versão:** v2.13.0
+**Data:** 2026-08-27
+**Versão:** v3.1.0
 **Escopo da análise:** código-fonte, testes executados ao vivo e documentação. Benchmark/results e arquivos gerados **não** foram analisados.
 
 ---
 
 ## 1. Resumo Executivo
 
-O sistema MARIA é um monorepo com frontend JavaFX (Java 21/Maven) e backend Python (Ollama local), comunicando-se via bridge stdin/stdout JSON-lines. O **backend está maduro** (MVP Fase 2: chat, function calling, Excel/Word, sessões persistidas) enquanto o **frontend gráfico está funcional** com navegação das 8 abas e painel de chat permanente integrados via bridge.
+O sistema MARIA é um monorepo com frontend JavaFX (Java 17/Maven) e backend Python (Ollama local), comunicando-se via bridge stdin/stdout JSON-lines. O **backend está maduro** (Fase 3: 20 comandos bridge, schema SQLite unificado) enquanto o **frontend gráfico está funcional** com navegação das 8 abas, controllers integrados e persistência via DAOs.
 
 **Modelo LLM configurado:** `qwen3.5:4b` (centralizado em `backend/core/config.py`).
 
-**Testes executados nesta análise:** 86/86 passando (33 subtestes ok).
+**Testes executados nesta análise:** 86/86 backend + 6/6 frontend JUnit = 92 testes passando.
 
 | Camada | Estado | % |
 |---|---|---|
-| Backend core (Ollama, tools, sessões) | ✅ Funcional | ~95% |
+| Backend core (Ollama, tools, sessões) | ✅ Funcional | 100% |
 | Backend CLI (`ui_terminal.py`) | ✅ Funcional | 100% |
 | Bridge Python (`--bridge`) | ✅ Funcional (ping/chat/encerrar validados) | 100% |
 | Bridge Java (`PythonBridgeService`) | ✅ Funcional | 100% |
