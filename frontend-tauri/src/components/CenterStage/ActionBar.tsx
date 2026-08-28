@@ -1,8 +1,8 @@
-import { FileSearch, TrendingUp, PenLine, AudioWaveform } from 'lucide-react';
+import { FileSearch, TrendingUp, PenLine, AudioWaveform, type LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ActionButtonProps {
-  icon: React.ComponentType<{ size: number }>;
+  icon: LucideIcon;
   label: string;
   onClick?: () => void;
 }
@@ -13,7 +13,7 @@ function ActionButton({ icon: Icon, label, onClick }: ActionButtonProps) {
       onClick={onClick}
       className="glass p-4 flex flex-col items-center gap-2 min-w-[100px] cursor-pointer"
       style={{ borderRadius: '16px' }}
-      whileHover={{ 
+      whileHover={{
         y: -2,
         scale: 1.02,
         boxShadow: '0 8px 30px rgba(232, 90, 138, 0.2)',
@@ -23,7 +23,7 @@ function ActionButton({ icon: Icon, label, onClick }: ActionButtonProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <div 
+      <div
         className="w-10 h-10 rounded-full flex items-center justify-center"
         style={{ background: 'rgba(232, 90, 138, 0.1)' }}
       >

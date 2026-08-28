@@ -1,35 +1,5 @@
 import { useState } from 'react';
-import { 
-  MessageCircle, 
-  FileText, 
-  BarChart3, 
-  Camera, 
-  Mic, 
-  Database, 
-  Zap, 
-  Settings 
-} from 'lucide-react';
-import { motion } from 'framer-motion';
-import type { NavItem, ResourceMetric } from '../../types';
-
-const navItems: NavItem[] = [
-  { id: 'conversar', label: 'Conversar', icon: 'MessageCircle', active: true },
-  { id: 'arquivos', label: 'Arquivos', icon: 'FileText' },
-  { id: 'analise', label: 'Análise de Dados', icon: 'BarChart3' },
-  { id: 'visao', label: 'Visão', icon: 'Camera' },
-  { id: 'voz', label: 'Voz', icon: 'Mic' },
-  { id: 'memoria', label: 'Memória', icon: 'Database' },
-  { id: 'automacoes', label: 'Automações', icon: 'Zap' },
-  { id: 'config', label: 'Configurações', icon: 'Settings' },
-];
-
-const resources: ResourceMetric[] = [
-  { label: 'CPU', value: 18 },
-  { label: 'RAM', value: 42 },
-  { label: 'GPU', value: 11 },
-];
-
-const iconMap: Record<string, React.ComponentType<{ size: number }>> = {
+import {
   MessageCircle,
   FileText,
   BarChart3,
@@ -38,21 +8,48 @@ const iconMap: Record<string, React.ComponentType<{ size: number }>> = {
   Database,
   Zap,
   Settings,
-};
+  type LucideIcon
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import type { ResourceMetric } from '../../types';
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  active?: boolean;
+}
+
+const navItems: NavItem[] = [
+  { id: 'conversar', label: 'Conversar', icon: MessageCircle, active: true },
+  { id: 'arquivos', label: 'Arquivos', icon: FileText },
+  { id: 'analise', label: 'Análise de Dados', icon: BarChart3 },
+  { id: 'visao', label: 'Visão', icon: Camera },
+  { id: 'voz', label: 'Voz', icon: Mic },
+  { id: 'memoria', label: 'Memória', icon: Database },
+  { id: 'automacoes', label: 'Automações', icon: Zap },
+  { id: 'config', label: 'Configurações', icon: Settings },
+];
+
+const resources: ResourceMetric[] = [
+  { label: 'CPU', value: 18 },
+  { label: 'RAM', value: 42 },
+  { label: 'GPU', value: 11 },
+];
 
 export function Sidebar() {
   const [activeItem, setActiveItem] = useState('conversar');
 
   return (
-    <aside className="w-[260px] flex flex-col h-full border-r" style={{ 
-      borderColor: 'var(--maria-card-border)' 
+    <aside className="w-[260px] flex flex-col h-full border-r" style={{
+      borderColor: 'var(--maria-card-border)'
     }}>
       {/* Navegação */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const Icon = iconMap[item.icon];
+          const Icon = item.icon;
           const isActive = item.id === activeItem;
-          
+
           return (
             <motion.button
               key={item.id}
@@ -65,9 +62,9 @@ export function Sidebar() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <Icon 
-                size={20} 
-                style={{ color: isActive ? 'var(--maria-pink)' : 'var(--maria-muted)' }} 
+              <Icon
+                size={20}
+                style={{ color: isActive ? 'var(--maria-pink)' : 'var(--maria-muted)' }}
               />
               <span className="text-sm font-medium">{item.label}</span>
             </motion.button>
@@ -99,7 +96,7 @@ export function Sidebar() {
         <h3 className="text-[10px] font-bold tracking-[0.1em] uppercase mb-3" style={{ color: 'var(--maria-muted)' }}>
           RECURSOS DO SISTEMA
         </h3>
-        
+
         <div className="space-y-3">
           {resources.map((resource) => (
             <div key={resource.label} className="space-y-1">

@@ -78,6 +78,15 @@ export function CenterStage() {
               <p className="text-xs mt-2" style={{ color: 'var(--maria-muted)' }}>
                 (será substituído por imagem)
               </p>
+              {/* Nota sobre as roupas do avatar */}
+              <div className="mt-4 px-4 py-2 rounded-lg" style={{ background: 'rgba(232,90,138,0.05)' }}>
+                <p className="text-xs" style={{ color: 'var(--maria-muted)' }}>
+                  <strong>Tema Claro:</strong> Blusa de tricô bege clara
+                </p>
+                <p className="text-xs" style={{ color: 'var(--maria-muted)' }}>
+                  <strong>Tema Escuro:</strong> Camisa preta de botões
+                </p>
+              </div>
             </div>
           </div>
           

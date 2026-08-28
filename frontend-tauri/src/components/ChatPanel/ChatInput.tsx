@@ -44,11 +44,8 @@ export function ChatInput({ onSend, loading = false }: ChatInputProps) {
         onKeyPress={handleKeyPress}
         placeholder="Digite sua mensagem..."
         rows={1}
-        className="flex-1 bg-transparent border-none outline-none resize-none py-3 px-2 min-h-[44px] max-h-32"
-        style={{ 
-          color: 'var(--maria-text)',
-          '::placeholder': { color: 'var(--maria-muted)' },
-        }}
+        className="flex-1 bg-transparent border-none outline-none resize-none py-3 px-2 min-h-[44px] max-h-32 text-sm"
+        style={{ color: 'var(--maria-text)' }}
       />
 
       {/* Botão microfone */}
@@ -60,7 +57,7 @@ export function ChatInput({ onSend, loading = false }: ChatInputProps) {
         <Mic size={20} />
       </button>
 
-      {/* Botão enviar */}
+      {/* Botão enviar - rosa em ambos os temas com ícone branco */}
       <motion.button
         onClick={handleSend}
         disabled={loading || !message.trim()}

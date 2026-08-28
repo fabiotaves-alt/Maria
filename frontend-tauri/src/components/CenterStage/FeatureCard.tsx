@@ -1,8 +1,8 @@
-import { Shield, Cpu, Sparkles } from 'lucide-react';
+import { Shield, Cpu, Sparkles, type LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface FeatureCardProps {
-  icon: React.ComponentType<{ size: number }>;
+  icon: LucideIcon;
   title: string;
   description: string;
 }
@@ -12,7 +12,7 @@ function FeatureCard({ icon: Icon, title, description }: FeatureCardProps) {
     <motion.div
       className="glass p-4 flex items-start gap-3"
       style={{ borderRadius: '16px', maxWidth: '280px' }}
-      whileHover={{ 
+      whileHover={{
         y: -2,
         boxShadow: '0 10px 40px rgba(232, 90, 138, 0.15)',
       }}
@@ -20,7 +20,7 @@ function FeatureCard({ icon: Icon, title, description }: FeatureCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div 
+      <div
         className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
         style={{ background: 'rgba(232, 90, 138, 0.1)' }}
       >
