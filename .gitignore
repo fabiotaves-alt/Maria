@@ -1,10 +1,7 @@
-# Dependencies
+# Python & Dependencies
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.py~
-*.py.class
+*.py[cod]
+*$py.class
 *.py.backup
 *.py.swp
 *.py.swo
@@ -14,15 +11,18 @@ __pycache__/
 *.py.compiled
 *.py.bak
 *.py.save
+*.py~
 
-# Virtual environments
+# Virtual Environments
 venv/
 .venv/
 env/
 ENV/
 .ENV/
+backend/venv/
+backend/.venv/
 
-# Build artifacts
+# Build artifacts (Python & Generic)
 build/
 dist/
 *.egg-info/
@@ -37,7 +37,28 @@ dist/
 *.obj
 *.a
 *.lib
+
+# Java / Maven
+**/target/
+target/
+frontend/target/
+frontend/maria-frontend/target/
 *.class
+.flattened-pom.xml
+.mvn/timing.properties
+
+# Databases locais
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+shared/*.db
+shared/*.db-wal
+shared/*.db-shm
+frontend/*.db
+frontend/*.db-wal
+frontend/*.db-shm
 
 # Logs
 *.log
@@ -73,13 +94,11 @@ dist/
 Thumbs.db
 desktop.ini
 
-# Coverage reports
+# Testing & Coverage
 coverage/
 htmlcov/
 .coverage
 *.coverage
-
-# Testing
 .pytest_cache/
 .mypy_cache/
 .hypothesis/
@@ -89,22 +108,4 @@ htmlcov/
 pip-log.txt
 pip-delete-this-directory.txt
 .tox/
-.coverage*
 .nox/
-
-# ── Guia Fase 0 — integração frontend (JavaFX) + backend ──────
-# Python (backend)
-backend/venv/
-backend/.venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/.pytest_cache/
-
-# Java / Maven
-frontend/target/
-frontend/maria-frontend/target/
-
-# Banco de dados local compartilhado
-shared/*.db
-shared/*.db-wal
-shared/*.db-shm
