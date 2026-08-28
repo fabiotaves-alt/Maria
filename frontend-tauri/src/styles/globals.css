@@ -2,35 +2,139 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-maria-dark text-white;
+:root {
+  /* Tema Claro */
+  --maria-bg-light: #f0eeeb;
+  --maria-text-light: #1a1a1a;
+  --maria-text-muted-light: #6b6b6b;
+  --maria-pink-light: #e85a8a;
+  --maria-card-light: rgba(255, 255, 255, 0.7);
+  --maria-card-border-light: rgba(0, 0, 0, 0.06);
+  --maria-hover-light: rgba(0, 0, 0, 0.04);
+  
+  /* Tema Escuro */
+  --maria-bg-dark: #0d0d12;
+  --maria-text-dark: #f0f0f0;
+  --maria-text-muted-dark: #9a9a9a;
+  --maria-pink-dark: #ff6b9d;
+  --maria-card-dark: rgba(255, 255, 255, 0.05);
+  --maria-card-border-dark: rgba(255, 255, 255, 0.08);
+  --maria-hover-dark: rgba(255, 255, 255, 0.06);
+}
+
+html.light {
+  --maria-bg: var(--maria-bg-light);
+  --maria-text: var(--maria-text-light);
+  --maria-text-muted: var(--maria-text-muted-light);
+  --maria-pink: var(--maria-pink-light);
+  --maria-card: var(--maria-card-light);
+  --maria-card-border: var(--maria-card-border-light);
+  --maria-hover: var(--maria-hover-light);
+}
+
+html.dark {
+  --maria-bg: var(--maria-bg-dark);
+  --maria-text: var(--maria-text-dark);
+  --maria-text-muted: var(--maria-text-muted-dark);
+  --maria-pink: var(--maria-pink-dark);
+  --maria-card: var(--maria-card-dark);
+  --maria-card-border: var(--maria-card-border-dark);
+  --maria-hover: var(--maria-hover-dark);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow: hidden;
 }
 
-.aura-pink {
-  box-shadow: 0 0 30px rgba(255, 107, 157, 0.6);
-  animation: pulse-aura 3s ease-in-out infinite;
+body {
+  background-color: var(--maria-bg);
+  color: var(--maria-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-@keyframes pulse-aura {
-  0%, 100% {
-    box-shadow: 0 0 30px rgba(255, 107, 157, 0.6);
-  }
-  50% {
-    box-shadow: 0 0 50px rgba(255, 107, 157, 0.8);
-  }
+/* Glassmorphism */
+.glass {
+  background: var(--maria-card);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--maria-card-border);
+  border-radius: 16px;
 }
 
 .glass-panel {
-  @apply bg-maria-glass backdrop-blur-lg border border-white/10 rounded-xl;
+  @apply glass;
 }
 
-.glass-button {
-  @apply bg-maria-glass hover:bg-white/20 border border-white/20 rounded-lg px-4 py-2 transition-all duration-200;
+/* Animações */
+@keyframes pulse-aura {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
 }
 
-.gradient-bg {
-  @apply bg-gradient-to-br from-gray-900 via-maria-dark to-gray-800;
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes dot-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.3);
+  }
+}
+
+.animate-aura {
+  animation: pulse-aura 4s ease-in-out infinite;
+}
+
+.animate-breathe {
+  animation: breathe 6s ease-in-out infinite;
+}
+
+.animate-dot-pulse {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+/* Scrollbar customizada */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--maria-pink);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--maria-pink);
+  opacity: 0.8;
 }
