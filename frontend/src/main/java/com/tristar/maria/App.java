@@ -10,7 +10,9 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -20,14 +22,43 @@ import java.sql.SQLException;
  *
  * Responsabilidades:
  *     - Inicializar banco de dados SQLite via DatabaseManager
- *     - Iniciar o processo Python via BridgeManager (../backend/main.py --bridge)
+ *     - Iniciar o processo Python via BridgeManager (backend/main.py --bridge)
  *     - Carregar main-view.fxml (sidebar + navegação entre as 8 abas)
  *     - Encerrar o processo Python e fechar conexão DB ao fechar a janela
  */
 public class App extends Application {
 
-    private static final String CAMINHO_PYTHON = "../.venv/Scripts/python.exe";
-    private static final String CAMINHO_SCRIPT_MAIN = "../backend/main.py";
+    private static String detectarCaminhoPython(Path raizRepositorio) {
+        boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        
+        // Tentativas em ordem de prioridade
+        Path[] possiveisCaminhos = isWindows ? new Path[] {
+            raizRepositorio.resolve(".venv/Scripts/python.exe"),
+            raizRepositorio.resolve("backend/.venv/Scripts/python.exe"),
+            raizRepositorio.resolve("venv/Scripts/python.exe")
+        } : new Path[] {
+            raizRepositorio.resolve(".venv/bin/python"),
+            raizRepositorio.resolve("backend/.venv/bin/python"),
+            raizRepositorio.resolve("venv/bin/python")
+        };
+
+        for (Path p : possiveisCaminhos) {
+            if (Files.exists(p)) {
+                return p.toAbsolutePath().normalize().toString();
+            }
+        }
+
+        // Fallback: comando python do PATH do sistema
+        return isWindows ? "python" : "python3";
+    }
+
+    private static Path resolverRaizRepositorio() {
+        Path atual = Paths.get("").toAbsolutePath().normalize();
+        if (atual.endsWith("frontend")) {
+            return atual.getParent();
+        }
+        return atual;
+    }
 
     @Override
     public void start(Stage palco) throws IOException {
@@ -37,21 +68,22 @@ public class App extends Application {
         try {
             DatabaseManager dbManager = DatabaseManager.getInstance();
             dbManager.inicializarTabelas();
-            System.out.println("[INFO] Banco de dados inicializado com sucesso.");
+            System.out.println("[INFO] Banco de dados inicializado com sucesso em: " + DatabaseManager.resolverCaminhoBanco());
         } catch (SQLException e) {
             System.err.println("[ERRO] Falha ao inicializar banco de dados: " + e.getMessage());
             e.printStackTrace();
         }
 
-        Path raizProjeto = Paths.get("").toAbsolutePath().normalize();
-        String caminhoPython = raizProjeto.resolve(CAMINHO_PYTHON).toString();
-        String caminhoScript = raizProjeto.resolve(CAMINHO_SCRIPT_MAIN).toString();
+        Path raizRepositorio = resolverRaizRepositorio();
+        String caminhoPython = detectarCaminhoPython(raizRepositorio);
+        String caminhoScript = raizRepositorio.resolve("backend/main.py").toAbsolutePath().normalize().toString();
 
         try {
+            System.out.println("[INFO] Iniciando Bridge Python: " + caminhoPython + " -> " + caminhoScript);
             BridgeManager.iniciar(caminhoPython, caminhoScript);
         } catch (IOException e) {
             System.err.println("[ERRO] Falha ao iniciar backend Python: " + e.getMessage());
-            throw e;
+            // Não aborta a UI imediatamente para permitir diagnóstico de erro na interface
         }
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/tristar/maria/main-view.fxml"));

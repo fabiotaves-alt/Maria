@@ -3,7 +3,7 @@ Schema do banco de dados MARIA — SQLite compartilhado.
 
 Tabelas:
 - conversas: sessões de conversa (histórico)
-- mensagens: mensagens individuais (vinculadas a conversas)
+- mensagens: mensagens individuais (vinculadas a conversas com ON DELETE CASCADE)
 - memoria: fatos persistentes sobre o usuário (RAG)
 - arquivos_indexados: metadados de arquivos processados
 - automacoes: automações salvas pelo usuário
@@ -11,10 +11,6 @@ Tabelas:
 
 Nota: Este módulo é usado tanto pelo backend Python quanto pode ser
 consultado pelo frontend Java via JDBC para leitura/escrita compartilhada.
-Para evitar conflitos de escrita concorrente:
-- Backend Python escreve em: conversas, mensagens, memoria, arquivos_indexados
-- Frontend Java lê todas as tabelas e escreve em: configuracoes, automacoes
-- WAL mode já está ativo em connection.py para permitir leituras simultâneas
 """
 
 from database.connection import get_connection
@@ -40,7 +36,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS mensagens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             conversa_id INTEGER NOT NULL,
-            role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+            role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
             conteudo TEXT NOT NULL,
             anexos TEXT,  -- JSON com caminhos de arquivos anexados
             criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -59,11 +55,16 @@ def init_db():
         CREATE TABLE IF NOT EXISTS memoria (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             fato TEXT NOT NULL UNIQUE,
-            categoria TEXT,  -- ex: 'pessoal', 'trabalho', 'preferencias'
+            categoria TEXT DEFAULT 'geral',  -- ex: 'pessoal', 'trabalho', 'preferencias'
             relevancia REAL DEFAULT 1.0,
-            fonte TEXT,  -- origem do fato (ex: 'chat', 'arquivo', 'manual')
+            fonte TEXT DEFAULT 'manual',  -- origem do fato (ex: 'chat', 'arquivo', 'manual')
             criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+    """)
+    
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_memoria_categoria 
+        ON memoria(categoria)
     """)
     
     # Tabela: arquivos_indexados (metadados de arquivos processados)
@@ -79,19 +80,31 @@ def init_db():
         )
     """)
     
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_arquivos_tipo 
+        ON arquivos_indexados(tipo)
+    """)
+    
     # Tabela: automacoes (automações salvas pelo usuário)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS automacoes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL UNIQUE,
             descricao TEXT,
-            passos_json TEXT NOT NULL,  -- JSON com sequência de ações
-            gatilho TEXT,  -- comando ou evento que dispara
+            gatilho TEXT NOT NULL,
+            acao TEXT NOT NULL,
+            parametros TEXT,
+            passos_json TEXT,  -- JSON com sequência de ações
             ativo BOOLEAN DEFAULT 1,
             execucoes_count INTEGER DEFAULT 0,
             criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             ultima_execucao TIMESTAMP
         )
+    """)
+    
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_automacoes_ativo 
+        ON automacoes(ativo)
     """)
     
     # Tabela: configuracoes (preferências do usuário)

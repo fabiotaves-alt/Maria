@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * DAO para gerenciamento de automações.
- * Responsável por persistir e recuperar automações da tabela 'automacoes'.
+ * Opera sobre a tabela unificada 'automacoes'.
  */
 public class AutomacaoDAO {
     
@@ -20,61 +20,52 @@ public class AutomacaoDAO {
      * Cria uma nova automação.
      */
     public void criarAutomacao(String nome, String gatilho, String acao, boolean ativa) throws SQLException {
-        String sql = "INSERT INTO automacoes (nome, gatilho, acao, ativa, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)";
+        criarAutomacao(nome, null, gatilho, acao, null, ativa);
+    }
+    
+    /**
+     * Cria uma nova automação completa.
+     */
+    public void criarAutomacao(String nome, String descricao, String gatilho, String acao, String parametros, boolean ativa) throws SQLException {
+        String sql = "INSERT INTO automacoes (nome, descricao, gatilho, acao, parametros, ativo, criado_em) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, nome);
-            stmt.setString(2, gatilho);
-            stmt.setString(3, acao);
-            stmt.setBoolean(4, ativa);
+            stmt.setString(2, descricao);
+            stmt.setString(3, gatilho);
+            stmt.setString(4, acao);
+            stmt.setString(5, parametros);
+            stmt.setBoolean(6, ativa);
             stmt.executeUpdate();
         }
     }
     
     /**
-     * Recupera todas as automações.
+     * Recupera todas as automações ordenadas pelas mais recentes.
      */
     public List<Automacao> getTodasAutomacoes() throws SQLException {
-        String sql = "SELECT id, nome, gatilho, acao, ativa, created_at FROM automacoes ORDER BY created_at DESC";
+        String sql = "SELECT id, nome, descricao, gatilho, acao, parametros, passos_json, ativo, execucoes_count, criado_em, ultima_execucao FROM automacoes ORDER BY criado_em DESC";
         List<Automacao> automacoes = new ArrayList<>();
         
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
-            
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                Automacao automacao = new Automacao(
-                    rs.getLong("id"),
-                    rs.getString("nome"),
-                    rs.getString("gatilho"),
-                    rs.getString("acao"),
-                    rs.getBoolean("ativa"),
-                    rs.getTimestamp("created_at")
-                );
-                automacoes.add(automacao);
+                automacoes.add(mapearAutomacao(rs));
             }
         }
         return automacoes;
     }
     
     /**
-     * Recupera apenas as automações ativas.
+     * Recupera apenas automações ativas.
      */
     public List<Automacao> getAutomacoesAtivas() throws SQLException {
-        String sql = "SELECT id, nome, gatilho, acao, ativa, created_at FROM automacoes WHERE ativa = 1 ORDER BY created_at DESC";
+        String sql = "SELECT id, nome, descricao, gatilho, acao, parametros, passos_json, ativo, execucoes_count, criado_em, ultima_execucao FROM automacoes WHERE ativo = 1 ORDER BY criado_em DESC";
         List<Automacao> automacoes = new ArrayList<>();
         
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
-            
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                Automacao automacao = new Automacao(
-                    rs.getLong("id"),
-                    rs.getString("nome"),
-                    rs.getString("gatilho"),
-                    rs.getString("acao"),
-                    rs.getBoolean("ativa"),
-                    rs.getTimestamp("created_at")
-                );
-                automacoes.add(automacao);
+                automacoes.add(mapearAutomacao(rs));
             }
         }
         return automacoes;
@@ -100,16 +91,14 @@ public class AutomacaoDAO {
             params.add(acao);
         }
         if (ativa != null) {
-            sql.append("ativa = ?, ");
+            sql.append("ativo = ?, ");
             params.add(ativa ? 1 : 0);
         }
         
-        // Remove última vírgula e espaço
         String sqlStr = sql.toString();
         if (sqlStr.endsWith(", ")) {
             sqlStr = sqlStr.substring(0, sqlStr.length() - 2);
         }
-        
         sqlStr += " WHERE id = ?";
         
         try (PreparedStatement stmt = connection.prepareStatement(sqlStr)) {
@@ -136,9 +125,9 @@ public class AutomacaoDAO {
      * Ativa ou desativa uma automação.
      */
     public void toggleAtiva(Long id, boolean ativa) throws SQLException {
-        String sql = "UPDATE automacoes SET ativa = ? WHERE id = ?";
+        String sql = "UPDATE automacoes SET ativo = ? WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setBoolean(1, ativa);
+            stmt.setInt(1, ativa ? 1 : 0);
             stmt.setLong(2, id);
             stmt.executeUpdate();
         }
@@ -149,8 +138,8 @@ public class AutomacaoDAO {
      */
     public int contarAutomacoes() throws SQLException {
         String sql = "SELECT COUNT(*) as total FROM automacoes";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
                 return rs.getInt("total");
             }
@@ -159,56 +148,83 @@ public class AutomacaoDAO {
     }
     
     /**
-     * Busca automações por nome (LIKE).
+     * Busca automações por nome.
      */
     public List<Automacao> buscarPorNome(String termo) throws SQLException {
-        String sql = "SELECT id, nome, gatilho, acao, ativa, created_at FROM automacoes WHERE nome LIKE ? ORDER BY created_at DESC";
+        String sql = "SELECT id, nome, descricao, gatilho, acao, parametros, passos_json, ativo, execucoes_count, criado_em, ultima_execucao FROM automacoes WHERE nome LIKE ? ORDER BY criado_em DESC";
         List<Automacao> automacoes = new ArrayList<>();
         
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, "%" + termo + "%");
-            ResultSet rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                Automacao automacao = new Automacao(
-                    rs.getLong("id"),
-                    rs.getString("nome"),
-                    rs.getString("gatilho"),
-                    rs.getString("acao"),
-                    rs.getBoolean("ativa"),
-                    rs.getTimestamp("created_at")
-                );
-                automacoes.add(automacao);
+            stmt.setString(1, "%" + (termo != null ? termo : "") + "%");
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    automacoes.add(mapearAutomacao(rs));
+                }
             }
         }
         return automacoes;
     }
     
+    private Automacao mapearAutomacao(ResultSet rs) throws SQLException {
+        return new Automacao(
+            rs.getLong("id"),
+            rs.getString("nome"),
+            rs.getString("descricao"),
+            rs.getString("gatilho"),
+            rs.getString("acao"),
+            rs.getString("parametros"),
+            rs.getString("passos_json"),
+            rs.getInt("ativo") == 1,
+            rs.getInt("execucoes_count"),
+            rs.getTimestamp("criado_em"),
+            rs.getTimestamp("ultima_execucao")
+        );
+    }
+    
     /**
-     * Classe interna que representa uma automação.
+     * Representação de uma automação.
      */
     public static class Automacao {
         private final Long id;
         private final String nome;
+        private final String descricao;
         private final String gatilho;
         private final String acao;
-        private final boolean ativa;
-        private final Timestamp createdAt;
+        private final String parametros;
+        private final String passosJson;
+        private final boolean ativo;
+        private final int execucoesCount;
+        private final Timestamp criadoEm;
+        private final Timestamp ultimaExecucao;
         
-        public Automacao(Long id, String nome, String gatilho, String acao, boolean ativa, Timestamp createdAt) {
+        public Automacao(Long id, String nome, String descricao, String gatilho, String acao, 
+                         String parametros, String passosJson, boolean ativo, int execucoesCount, 
+                         Timestamp criadoEm, Timestamp ultimaExecucao) {
             this.id = id;
             this.nome = nome;
+            this.descricao = descricao;
             this.gatilho = gatilho;
             this.acao = acao;
-            this.ativa = ativa;
-            this.createdAt = createdAt;
+            this.parametros = parametros;
+            this.passosJson = passosJson;
+            this.ativo = ativo;
+            this.execucoesCount = execucoesCount;
+            this.criadoEm = criadoEm;
+            this.ultimaExecucao = ultimaExecucao;
         }
         
         public Long getId() { return id; }
         public String getNome() { return nome; }
+        public String getDescricao() { return descricao; }
         public String getGatilho() { return gatilho; }
         public String getAcao() { return acao; }
-        public boolean isAtiva() { return ativa; }
-        public Timestamp getCreatedAt() { return createdAt; }
+        public String getParametros() { return parametros; }
+        public String getPassosJson() { return passosJson; }
+        public boolean isAtivo() { return ativo; }
+        public boolean isAtiva() { return ativo; }
+        public int getExecucoesCount() { return execucoesCount; }
+        public Timestamp getCriadoEm() { return criadoEm; }
+        public Timestamp getCreatedAt() { return criadoEm; }
+        public Timestamp getUltimaExecucao() { return ultimaExecucao; }
     }
 }

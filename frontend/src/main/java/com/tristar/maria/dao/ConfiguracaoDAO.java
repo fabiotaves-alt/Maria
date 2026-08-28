@@ -7,7 +7,7 @@ import java.util.Optional;
 
 /**
  * DAO para gerenciamento de configurações do sistema.
- * Responsável por persistir e recuperar configurações da tabela 'configuracoes'.
+ * Opera sobre a tabela unificada 'configuracoes'.
  */
 public class ConfiguracaoDAO {
     
@@ -21,10 +21,25 @@ public class ConfiguracaoDAO {
      * Salva ou atualiza uma configuração (UPSERT).
      */
     public void salvarConfiguracao(String chave, String valor) throws SQLException {
-        String sql = "INSERT OR REPLACE INTO configuracoes (chave, valor, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)";
+        salvarConfiguracao(chave, valor, null);
+    }
+    
+    /**
+     * Salva ou atualiza uma configuração com descrição.
+     */
+    public void salvarConfiguracao(String chave, String valor, String descricao) throws SQLException {
+        String sql = """
+            INSERT INTO configuracoes (chave, valor, descricao, atualizado_em)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(chave) DO UPDATE SET
+                valor = excluded.valor,
+                descricao = COALESCE(excluded.descricao, configuracoes.descricao),
+                atualizado_em = CURRENT_TIMESTAMP
+        """;
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, chave);
             stmt.setString(2, valor);
+            stmt.setString(3, descricao);
             stmt.executeUpdate();
         }
     }
@@ -36,30 +51,37 @@ public class ConfiguracaoDAO {
         String sql = "SELECT valor FROM configuracoes WHERE chave = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, chave);
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                return Optional.ofNullable(rs.getString("valor"));
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.ofNullable(rs.getString("valor"));
+                }
             }
         }
         return Optional.empty();
     }
     
     /**
+     * Alias de busca para compatibilidade com testes e controllers.
+     */
+    public Optional<String> buscarConfiguracao(String chave) throws SQLException {
+        return getValor(chave);
+    }
+    
+    /**
      * Recupera todas as configurações.
      */
     public List<Configuracao> getTodasConfiguracoes() throws SQLException {
-        String sql = "SELECT chave, valor, updated_at FROM configuracoes ORDER BY chave ASC";
+        String sql = "SELECT chave, valor, descricao, atualizado_em FROM configuracoes ORDER BY chave ASC";
         List<Configuracao> configuracoes = new ArrayList<>();
         
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
-            
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 Configuracao config = new Configuracao(
                     rs.getString("chave"),
                     rs.getString("valor"),
-                    rs.getTimestamp("updated_at")
+                    rs.getString("descricao"),
+                    rs.getTimestamp("atualizado_em")
                 );
                 configuracoes.add(config);
             }
@@ -79,27 +101,28 @@ public class ConfiguracaoDAO {
     }
     
     /**
-     * Verifica se uma configuração existe.
+     * Verifica se uma chave existe.
      */
     public boolean existe(String chave) throws SQLException {
         String sql = "SELECT COUNT(*) as total FROM configuracoes WHERE chave = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, chave);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("total") > 0;
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total") > 0;
+                }
             }
         }
         return false;
     }
     
     /**
-     * Conta o total de configurações salvas.
+     * Conta o total de configurações cadastradas.
      */
     public int contarConfiguracoes() throws SQLException {
         String sql = "SELECT COUNT(*) as total FROM configuracoes";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
                 return rs.getInt("total");
             }
@@ -108,21 +131,25 @@ public class ConfiguracaoDAO {
     }
     
     /**
-     * Classe interna que representa uma configuração.
+     * Representação de uma configuração.
      */
     public static class Configuracao {
         private final String chave;
         private final String valor;
-        private final Timestamp updatedAt;
+        private final String descricao;
+        private final Timestamp atualizadoEm;
         
-        public Configuracao(String chave, String valor, Timestamp updatedAt) {
+        public Configuracao(String chave, String valor, String descricao, Timestamp atualizadoEm) {
             this.chave = chave;
             this.valor = valor;
-            this.updatedAt = updatedAt;
+            this.descricao = descricao;
+            this.atualizadoEm = atualizadoEm;
         }
         
         public String getChave() { return chave; }
         public String getValor() { return valor; }
-        public Timestamp getUpdatedAt() { return updatedAt; }
+        public String getDescricao() { return descricao; }
+        public Timestamp getAtualizadoEm() { return atualizadoEm; }
+        public Timestamp getUpdatedAt() { return atualizadoEm; }
     }
 }

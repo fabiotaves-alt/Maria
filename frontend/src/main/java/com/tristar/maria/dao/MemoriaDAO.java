@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DAO para gerenciamento de memórias de longo prazo.
- * Responsável por persistir e recuperar informações da tabela 'memorias'.
+ * DAO para gerenciamento de memórias de longo prazo (RAG).
+ * Opera sobre a tabela unificada 'memoria'.
  */
 public class MemoriaDAO {
     
@@ -17,70 +17,71 @@ public class MemoriaDAO {
     }
     
     /**
-     * Adiciona uma nova memória.
+     * Adiciona uma nova memória persistente.
      */
-    public void adicionarMemoria(String conteudo, String categoria, String origem) throws SQLException {
-        String sql = "INSERT INTO memorias (conteudo, categoria, origem, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
+    public void adicionarMemoria(String fato, String categoria, String fonte) throws SQLException {
+        String sql = "INSERT OR REPLACE INTO memoria (fato, categoria, relevancia, fonte, criado_em) VALUES (?, ?, 1.0, ?, CURRENT_TIMESTAMP)";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, conteudo);
-            stmt.setString(2, categoria != null ? categoria : "geral");
-            stmt.setString(3, origem != null ? origem : "manual");
+            stmt.setString(1, fato);
+            stmt.setString(2, (categoria != null && !categoria.isBlank()) ? categoria : "geral");
+            stmt.setString(3, (fonte != null && !fonte.isBlank()) ? fonte : "manual");
             stmt.executeUpdate();
         }
     }
     
     /**
-     * Recupera todas as memórias, opcionalmente filtradas por categoria.
+     * Recupera memórias ordenadas pelas mais recentes.
      */
     public List<Memoria> getMemorias(String categoria) throws SQLException {
-        StringBuilder sql = new StringBuilder("SELECT id, conteudo, categoria, origem, created_at FROM memorias");
-        
-        if (categoria != null && !categoria.isEmpty()) {
+        StringBuilder sql = new StringBuilder("SELECT id, fato, categoria, relevancia, fonte, criado_em FROM memoria");
+        if (categoria != null && !categoria.isBlank()) {
             sql.append(" WHERE categoria = ?");
         }
-        sql.append(" ORDER BY created_at DESC");
+        sql.append(" ORDER BY criado_em DESC");
         
         List<Memoria> memorias = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
-            if (categoria != null && !categoria.isEmpty()) {
+            if (categoria != null && !categoria.isBlank()) {
                 stmt.setString(1, categoria);
             }
-            ResultSet rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                Memoria memoria = new Memoria(
-                    rs.getLong("id"),
-                    rs.getString("conteudo"),
-                    rs.getString("categoria"),
-                    rs.getString("origem"),
-                    rs.getTimestamp("created_at")
-                );
-                memorias.add(memoria);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Memoria memoria = new Memoria(
+                        rs.getLong("id"),
+                        rs.getString("fato"),
+                        rs.getString("categoria"),
+                        rs.getDouble("relevancia"),
+                        rs.getString("fonte"),
+                        rs.getTimestamp("criado_em")
+                    );
+                    memorias.add(memoria);
+                }
             }
         }
         return memorias;
     }
     
     /**
-     * Busca memórias por termo (LIKE).
+     * Busca memórias por termo.
      */
     public List<Memoria> buscarMemorias(String termo) throws SQLException {
-        String sql = "SELECT id, conteudo, categoria, origem, created_at FROM memorias WHERE conteudo LIKE ? ORDER BY created_at DESC";
+        String sql = "SELECT id, fato, categoria, relevancia, fonte, criado_em FROM memoria WHERE fato LIKE ? ORDER BY criado_em DESC";
         List<Memoria> memorias = new ArrayList<>();
         
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, "%" + termo + "%");
-            ResultSet rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                Memoria memoria = new Memoria(
-                    rs.getLong("id"),
-                    rs.getString("conteudo"),
-                    rs.getString("categoria"),
-                    rs.getString("origem"),
-                    rs.getTimestamp("created_at")
-                );
-                memorias.add(memoria);
+            stmt.setString(1, "%" + (termo != null ? termo : "") + "%");
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Memoria memoria = new Memoria(
+                        rs.getLong("id"),
+                        rs.getString("fato"),
+                        rs.getString("categoria"),
+                        rs.getDouble("relevancia"),
+                        rs.getString("fonte"),
+                        rs.getTimestamp("criado_em")
+                    );
+                    memorias.add(memoria);
+                }
             }
         }
         return memorias;
@@ -90,7 +91,7 @@ public class MemoriaDAO {
      * Deleta uma memória específica pelo ID.
      */
     public void deletarMemoria(Long id) throws SQLException {
-        String sql = "DELETE FROM memorias WHERE id = ?";
+        String sql = "DELETE FROM memoria WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setLong(1, id);
             stmt.executeUpdate();
@@ -101,19 +102,19 @@ public class MemoriaDAO {
      * Limpa todas as memórias.
      */
     public void limparTodasMemorias() throws SQLException {
-        String sql = "DELETE FROM memorias";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.executeUpdate();
+        String sql = "DELETE FROM memoria";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(sql);
         }
     }
     
     /**
-     * Conta o total de memórias.
+     * Conta o total de memórias cadastradas.
      */
     public int contarMemorias() throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM memorias";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
+        String sql = "SELECT COUNT(*) as total FROM memoria";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
                 return rs.getInt("total");
             }
@@ -122,27 +123,33 @@ public class MemoriaDAO {
     }
     
     /**
-     * Classe interna que representa uma memória.
+     * Classe que representa um fato/memória persistente.
      */
     public static class Memoria {
         private final Long id;
-        private final String conteudo;
+        private final String fato;
         private final String categoria;
-        private final String origem;
-        private final Timestamp createdAt;
+        private final Double relevancia;
+        private final String fonte;
+        private final Timestamp criadoEm;
         
-        public Memoria(Long id, String conteudo, String categoria, String origem, Timestamp createdAt) {
+        public Memoria(Long id, String fato, String categoria, Double relevancia, String fonte, Timestamp criadoEm) {
             this.id = id;
-            this.conteudo = conteudo;
+            this.fato = fato;
             this.categoria = categoria;
-            this.origem = origem;
-            this.createdAt = createdAt;
+            this.relevancia = relevancia;
+            this.fonte = fonte;
+            this.criadoEm = criadoEm;
         }
         
         public Long getId() { return id; }
-        public String getConteudo() { return conteudo; }
+        public String getFato() { return fato; }
+        public String getConteudo() { return fato; }
         public String getCategoria() { return categoria; }
-        public String getOrigem() { return origem; }
-        public Timestamp getCreatedAt() { return createdAt; }
+        public Double getRelevancia() { return relevancia; }
+        public String getFonte() { return fonte; }
+        public String getOrigem() { return fonte; }
+        public Timestamp getCriadoEm() { return criadoEm; }
+        public Timestamp getCreatedAt() { return criadoEm; }
     }
 }
