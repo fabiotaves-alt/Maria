@@ -36,6 +36,7 @@ if _RAIZ_MONOREPO not in sys.path:
 from backend.core.config import (
     LOG_LEVEL,
     MAX_MENSAGENS_HISTORICO,
+    OLLAMA_MODEL,
 )
 from backend.core.ollama_client import OllamaClient
 from backend.core.chat_session import ChatSession, interpretar_confirmacao
@@ -393,6 +394,9 @@ def _modo_bridge(modelo: str | None = None):
         _responder_bridge("", "erro", mensagem_erro=f"Falha ao inicializar: {error}")
         return
 
+    # Aquecer o modelo no modo bridge para evitar latência na primeira interação
+    controller.aquecer_modelo()
+
     for linha in sys.stdin:
         linha = linha.strip()
         if not linha:
@@ -493,7 +497,10 @@ def _modo_bridge(modelo: str | None = None):
                 _responder_bridge(identificador, "erro", mensagem_erro=str(error))
 
         elif comando == "transcrever_audio":
-            # Handler para transcrever áudio usando whisper.cpp (binário externo)
+            # Handler para transcrever áudio com fallback em cascata:
+            # 1. faster-whisper (se GPU NVIDIA disponível e biblioteca instalada)
+            # 2. whisper.cpp (binário externo padrão)
+            # 3. Mensagem informativa com o arquivo mantido para debug
             caminho = payload.get("caminho", "")
             if not caminho:
                 _responder_bridge(identificador, "erro", mensagem_erro="Campo 'caminho' vazio.")
@@ -507,39 +514,106 @@ def _modo_bridge(modelo: str | None = None):
                 if not audio_path.exists():
                     raise ValueError(f"Arquivo de áudio não encontrado: {caminho}")
                 
-                # Tentar usar whisper.cpp como binário externo (mais leve que openai-whisper)
-                # O usuário deve ter whisper.cpp instalado e no PATH
-                whisper_bin = os.getenv("WHISPER_BIN", "whisper-main")
+                # Timeout configurável via variável de ambiente (padrão: 120s para áudio longo)
+                timeout_transcricao = int(os.getenv("WHISPER_TIMEOUT", "120"))
                 
+                transcricao = None
+                engine_usada = None
+                
+                # ── Tentativa 1: faster-whisper (GPU NVIDIA) ──────────────────
+                tem_gpu_nvidia = False
                 try:
-                    # whisper.cpp: whisper-main -f audio.wav -otxt -of output.txt
-                    resultado = subprocess.run(
-                        [whisper_bin, "-f", str(audio_path), "-otxt", "-of", "temp_whisper"],
-                        capture_output=True,
-                        text=True,
-                        timeout=60
-                    )
-                    
-                    # Ler arquivo de saída do whisper.cpp
-                    output_file = Path("temp_whisper.txt")
-                    if output_file.exists():
-                        transcricao = output_file.read_text(encoding="utf-8")
-                        output_file.unlink()  # Remover arquivo temporário
-                    else:
-                        transcricao = "[Transcrição não gerada - verificar whisper.cpp]"
-                    
-                    # Limpar arquivo de áudio temporário
-                    audio_path.unlink(missing_ok=True)
-                    
-                except FileNotFoundError:
-                    # Fallback: mensagem informativa se whisper.cpp não estiver disponível
-                    transcricao = f"[Whisper.cpp não encontrado. Instale whisper.cpp ou use o áudio: {audio_path.name}]"
-                    # Manter arquivo para debug
-                    logger.warning(f"whisper.cpp não encontrado. Arquivo mantido: {audio_path}")
+                    import pynvml
+                    pynvml.nvmlInit()
+                    pynvml.nvmlDeviceGetHandleByIndex(0)
+                    tem_gpu_nvidia = True
+                    pynvml.nvmlShutdown()
+                except Exception:
+                    pass  # Sem GPU NVIDIA ou pynvml não instalado
                 
-                _responder_bridge(identificador, "ok", dados=transcricao)
-            except subprocess.TimeoutExpired:
-                _responder_bridge(identificador, "erro", mensagem_erro="Tempo esgotado na transcrição")
+                if tem_gpu_nvidia:
+                    try:
+                        from faster_whisper import WhisperModel
+                        logger.info("Tentando transcrição com faster-whisper (GPU)")
+                        
+                        # Modelo pequeno para equilíbrio velocidade/qualidade
+                        # download_root pode ser configurado via WHISPER_MODEL_PATH
+                        modelo_path = os.getenv("WHISPER_MODEL_PATH", "small")
+                        device = "cuda"
+                        
+                        model = WhisperModel(modelo_path, device=device, compute_type="float16")
+                        segments, info = model.transcribe(str(audio_path), language="pt")
+                        
+                        transcricao = " ".join([segment.text for segment in segments]).strip()
+                        engine_usada = "faster-whisper (GPU)"
+                        logger.info(f"Transcrição concluída com {engine_usada}: {len(transcricao)} caracteres")
+                        
+                    except ImportError:
+                        logger.info("faster-whisper não instalado, pulando para whisper.cpp")
+                    except Exception as e:
+                        logger.warning(f"faster-whisper falhou: {e}, tentando fallback")
+                
+                # ── Tentativa 2: whisper.cpp (binário externo) ────────────────
+                if transcricao is None:
+                    whisper_bin = os.getenv("WHISPER_BIN", "whisper-main")
+                    
+                    try:
+                        logger.info(f"Tentando transcrição com whisper.cpp: {whisper_bin}")
+                        
+                        # whisper.cpp: whisper-main -f audio.wav -otxt -of output.txt -l pt
+                        resultado = subprocess.run(
+                            [whisper_bin, "-f", str(audio_path), "-otxt", "-of", "temp_whisper", "-l", "pt"],
+                            capture_output=True,
+                            text=True,
+                            timeout=timeout_transcricao
+                        )
+                        
+                        # Verificar se houve erro no processo
+                        if resultado.returncode != 0:
+                            logger.warning(f"whisper.cpp retornou erro: {resultado.stderr}")
+                            raise RuntimeError(f"whisper.cpp falhou: {resultado.stderr}")
+                        
+                        # Ler arquivo de saída do whisper.cpp
+                        output_file = Path("temp_whisper.txt")
+                        if output_file.exists():
+                            transcricao = output_file.read_text(encoding="utf-8").strip()
+                            output_file.unlink()  # Remover arquivo temporário
+                            engine_usada = "whisper.cpp"
+                            logger.info(f"Transcrição concluída com {engine_usada}: {len(transcricao)} caracteres")
+                        else:
+                            raise RuntimeError("Arquivo de saída não gerado")
+                        
+                    except FileNotFoundError:
+                        logger.info("whisper.cpp não encontrado, usando fallback")
+                    except subprocess.TimeoutExpired:
+                        logger.warning(f"Timeout na transcrição ({timeout_transcricao}s)")
+                        _responder_bridge(identificador, "erro", mensagem_erro=f"Tempo esgotado na transcrição (> {timeout_transcricao}s)")
+                        audio_path.unlink(missing_ok=True)
+                        continue
+                    except Exception as e:
+                        logger.warning(f"whisper.cpp falhou: {e}, usando fallback")
+                
+                # ── Tentativa 3: Fallback informativo ─────────────────────────
+                if transcricao is None:
+                    # Manter arquivo para debug e notificar usuário
+                    transcricao = (
+                        f"[⚠️ Nenhum motor de transcrição disponível]\n"
+                        f"Instale whisper.cpp (recomendado) ou faster-whisper (se tiver GPU NVIDIA).\n"
+                        f"Arquivo de áudio mantido em: {audio_path.absolute()}"
+                    )
+                    logger.warning(f"Nenhum motor de transcrição disponível. Arquivo mantido: {audio_path}")
+                    engine_usada = "nenhuma"
+                else:
+                    # Limpar arquivo de áudio temporário apenas se sucesso
+                    audio_path.unlink(missing_ok=True)
+                
+                # Retornar transcrição com metadados da engine usada
+                dados_resposta = {
+                    "transcricao": transcricao,
+                    "engine": engine_usada
+                }
+                _responder_bridge(identificador, "ok", dados=dados_resposta)
+                
             except Exception as error:
                 logger.error(f"Erro ao transcrever áudio: {error}")
                 _responder_bridge(identificador, "erro", mensagem_erro=str(error))

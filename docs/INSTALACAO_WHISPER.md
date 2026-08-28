@@ -1,26 +1,83 @@
-# Instalação do Whisper.cpp para Transcrição de Voz
+# Instalação do Whisper para Transcrição de Voz
 
-O MARIA usa whisper.cpp para transcrição local de áudio. Esta é uma dependência opcional — sem ela, a funcionalidade de voz exibe uma mensagem informativa.
+O MARIA usa um **sistema de fallback em cascata** para transcrição local de áudio, priorizando performance e compatibilidade:
 
-## Visão Geral
-
-- **O que é:** whisper.cpp é um port em C/C++ do modelo Whisper da OpenAI, muito mais leve e rápido que a versão Python.
-- **Por que usar:** Transcrição offline, sem envio de dados para nuvem, baixo consumo de RAM.
-- **Status:** ⚠️ Opcional (funcionalidade degrada graciosamente se não instalado)
+1. **faster-whisper (GPU NVIDIA)** → Se disponível, oferece até 4x mais velocidade
+2. **whisper.cpp (CPU/binário externo)** → Padrão, leve e portátil
+3. **Fallback informativo** → Mensagem clara se nenhum motor estiver disponível
 
 ---
 
-## Windows
+## Visão Geral
 
-### Opção A: Binário Pré-compilado (Recomendado)
+| Motor | Requisitos | Velocidade | Qualidade | Status |
+|-------|------------|------------|-----------|--------|
+| **faster-whisper** | GPU NVIDIA + CUDA | ⚡⚡⚡ Alta | Excelente | Opcional |
+| **whisper.cpp** | Nenhum (binário) | ⚡⚡ Média | Muito boa | Padrão |
+| **Nenhum** | — | — | — | Fallback informativo |
+
+**Por que fallback?** Nem todos os usuários têm GPU NVIDIA. O sistema detecta automaticamente e usa o melhor motor disponível.
+
+---
+
+## Opção 1: faster-whisper (Recomendado para GPU NVIDIA)
+
+### Pré-requisitos
+
+- GPU NVIDIA com drivers atualizados
+- CUDA Toolkit 11.8+ instalado
+- Python 3.10+
+
+### Instalação
+
+```bash
+# No ambiente virtual do projeto
+cd /workspace
+source .venv/bin/activate  # Linux/macOS
+# ou .venv\\Scripts\\activate  # Windows
+
+# Instalar dependências (inclui pynvml para detecção de GPU)
+pip install -r requirements.txt
+
+# Instalar faster-whisper com suporte a CUDA
+pip install faster-whisper
+```
+
+### Configuração Opcional
+
+Variáveis de ambiente suportadas:
+
+```bash
+# Modelo (tiny, base, small, medium, large-v3)
+export WHISPER_MODEL_PATH="small"
+
+# Diretório para cache dos modelos
+export HF_HOME="$HOME/.cache/huggingface"
+```
+
+### Verificação
+
+```python
+import torch
+print(f"CUDA disponível: {torch.cuda.is_available()}")
+print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'Nenhuma'}")
+```
+
+---
+
+## Opção 2: whisper.cpp (Padrão - CPU)
+
+### Windows
+
+#### Binário Pré-compilado (Recomendado)
 
 1. Acesse https://github.com/ggerganov/whisper.cpp/releases
-2. Baixe o arquivo `whisper-bin-x64.zip` (ou `arm64` para ARM)
+2. Baixe `whisper-bin-x64.zip` (ou `arm64` para ARM)
 3. Extraia e copie `whisper-main.exe` para:
    ```
    C:\Program Files\maria\bin\
    ```
-4. Adicione ao PATH ou defina variável de ambiente:
+4. Adicione ao PATH ou defina:
    ```cmd
    setx WHISPER_BIN "C:\Program Files\maria\bin\whisper-main.exe"
    ```
@@ -29,7 +86,7 @@ O MARIA usa whisper.cpp para transcrição local de áudio. Esta é uma dependê
    whisper-main.exe -h
    ```
 
-### Opção B: Compilar do Source
+#### Compilar do Source
 
 ```cmd
 git clone https://github.com/ggerganov/whisper.cpp
@@ -40,30 +97,23 @@ cmake --build . --config Release
 copy Release\whisper-main.exe C:\Program Files\maria\bin\
 ```
 
----
+### Linux
 
-## Linux
-
-### Ubuntu/Debian
+#### Ubuntu/Debian
 
 ```bash
-# Instalar dependências
 sudo apt-get update
 sudo apt-get install -y build-essential cmake libasound2-dev
 
-# Clonar e compilar
 git clone https://github.com/ggerganov/whisper.cpp
 cd whisper.cpp
 make
 
-# Copiar para PATH
 sudo cp whisper-main /usr/local/bin/
-
-# Testar
 whisper-main -h
 ```
 
-### Fedora/RHEL
+#### Fedora/RHEL
 
 ```bash
 sudo dnf install -y alsa-lib-devel
@@ -73,124 +123,175 @@ make
 sudo cp whisper-main /usr/local/bin/
 ```
 
----
-
-## macOS
+### macOS
 
 ```bash
-# Com Homebrew
 brew install cmake
 git clone https://github.com/ggerganov/whisper.cpp
 cd whisper.cpp
 make
-
-# Copiar para PATH
 sudo cp whisper-main /usr/local/bin/
-
-# Testar
 whisper-main -h
+```
+
+### Download do Modelo
+
+```bash
+cd whisper.cpp/models
+./download-ggml-model.sh small  # ou base, tiny, medium
 ```
 
 ---
 
-## Download do Modelo
+## Variáveis de Ambiente
 
-O whisper.cpp requer um modelo `.bin`. Recomendado:
+| Variável | Valor Padrão | Descrição |
+|----------|--------------|-----------|
+| `WHISPER_BIN` | `whisper-main` | Caminho para binário whisper.cpp |
+| `WHISPER_TIMEOUT` | `120` | Timeout em segundos para transcrição |
+| `WHISPER_MODEL_PATH` | `small` | Modelo para faster-whisper |
+
+Exemplo `.env`:
 
 ```bash
-cd whisper.cpp/models
-# Modelo pequeno (bom equilíbrio qualidade/tamanho)
-./download-ggml-model.sh small
-# Ou use o base para menos RAM
-./download-ggml-model.sh base
+WHISPER_BIN=/usr/local/bin/whisper-main
+WHISPER_TIMEOUT=180
+WHISPER_MODEL_PATH=base
 ```
-
-Modelos disponíveis: `tiny`, `base`, `small`, `medium`, `large-v3`
 
 ---
 
 ## Teste de Funcionamento
 
-1. Grave um áudio de teste (ou use um existente):
-   ```bash
-   # Linux/macOS
-   sox -d teste.wav trim 0 5
-   
-   # Windows (PowerShell)
-   # Use o Gravador de Voz e salve como teste.wav
-   ```
+### Teste Rápido
 
-2. Execute a transcrição:
-   ```bash
-   whisper-main -f teste.wav -otxt -of saida
-   cat saida.txt
-   ```
+```bash
+# 1. Gravar áudio de 5 segundos (Linux/macOS)
+sox -d teste.wav trim 0 5
 
-3. Se funcionar, você verá o texto transcrito.
+# 2. Executar transcrição manual
+whisper-main -f teste.wav -otxt -of saida -l pt
+cat saida.txt
+```
+
+### Teste via Interface
+
+1. Inicie o MARIA no modo bridge (JavaFX)
+2. Clique no botão de microfone
+3. Fale por alguns segundos
+4. Verifique a mensagem de confirmação mostrando qual engine foi usada:
+   - `✓ Áudio transcrito (faster-whisper (GPU))`
+   - `✓ Áudio transcrito (whisper.cpp)`
+   - `⚠️ Nenhum motor de transcrição disponível`
 
 ---
 
-## Integração com MARIA
+## Como o Fallback Funciona
 
-O backend do MARIA chama whisper.cpp assim:
+Fluxo automático no backend:
 
-```python
-import subprocess
-import os
-
-whisper_bin = os.getenv("WHISPER_BIN", "whisper-main")
-resultado = subprocess.run(
-    [whisper_bin, "-f", "audio.wav", "-otxt", "-of", "temp_whisper"],
-    capture_output=True,
-    text=True,
-    timeout=60
-)
+```
+[Início da Transcrição]
+        ↓
+[Detectar GPU NVIDIA?] ──Não──┐
+        ↓ Sim                 │
+[Tentar faster-whisper]       │
+        ↓ Falha/Sem GPU       │
+[Tentar whisper.cpp] ←────────┘
+        ↓ Falha/Não instalado
+[Retornar mensagem informativa]
 ```
 
-Se o binário não for encontrado, o MARIA exibe:
-> "[Whisper.cpp não encontrado. Instale whisper.cpp ou use o áudio: ...]"
+Logs de exemplo:
+
+```
+INFO: Tentando transcrição com faster-whisper (GPU)
+INFO: Transcrição concluída com faster-whisper (GPU): 245 caracteres
+```
+
+ou
+
+```
+INFO: faster-whisper não instalado, pulando para whisper.cpp
+INFO: Tentando transcrição com whisper.cpp: whisper-main
+INFO: Transcrição concluída com whisper.cpp: 245 caracteres
+```
+
+ou
+
+```
+INFO: faster-whisper não instalado, pulando para whisper.cpp
+INFO: whisper.cpp não encontrado, usando fallback
+WARNING: Nenhum motor de transcrição disponível. Arquivo mantido: /tmp/maria_audio_123.wav
+```
 
 ---
 
 ## Solução de Problemas
 
-### Erro: `whisper-main: command not found`
+### `ImportError: No module named 'pynvml'`
 
-- Verifique se o binário está no PATH:
-  ```bash
-  which whisper-main  # Linux/macOS
-  where whisper-main  # Windows
-  ```
-- Ou defina a variável `WHISPER_BIN` com o caminho completo.
+```bash
+pip install pynvml
+```
 
-### Erro: `could not find model file`
+### `faster-whisper falhou: CUDA out of memory`
 
-- Baixe o modelo conforme seção "Download do Modelo"
-- Certifique-se de que o arquivo `ggml-small.bin` (ou outro) esteja em `whisper.cpp/models/`
+- Use modelo menor: `export WHISPER_MODEL_PATH=tiny`
+- Feche outras aplicações usando GPU
+
+### `whisper-main: command not found`
+
+```bash
+# Verificar se está no PATH
+which whisper-main  # Linux/macOS
+where whisper-main  # Windows
+
+# Ou definir variável
+export WHISPER_BIN=/caminho/completo/whisper-main
+```
 
 ### Transcrição lenta
 
-- Use um modelo menor (`tiny` ou `base`)
-- Em CPUs fracas, considere usar GPU (requer compilação com CUDA)
+- Use faster-whisper com GPU (Opção 1)
+- Reduza tamanho do modelo (`tiny` ou `base`)
+- Converta áudio para 16kHz mono antes:
+  ```bash
+  sox entrada.mp3 -r 16000 -c 1 saida.wav
+  ```
 
 ### Áudio em formato incompatível
 
-- whisper.cpp espera WAV 16kHz mono
-- Converta com sox:
-  ```bash
-  sox entrada.mp3 -r 16000 -c 1 teste.wav
-  ```
+whisper.cpp espera WAV 16kHz mono. Converta:
+
+```bash
+sox entrada.mp3 -r 16000 -c 1 saida.wav
+```
 
 ---
 
-## Alternativas Futuras
+## Comparativo de Performance
 
-1. **Empacotar binário no instalador:** Incluir `whisper-main.exe` diretamente no instalador do MARIA.
-2. **Usar openai-whisper (Python):** Mais pesado, mas não requer binário externo.
-3. **API de nuvem:** Google Speech-to-Text, Azure Speech, etc. (requer internet).
+| Cenário | faster-whisper | whisper.cpp |
+|---------|----------------|-------------|
+| GPU NVIDIA RTX 3060 | ~10s (áudio 1min) | ~45s |
+| CPU Intel i7 (8 núcleos) | N/A | ~40s |
+| CPU Apple M1 | N/A | ~25s |
+| RAM usage (modelo small) | ~2.9GB VRAM | ~1.2GB RAM |
+
+*Valores aproximados, variam por hardware.*
+
+---
+
+## Próximos Passos (Futuro)
+
+1. **Empacotar binário no instalador** → Incluir whisper.cpp diretamente
+2. **Java FFM API** → Chamar whisper.cpp nativamente do Java 21, eliminando subprocess Python
+3. **Modelos quantizados** → Melhor equilíbrio qualidade/performance
 
 ---
 
 **Referências:**
-- GitHub: https://github.com/ggerganov/whisper.cpp
-- Hugging Face Models: https://huggingface.co/ggerganov/whisper.cpp
+- whisper.cpp: https://github.com/ggerganov/whisper.cpp
+- faster-whisper: https://github.com/SYSTRAN/faster-whisper
+- Modelos GGML: https://huggingface.co/ggerganov/whisper.cpp

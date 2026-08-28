@@ -1,115 +1,45 @@
-# Python & Dependencies
-**/__pycache__/
+```
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.py[cod]
-*$py.class
-*.py.backup
-*.py.swp
-*.py.swo
-*.py.tmp
-*.py.log
-*.py.cache
-*.py.compiled
-*.py.bak
-*.py.save
-*.py~
-
-# Virtual Environments
+.Python
 venv/
 .venv/
-env/
-ENV/
-.ENV/
-backend/venv/
-backend/.venv/
+.env
+.env.local
+*.env.*
 
-# Build artifacts (Python & Generic)
-build/
-dist/
-*.egg-info/
-*.egg
-*.whl
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
-*.o
-*.obj
-*.a
-*.lib
-
-# Java / Maven
-**/target/
+# Java
 target/
-frontend/target/
-frontend/maria-frontend/target/
+.gradle/
 *.class
-.flattened-pom.xml
-.mvn/timing.properties
-
-# Databases locais
-*.db
-*.db-wal
-*.db-shm
-*.sqlite
-*.sqlite3
-shared/*.db
-shared/*.db-wal
-shared/*.db-shm
-frontend/*.db
-frontend/*.db-wal
-frontend/*.db-shm
+*.jar
+*.war
+*.ear
 
 # Logs
 *.log
-*.log.*
 
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-*~
-.swp
-.swo
-
-# Environment variables
-.env
-.env.local
-.env.*
-!.env.example
-
-# IDE specific
+# IDE
 .vscode/
 .idea/
-*.iml
-*.ipr
-*.iws
-.settings/
-.project
-.pydevproject
+*.swp
+*.swo
 
-# OS specific
+# OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# Testing & Coverage
+# Coverage
 coverage/
 htmlcov/
 .coverage
-*.coverage
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
 
-# Distribution / packaging
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.nox/
+# Distribution
+dist/
+build/
+*.tar.gz
+*.zip
+```

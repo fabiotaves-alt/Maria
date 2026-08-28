@@ -291,9 +291,22 @@ public class ConversarController {
             BridgeManager.getInstance().enviar("transcrever_audio", Map.of("caminho", tempFile.getAbsolutePath()))
                 .thenAccept(resposta -> Platform.runLater(() -> {
                     if ("ok".equals(resposta.getStatus())) {
-                        String transcricao = resposta.getDados() != null ? resposta.getDados().toString() : "";
+                        // Backend agora retorna objeto com {transcricao, engine}
+                        Object dados = resposta.getDados();
+                        String transcricao = "";
+                        String engine = "desconhecida";
+                        
+                        if (dados instanceof java.util.Map) {
+                            java.util.Map<?, ?> mapaDados = (java.util.Map<?, ?>) dados;
+                            transcricao = mapaDados.get("transcricao") != null ? mapaDados.get("transcricao").toString() : "";
+                            engine = mapaDados.get("engine") != null ? mapaDados.get("engine").toString() : "desconhecida";
+                        } else if (dados != null) {
+                            // Fallback para formato antigo (string direta)
+                            transcricao = dados.toString();
+                        }
+                        
                         campoMensagem.setText(transcricao);
-                        adicionarBalaoMaria("✓ Áudio transcrito");
+                        adicionarBalaoMaria(String.format("✓ Áudio transcrito (%s)", engine));
                     } else {
                         adicionarBalaoMaria("✗ Erro na transcrição: " + resposta.getMensagemErro());
                     }
