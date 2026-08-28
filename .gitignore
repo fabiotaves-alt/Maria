@@ -1,1 +1,119 @@
-Nothing should be ignored based on the provided file changes. The changes only include source/config files (.md files) and no build artifacts, dependencies, or temp files that would require gitignore rules.
+# Python & Dependencies
+**/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*$py.class
+*.py.backup
+*.py.swp
+*.py.swo
+*.py.tmp
+*.py.log
+*.py.cache
+*.py.compiled
+*.py.bak
+*.py.save
+*.py~
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+.ENV/
+backend/venv/
+backend/.venv/
+
+
+.junie/
+
+
+# Build artifacts (Python & Generic)
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.o
+*.obj
+*.a
+*.lib
+
+# Java / Maven
+**/target/
+target/
+frontend/target/
+frontend/maria-frontend/target/
+*.class
+.flattened-pom.xml
+.mvn/timing.properties
+
+# Databases locais
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+shared/*.db
+shared/*.db-wal
+shared/*.db-shm
+frontend/*.db
+frontend/*.db-wal
+frontend/*.db-shm
+
+# Logs
+*.log
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+.swp
+.swo
+
+# Environment variables
+.env
+.env.local
+.env.*
+!.env.example
+
+# IDE specific
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.project
+.pydevproject
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testing & Coverage
+coverage/
+htmlcov/
+.coverage
+*.coverage
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+
+# Distribution / packaging
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
