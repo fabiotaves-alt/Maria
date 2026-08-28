@@ -2,6 +2,52 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.0.0-alpha] — Em Desenvolvimento: Migração para Tauri + React
+
+### 🚀 Nova Arquitetura (v4.0)
+
+**Status:** Em desenvolvimento ativo — Consulte [`docs/PLANO_MIGRACAO_TAURI_V4.md`](docs/PLANO_MIGRACAO_TAURI_V4.md) para roadmap completo.
+
+#### Mudanças Estruturais
+
+- **Frontend JavaFX → Tauri v2 + React**: Substituição completa da interface JavaFX (21 controllers FXML) por stack moderno com React + TypeScript + Tailwind CSS + Framer Motion
+- **Comunicação HTTP Local**: Migração do protocolo JSON-lines stdin/stdout para HTTP local (localhost:8081) + IPC nativo Tauri
+- **Backend Python Intacto**: Os 818 linhas de `main.py` são mantidos, apenas adicionando modo bridge HTTP (porta 8081)
+- **Instalador One-Click**: MSI (Windows), .deb (Linux) e AppImage (macOS) com Python embeddable e modelos pré-baixados
+- **Arquitetura Híbrida de Modelos**: Roteamento inteligente entre Qwen2.5-Omni 3B (tarefas rápidas), Llama 3.2 8B (raciocínio complexo) e CodeQwen 7B (geração de scripts)
+
+#### Benefícios Esperados
+
+- ✅ **Design Moderno**: UI com glassmorphism, aura rosa e animações fluidas (Figma → código pixel-perfect)
+- ✅ **Simplificação de Instalação**: Elimina necessidade de JDK 21 e Maven; instalador único <5 minutos
+- ✅ **Pool de Talentos Ampliado**: Stack React/Tauri vs JavaFX em declínio
+- ✅ **Multiplataforma Nativo**: Windows/Linux/macOS com experiência consistente
+- ✅ **Receita de Hardware**: "Maria Box" — mini-PC pré-configurado para PMEs
+
+#### Roadmap de 17 Semanas
+
+| Fase | Versão | Entregável Principal |
+|------|--------|---------------------|
+| Fase 1 | v3.3 | UI Tauri + React pixel-perfect (semanas 1-4) |
+| Fase 2 | v3.4 | Roteamento 3B ↔ 8B (semanas 5-8) |
+| Fase 3 | v3.5 | Instalador one-click (semanas 9-12) |
+| Fase 4 | v3.6 | Voz da MARIA: TTS + STT + avatar animado (semanas 13-16) |
+| Fase 5 | v4.0 | Lançamento Parceiro Fundador (10 empresas piloto) |
+
+#### Estimativa de Custos
+
+| Item | Custo (BRL) |
+|------|------------|
+| Dev React/Tauri (freelancer sênior, 4 meses) | R$ 80.000 |
+| Designer UI/UX (Figma → código) | R$ 15.000 |
+| Certificados de assinatura (Windows) | R$ 2.000 |
+| Servidores de teste multiplataforma | R$ 5.000 |
+| **Total** | **R$ 102.000** |
+
+> **Nota:** Esta versão está em planejamento ativo. A versão estável atual permanece sendo v3.2.0 (JavaFX).
+
+---
+
 ## [3.2.0] — Migração para llama.cpp + Qwen2.5-Omni 3B
 
 ### ✅ Runtime de Inferência
