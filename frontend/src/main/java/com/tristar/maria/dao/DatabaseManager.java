@@ -9,7 +9,7 @@ import java.util.Optional;
  */
 public class DatabaseManager {
     
-    private static final String DB_URL = "jdbc:sqlite:./maria.db";
+    private static final String DB_URL = "jdbc:sqlite:../shared/maria.db";
     private Connection connection;
     private static DatabaseManager instance;
     
@@ -57,79 +57,79 @@ public class DatabaseManager {
         Connection conn = conectar();
         try (Statement stmt = conn.createStatement()) {
             
-            // Tabela de conversas
+            // Tabela de conversas (compatível com backend)
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS conversas (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    role TEXT NOT NULL,
-                    content TEXT NOT NULL,
-                    session_id TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    sessao_id TEXT NOT NULL,
+                    titulo TEXT DEFAULT 'Conversa',
+                    data_inicio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    data_fim TIMESTAMP
                 )
             """);
             
-            // Tabela de memórias
+            // Tabela de mensagens (compatível com backend)
             stmt.execute("""
-                CREATE TABLE IF NOT EXISTS memorias (
+                CREATE TABLE IF NOT EXISTS mensagens (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    conversa_id INTEGER NOT NULL,
+                    role TEXT NOT NULL,
                     conteudo TEXT NOT NULL,
-                    categoria TEXT DEFAULT 'geral',
-                    origem TEXT DEFAULT 'manual',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    anexos TEXT,
+                    FOREIGN KEY (conversa_id) REFERENCES conversas(id)
                 )
             """);
             
-            // Tabela de automações
+            // Tabela de memória (compatível com backend)
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS memoria (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    categoria TEXT DEFAULT 'geral',
+                    conteudo TEXT NOT NULL,
+                    relevancia REAL DEFAULT 1.0,
+                    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """);
+            
+            // Tabela de arquivos indexados (compatível com backend)
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS arquivos_indexados (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    caminho TEXT NOT NULL UNIQUE,
+                    tipo TEXT NOT NULL,
+                    metadata TEXT,
+                    data_indexacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """);
+            
+            // Tabela de automações (compatível com backend)
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS automacoes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     nome TEXT NOT NULL,
                     gatilho TEXT NOT NULL,
                     acao TEXT NOT NULL,
-                    ativa BOOLEAN DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    parametros TEXT,
+                    ativo BOOLEAN DEFAULT 1
                 )
             """);
             
-            // Tabela de configurações
+            // Tabela de configurações (compatível com backend)
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS configuracoes (
                     chave TEXT PRIMARY KEY,
                     valor TEXT NOT NULL,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """);
-            
-            // Tabela de arquivos
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS arquivos (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nome TEXT NOT NULL,
-                    caminho TEXT NOT NULL,
-                    tipo TEXT NOT NULL,
-                    tamanho_bytes INTEGER,
-                    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """);
-            
-            // Tabela de logs
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nivel TEXT NOT NULL,
-                    mensagem TEXT NOT NULL,
-                    contexto TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """);
             
             // Índices para melhor performance
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_conversas_session ON conversas(session_id)");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_conversas_created ON conversas(created_at)");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_memorias_categoria ON memorias(categoria)");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_automacoes_ativa ON automacoes(ativa)");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_arquivos_tipo ON arquivos(tipo)");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_logs_nivel ON logs(nivel)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_conversas_sessao ON conversas(sessao_id)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_mensagens_conversa ON mensagens(conversa_id)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_memoria_categoria ON memoria(categoria)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_arquivos_tipo ON arquivos_indexados(tipo)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_automacoes_ativo ON automacoes(ativo)");
             
         }
     }
