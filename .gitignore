@@ -26,6 +26,10 @@ ENV/
 backend/venv/
 backend/.venv/
 
+
+.junie/
+
+
 # Build artifacts (Python & Generic)
 build/
 dist/

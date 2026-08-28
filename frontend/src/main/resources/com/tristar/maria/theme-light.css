@@ -1,6 +1,6 @@
 /* ==========================================================================
-   MARIA â€” Tema Claro (paleta escurecida)
-   Fundo gradiente #E0E3E9 -> #EDEFF3 Â· PainÃ©is #E9EBF0 Â· Acento verde #10B981
+   MARIA — Tema Claro (paleta escurecida)
+   Fundo gradiente #E0E3E9 -> #EDEFF3 · Painéis #E9EBF0 · Acento verde #10B981
 ========================================================================== */
 
 .root {
@@ -24,7 +24,7 @@
     -fx-background-color: linear-gradient(to bottom right, #E0E3E9 0%, #EDEFF3 100%);
 }
 
-/* ScrollPane transparente (seletor especÃ­fico para nao gerar avisos do Modena) */
+/* ScrollPane transparente (seletor específico para nao gerar avisos do Modena) */
 .scroll-pane {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
@@ -34,11 +34,11 @@
     -fx-background-insets: 0;
 }
 
-/* â”€â”€ Topbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Topbar ───────────────────────────────────────────── */
 .topbar { -fx-background-color: rgba(255,255,255,0.55); -fx-border-color: transparent transparent #D5D9E0 transparent; -fx-padding: 10 16; }
 .topbar .app-title { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #1A1F2C; }
 
-/* PÃ­lula "MODO LOCAL" (bolha verde + texto) */
+/* Pílula "MODO LOCAL" (bolha verde + texto) */
 .pill-modo {
     -fx-background-color: #FFFFFF;
     -fx-background-radius: 14;
@@ -71,7 +71,7 @@
     -fx-font-size: 12px;
 }
 
-/* â”€â”€ Sidebar (Painel sÃ³lido) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Sidebar (Painel sólido) ──────────────────────────── */
 .sidebar {
     -fx-background-color: #E9EBF0;
     -fx-border-color: transparent #D5D9E0 transparent transparent;
@@ -103,16 +103,18 @@
     -fx-background-color: rgba(0,0,0,0.04);
     -fx-text-fill: #1A1F2C;
 }
-/* Item ativo com o mesmo visual dos demais */
+/* Item ativo */
 .menu-item-selected, .menu-item:selected {
-    -fx-background-color: transparent;
-    -fx-text-fill: #5E6673;
-    -fx-font-weight: normal;
-    -fx-border-color: transparent transparent transparent transparent;
-    -fx-border-radius: 8;
+    -fx-background-color: rgba(16, 185, 129, 0.08);
+    -fx-text-fill: #10B981;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent transparent #10B981;
+    -fx-border-width: 0 0 0 3.5;
+    -fx-border-radius: 0 8 8 0;
+    -fx-background-radius: 0 8 8 0;
 }
 
-/* â”€â”€ Cards do sidebar (status local + recursos) â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Cards do sidebar (status local + recursos) ───────── */
 .sidebar-card {
     -fx-background-color: rgba(255,255,255,0.65);
     -fx-background-radius: 10;
@@ -144,23 +146,47 @@
 .resource-row .resource-percent {
     -fx-text-fill: #1A1F2C;
     -fx-font-size: 11px;
+    -fx-font-weight: bold;
 }
 .resource-bar-bg {
-    -fx-background-color: #D5D9E0;
-    -fx-background-radius: 4;
+    -fx-background-color: transparent;
     -fx-min-height: 6;
     -fx-max-height: 6;
 }
 .resource-bar {
-    -fx-accent: #10B981;
+    -fx-pref-height: 6;
+    -fx-min-height: 6;
+    -fx-max-height: 6;
     -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
 }
+.resource-bar > .track {
+    -fx-background-color: #D5D9E0;
+    -fx-background-radius: 3;
+    -fx-background-insets: 0;
+}
+.resource-bar > .bar {
+    -fx-background-radius: 3;
+    -fx-background-insets: 0;
+    -fx-padding: 3;
+}
+.resource-bar.cpu > .bar {
+    -fx-background-color: #e05d8a;
+}
+.resource-bar.ram > .bar {
+    -fx-background-color: #8b5cf6;
+}
+.resource-bar.gpu > .bar {
+    -fx-background-color: #10B981;
+}
+
 .sidebar-footer {
     -fx-font-size: 10px;
     -fx-text-fill: #5E6673;
 }
 
-/* â”€â”€ Hero central â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Hero central ─────────────────────────────────────── */
 .hero-section { -fx-padding: 40; }
 .hero-title {
     -fx-font-size: 40px;
@@ -172,7 +198,7 @@
     -fx-text-fill: #5E6673;
 }
 
-/* Avatar (Hero) â€” glow branco/bege ultra-claro */
+/* Avatar (Hero) */
 .avatar-container { -fx-alignment: CENTER; }
 .avatar-glow {
     -fx-fill: radial-gradient(center 50% 50%, radius 55%, rgba(255,255,255,0.9), rgba(255,240,230,0.5), rgba(0,0,0,0.0));
@@ -187,7 +213,7 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 16, 0.12, 0, 6);
 }
 
-/* â”€â”€ Cards de Funcionalidades â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Cards de Funcionalidades ─────────────────────────── */
 .card-feature {
     -fx-background-color: rgba(255,255,255,0.7);
     -fx-background-radius: 16;
@@ -205,7 +231,7 @@
     -fx-text-fill: #5E6673;
 }
 
-/* â”€â”€ BotÃµes de AÃ§Ã£o RÃ¡pida (cards ~90x95, flat) â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Botões de Ação Rápida ────────────────────────────── */
 .quick-action {
     -fx-background-color: rgba(255,255,255,0.7);
     -fx-background-radius: 12;
@@ -226,7 +252,7 @@
     -fx-border-color: #10B981;
 }
 
-/* â”€â”€ Painel de Chat (mesma cor da sidebar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Painel de Chat ───────────────────────────────────── */
 .chat-panel {
     -fx-background-color: #E9EBF0;
     -fx-border-color: transparent transparent transparent #D5D9E0;
@@ -253,7 +279,7 @@
 }
 .chat-scroll-modern { -fx-background-color: transparent; }
 
-/* Avatar das bolhas da Maria (cÃ­rculo 32px) */
+/* Avatar das bolhas da Maria */
 .avatar {
     -fx-background-radius: 16;
     -fx-min-width: 32;
@@ -282,7 +308,7 @@
     -fx-font-size: 12px;
 }
 
-/* BalÃµes de chat */
+/* Balões de chat */
 .bubble-user {
     -fx-background-color: rgba(0,0,0,0.04);
     -fx-background-radius: 14 14 2 14;
@@ -299,7 +325,7 @@
     -fx-text-fill: #8A92A0;
 }
 
-/* â”€â”€ Input do chat (48px, Ã­cones embutidos) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Input do chat ────────────────────────────────────── */
 .chat-input-row {
     -fx-background-color: transparent;
     -fx-padding: 12;
@@ -336,7 +362,7 @@
     -fx-text-fill: #10B981;
 }
 
-/* â”€â”€ Status bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Status bar ───────────────────────────────────────── */
 .status-bar {
     -fx-background-color: rgba(255,255,255,0.6);
     -fx-padding: 6 16;
@@ -354,7 +380,8 @@
     -fx-font-size: 12px;
     -fx-text-fill: #5E6673;
 }
-/* ScrollBar â€” suprime warning do Modena 21 (LinearGradient->Color cast nas arrows) */
+
+/* ScrollBar */
 .scroll-bar:vertical > .increment-button > .increment-arrow,
 .scroll-bar:vertical > .decrement-button > .decrement-arrow,
 .scroll-bar:horizontal > .increment-button > .increment-arrow,
@@ -365,7 +392,6 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0), 0, 0, 0, 0);
 }
 
-/* Fix Modena 21: garante que TODOS os Labels usem cor solida (nunca gradiente) */
 .label {
     -fx-text-fill: #1A1F2C;
 }

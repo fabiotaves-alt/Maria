@@ -182,20 +182,43 @@
 .resource-row .resource-percent {
     -fx-text-fill: #c6c8d6;
     -fx-font-size: 11px;
+    -fx-font-weight: bold;
 }
 .resource-bar-bg {
-    -fx-background-color: #2a2a3a;
-    -fx-background-radius: 4;
+    -fx-background-color: transparent;
     -fx-min-height: 6;
     -fx-max-height: 6;
 }
 .resource-bar {
-    -fx-accent: #e05d8a;
+    -fx-pref-height: 6;
+    -fx-min-height: 6;
+    -fx-max-height: 6;
     -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
 }
-.resource-bar-fill.cpu { -fx-background-color: #e05d8a; }
-.resource-bar-fill.ram { -fx-background-color: #c792ea; }
-.resource-bar-fill.gpu { -fx-background-color: #52e0a0; }
+.resource-bar > .track {
+    -fx-background-color: #232535;
+    -fx-background-radius: 3;
+    -fx-background-insets: 0;
+}
+.resource-bar > .bar {
+    -fx-background-radius: 3;
+    -fx-background-insets: 0;
+    -fx-padding: 3;
+}
+.resource-bar.cpu > .bar {
+    -fx-background-color: #e05d8a;
+    -fx-effect: dropshadow(gaussian, rgba(224,93,138,0.4), 4, 0.2, 0, 0);
+}
+.resource-bar.ram > .bar {
+    -fx-background-color: #c792ea;
+    -fx-effect: dropshadow(gaussian, rgba(199,146,234,0.4), 4, 0.2, 0, 0);
+}
+.resource-bar.gpu > .bar {
+    -fx-background-color: #38ef7d;
+    -fx-effect: dropshadow(gaussian, rgba(56,239,125,0.4), 4, 0.2, 0, 0);
+}
 
 .sidebar-footer {
     -fx-font-size: 10px;

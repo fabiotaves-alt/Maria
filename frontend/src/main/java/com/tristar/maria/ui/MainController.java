@@ -1,11 +1,18 @@
 package com.tristar.maria.ui;
 
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -14,7 +21,7 @@ import java.util.Map;
 /**
  * Controller principal da interface do Maria.
  * Gerencia a sidebar de navegação, a área de conteúdo dinâmica, o painel
- * de chat permanente e a alternância de tema.
+ * de chat permanente, a alternância de tema e o monitoramento em tempo real dos recursos do sistema.
  */
 public class MainController {
 
@@ -26,9 +33,9 @@ public class MainController {
     @FXML private ConversarController painelChatController;
     
     // Recursos do sistema (sidebar)
-    @FXML private javafx.scene.control.ProgressBar cpuBar;
-    @FXML private javafx.scene.control.ProgressBar ramBar;
-    @FXML private javafx.scene.control.ProgressBar gpuBar;
+    @FXML private ProgressBar cpuBar;
+    @FXML private ProgressBar ramBar;
+    @FXML private ProgressBar gpuBar;
     @FXML private Label cpuLabel;
     @FXML private Label ramLabel;
     @FXML private Label gpuLabel;
@@ -36,7 +43,7 @@ public class MainController {
     private Map<String, Node> viewsCache = new HashMap<>();
     private Scene cena;
     private boolean temaClaro = false;
-    private javafx.animation.Timeline timelineStatus;
+    private Timeline timelineStatus;
 
     /** O hero (tela inicial central) é reusado como conteúdo da opção "Conversar". */
     private Node heroNode;
@@ -51,20 +58,23 @@ public class MainController {
         }
         labelModelo.setText("qwen3.5:4b · via Ollama");
         
-        // Iniciar atualização periódica dos recursos do sistema (a cada 5 segundos)
+        // Iniciar atualização periódica dos recursos do sistema (a cada 3 segundos)
         iniciarAtualizacaoStatus();
         
         carregarAba("conversar");
     }
     
     private void iniciarAtualizacaoStatus() {
-        timelineStatus = new javafx.animation.Timeline(
-            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(5), e -> atualizarStatusSistema())
+        timelineStatus = new Timeline(
+            new KeyFrame(Duration.seconds(3), e -> atualizarStatusSistema())
         );
-        timelineStatus.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        timelineStatus.setCycleCount(Animation.INDEFINITE);
         timelineStatus.play();
-        // Primeira atualização imediata
-        atualizarStatusSistema();
+
+        // Primeira atualização com pequeno delay para aguardar inicialização da Bridge
+        PauseTransition delayInicial = new PauseTransition(Duration.seconds(1));
+        delayInicial.setOnFinished(e -> atualizarStatusSistema());
+        delayInicial.play();
     }
     
     private void atualizarStatusSistema() {
@@ -74,27 +84,26 @@ public class MainController {
                 .thenAccept(resposta -> {
                     if ("ok".equals(resposta.getStatus())) {
                         Object dadosObj = resposta.getDados();
-                        if (dadosObj instanceof java.util.Map) {
+                        if (dadosObj instanceof Map) {
                             @SuppressWarnings("unchecked")
-                            java.util.Map<String, Object> dados = (java.util.Map<String, Object>) dadosObj;
+                            Map<String, Object> dados = (Map<String, Object>) dadosObj;
                             
-                            javafx.application.Platform.runLater(() -> {
-                                // Atualizar barras de progresso e labels
+                            Platform.runLater(() -> {
                                 Double cpu = getDoubleOrNull(dados.get("cpu"));
                                 Double ram = getDoubleOrNull(dados.get("ram"));
                                 Double gpu = getDoubleOrNull(dados.get("gpu"));
                                 String modelo = getStringOrNull(dados.get("modelo"));
                                 
                                 if (cpu != null && cpuBar != null) {
-                                    cpuBar.setProgress(cpu / 100.0);
+                                    cpuBar.setProgress(Math.min(Math.max(cpu / 100.0, 0.0), 1.0));
                                     if (cpuLabel != null) cpuLabel.setText(String.format("%.0f%%", cpu));
                                 }
                                 if (ram != null && ramBar != null) {
-                                    ramBar.setProgress(ram / 100.0);
+                                    ramBar.setProgress(Math.min(Math.max(ram / 100.0, 0.0), 1.0));
                                     if (ramLabel != null) ramLabel.setText(String.format("%.0f%%", ram));
                                 }
                                 if (gpu != null && gpuBar != null) {
-                                    gpuBar.setProgress(gpu / 100.0);
+                                    gpuBar.setProgress(Math.min(Math.max(gpu / 100.0, 0.0), 1.0));
                                     if (gpuLabel != null) gpuLabel.setText(String.format("%.0f%%", gpu));
                                 }
                                 if (modelo != null && labelModelo != null) {
@@ -105,11 +114,11 @@ public class MainController {
                     }
                 })
                 .exceptionally(erro -> {
-                    // Silencioso em caso de erro (backend pode não estar rodando)
+                    // Silencioso se bridge ainda estiver iniciando
                     return null;
                 });
         } catch (Exception e) {
-            // Bridge não inicializada ou outro erro
+            // Bridge não inicializada
         }
     }
     

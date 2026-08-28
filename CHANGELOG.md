@@ -2,6 +2,32 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [3.2.0] — Migração para llama.cpp + Qwen2.5-Omni 3B
+
+### ✅ Runtime de Inferência
+- **Substituição do Ollama pelo llama-server (llama.cpp)**: o backend agora se comunica com `http://localhost:8080/v1/chat/completions` via API OpenAI-compatible, eliminando a dependência do daemon Ollama.
+- **Modelo Qwen2.5-Omni 3B (Q4_K_M)**: modelo multimodal unificado que suporta texto, imagem e áudio em um único GGUF (~2.3 GB), sem necessidade de modelos separados para visão ou transcrição.
+
+### ✅ Novo Módulo `backend/core/llama_client.py`
+- **`LlamaClient`**: cliente HTTP com interface pública idêntica ao `OllamaClient` (`chat`, `chat_stream`, `enviar_mensagem`, `chat_com_tools_stream`, `continuar_com_resultado_ferramenta_stream`).
+- **Suporte multimodal**: `image_path` converte imagem para base64 (`image_url`); `audio_path` converte `.wav` para base64 (`input_audio`) — ambos no formato OpenAI multimodal.
+- **Tool calling via API OpenAI**: campo `tools` + `tool_choice: auto`, com fallback textual (`_tentar_extrair_tool_call_textual`) para modelos que vazam a chamada como texto.
+- **Streaming com métricas**: TTFT, tokens/s e `eval_count` calculados via SSE (`data: {...}`) e campo `usage` do último chunk.
+- **Exceções tipadas**: `LlamaClientError` (conexão/HTTP) e `LlamaTimeoutError` (timeout), equivalentes às do `OllamaClient`.
+
+### ✅ Configuração (`backend/core/config.py`)
+- Adicionadas 9 variáveis `LLAMA_*` com override via ENV: `LLAMA_BASE_URL`, `LLAMA_MODEL`, `LLAMA_TIMEOUT`, `LLAMA_NUM_CTX`, `LLAMA_NUM_PREDICT`, `LLAMA_TEMPERATURE_TOOLS`, `LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL`, `LLAMA_NUM_PREDICT_DOCUMENTO`, `LLAMA_NUM_PREDICT_CONTINUACAO`.
+- Todas as variáveis `OLLAMA_*` preservadas para rollback fácil.
+
+### ✅ Integração (`backend/main.py`)
+- Import de `LlamaClient as OllamaClient` e uso de `LLAMA_MODEL` — sem alterações na lógica de orquestração.
+
+### ✅ Testes e Validação
+- Novos testes unitários em `backend/tests/test_maria.py` cobrindo: chat texto, tool calling estruturado, fallback textual, streaming com métricas, erro de conexão, timeout e métodos de compatibilidade (mock de `requests.Session`).
+- Novo script `backend/tests/validate_llama_server.py`: smoke-test standalone contra o llama-server real (conexão, chat texto, streaming, visão, áudio).
+
+---
+
 ## [3.1.1] — Unificação de Schema e Correções Críticas Monorepo
 
 ### ✅ Banco de Dados e DAOs

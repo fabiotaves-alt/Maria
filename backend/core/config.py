@@ -46,6 +46,17 @@ OLLAMA_NUM_PREDICT_DOCUMENTO = int(os.getenv("OLLAMA_NUM_PREDICT_DOCUMENTO", "60
 # nesse ponto o modelo só precisa decidir a próxima ferramenta.
 OLLAMA_NUM_PREDICT_CONTINUACAO = int(os.getenv("OLLAMA_NUM_PREDICT_CONTINUACAO", "200"))
 
+# Configurações do llama-server / Qwen2.5-Omni (suportam override via ENV)
+LLAMA_BASE_URL = os.getenv("LLAMA_BASE_URL", "http://localhost:8080")
+LLAMA_MODEL = os.getenv("LLAMA_MODEL", "qwen2.5-omni-3b")
+LLAMA_TIMEOUT = int(os.getenv("LLAMA_TIMEOUT", "240"))
+LLAMA_NUM_CTX = int(os.getenv("LLAMA_NUM_CTX", "8192"))
+LLAMA_NUM_PREDICT = int(os.getenv("LLAMA_NUM_PREDICT", "400"))
+LLAMA_TEMPERATURE_TOOLS = float(os.getenv("LLAMA_TEMPERATURE_TOOLS", "0.1"))
+LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL = os.getenv("LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL", "true").lower() == "true"
+LLAMA_NUM_PREDICT_DOCUMENTO = int(os.getenv("LLAMA_NUM_PREDICT_DOCUMENTO", "600"))
+LLAMA_NUM_PREDICT_CONTINUACAO = int(os.getenv("LLAMA_NUM_PREDICT_CONTINUACAO", "200"))
+
 # Configurações da sessão de chat
 MAX_MENSAGENS_HISTORICO = int(os.getenv("MAX_MENSAGENS_HISTORICO", "12"))
 

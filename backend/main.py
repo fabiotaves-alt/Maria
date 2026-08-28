@@ -4,7 +4,7 @@ Script principal da MARIA - Assistente de IA de Escritório.
 Responsabilidades:
     - Inicializar o controller (lógica de negócio)
     - Delegar toda a interface para ui_terminal.InterfaceTerminal
-    - Encapsular: OllamaClient, ChatSession, ferramentas, persistência
+    - Encapsular: LlamaClient, ChatSession, ferramentas, persistência
 
 Uso:
     python main.py
@@ -36,8 +36,9 @@ if _RAIZ_MONOREPO not in sys.path:
 from backend.core.config import (
     LOG_LEVEL,
     MAX_MENSAGENS_HISTORICO,
+    LLAMA_MODEL,
 )
-from backend.core.ollama_client import OllamaClient
+from backend.core.llama_client import LlamaClient as OllamaClient
 from backend.core.chat_session import ChatSession, interpretar_confirmacao
 from backend.core.tools_schema import (
     TOOLS_SCHEMA,
@@ -50,9 +51,9 @@ from backend.core.tool_chaining import encadear_leitura_stream
 from backend.ui_terminal import InterfaceTerminal
 
 
-# ───────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # Logging
-# ───────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -60,9 +61,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ═══════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════
 # Controller — lógica de negócio
-# ═══════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════
 
 class MariaController:
     """
@@ -71,7 +72,7 @@ class MariaController:
     """
 
     def __init__(self, modelo: str | None = None):
-        self.cliente: OllamaClient | None = None
+        self.cliente: OllamaClient | None = None  # type: ignore[valid-type]
         self.sessao: ChatSession | None = None
         self.nome_sessao: str = ""
         self._tool_call_final = None
@@ -82,7 +83,7 @@ class MariaController:
 
     def inicializar(self):
         """Cria cliente, sessão e define nome do arquivo de persistência."""
-        self.cliente = OllamaClient(model=self.modelo) if self.modelo else OllamaClient()
+        self.cliente = OllamaClient(model=self.modelo) if self.modelo else OllamaClient()  # LlamaClient
         self.sessao = ChatSession(max_mensagens=MAX_MENSAGENS_HISTORICO)
         self.nome_sessao = self._gerar_nome_sessao()
         self._tool_call_final = None
@@ -314,9 +315,9 @@ class MariaController:
         return None, "Não entendi. Você confirma a criação? Responda sim ou não."
 
 
-# ═══════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════
 # Modo bridge (integração JavaFX ↔ Python)
-# ═══════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════
 
 def _responder_bridge(identificador: str, status: str, dados=None, mensagem_erro: str | None = None):
     """Envia uma resposta JSON por linha no stdout."""
@@ -339,25 +340,30 @@ def _get_system_status():
             "plataforma": platform.system(),
             "aviso": "psutil não instalado"
         }
-    
-    cpu_percent = psutil.cpu_percent(interval=0.1)
-    ram_percent = psutil.virtual_memory().percent
-    
+
+    try:
+        cpu_percent = psutil.cpu_percent(interval=None)
+        ram_percent = psutil.virtual_memory().percent
+    except Exception as e:
+        logger.warning(f"Erro ao obter recursos: {e}")
+        cpu_percent = 0.0
+        ram_percent = 0.0
+
     # GPU é opcional — tentar via pynvml se disponível (NVIDIA)
     gpu_percent = 0.0
     try:
         import pynvml
         pynvml.nvmlInit()
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-        gpu_percent = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
+        gpu_percent = float(pynvml.nvmlDeviceGetUtilizationRates(handle).gpu)
         pynvml.nvmlShutdown()
     except Exception:
-        pass  # Sem GPU NVIDIA ou pynvml não instalado
-    
+        pass
+
     return {
-        "cpu": cpu_percent,
-        "ram": ram_percent,
-        "gpu": gpu_percent,
+        "cpu": round(cpu_percent, 1),
+        "ram": round(ram_percent, 1),
+        "gpu": round(gpu_percent, 1),
         "plataforma": platform.system()
     }
 
@@ -415,7 +421,7 @@ def _modo_bridge(modelo: str | None = None):
             # Retorna métricas reais de CPU/RAM/GPU
             dados_status = _get_system_status()
             # Adicionar modelo atual ao status
-            dados_status["modelo"] = controller.modelo or OLLAMA_MODEL
+            dados_status["modelo"] = controller.modelo or LLAMA_MODEL
             _responder_bridge(identificador, "ok", dados=dados_status)
 
         elif comando == "analisar_arquivo":
@@ -444,7 +450,7 @@ def _modo_bridge(modelo: str | None = None):
                 _responder_bridge(identificador, "ok", dados=resultado)
             except Exception as error:
                 logger.error(f"Erro ao analisar arquivo: {error}")
-                _responder_bridge(identificador, "erro", mensagem_erro=str(error))
+                _responder_bridge(identificador, "erro", mensagem_erro=str(error))\
 
         elif comando == "analisar_dados":
             # Handler para analisar dados de planilha
@@ -512,7 +518,7 @@ def _modo_bridge(modelo: str | None = None):
                 whisper_bin = os.getenv("WHISPER_BIN", "whisper-main")
                 
                 try:
-                    # whisper.cpp: whisper-main -f audio.wav -otxt -of output.txt
+                    # whisper.cpp: whisper-main -f audio.wav -otxt -of temp_whisper
                     resultado = subprocess.run(
                         [whisper_bin, "-f", str(audio_path), "-otxt", "-of", "temp_whisper"],
                         capture_output=True,
@@ -574,7 +580,7 @@ def _modo_bridge(modelo: str | None = None):
             _responder_bridge(identificador, "ok", dados="encerrando")
             break
 
-        # ── Comandos de sessão/histórico ────────────────────────
+        # ── Comandos de sessão/histórico ────────────────────────────
         elif comando == "limpar_conversa":
             controller.sessao.limpar_historico()
             _responder_bridge(identificador, "ok", dados="conversa limpa")
@@ -767,9 +773,9 @@ def _modo_bridge(modelo: str | None = None):
             _responder_bridge(identificador, "erro", mensagem_erro=f"Comando desconhecido: {comando}")
 
 
-# ═══════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════
 # Ponto de entrada
-# ═══════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════
 
 def main():
     parser = argparse.ArgumentParser(description="MARIA - Assistente de IA de Escritório")

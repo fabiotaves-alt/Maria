@@ -1612,5 +1612,260 @@ class TestRunRepeatedComCallback(unittest.TestCase):
         self.assertEqual(chamadas, [1, 2, 3])
 
 
+# ═══════════════════════════════════════════════════════════════
+# Testes do LlamaClient (llama-server / API OpenAI-compatible)
+# ═══════════════════════════════════════════════════════════════
+
+class TestLlamaClientChatTexto(unittest.TestCase):
+    """Testa chat síncrono básico do LlamaClient."""
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_chat_retorna_texto(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+        mock_session.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {
+                "choices": [{"message": {"content": "Olá!", "tool_calls": None}}],
+                "usage": {"completion_tokens": 5},
+            },
+        )
+
+        cliente = LlamaClient()
+        texto, tool_call = cliente.chat([{"role": "user", "content": "Oi"}])
+
+        self.assertEqual(texto, "Olá!")
+        self.assertIsNone(tool_call)
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_chat_preenche_metricas(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+        mock_session.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {
+                "choices": [{"message": {"content": "ok", "tool_calls": None}}],
+                "usage": {"completion_tokens": 7},
+            },
+        )
+
+        cliente = LlamaClient()
+        metricas = {}
+        cliente.chat([{"role": "user", "content": "teste"}], metricas_saida=metricas)
+
+        self.assertEqual(metricas["tokens_gerados"], 7)
+
+
+class TestLlamaClientToolCalling(unittest.TestCase):
+    """Testa tool calling estruturado e fallback textual."""
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_tool_call_estruturada(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+        mock_session.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {
+                "choices": [{
+                    "message": {
+                        "content": "",
+                        "tool_calls": [{
+                            "function": {
+                                "name": "criar_planilha",
+                                "arguments": '{"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}',
+                            }
+                        }],
+                    }
+                }],
+                "usage": {"completion_tokens": 20},
+            },
+        )
+
+        cliente = LlamaClient()
+        _, tool_call = cliente.chat([{"role": "user", "content": "crie planilha"}], tools=[{}])
+
+        self.assertIsNotNone(tool_call)
+        self.assertEqual(tool_call["name"], "criar_planilha")
+        self.assertEqual(tool_call["arguments"]["nome_arquivo"], "gastos")
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_fallback_textual_extrai_tool_call(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        conteudo_com_tool_call = '{"name": "criar_planilha", "arguments": {"nome_arquivo": "test"}}'
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+        mock_session.post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {
+                "choices": [{"message": {"content": conteudo_com_tool_call, "tool_calls": None}}],
+                "usage": {"completion_tokens": 15},
+            },
+        )
+
+        cliente = LlamaClient()
+        _, tool_call = cliente.chat([{"role": "user", "content": "crie planilha"}], tools=[{}])
+
+        self.assertIsNotNone(tool_call)
+        self.assertEqual(tool_call["name"], "criar_planilha")
+
+
+class TestLlamaClientStreaming(unittest.TestCase):
+    """Testa streaming do LlamaClient."""
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_chat_stream_yields_chunks(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+
+        linhas = [
+            b'data: ' + json.dumps({"choices": [{"delta": {"content": "Olá"}, "finish_reason": None}]}).encode(),
+            b'data: ' + json.dumps({"choices": [{"delta": {"content": " mundo"}, "finish_reason": None}]}).encode(),
+            b'data: ' + json.dumps({"choices": [{"delta": {}, "finish_reason": "stop"}], "usage": {"completion_tokens": 2}}).encode(),
+            b'data: [DONE]',
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas)
+        mock_session.post.return_value = mock_response
+
+        cliente = LlamaClient()
+        chunks = list(cliente.chat_stream([{"role": "user", "content": "oi"}]))
+
+        textos = [c for c, _ in chunks if c is not None]
+        self.assertIn("Olá", textos)
+        self.assertIn(" mundo", textos)
+        # Último item deve ser (None, None) ou (None, tool_call)
+        ultimo_chunk, ultimo_tool = chunks[-1]
+        self.assertIsNone(ultimo_chunk)
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_chat_stream_metricas(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+
+        linhas = [
+            b'data: ' + json.dumps({"choices": [{"delta": {"content": "ok"}, "finish_reason": None}]}).encode(),
+            b'data: ' + json.dumps({"choices": [{"delta": {}, "finish_reason": "stop"}], "usage": {"completion_tokens": 3}}).encode(),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas)
+        mock_session.post.return_value = mock_response
+
+        cliente = LlamaClient()
+        metricas = {}
+        list(cliente.chat_stream([{"role": "user", "content": "oi"}], metricas_saida=metricas))
+
+        self.assertEqual(metricas["tokens_gerados"], 3)
+        self.assertIn("ttft", metricas)
+
+
+class TestLlamaClientErros(unittest.TestCase):
+    """Testa tratamento de erros de conexão e timeout."""
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_erro_conexao_levanta_llama_client_error(self, mock_session_class):
+        import requests as req
+        from backend.core.llama_client import LlamaClient, LlamaClientError
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.side_effect = req.exceptions.ConnectionError("offline")
+
+        cliente = LlamaClient()
+        with self.assertRaises(LlamaClientError):
+            cliente.chat([{"role": "user", "content": "oi"}])
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_timeout_levanta_llama_timeout_error(self, mock_session_class):
+        import requests as req
+        from backend.core.llama_client import LlamaClient, LlamaTimeoutError
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+        mock_session.post.side_effect = req.exceptions.Timeout("timeout")
+
+        cliente = LlamaClient()
+        with self.assertRaises(LlamaTimeoutError):
+            cliente.chat([{"role": "user", "content": "oi"}])
+
+
+class TestLlamaClientCompatibilidade(unittest.TestCase):
+    """Testa métodos de compatibilidade com OllamaClient."""
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_chat_com_tools_stream_compativel(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+
+        linhas = [
+            b'data: ' + json.dumps({"choices": [{"delta": {"content": "Resposta"}, "finish_reason": None}]}).encode(),
+            b'data: ' + json.dumps({"choices": [{"delta": {}, "finish_reason": "stop"}]}).encode(),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas)
+        mock_session.post.return_value = mock_response
+
+        cliente = LlamaClient()
+        chunks = list(cliente.chat_com_tools_stream(
+            mensagem_usuario="olá",
+            historico=[],
+            tools=None,
+        ))
+        textos = [c for c, _ in chunks if c is not None]
+        self.assertIn("Resposta", textos)
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_continuar_com_resultado_ferramenta_stream(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+
+        linhas = [
+            b'data: ' + json.dumps({"choices": [{"delta": {"content": "Feito"}, "finish_reason": None}]}).encode(),
+            b'data: ' + json.dumps({"choices": [{"delta": {}, "finish_reason": "stop"}]}).encode(),
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas)
+        mock_session.post.return_value = mock_response
+
+        cliente = LlamaClient()
+        metricas = {}
+        chunks = list(cliente.continuar_com_resultado_ferramenta_stream(
+            historico=[{"role": "system", "content": "sistema"}],
+            tool_call={"name": "listar_arquivos", "arguments": {}},
+            resultado="pasta vazia",
+            tools=None,
+            metricas_saida=metricas,
+        ))
+        textos = [c for c, _ in chunks if c is not None]
+        self.assertIn("Feito", textos)
+        # Verifica que o payload inclui mensagem role=tool
+        payload_enviado = mock_session.post.call_args.kwargs["json"]
+        roles = [m["role"] for m in payload_enviado["messages"]]
+        self.assertIn("tool", roles)
+
+
 if __name__ == "__main__":
     unittest.main()

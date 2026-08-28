@@ -1,6 +1,6 @@
 # MARIA — Assistente de IA Pessoal 100% Local
 
-**MARIA** ("Modelo Assistente de Raciocínio e Inferência Aumentada") é uma assistente de IA de escritório que roda **100% localmente**, sem depender de internet após a instalação do modelo. Usa LLM local via **Ollama** para conversa, function calling (criação/edição de planilhas Excel e documentos Word) e leitura de arquivos.
+**MARIA** ("Modelo Assistente de Raciocínio e Inferência Aumentada") é uma assistente de IA de escritório que roda **100% localmente**, sem depender de internet após a instalação do modelo. Usa LLM local via **llama.cpp (llama-server)** com o modelo multimodal **Qwen2.5-Omni 3B** para conversa, function calling (criação/edição de planilhas Excel e documentos Word), leitura de arquivos, análise de imagens e transcrição de áudio — tudo em um único modelo, sem serviços externos.
 
 ---
 
@@ -11,19 +11,19 @@ Monorepo com dois processos independentes que se comunicam via IPC (stdin/stdout
 ```
 ┌─────────────────────────┐   JSON-lines    ┌──────────────────────────┐
 │  Frontend JavaFX        │ ◄─────────────► │  Backend Python          │
-│  (com.tristar.maria)    │   stdin/stdout  │  (Ollama + ferramentas)  │
+│  (com.tristar.maria)    │   stdin/stdout  │  (llama.cpp + ferramentas)│
 │  Java 21 / JavaFX 21    │                 │  Python 3.11+            │
 └────────────┬────────────┘                 └───────────┬──────────────┘
              │                                          │ HTTP localhost
-             │ JDBC (WAL)                         ┌─────▼─────┐
-             ▼                                    │  Ollama   │
-    ┌─────────────────┐                           └───────────┘
-    │ shared/maria.db │ ◄───────────────────────────────┘
-    └─────────────────┘
+             │ JDBC (WAL)                         ┌─────▼──────────┐
+             ▼                                    │  llama-server  │
+    ┌─────────────────┐                           │  :8080         │
+    │ shared/maria.db │ ◄──────────────────────── │  Qwen2.5-Omni  │
+    └─────────────────┘                           └────────────────┘
 ```
 
 - **Frontend**: interface JavaFX 21 com 8 abas (Conversar, Arquivos, Análise de Dados, Visão, Voz, Memória, Automações, Configurações), tema claro/escuro dinâmico e bridge para o backend.
-- **Backend**: cliente Ollama com histórico de contexto, prompt de sistema em pt-BR anti-alucinação, function calling com confirmação, geração de arquivos reais e persistência de sessões.
+- **Backend**: `LlamaClient` (API OpenAI-compatible) conectado ao llama-server com histórico de contexto, prompt de sistema em pt-BR anti-alucinação, function calling com confirmação, suporte multimodal (imagem + áudio), geração de arquivos reais e persistência de sessões.
 - **Banco de Dados**: SQLite compartilhado em `shared/maria.db` com schema canônico definido em `shared/schema.sql` (WAL mode e integridade referencial com ON DELETE CASCADE).
 
 ## Estrutura de Pastas
@@ -50,11 +50,13 @@ maria/
 ├── backend/
 │   ├── main.py                ← CLI interativa + modo --bridge (frontend)
 │   ├── ui_terminal.py         ← interface de terminal legada
-│   ├── core/                  ← ollama_client, chat_session, tools_schema,
-│   │                            excel_handler, word_handler, file_utils,
-│   │                            session_storage, tool_chaining, config
+│   ├── core/                  ← llama_client, ollama_client, chat_session,
+│   │                            tools_schema, excel_handler, word_handler,
+│   │                            file_utils, session_storage, tool_chaining, config
 │   ├── database/              ← connection.py (SQLite singleton) e schema.py
-│   ├── tests/test_maria.py    ← suíte de 86 testes unitários (pytest)
+│   ├── tests/
+│   │   ├── test_maria.py      ← suíte de testes unitários (unittest)
+│   │   └── validate_llama_server.py ← smoke-test para o llama-server ao vivo
 │   └── benchmark/             ← sistema de benchmark live (opcional)
 └── frontend/
     ├── pom.xml                ← Maven (Java 21, JavaFX 21, SQLite JDBC, JUnit 5)
@@ -77,8 +79,8 @@ maria/
 | Requisito | Versão | Observação |
 |-----------|--------|------------|
 | Python | 3.11+ | venv na raiz (`.venv/`) |
-| Ollama | atual | [ollama.com](https://ollama.com) |
-| Modelo LLM | ver `OLLAMA_MODEL` em `backend/core/config.py` | ex.: `ollama pull qwen3.5:4b` |
+| llama.cpp | build recente | compilar com `-DGGML_CUDA=ON` (NVIDIA) ou Metal (macOS) |
+| Modelo GGUF | `qwen2_5-omni-3b-q4_k_m.gguf` | ~2.3 GB — ver seção Instalação |
 | JDK | 21 | OpenJDK / Temurin / Oracle JDK 21 |
 | Maven | 3.9+ | ou wrapper integrado da IDE |
 
@@ -89,9 +91,29 @@ maria/
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 
-# 2. Ollama + modelo
-ollama serve
-ollama pull qwen3.5:4b
+# 2. Build do llama.cpp
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp
+cmake -B build -DGGML_CUDA=ON   # omitir flag em macOS Apple Silicon
+cmake --build build --config Release -j4
+
+# 3. Download do modelo Qwen2.5-Omni 3B (Q4_K_M)
+mkdir %USERPROFILE%\models
+# Windows (PowerShell):
+Invoke-WebRequest -Uri "https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/qwen2_5-omni-3b-q4_k_m.gguf" -OutFile "$env:USERPROFILE\models\qwen2_5-omni-3b-q4_k_m.gguf"
+# Linux/macOS:
+# wget -O ~/models/qwen2_5-omni-3b-q4_k_m.gguf https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/qwen2_5-omni-3b-q4_k_m.gguf
+
+# 4. Iniciar o llama-server
+./build/bin/llama-server -m ~/models/qwen2_5-omni-3b-q4_k_m.gguf -ngl 99 -c 8192 --flash-attn --host 0.0.0.0 --port 8080
+```
+
+#### Variáveis de ambiente opcionais (`.env`)
+
+```env
+LLAMA_BASE_URL=http://localhost:8080
+LLAMA_MODEL=qwen2.5-omni-3b
+LLAMA_NUM_CTX=8192
 ```
 
 ## Como Executar
@@ -124,8 +146,11 @@ Protocolo: `{"id": "1", "comando": "ping"}` → `{"id": "1", "status": "ok", "da
 ### Testes
 
 ```bash
-# Testes do Backend (86 testes)
-.venv\Scripts\python.exe -m pytest backend/tests/test_maria.py -v
+# Testes do Backend (unittest)
+.venv\Scripts\python.exe -m unittest discover -s backend/tests -v
+
+# Smoke-test contra o llama-server ao vivo (requer servidor rodando)
+.venv\Scripts\python.exe backend/tests/validate_llama_server.py
 
 # Testes do Frontend (8 testes JUnit 5)
 cd frontend
