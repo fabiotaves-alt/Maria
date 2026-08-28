@@ -269,7 +269,7 @@ Consulte o [README do benchmark](benchmark/README.md) para comparar execuções 
 
 ## Changelog
 
-Veja [CHANGELOG.md](CHANGELOG.md) para o histórico completo de mudanças.
+Veja [CHANGELOG.md](../CHANGELOG.md) para o histórico completo de mudanças.
 
 ## Licença
 

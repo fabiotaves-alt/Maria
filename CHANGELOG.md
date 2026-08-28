@@ -49,7 +49,7 @@ equirements.txt da raiz e exclusão do ackend/requirements.txt redundante.
   - `ping`: Handshake de conectividade
 - **Schema SQLite unificado**: 6 tabelas em `shared/maria.db`
   - `conversas`, `mensagens`, `memoria`, `arquivos_indexados`, `automacoes`, `configuracoes`
-- **Inicialização automática**: `database/schema.py` cria tabelas no startup
+- **Inicialização automática**: `backend/database/schema.py` cria tabelas no startup
 - **Testes**: 86 testes unitários passando
 
 ### ✅ Frontend (JavaFX)
@@ -60,7 +60,7 @@ equirements.txt da raiz e exclusão do ackend/requirements.txt redundante.
   - `MemoriaDAO.java`: CRUD de memórias com busca por categoria
   - `AutomacaoDAO.java`: CRUD de automações com toggle
   - `ConfiguracaoDAO.java`: Chave-valor com UPSERT
-- **Schema unificado**: Frontend agora usa `../shared/maria.db` (mesmo banco do backend)
+- **Schema unificado**: Frontend agora usa `shared/maria.db` (mesmo banco do backend)
 - **Controllers integrados**:
   - `ConversarController`: Salva mensagens no banco, limpar cria nova sessão
   - `MemoriaController`: Carrega/gerencia memórias do banco
@@ -90,10 +90,10 @@ equirements.txt da raiz e exclusão do ackend/requirements.txt redundante.
 - **Novo comando `status`**: Retorna métricas reais de CPU, RAM e GPU via `psutil`. Inclui modelo atual (`qwen3.5:4b`) na resposta.
 - **Handler `analisar_arquivo`**: Lê documentos (.docx, .txt, .md, .csv, .log) e planilhas (.xlsx), retornando conteúdo ou resumo.
 - **Handler `analisar_dados`**: Gera sumário de planilhas Excel (linhas, colunas, cabeçalhos, amostra de dados).
-- **Handler `upload_arquivo`**: Copia arquivos para `backend/arquivos_gerados/` com nome único.
+- **Handler `upload_arquivo`**: Copia arquivos para `backend/arquivos_gerados` com nome único.
 - **Handler `transcrever_audio`**: Integração com whisper.cpp (binário externo) para transcrição de áudio WAV. Fallback informativo se não instalado.
 - **Nova dependência**: `psutil>=5.9.0` adicionada ao `requirements.txt`.
-- **Função `ler_planilha_resumo()`**: Criada em `core/excel_handler.py` para leitura eficiente de planilhas.
+- **Função `ler_planilha_resumo()`**: Criada em `backend/core/excel_handler.py` para leitura eficiente de planilhas.
 
 ### ✅ Frontend (JavaFX)
 
@@ -143,10 +143,10 @@ Recursos do sistema (CPU/RAM/GPU), ações rápidas (preenchem o input), anexar/
 
 ### ✅ Documentação (Fase 0 do guia)
 
-- **`backend/README.md`**: modelo divergente corrigido (`qwen3.5:4b`, alinhado a `core/config.py`).
-- **Documentos obsoletos arquivados** em `docs/archive/` com aviso de obsolescência: `RELATORIO_ACOMPANHAMENTO.md` e `ARQUITETURA_REAL_SISTEMA.md`.
+- **`backend/README.md`**: modelo divergente corrigido (`qwen3.5:4b`, alinhado a `backend/core/config.py`).
+- **Documentos obsoletos arquivados** em `docs/archive` com aviso de obsolescência: `RELATORIO_ACOMPANHAMENTO.md` e `ARQUITETURA_REAL_SISTEMA.md`.
 - **`README.md` (raiz)**: tabela de documentação atualizada e modelo LLM atualizado para `qwen3.5:4b`.
-- **`docs/DECISOES_BANCO_DADOS.md` criado**: registra as 4 perguntas pendentes antes da implementação de `database/schema.py` (Fase 2 bloqueada por decisão, não por código).
+- **`docs/DECISOES_BANCO_DADOS.md` criado**: registra as 4 perguntas pendentes antes da implementação de `backend/database/schema.py` (Fase 2 bloqueada por decisão, não por código).
 
 ### ⚠️ Validação
 
@@ -157,8 +157,8 @@ Recursos do sistema (CPU/RAM/GPU), ações rápidas (preenchem o input), anexar/
 
 ### ✅ Correções aplicadas
 
-- **Causa raiz**: os decoradores `@patch` usavam o namespace `core.ollama_client.*`, mas o módulo é importado como `backend.core.ollama_client`. Como o pytest adiciona `backend/` ao `sys.path`, o Python registrava dois módulos distintos e o patch era aplicado na instância errada — os flags (`OLLAMA_ENVIAR_THINK_PARAM`, `OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL`) nunca mudavam no código em execução.
-- **Fix**: alvos de patch corrigidos para `backend.core.ollama_client.*` em `tests/test_maria.py` (linhas 1397, 1437–1438), incluindo `requests.Session` por consistência.
+- **Causa raiz**: os decoradores `@patch` usavam o namespace `core.ollama_client.*`, mas o módulo é importado como `backend.core.ollama_client`. Como o pytest adiciona `backend` ao `sys.path`, o Python registrava dois módulos distintos e o patch era aplicado na instância errada — os flags (`OLLAMA_ENVIAR_THINK_PARAM`, `OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL`) nunca mudavam no código em execução.
+- **Fix**: alvos de patch corrigidos para `backend.core.ollama_client.*` em `backend/tests/test_maria.py` (linhas 1397, 1437–1438), incluindo `requests.Session` por consistência.
 - **Observação**: o comando legado `cd backend && python -m unittest tests.test_maria` está quebrado por design (o arquivo importa `backend.*`). Comando correto a partir da raiz: `python -m unittest backend.tests.test_maria`.
 
 ### ✅ Status dos Testes
@@ -194,13 +194,13 @@ Recursos do sistema (CPU/RAM/GPU), ações rápidas (preenchem o input), anexar/
 
 ### ✅ Alterações aplicadas
 
-- **Configuração de comportamento do modelo concentrada em `core/config.py`**: 4 novas variáveis ajustáveis via ENV — `OLLAMA_ENVIAR_THINK_PARAM` (envio do campo "think"), `OLLAMA_THINK_HABILITADO` (valor do campo "think"), `OLLAMA_TEMPERATURE_TOOLS` (temperatura para tool calling) e `OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL` (fallback textual desativável).
+- **Configuração de comportamento do modelo concentrada em `backend/core/config.py`**: 4 novas variáveis ajustáveis via ENV — `OLLAMA_ENVIAR_THINK_PARAM` (envio do campo "think"), `OLLAMA_THINK_HABILITADO` (valor do campo "think"), `OLLAMA_TEMPERATURE_TOOLS` (temperatura para tool calling) e `OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL` (fallback textual desativável).
 - **Novos métodos privados em `OllamaClient`**: `_montar_options()` e `_montar_payload()` centralizam a construção do payload, eliminando 5 blocos duplicados de montagem manual.
 - **Os 5 métodos de payload agora usam `self._montar_payload`**: `enviar_mensagem`, `chat_com_tools`, `chat_com_tools_stream_com_metricas`, `chat_com_tools_stream` e `continuar_com_resultado_ferramenta_stream`.
 - **Inconsistência de `temperature` corrigida**: `continuar_com_resultado_ferramenta_stream` agora envia `temperature` (antes era o único dos 5 que não aplicava).
 - **Mensagem de erro dinâmica em `_make_request`**: a mensagem de conexão agora reflete `self.model`/`self.base_url` reais em vez de literais fixos `qwen3.5:4b`/`localhost:11434`.
 - **`model_file.txt` removido** do repositório (sem referências em código Python).
-- **Fallback textual de tool call desativável**: os 4 pontos em `core/ollama_client.py` que extraem tool call vazada como texto (comportamento do Qwen3.5) agora respeitam `OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL`.
+- **Fallback textual de tool call desativável**: os 4 pontos em `backend/core/ollama_client.py` que extraem tool call vazada como texto (comportamento do Qwen3.5) agora respeitam `OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL`.
 - **Debug scripts atualizados**: `debug_raw_ollama.py` e `debug_raw_ollama_2systems.py` usam `OLLAMA_TEMPERATURE_TOOLS`, `OLLAMA_ENVIAR_THINK_PARAM` e `OLLAMA_THINK_HABILITADO` em vez de literais hardcoded.
 
 ### ✅ Status dos Testes
@@ -218,11 +218,11 @@ Recursos do sistema (CPU/RAM/GPU), ações rápidas (preenchem o input), anexar/
 
 ### ✅ Correções aplicadas
 
-- **Encadeamento de leitura compartilhado (Fix A)**: criado o módulo `core/tool_chaining.py` com `encadear_leitura_stream`, usado tanto pela aplicação interativa (`main.py`) quanto pelo benchmark (`benchmark/runners/maria_runner.py`). O benchmark agora reenvia o resultado de `listar_arquivos`/`resumir_documento` ao modelo e captura a ferramenta de escrita seguinte, em vez de marcar `tool_correct=False` na primeira chamada.
-- **Timeout POR CHAMADA no encadeamento**: cada chamada de continuação do encadeamento de leitura no benchmark tem seu próprio orçamento de `BENCHMARK_TASK_TIMEOUT` segundos, medido do início ao fim daquela chamada específica (não acumulado), resolvendo o item em aberto da seção 1.1 de `docs/guia_fase_2.md`.
+- **Encadeamento de leitura compartilhado (Fix A)**: criado o módulo `backend/core/tool_chaining.py` com `encadear_leitura_stream`, usado tanto pela aplicação interativa (`main.py`) quanto pelo benchmark (`backend/benchmark/runners/maria_runner.py`). O benchmark agora reenvia o resultado de `listar_arquivos`/`resumir_documento` ao modelo e captura a ferramenta de escrita seguinte, em vez de marcar `tool_correct=False` na primeira chamada.
+- **Timeout POR CHAMADA no encadeamento**: cada chamada de continuação do encadeamento de leitura no benchmark tem seu próprio orçamento de `BENCHMARK_TASK_TIMEOUT` segundos, medido do início ao fim daquela chamada específica (não acumulado), resolvendo o item em aberto da seção 1.1 de `backend/docs/guia_fase_2.md`.
 - **`main.py` refatorado**: `_gerar_resposta_com_encadeamento` agora delega ao módulo compartilhado; removidos os imports diretos de `MAX_PASSOS_LEITURA`, `FERRAMENTAS_LEITURA` e `executar_ferramenta_leitura`.
-- **Composição de documentos sem conteúdo literal (Fix B)**: o reforço em `core/ollama_client.py` (`_montar_mensagens_com_reforco`) agora instrui o modelo a REDIGIR conteúdo completo para documentos narrativos (carta, relatório, ata, comunicado) sem pedir mais detalhes ao usuário.
-- **Falso positivo de `listar_arquivos` corrigido (Fix D)**: a regra 6 do `SYSTEM_PROMPT` em `core/chat_session.py` agora distingue arquivo incerto de arquivo declaradamente inexistente — responde em texto SEM chamar `listar_arquivos` nem outra ferramenta.
+- **Composição de documentos sem conteúdo literal (Fix B)**: o reforço em `backend/core/ollama_client.py` (`_montar_mensagens_com_reforco`) agora instrui o modelo a REDIGIR conteúdo completo para documentos narrativos (carta, relatório, ata, comunicado) sem pedir mais detalhes ao usuário.
+- **Falso positivo de `listar_arquivos` corrigido (Fix D)**: a regra 6 do `SYSTEM_PROMPT` em `backend/core/chat_session.py` agora distingue arquivo incerto de arquivo declaradamente inexistente — responde em texto SEM chamar `listar_arquivos` nem outra ferramenta.
 
 ### ✅ Status dos Testes
 
@@ -238,9 +238,9 @@ Recursos do sistema (CPU/RAM/GPU), ações rápidas (preenchem o input), anexar/
 
 ### ✅ Correções aplicadas
 
-- **TOCTOU em criação de pastas corrigido**: substituído o padrão de `exists()` + `makedirs()` por `os.makedirs(..., exist_ok=True)` em `core/file_utils.py` e `core/session_storage.py`, eliminando a condição de corrida entre checagem e criação da pasta.
-- **Imports não utilizados removidos**: limpeza dirigida em `main.py`, `core/word_handler.py` e `tests/test_maria.py`, sempre com confirmação textual da ausência de referências antes da remoção.
-- **Validação de argumentos obrigatórios implementada**: adicionado `CAMPOS_OBRIGATORIOS` e `validar_argumentos_obrigatorios()` em `core/tools_schema.py`, com chamada no início de `executar_ferramenta_real` antes da execução de cada ferramenta real.
+- **TOCTOU em criação de pastas corrigido**: substituído o padrão de `exists()` + `makedirs()` por `os.makedirs(..., exist_ok=True)` em `backend/core/file_utils.py` e `backend/core/session_storage.py`, eliminando a condição de corrida entre checagem e criação da pasta.
+- **Imports não utilizados removidos**: limpeza dirigida em `main.py`, `backend/core/word_handler.py` e `backend/tests/test_maria.py`, sempre com confirmação textual da ausência de referências antes da remoção.
+- **Validação de argumentos obrigatórios implementada**: adicionado `CAMPOS_OBRIGATORIOS` e `validar_argumentos_obrigatorios()` em `backend/core/tools_schema.py`, com chamada no início de `executar_ferramenta_real` antes da execução de cada ferramenta real.
 - **Tratamento de erro reforçado**: campos obrigatórios ausentes ou vazios agora geram `ValueError` claro, evitando execução de ferramentas com arquivos vazios ou incompletos.
 - **Cobertura de regressão expandida**: novos testes cobrindo ausência de campo obrigatório e string vazia em campos obrigatórios.
 - **Documentação de benchmark atualizada**: README geral e `benchmark/README.md` agora mencionam a taxa de conformidade de idioma gerada pelo relatório.
@@ -325,13 +325,13 @@ Recursos do sistema (CPU/RAM/GPU), ações rápidas (preenchem o input), anexar/
 
 ## [2.4.0] - Persistência de Sessões (Histórico de Conversa)
 
-- **Novo módulo `core/session_storage.py`**: Persistência de sessões de chat em disco, com 4 funções públicas (`garantir_pasta_sessoes`, `salvar_sessao`, `listar_sessoes_salvas`, `carregar_sessao`) e leitura dinâmica de `PASTA_SESSOES` por chamada (isolamento em testes).
-- **Nova config `PASTA_SESSOES`** em `core/config.py`: Configurável via variável de ambiente, padrão `sessoes_salvas`, seguindo o mesmo padrão de `PASTA_ARQUIVOS_GERADOS`.
+- **Novo módulo `backend/core/session_storage.py`**: Persistência de sessões de chat em disco, com 4 funções públicas (`garantir_pasta_sessoes`, `salvar_sessao`, `listar_sessoes_salvas`, `carregar_sessao`) e leitura dinâmica de `PASTA_SESSOES` por chamada (isolamento em testes).
+- **Nova config `PASTA_SESSOES`** em `backend/core/config.py`: Configurável via variável de ambiente, padrão `sessoes_salvas`, seguindo o mesmo padrão de `PASTA_ARQUIVOS_GERADOS`.
 - **Novo comando `retomar`** em `main.py`: Lista sessões salvas (mais recentes primeiro) e retoma a sessão escolhida de uma execução anterior. Funciona mesmo sem sessões salvas (mensagem clara, sem crash).
 - **Salvamento automático**: A sessão é salva em disco após cada troca normal de mensagens e após a execução confirmada de uma ferramenta.
-- **Arquivos de sessão**: Cada execução gera um arquivo `sessao_<timestamp>.json` na pasta `sessoes_salvas/`; ao retomar, a conversa continua salvando no mesmo arquivo.
+- **Arquivos de sessão**: Cada execução gera um arquivo `sessao_<timestamp>.json` na pasta `backend/sessoes_salvas`; ao retomar, a conversa continua salvando no mesmo arquivo.
 - **Tolerância a falhas de disco**: Falhas ao salvar (`PermissionError`/`OSError`) exibem aviso mas não interrompem o loop de chat.
-- **Sessões em disco**: Sessão salva anteriormente nesta execução (`sessoes_salvas/sessao_20260811_123004.json`) é ignorada pela funcionalidade de retomada apenas se corrompida ou ilegível.
+- **Sessões em disco**: Sessão salva anteriormente nesta execução (`backend/sessoes_salvas/sessao_20260811_123004.json`) é ignorada pela funcionalidade de retomada apenas se corrompida ou ilegível.
 
 ### 🧪 Testes
 
@@ -351,16 +351,16 @@ Recursos do sistema (CPU/RAM/GPU), ações rápidas (preenchem o input), anexar/
 ## [2.3.0] - Reorganização de Arquitetura
 
 - Eliminada a pasta duplicada `MARIA/` que estava aninhada dentro da raiz do projeto.
-- Módulos centrais (`chat_session.py`, `config.py`, `excel_handler.py`, `file_utils.py`, `ollama_client.py`, `tools_schema.py`, `word_handler.py`) movidos para o novo pacote `core/`.
-- `test_maria.py` movido para a pasta `tests/`.
+- Módulos centrais (`chat_session.py`, `config.py`, `excel_handler.py`, `file_utils.py`, `ollama_client.py`, `tools_schema.py`, `word_handler.py`) movidos para o novo pacote `backend/core`.
+- `test_maria.py` movido para a pasta `backend/tests`.
 - Pasta `Lia_benchmark/` removida (código legado não utilizado).
-- Todos os imports internos — de `main.py`, dos testes e do pacote `benchmark/` — atualizados para referenciar `core.<módulo>`.
+- Todos os imports internos — de `main.py`, dos testes e do pacote `backend/benchmark` — atualizados para referenciar `core.<módulo>`.
 - Comando de execução dos testes atualizado para `python -m unittest tests.test_maria -v`.
 - `PASTA_ARQUIVOS_GERADOS` continua relativa ao diretório de execução (cwd); nenhuma mudança de comportamento nesse ponto.
 
 ## [2.2.0] - Sistema de Benchmark e Validação Contínua
 
-- Criado o pacote `benchmark/` para avaliação live do tool calling da MARIA.
+- Criado o pacote `backend/benchmark` para avaliação live do tool calling da MARIA.
 - Adicionados 25 casos de benchmark cobrindo conversa, criação/edição de arquivos, confirmação, cancelamento, ambiguidade e sanitização.
 - Implementado `MariaRunner` com streaming real, sessões isoladas, retry do Ollama e diretório de arquivos separado.
 - Adicionadas métricas de acurácia de ferramentas, confirmação, palavras-chave, execução, latência e distribuição de erros.
