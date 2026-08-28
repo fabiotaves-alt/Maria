@@ -1,1 +1,0 @@
-Este é um parágrafo de teste para validar a funcionalidade de leitura da MARIA. A assistente deve ser capaz de ler este arquivo, resumir seu conteúdo e responder em linguagem natural sem pedir confirmação, já que a leitura é uma operação somente leitura.
