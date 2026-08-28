@@ -160,6 +160,15 @@ public class DatabaseManager {
                 )
             """);
             
+            // Migrações preventivas para bancos locais existentes
+            garantirColuna(conn, "configuracoes", "descricao", "TEXT");
+            garantirColuna(conn, "memoria", "fato", "TEXT");
+            garantirColuna(conn, "memoria", "fonte", "TEXT DEFAULT 'manual'");
+            garantirColuna(conn, "automacoes", "descricao", "TEXT");
+            garantirColuna(conn, "automacoes", "passos_json", "TEXT");
+            garantirColuna(conn, "automacoes", "execucoes_count", "INTEGER DEFAULT 0");
+            garantirColuna(conn, "automacoes", "ultima_execucao", "TIMESTAMP");
+            
             // Inserir configurações padrão iniciais
             stmt.execute("""
                 INSERT OR IGNORE INTO configuracoes (chave, valor, descricao)
@@ -175,6 +184,14 @@ public class DatabaseManager {
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_memoria_categoria ON memoria(categoria)");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_arquivos_tipo ON arquivos_indexados(tipo)");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_automacoes_ativo ON automacoes(ativo)");
+        }
+    }
+    
+    private void garantirColuna(Connection conn, String tabela, String coluna, String tipo) {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE " + tabela + " ADD COLUMN " + coluna + " " + tipo);
+        } catch (SQLException ignored) {
+            // Coluna já existe
         }
     }
     

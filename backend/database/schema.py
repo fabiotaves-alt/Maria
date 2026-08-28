@@ -8,12 +8,9 @@ Tabelas:
 - arquivos_indexados: metadados de arquivos processados
 - automacoes: automações salvas pelo usuário
 - configuracoes: preferências (tema, modelo, etc.)
-
-Nota: Este módulo é usado tanto pelo backend Python quanto pode ser
-consultado pelo frontend Java via JDBC para leitura/escrita compartilhada.
 """
 
-from database.connection import get_connection
+from database.connection import get_connection, close_connection
 
 
 def init_db():
@@ -128,7 +125,6 @@ def init_db():
     """)
     
     conn.commit()
-    conn.close()
 
 
 def limpar_tudo():
@@ -144,7 +140,6 @@ def limpar_tudo():
     cursor.execute("DROP TABLE IF EXISTS conversas")
     
     conn.commit()
-    conn.close()
 
 
 if __name__ == "__main__":
