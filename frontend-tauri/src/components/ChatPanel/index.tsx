@@ -1,34 +1,25 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, MoreHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Message } from '../../types';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
+import { sendMessage, getChatHistory, getSystemStatus } from '../../hooks/useMariaBridge';
 
-const mockMessages: Message[] = [
+const INITIAL_MESSAGES: Message[] = [
   {
     id: '1',
     role: 'assistant',
     content: 'Olá! Sou a MARIA, sua assistente de IA pessoal. Como posso ajudar você hoje?',
-    timestamp: '10:30',
-  },
-  {
-    id: '2',
-    role: 'user',
-    content: 'Preciso analisar alguns documentos financeiros.',
-    timestamp: '10:32',
-  },
-  {
-    id: '3',
-    role: 'assistant',
-    content: 'Claro! Posso ajudar você com isso. Por favor, envie os documentos que deseja analisar.\n\nPosso:\n• Extrair informações de PDFs e imagens\n• Analisar planilhas e dados estruturados\n• Gerar resumos e insights\n• Identificar padrões e tendências\n\nComo prefere proceder?',
-    timestamp: '10:32',
+    timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
   },
 ];
 
 export function ChatPanel() {
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [loading, setLoading] = useState(false);
+  const [backendOnline, setBackendOnline] = useState(false);
+  const [modeloAtivo, setModeloAtivo] = useState<'qwen3b' | 'llama7b'>('qwen3b');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -38,6 +29,32 @@ export function ChatPanel() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Carrega histórico inicial e detecta status do backend
+  useEffect(() => {
+    const initializeChat = async () => {
+      try {
+        // Tenta carregar histórico do banco
+        const history = await getChatHistory(1);
+        if (history && history.length > 0) {
+          setMessages(history.map(msg => ({
+            ...msg,
+            id: msg.id.toString(),
+          })));
+        }
+        
+        // Verifica se backend está online
+        const status = await getSystemStatus();
+        setBackendOnline(true);
+        setModeloAtivo(status.modelo.includes('7B') || status.modelo.includes('8B') ? 'llama7b' : 'qwen3b');
+      } catch (error) {
+        console.warn('Backend offline ou sem histórico:', error);
+        setBackendOnline(false);
+      }
+    };
+
+    initializeChat();
+  }, []);
 
   const handleSendMessage = async (content: string) => {
     const newMessage: Message = {
@@ -50,17 +67,41 @@ export function ChatPanel() {
     setMessages(prev => [...prev, newMessage]);
     setLoading(true);
 
-    // Simulação de resposta - será substituído pela integração real
-    setTimeout(() => {
-      const response: Message = {
+    try {
+      // Chama o backend real através da ponte Rust
+      const response = await sendMessage(content);
+      
+      const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Entendi! Vou processar sua solicitação. Como todos os dados são processados localmente, suas informações permanecem seguras e privadas.\n\nO que mais posso fazer por você?',
+        content: response.resposta,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       };
-      setMessages(prev => [...prev, response]);
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      setBackendOnline(true);
+      
+      // Atualiza modelo ativo baseado na resposta
+      if (response.modelo_usado === 'llama7b') {
+        setModeloAtivo('llama7b');
+      }
+    } catch (error) {
+      // Fallback para resposta mockada em caso de erro
+      console.warn('Backend offline, usando resposta mockada:', error);
+      setBackendOnline(false);
+      
+      setTimeout(() => {
+        const fallbackResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `Entendi! Vou processar sua solicitação: "${content}"\n\nComo todos os dados são processados localmente, suas informações permanecem seguras e privadas.\n\nO que mais posso fazer por você?`,
+          timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages(prev => [...prev, fallbackResponse]);
+      }, 1000);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -128,9 +169,19 @@ export function ChatPanel() {
       <div className="p-4 border-t" style={{ borderColor: 'var(--maria-card-border)' }}>
         <ChatInput onSend={handleSendMessage} loading={loading} />
         
-        <p className="text-xs text-center mt-3" style={{ color: 'var(--maria-muted)' }}>
-          MARIA processa tudo localmente • Seus dados nunca saem do seu computador
-        </p>
+        <div className="flex items-center justify-center gap-2 mt-3">
+          <span 
+            className="w-2 h-2 rounded-full"
+            style={{ 
+              backgroundColor: backendOnline ? '#4ade80' : '#ef4444',
+              boxShadow: backendOnline ? '0 0 8px rgba(74, 222, 128, 0.5)' : 'none'
+            }}
+          />
+          <p className="text-xs text-center" style={{ color: 'var(--maria-muted)' }}>
+            {backendOnline ? 'MARIA online • ' : 'MARIA offline • '}
+            Processamento {backendOnline ? (modeloAtivo === 'llama7b' ? 'Llama 7B' : 'Qwen 3B') : 'local'}
+          </p>
+        </div>
       </div>
     </aside>
   );

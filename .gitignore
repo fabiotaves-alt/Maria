@@ -1,119 +1,57 @@
-# Python & Dependencies
-**/__pycache__/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.py[cod]
-*$py.class
-*.py.backup
-*.py.swp
-*.py.swo
-*.py.tmp
-*.py.log
-*.py.cache
-*.py.compiled
-*.py.bak
-*.py.save
-*.py~
-
-# Virtual Environments
-venv/
-.venv/
-env/
-ENV/
-.ENV/
-backend/venv/
-backend/.venv/
-
-
-.junie/
-
-
-# Build artifacts (Python & Generic)
-build/
-dist/
-*.egg-info/
-*.egg
-*.whl
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
-*.o
-*.obj
-*.a
-*.lib
-
-# Java / Maven
-**/target/
+```
+# Dependencies
+node_modules/
 target/
-frontend/target/
-frontend/maria-frontend/target/
-*.class
-.flattened-pom.xml
-.mvn/timing.properties
+**/Cargo.lock
 
-# Databases locais
-*.db
-*.db-wal
-*.db-shm
-*.sqlite
-*.sqlite3
-shared/*.db
-shared/*.db-wal
-shared/*.db-shm
-frontend/*.db
-frontend/*.db-wal
-frontend/*.db-shm
+# Build artifacts
+**/build/
+**/dist/
+**/*.rs.bk
+**/*.pyc
+**/__pycache__/
 
-# Logs
-*.log
-*.log.*
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-*~
-.swp
-.swo
-
-# Environment variables
+# Environment
 .env
 .env.local
 .env.*
-!.env.example
 
-# IDE specific
+# Editors
 .vscode/
 .idea/
-*.iml
-*.ipr
-*.iws
-.settings/
-.project
-.pydevproject
+*.swp
+*.swo
 
-# OS specific
-.DS_Store
-Thumbs.db
-desktop.ini
+# Logs
+*.log
 
-# Testing & Coverage
+# Coverage
 coverage/
 htmlcov/
 .coverage
-*.coverage
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
 
-# Distribution / packaging
+# Temp files
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Python specific
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
 .Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.nox/
+*.so
+*.egg-info/
+.eggs/
+
+# Rust specific
+**/target/
+Cargo.lock
+**/*.rs.bk
+
+# Tauri specific
+frontend-tauri/src-tauri/target/
+frontend-tauri/node_modules/
+frontend-tauri/src-tauri/Cargo.lock
+```

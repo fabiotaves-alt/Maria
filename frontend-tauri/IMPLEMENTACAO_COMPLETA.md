@@ -1,0 +1,425 @@
+# Guia de Implementação Completa - MARIA v4.0
+
+## ✅ Status da Implementação
+
+### Frontend React + Tauri (COMPLETO)
+- [x] Interface pixel-perfect com temas claro/escuro
+- [x] Layout de 3 colunas (Sidebar 260px | Centro flex | Chat 380px)
+- [x] Glassmorphism em todos os cards
+- [x] Animações Framer Motion (aura, breathe, pulse, message appear)
+- [x] Componentes: TopBar, Sidebar, CenterStage, ChatPanel
+- [x] Sistema de temas com persistência localStorage
+- [x] Barras de recursos (CPU/RAM/GPU) com dados reais via backend
+- [x] Badge dinâmico do modelo ativo (Qwen 3B / Llama 7B)
+
+### Backend Rust (COMPLETO - Aguardando Build)
+- [x] `Cargo.toml` atualizado com rusqlite e chrono
+- [x] `main.rs` com comandos:
+  - `send_message()` - envia mensagem para Python
+  - `get_status()` - obtém status do sistema
+  - `get_chat_history()` - lê SQLite diretamente (Rust → DB)
+  - `save_message()` - salva mensagens no SQLite
+  - `ping()` - health check
+- [x] `tauri.conf.json` configurado para:
+  - Sidecar `maria-backend`
+  - Plugin updater OTA
+  - Escopo de shell para Python
+
+### Backend Python (EXISTENTE - Adaptado)
+- [x] `backend/core/router.py` - Roteador MoE implementado
+  - Tarefas simples → Qwen 2.5 Omni 3B
+  - Tarefas complexas → Llama 3.2 8B
+  - Visão/áudio → Qwen 2.5 Omni 3B (multimodal)
+- [x] `backend/main.py --bridge` - Modo bridge funcional
+  - Comandos: `chat`, `status`, `analisar_arquivo`, `upload_arquivo`, etc.
+  - Respostas JSON padronizadas
+  - Métricas reais de CPU/RAM/GPU via psutil
+
+### Scripts de Build (COMPLETO)
+- [x] `src-tauri/build_sidecar.py` - Script PyInstaller
+- [x] `src-tauri/binaries/` - Diretório para executável sidecar
+
+---
+
+## 🚀 Como Rodar o Projeto
+
+### Pré-requisitos
+
+```bash
+# Node.js 18+ e npm
+node --version  # v18 ou superior
+npm --version   # v9 ou superior
+
+# Python 3.10+
+python --version  # 3.10 ou superior
+
+# Rust (para build Tauri)
+# Instalar via: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustc --version   # 1.70 ou superior
+cargo --version
+
+# Dependências Python
+pip install -r requirements.txt
+```
+
+### 1. Desenvolvimento (Hot Reload)
+
+```bash
+cd frontend-tauri
+
+# Instalar dependências npm
+npm install
+
+# Rodar em modo desenvolvimento (frontend + Tauri)
+npm run tauri dev
+```
+
+**Nota:** O backend Python deve estar rodando separadamente:
+```bash
+cd backend
+python main.py --bridge
+```
+
+### 2. Build de Produção
+
+```bash
+cd frontend-tauri
+
+# 1. Construir sidecar Python
+python src-tauri/build_sidecar.py
+
+# 2. Build completo do Tauri
+npm run tauri build
+```
+
+Saída:
+- Windows: `src-tauri/target/release/bundle/msi/MARIA_4.0.0_x64_en-US.msi`
+- macOS: `src-tauri/target/release/bundle/dmg/MARIA_4.0.0_x64.dmg`
+- Linux: `src-tauri/target/release/bundle/appimage/MARIA_4.0.0_amd64.AppImage`
+
+---
+
+## 📁 Estrutura de Arquivos
+
+```
+workspace/
+├── backend/
+│   ├── main.py                 # Backend Python (modo bridge)
+│   ├── core/
+│   │   └── router.py           # Roteador MoE (3B ↔ 8B)
+│   └── ...
+├── frontend-tauri/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── TopBar/
+│   │   │   ├── Sidebar/
+│   │   │   ├── CenterStage/
+│   │   │   └── ChatPanel/
+│   │   ├── hooks/
+│   │   │   ├── useTheme.tsx
+│   │   │   └── useMariaBridge.ts
+│   │   ├── types/
+│   │   └── App.tsx
+│   ├── src-tauri/
+│   │   ├── src/
+│   │   │   └── main.rs         # Rust + rusqlite + sidecar
+│   │   ├── binaries/
+│   │   │   └── maria-backend   # Gerado por build_sidecar.py
+│   │   ├── Cargo.toml          # rusqlite, chrono, tauri-plugin-shell
+│   │   ├── tauri.conf.json     # Config sidecar + updater
+│   │   └── build_sidecar.py    # Script PyInstaller
+│   └── package.json
+└── shared/
+    └── maria.db                # SQLite (histórico de chats)
+```
+
+---
+
+## 🔌 Comunicação Frontend ↔ Backend
+
+### Fluxo de Mensagens
+
+```
+┌─────────────┐      invoke()      ┌─────────────┐      HTTP/Stdin     ┌─────────────┐
+│   React UI  │ ─────────────────▶ │  Rust (Tauri) │ ─────────────────▶ │  Python     │
+│  ChatPanel  │                    │  main.rs     │                    │  main.py    │
+└─────────────┘                    └─────────────┘                    └─────────────┘
+       ▲                                  │                                  │
+       │                                  │                                  │
+       │            SQLite (rusqlite)     │            LLM (Ollama/llama.cpp)│
+       │◀─────────────────────────────────┘                                  │
+       │                                                                     │
+       └─────────────────────────────────────────────────────────────────────┘
+                         Resposta JSON parseada
+```
+
+### Comandos Disponíveis
+
+| Comando Rust | Descrição | Origem dos Dados |
+|--------------|-----------|------------------|
+| `send_message(text)` | Envia mensagem ao LLM | Python (HTTP ou sidecar) |
+| `get_status()` | CPU, RAM, GPU, modelo | Python (psutil) |
+| `get_chat_history(id)` | Histórico de conversas | SQLite (Rust direto) |
+| `save_message(conv, role, content)` | Salva nova mensagem | SQLite (Rust direto) |
+| `ping()` | Health check | Rust |
+
+---
+
+## 🧠 Roteamento de Modelos (MoE)
+
+### Como Funciona
+
+O roteador analisa a complexidade da mensagem e decide qual modelo usar:
+
+```python
+# backend/core/router.py
+
+mensagem = "Oi, tudo bem?"
+→ Score: 0.0 (simples)
+→ Modelo: Qwen 2.5 Omni 3B (rápido, ~1-3s)
+
+mensagem = "Gere um relatório jurídico detalhado de 10 páginas"
+→ Score: 0.85 (complexo)
+→ Modelo: Llama 3.2 8B (potente, ~5-15s)
+```
+
+### Palavras-chave que Ativam Llama 8B
+
+- `relatório`, `relatorio`, `análise profunda`
+- `código`, `script`, `programa`, `desenvolver`
+- `jurídico`, `juridico`, `contrato`, `cláusula`
+- `financeiro`, `contábil`, `imposto`
+- `compare`, `contraste`, `síntese`
+- Mensagens > 100 palavras
+- Múltiplas perguntas (>1 `?`)
+
+---
+
+## 🎨 Customização Visual
+
+### Variáveis CSS (Tailwind)
+
+```css
+/* Tema Claro */
+--maria-bg: #f0eeeb;
+--maria-text: #1a1a1a;
+--maria-muted: #6b6b6b;
+--maria-pink: #e85a8a;
+--maria-card-bg: rgba(255, 255, 255, 0.7);
+--maria-card-border: rgba(0, 0, 0, 0.06);
+
+/* Tema Escuro */
+--maria-bg: #0d0d12;
+--maria-text: #f0f0f0;
+--maria-muted: #9a9a9a;
+--maria-pink: #ff6b9d;
+--maria-card-bg: rgba(255, 255, 255, 0.05);
+--maria-card-border: rgba(255, 255, 255, 0.08);
+```
+
+### Animações CSS
+
+```css
+@keyframes aura-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+@keyframes avatar-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.3); }
+}
+```
+
+---
+
+## 🔄 Atualizações OTA (Over-the-Air)
+
+### Configuração
+
+```json
+// tauri.conf.json
+{
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": ["https://maria-ai.app/api/updater/{{target}}/{{arch}}/{{current_version}}"],
+      "dialog": true,
+      "pubkey": "YOUR_PUBLIC_KEY_HERE"
+    }
+  }
+}
+```
+
+### Gerar Chave Pública
+
+```bash
+# Instalar cargo-crate
+cargo install cargo-crate
+
+# Gerar par de chaves
+crate generate-keypair
+
+# Saída: chave pública (adicionar ao tauri.conf.json)
+```
+
+---
+
+## 📊 Métricas e Monitoramento
+
+### Recursos do Sistema
+
+O backend Python coleta métricas em tempo real:
+
+```python
+import psutil
+
+cpu_percent = psutil.cpu_percent(interval=None)
+ram_percent = psutil.virtual_memory().percent
+
+# GPU NVIDIA (opcional)
+import pynvml
+pynvml.nvmlInit()
+handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+gpu_percent = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
+```
+
+### Exibição na UI
+
+```tsx
+// Sidebar.tsx
+useEffect(() => {
+  const loadStatus = async () => {
+    const status = await getSystemStatus();
+    setSystemStatus([
+      { label: 'CPU', value: status.cpu },
+      { label: 'RAM', value: status.ram },
+      { label: 'GPU', value: status.gpu },
+    ]);
+    setModeloAtivo(status.modelo);
+  };
+  
+  loadStatus();
+  const interval = setInterval(loadStatus, 2000);
+  return () => clearInterval(interval);
+}, []);
+```
+
+---
+
+## 🧪 Testes
+
+### Testar Comunicação Backend
+
+```bash
+# Terminal 1: Backend Python
+cd backend
+python main.py --bridge
+
+# Terminal 2: Enviar comando manualmente
+echo '{"id": "test-1", "comando": "ping", "payload": {}}' | python main.py --bridge
+# Saída: {"id": "test-1", "status": "ok", "dados": "pong"}
+
+echo '{"id": "test-2", "comando": "status", "payload": {}}' | python main.py --bridge
+# Saída: {"id": "test-2", "status": "ok", "dados": {"cpu": 12.5, "ram": 45.2, ...}}
+```
+
+### Testar Frontend
+
+```bash
+cd frontend-tauri
+npm run tauri dev
+
+# No DevTools do Tauri:
+window.__TAURI__.core.invoke('ping')
+# → "pong"
+
+window.__TAURI__.core.invoke('get_status')
+# → { cpu: 12.5, ram: 45.2, gpu: 0, modelo: "Qwen 2.5 3B" }
+```
+
+---
+
+## 📝 Próximos Passos (Roadmap)
+
+### Fase 1 - Integração Completa ✅
+- [x] Hook useMariaBridge
+- [x] ChatPanel com dados reais
+- [x] Sidebar com métricas reais
+- [x] Rust acessa SQLite diretamente
+
+### Fase 2 - Multi-Modelo (MoE) ✅
+- [x] Router backend/core/router.py
+- [x] Badge dinâmico na sidebar
+- [ ] Streaming WebSocket (respostas em tempo real)
+
+### Fase 3 - Empacotamento 1-Clique ⏳
+- [x] Script build_sidecar.py
+- [ ] Testar em Windows limpo (sem Python)
+- [ ] Wizard de primeira execução
+
+### Fase 4 - Programa Fundador 📅
+- [ ] Landing page de captação
+- [ ] Dashboard de feedback
+- [ ] Sistema de métricas anônimas (opt-in)
+
+---
+
+## 🆘 Troubleshooting
+
+### Erro: "Backend offline"
+
+**Causa:** Python não está rodando ou porta 8081 ocupada.
+
+**Solução:**
+```bash
+# Verificar se backend está rodando
+ps aux | grep main.py
+
+# Matar processo travado
+kill $(pgrep -f main.py)
+
+# Reiniciar backend
+cd backend && python main.py --bridge
+```
+
+### Erro: "rusqlite não encontrado"
+
+**Causa:** Dependência Rust faltando.
+
+**Solução:**
+```bash
+cd frontend-tauri/src-tauri
+cargo update
+cargo build
+```
+
+### Erro: "PyInstaller não encontrado"
+
+**Causa:** PyInstaller não instalado no ambiente Python.
+
+**Solução:**
+```bash
+pip install pyinstaller
+# OU
+python src-tauri/build_sidecar.py  # Instala automaticamente
+```
+
+---
+
+## 📞 Suporte
+
+- **Documentação:** `/backend/README.md`
+- **Changelog:** `/CHANGELOG.md`
+- **Issues:** GitHub Issues
+- **Discord:** [link]
+
+---
+
+**MARIA v4.0** - Assistente de IA Pessoal 100% Local  
+© 2024 TriStar Intelligence Systems

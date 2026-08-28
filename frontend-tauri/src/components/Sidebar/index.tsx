@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   MessageCircle,
   FileText,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ResourceMetric } from '../../types';
+import { getSystemStatus } from '../../hooks/useMariaBridge';
 
 interface NavItem {
   id: string;
@@ -39,6 +40,29 @@ const resources: ResourceMetric[] = [
 
 export function Sidebar() {
   const [activeItem, setActiveItem] = useState('conversar');
+  const [systemStatus, setSystemStatus] = useState<ResourceMetric[]>(resources);
+  const [modeloAtivo, setModeloAtivo] = useState('Qwen 2.5 3B');
+
+  // Carrega status real do sistema a cada 2 segundos
+  useEffect(() => {
+    const loadStatus = async () => {
+      try {
+        const status = await getSystemStatus();
+        setSystemStatus([
+          { label: 'CPU', value: status.cpu },
+          { label: 'RAM', value: status.ram },
+          { label: 'GPU', value: status.gpu },
+        ]);
+        setModeloAtivo(status.modelo);
+      } catch (error) {
+        console.warn('Não foi possível carregar status do sistema:', error);
+      }
+    };
+
+    loadStatus();
+    const interval = setInterval(loadStatus, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <aside className="w-[260px] flex flex-col h-full border-r" style={{
@@ -98,11 +122,11 @@ export function Sidebar() {
         </h3>
 
         <div className="space-y-3">
-          {resources.map((resource) => (
+          {systemStatus.map((resource) => (
             <div key={resource.label} className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span style={{ color: 'var(--maria-text)' }}>{resource.label}</span>
-                <span style={{ color: 'var(--maria-muted)' }}>{resource.value}%</span>
+                <span style={{ color: 'var(--maria-muted)' }}>{Math.round(resource.value)}%</span>
               </div>
               <div className="h-1 rounded-full" style={{ background: 'rgba(0,0,0,0.06)' }}>
                 <motion.div
@@ -121,8 +145,15 @@ export function Sidebar() {
           <span className="text-[10px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--maria-muted)' }}>
             MODELO
           </span>
-          <p className="text-xs mt-1" style={{ color: 'var(--maria-text)' }}>
-            Llama 3.1 8B (via Ollama)
+          <p className="text-xs mt-1 flex items-center gap-2">
+            <span 
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ 
+                backgroundColor: modeloAtivo.includes('7B') || modeloAtivo.includes('8B') ? '#3b82f6' : 'var(--maria-pink)',
+                boxShadow: modeloAtivo.includes('7B') || modeloAtivo.includes('8B') ? '0 0 8px rgba(59, 130, 246, 0.5)' : '0 0 8px rgba(232, 90, 138, 0.5)'
+              }}
+            />
+            <span style={{ color: 'var(--maria-text)' }}>{modeloAtivo}</span>
           </p>
         </div>
       </div>
