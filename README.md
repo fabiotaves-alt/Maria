@@ -1,10 +1,12 @@
 # MARIA — Assistente de IA Pessoal 100% Local
 
-**MARIA** ("Modelo Assistente de Raciocínio e Inferência Aumentada") é uma assistente de IA de escritório que roda **100% localmente**, sem depender de internet após a instalação do modelo. Usa LLM local via **llama.cpp (llama-server)** com o modelo multimodal **Qwen2.5-Omni 3B** para conversa, function calling (criação/edição de planilhas Excel e documentos Word), leitura de arquivos, análise de imagens e transcrição de áudio — tudo em um único modelo, sem serviços externos.
+**MARIA** ("Modelo Assistente de Raciocínio e Inferência Aumentada") é uma assistente de IA de escritório que roda **100% localmente**, sem depender de internet após a instalação do modelo. 
 
----
+## ⚠️ Status: Em Migração para v4.0 (Tauri + React)
 
-## Arquitetura
+Este projeto está em transição ativa da arquitetura JavaFX (v3.x) para uma arquitetura moderna com **Tauri v2 + React + TypeScript**. Acompanhe o plano completo em [`docs/PLANO_MIGRACAO_TAURI_V4.md`](docs/PLANO_MIGRACAO_TAURI_V4.md).
+
+### 🔄 Arquitetura Atual (v3.x - Legado)
 
 Monorepo com dois processos independentes que se comunicam via IPC (stdin/stdout, protocolo JSON por linha) e banco SQLite compartilhado:
 
@@ -22,11 +24,73 @@ Monorepo com dois processos independentes que se comunicam via IPC (stdin/stdout
     └─────────────────┘                           └────────────────┘
 ```
 
+### 🚀 Nova Arquitetura (v4.0 - Em Desenvolvimento)
+
+```
+┌─────────────────────────┐   HTTP/Tauri IPC   ┌──────────────────────────┐
+│  Frontend Tauri + React │ ◄────────────────► │  Backend Python (MANTIDO)│
+│  Tailwind CSS + Framer  │    localhost:8081  │  (LlamaClient intacto)   │
+│  TypeScript + Zustand   │                    │  Python 3.11+            │
+└────────────┬────────────┘                    └───────────┬──────────────┘
+             │                                             │ HTTP localhost
+             │ Rust IPC (sidecar)                    ┌─────▼──────────┐
+             ▼                                       │  llama-server  │
+    ┌─────────────────┐                              │  :8080         │
+    │ shared/maria.db │ ◄─────────────────────────── │  Qwen2.5-Omni  │
+    └─────────────────┘                              └────────────────┘
+```
+
+**Principais Mudanças:**
+- **Frontend**: JavaFX 21 → Tauri v2 + React + TypeScript + Tailwind CSS
+- **Comunicação**: JSON-lines stdin/stdout → HTTP local (localhost:8081) + IPC nativo Tauri
+- **Design**: UI "de 2010" → Design moderno com glassmorphism, aura rosa e animações fluidas
+- **Instalação**: Manual e complexa → MSI one-click com Python embeddable e modelos pré-baixados
+- **Modelos**: Qwen 3.5B único → Arquitetura híbrida (3.5B + 8B + CodeQwen 7B com roteamento inteligente)
+
+---
+
+## Arquitetura Detalhada (v3.x - Versão Estável Atual)
+
 - **Frontend**: interface JavaFX 21 com 8 abas (Conversar, Arquivos, Análise de Dados, Visão, Voz, Memória, Automações, Configurações), tema claro/escuro dinâmico e bridge para o backend.
 - **Backend**: `LlamaClient` (API OpenAI-compatible) conectado ao llama-server com histórico de contexto, prompt de sistema em pt-BR anti-alucinação, function calling com confirmação, suporte multimodal (imagem + áudio), geração de arquivos reais e persistência de sessões.
 - **Banco de Dados**: SQLite compartilhado em `shared/maria.db` com schema canônico definido em `shared/schema.sql` (WAL mode e integridade referencial com ON DELETE CASCADE).
 
 ## Estrutura de Pastas
+
+### v4.0 (Nova Arquitetura - Em Desenvolvimento)
+
+```
+maria/
+├── README.md                  ← este arquivo
+├── requirements.txt           ← dependências Python consolidadas
+├── .venv/                     ← ambiente virtual Python (raiz do monorepo)
+├── docs/                      ← documentação técnica e relatórios
+│   ├── PLANO_MIGRACAO_TAURI_V4.md  ← plano completo de migração
+│   └── ...                    ← demais documentos técnicos
+├── shared/                    ← banco SQLite compartilhado e DDL
+│   ├── schema.sql             ← schema canônico unificado em português
+│   └── maria.db               ← arquivo de banco de dados SQLite
+├── backend/                   ← MANTIDO (Python existente, intacto)
+│   ├── main.py                ← Modo bridge HTTP (porta 8081) + CLI
+│   ├── core/                  ← LlamaClient, tools, handlers (INTACTO)
+│   ├── database/              ← connection.py e schema.py
+│   ├── tests/                 ← 86 testes pytest (MANTIDOS)
+│   └── benchmark/             ← sistema de benchmark live
+└── frontend-tauri/            ← NOVO (substitui frontend/)
+    ├── src/                   ← React + TypeScript
+    │   ├── components/        ← Avatar, ChatInput, Sidebar, etc.
+    │   ├── pages/             ← 8 abas (Conversar, Arquivos, etc.)
+    │   ├── hooks/             ← useChat, useAudio, useFiles
+    │   ├── stores/            ← Zustand (estado global)
+    │   └── styles/            ← Tailwind CSS + aura rosa
+    ├── src-tauri/             ← Rust (Tauri v2)
+    │   ├── commands/          ← IPC: chat, files, system
+    │   └── sidecar.rs         ← Gerencia processo Python
+    ├── package.json
+    └── tauri.conf.json
+```
+
+### v3.x (Arquitetura Atual - Legado)
 
 ```
 maria/
@@ -58,7 +122,7 @@ maria/
 │   │   ├── test_maria.py      ← suíte de testes unitários (unittest)
 │   │   └── validate_llama_server.py ← smoke-test para o llama-server ao vivo
 │   └── benchmark/             ← sistema de benchmark live (opcional)
-└── frontend/
+└── frontend/                  ← LEGADO (será substituído por frontend-tauri/)
     ├── pom.xml                ← Maven (Java 21, JavaFX 21, SQLite JDBC, JUnit 5)
     └── src/
         ├── main/
@@ -76,15 +140,31 @@ maria/
 
 ## Pré-requisitos
 
+### Para v3.x (Versão Atual - JavaFX)
+
 | Requisito | Versão | Observação |
 |-----------|--------|------------|
-| Python | 3.11+ | venv na raiz (`.venv/`) |
+| Python | 3.11+ | venv na raiz (` .venv/`) |
 | llama.cpp | build recente | compilar com `-DGGML_CUDA=ON` (NVIDIA) ou Metal (macOS) |
 | Modelo GGUF | `qwen2_5-omni-3b-q4_k_m.gguf` | ~2.3 GB — ver seção Instalação |
 | JDK | 21 | OpenJDK / Temurin / Oracle JDK 21 |
 | Maven | 3.9+ | ou wrapper integrado da IDE |
 
-### Instalação
+### Para v4.0 (Nova Versão - Tauri + React)
+
+| Requisito | Versão | Observação |
+|-----------|--------|------------|
+| Python | 3.11+ | venv na raiz (` .venv/`) |
+| Node.js | 18+ | para frontend React |
+| Rust | 1.70+ | para Tauri v2 |
+| llama.cpp | build recente | compilar com `-DGGML_CUDA=ON` (NVIDIA) ou Metal (macOS) |
+| Modelos GGUF | Qwen2.5-Omni 3B + Llama 3.2 8B | Arquitetura híbrida multi-modelo |
+
+> **Nota:** A versão v4.0 eliminará a necessidade de JDK e Maven, simplificando significativamente a instalação.
+
+---
+
+### Instalação (v3.x - Versão Atual)
 
 ```bash
 # 1. Ambiente Python (na raiz do monorepo)
@@ -118,7 +198,9 @@ LLAMA_NUM_CTX=8192
 
 ## Como Executar
 
-### Frontend JavaFX (interface gráfica)
+### v3.x (Versão Atual - JavaFX)
+
+#### Frontend JavaFX (interface gráfica)
 
 ```bash
 cd frontend
@@ -127,7 +209,7 @@ mvn javafx:run
 
 O frontend detecta o SO e inicia automaticamente o processo Python (`backend/main.py --bridge`) e valida a conexão com handshake ping/pong.
 
-### Backend via CLI (terminal)
+#### Backend via CLI (terminal)
 
 ```bash
 .venv\Scripts\python.exe backend\main.py
@@ -135,7 +217,7 @@ O frontend detecta o SO e inicia automaticamente o processo Python (`backend/mai
 
 Comandos da CLI: `ajuda`, `limpar`, `retomar` (retoma sessão salva), `sair`.
 
-### Backend modo bridge (usado pelo frontend)
+#### Backend modo bridge (usado pelo frontend)
 
 ```bash
 .venv\Scripts\python.exe backend\main.py --bridge
@@ -143,7 +225,7 @@ Comandos da CLI: `ajuda`, `limpar`, `retomar` (retoma sessão salva), `sair`.
 
 Protocolo: `{"id": "1", "comando": "ping"}` → `{"id": "1", "status": "ok", "dados": "pong", "mensagemErro": null}`. Comandos suportados: `ping`, `chat`, `encerrar`, `salvar_memoria`, `listar_memoria`, `deletar_memoria`, `limpar_memorias`, `criar_automacao`, `listar_automacoes`, `deletar_automacao`, `toggle_automacao`, etc.
 
-### Testes
+#### Testes
 
 ```bash
 # Testes do Backend (unittest)
@@ -156,6 +238,46 @@ Protocolo: `{"id": "1", "comando": "ping"}` → `{"id": "1", "status": "ok", "da
 cd frontend
 mvn test
 ```
+
+---
+
+### v4.0 (Nova Versão - Em Desenvolvimento)
+
+> **Nota:** A documentação completa de instalação e execução da versão v4.0 será adicionada quando o frontend Tauri estiver funcional. Consulte [`docs/PLANO_MIGRACAO_TAURI_V4.md`](docs/PLANO_MIGRACAO_TAURI_V4.md) para detalhes do roadmap.
+
+**Fluxo previsto:**
+
+```bash
+# Frontend Tauri (desenvolvimento)
+cd frontend-tauri
+npm install
+npm run tauri dev
+
+# Build para produção (instalador MSI/DEB)
+npm run tauri build
+```
+
+O instalador one-click incluirá:
+- Python embeddable (sem necessidade de instalar Python separadamente)
+- Modelos GGUF pré-baixados (3B + 8B)
+- Backend Python configurado como sidecar Tauri
+- Banco SQLite inicializado automaticamente
+
+---
+
+## Roadmap de Migração
+
+| Fase | Versão | Status | Descrição |
+|------|--------|--------|-----------|
+| Fase 1 | v3.3 | 📋 Planejado | UI Tauri + React pixel-perfect com aura rosa |
+| Fase 2 | v3.4 | 📋 Planejado | Roteamento inteligente de modelos (3B ↔ 8B) |
+| Fase 3 | v3.5 | 📋 Planejado | Instalador one-click (MSI/DEB/AppImage) |
+| Fase 4 | v3.6 | 📋 Planejado | Voz da MARIA (TTS + STT + avatar animado) |
+| Fase 5 | v4.0 | 📋 Planejado | Lançamento Parceiro Fundador (10 empresas piloto) |
+
+Para detalhes completos, veja [`docs/PLANO_MIGRACAO_TAURI_V4.md`](docs/PLANO_MIGRACAO_TAURI_V4.md).
+
+---
 
 ## Licença
 
