@@ -1,75 +1,119 @@
-```
-# Dependencies
-node_modules/
-
-# Build artifacts
-dist/
-build/
-target/
-
-# Tauri specific
-**/tauri.conf.json
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Logs
-*.log
-
-# Temp files
-*.tmp
-
-# Python
+# Python & Dependencies
+**/__pycache__/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-env/
+*.py[cod]
+*$py.class
+*.py.backup
+*.py.swp
+*.py.swo
+*.py.tmp
+*.py.log
+*.py.cache
+*.py.compiled
+*.py.bak
+*.py.save
+*.py~
+
+# Virtual Environments
 venv/
 .venv/
-pip-log.txt
-pip-delete-this-directory.txt
+env/
+ENV/
+.ENV/
+backend/venv/
+backend/.venv/
+
+
+.junie/
+
+
+# Build artifacts (Python & Generic)
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
 *.so
-.PyCharmCache/
+*.dylib
+*.dll
+*.exe
+*.out
+*.o
+*.obj
+*.a
+*.lib
+
+# Java / Maven
+**/target/
+target/
+frontend/target/
+frontend/maria-frontend/target/
+*.class
+.flattened-pom.xml
+.mvn/timing.properties
+
+# Databases locais
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+shared/*.db
+shared/*.db-wal
+shared/*.db-shm
+frontend/*.db
+frontend/*.db-wal
+frontend/*.db-shm
+
+# Logs
+*.log
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+.swp
+.swo
+
+# Environment variables
+.env
+.env.local
+.env.*
+!.env.example
+
+# IDE specific
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.project
+.pydevproject
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testing & Coverage
+coverage/
+htmlcov/
+.coverage
+*.coverage
 .pytest_cache/
 .mypy_cache/
-.coverage
-htmlcov/
+.hypothesis/
 
-# Node.js
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-node_modules/
-jspm_packages/
-*.tsbuildinfo
-.nyc_output
-coverage/
-.nyc_output/
-coverage/
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-Icon?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Windows
-Desktop.ini
-$RECYCLE.BIN/
-Thumbs.db
-```
+# Distribution / packaging
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
