@@ -10,7 +10,7 @@ Tabelas:
 - configuracoes: preferências (tema, modelo, etc.)
 """
 
-from database.connection import get_connection, close_connection
+from backend.database.connection import get_connection, close_connection
 
 
 def init_db():
@@ -119,7 +119,7 @@ def init_db():
         INSERT OR IGNORE INTO configuracoes (chave, valor, descricao)
         VALUES 
             ('tema_escuro', 'true', 'Usar tema escuro na interface'),
-            ('modelo_ollama', 'qwen3.5:4b', 'Modelo padrão do Ollama'),
+            ('modelo_llama', 'qwen2.5-omni-3b', 'Modelo padrão do llama-server'),
             ('idioma', 'pt-BR', 'Idioma da interface'),
             ('notificacoes_som', 'true', 'Emitir sons de notificação')
     """)
