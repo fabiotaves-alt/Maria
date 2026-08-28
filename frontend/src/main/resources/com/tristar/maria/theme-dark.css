@@ -88,7 +88,7 @@
     -fx-font-size: 12px;
 }
 
-/* ── Sidebar (Glassmorphism + Detalhe Rosa) ───────────── */
+/* ── Sidebar (Glassmorphism + Detalhe Rosa Elegante no Lado Esquerdo) ─── */
 .sidebar {
     -fx-background-color: rgba(20, 25, 34, 0.85);
     -fx-border-color: transparent rgba(255,255,255,0.08) transparent transparent;
@@ -99,35 +99,54 @@
 .sidebar .logo { -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #ffffff; }
 .sidebar .logo-sub { -fx-font-size: 11px; -fx-text-fill: #8b96aa; }
 
-/* Itens do menu lateral */
+/* Itens do menu lateral da Sidebar (Botões com detalhe apenas no lado esquerdo) */
+.sidebar .menu-item,
+.menu-item.button,
 .menu-item {
     -fx-background-color: transparent;
     -fx-text-fill: #8b96aa;
     -fx-font-size: 14px;
-    -fx-padding: 10 16;
-    -fx-pref-height: 44;
-    -fx-min-height: 44;
-    -fx-max-height: 44;
+    -fx-font-weight: 500;
+    -fx-padding: 10 14;
+    -fx-pref-height: 42;
+    -fx-min-height: 42;
+    -fx-max-height: 42;
     -fx-pref-width: Infinity;
     -fx-max-width: Infinity;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
+    -fx-background-radius: 0 8 8 0;
+    -fx-border-radius: 0 8 8 0;
     -fx-alignment: CENTER_LEFT;
     -fx-cursor: hand;
-    -fx-border-color: transparent;
-    -fx-border-width: 2;
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 0 3.5;
+    -fx-effect: null;
 }
+
+.sidebar .menu-item:hover,
+.menu-item.button:hover,
 .menu-item:hover {
-    -fx-background-color: rgba(255, 255, 255, 0.06);
+    -fx-background-color: rgba(255, 255, 255, 0.05);
     -fx-text-fill: #ffffff;
+    -fx-border-color: transparent transparent transparent rgba(224, 93, 138, 0.45);
+    -fx-border-width: 0 0 0 3.5;
+    -fx-border-radius: 0 8 8 0;
+    -fx-background-radius: 0 8 8 0;
+    -fx-effect: null;
 }
+
+/* Item Selecionado: suave degradê transparente e detalhe rosa nítido na borda esquerda */
+.sidebar .menu-item-selected,
+.menu-item-selected.button,
+.menu-item-selected.button:hover,
 .menu-item-selected {
-    -fx-background-color: linear-gradient(to right, rgba(224, 93, 138, 0.22), transparent);
-    -fx-text-fill: #f2a2bb;
+    -fx-background-color: linear-gradient(to right, rgba(224, 93, 138, 0.16) 0%, rgba(224, 93, 138, 0.03) 40%, transparent 100%);
+    -fx-text-fill: #ffffff;
     -fx-font-weight: bold;
     -fx-border-color: transparent transparent transparent #e05d8a;
-    -fx-border-width: 0 0 0 3;
+    -fx-border-width: 0 0 0 3.5;
     -fx-border-radius: 0 8 8 0;
+    -fx-background-radius: 0 8 8 0;
+    -fx-effect: dropshadow(gaussian, rgba(224,93,138,0.25), 6, 0.2, 0, 0);
 }
 
 /* ── Cards do Sidebar ─────────────────────────────────── */
@@ -256,7 +275,7 @@
     -fx-effect: dropshadow(gaussian, rgba(224,93,138,0.55), 20, 0.45, 0, 5);
 }
 
-/* ── Botões Gerais ────────────────────────────────────── */
+/* ── Botões Padrão na Interface Principal ──────────────── */
 .button {
     -fx-background-color: rgba(28, 28, 40, 0.85);
     -fx-text-fill: #ffffff;
@@ -273,7 +292,7 @@
     -fx-effect: dropshadow(gaussian, rgba(224,93,138,0.45), 12, 0.35, 0, 2);
 }
 
-/* ── Painel de Chat ─────────────────────────────────────── */
+/* ── Painel de Chat ───────────────────────────────────── */
 .chat-panel {
     -fx-background-color: rgba(20, 25, 34, 0.85);
     -fx-background-radius: 20 0 0 20;
@@ -370,7 +389,7 @@
     -fx-text-fill: #f2a2bb;
 }
 
-/* ── Status Bar ────────────────────────────────────────── */
+/* ── Status Bar ───────────────────────────────────────── */
 .status-bar {
     -fx-background-color: transparent;
     -fx-padding: 6 16;
