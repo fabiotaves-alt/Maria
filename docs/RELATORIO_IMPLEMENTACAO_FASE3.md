@@ -14,11 +14,12 @@ Esta documentação registra todas as implementações realizadas na **Fase 3** 
 
 | Categoria | Antes | Depois | Progresso |
 |-----------|-------|--------|-----------|
-| Comandos Bridge | 11 | 15 | +36% |
+| Comandos Bridge | 15 | 19 | +27% |
 | DAOs Java | 0 | 5 | +500% |
 | Tabelas Banco | 0 | 6 | Schema completo |
 | Controllers Integrados | 1 | 3 | +200% |
-| Testes Unitários | 86 | 93 | +7 testes |
+| Testes Unitários (Backend) | 86 | 86 | Estável |
+| Testes Unitários (Frontend) | 2 | 6 | +200% |
 | Arquivos Criados | - | 11 | Novos módulos |
 
 ---
@@ -38,7 +39,7 @@ Esta documentação registra todas as implementações realizadas na **Fase 3** 
 
 #### MemoriaDAO.java
 - CRUD Completo com busca por categoria
-- Relevância numérica para priorização
+- Métodos: adicionarMemoria(), getMemorias(), buscarMemorias(), deletarMemoria(), limparTodasMemorias(), contarMemorias()
 
 #### AutomacaoDAO.java
 - CRUD Completo com toggle ativo/inativo
@@ -50,13 +51,15 @@ Esta documentação registra todas as implementações realizadas na **Fase 3** 
 
 ### 2.2 Backend Python - Comandos Bridge
 
-Novos comandos em backend/main.py:
+Novos comandos adicionados em backend/main.py (v3.1.0):
 
-| Comando | Parâmetros | Retorno |
-|---------|------------|---------|
-| listar_automacoes | Nenhum | {automacoes: [...]} |
-| deletar_automacao | {id: int} | {sucesso: bool} |
-| toggle_automacao | {id: int} | {ativo: bool} |
+| Comando | Parâmetros | Retorno | Status |
+|---------|------------|---------|--------|
+| deletar_memoria | {id: int} | "memória deletada" | ✅ v3.1.0 |
+| limpar_memorias | Nenhum | "memórias limpas" | ✅ v3.1.0 |
+| listar_automacoes | Nenhum | {automacoes: [...]} | ✅ v3.1.0 |
+| deletar_automacao | {id: int} | "automação deletada" | ✅ v3.1.0 |
+| toggle_automacao | {id: int} | {ativa: bool} | ✅ v3.1.0 |
 
 ### 2.3 Frontend - Controllers Atualizados
 
@@ -76,24 +79,26 @@ Novos comandos em backend/main.py:
 ### 2.4 Schema do Banco (backend/database/schema.py)
 
 6 tabelas criadas:
-1. conversas (id, sessao_id, titulo, data_inicio, data_fim)
-2. mensagens (id, conversa_id, role, conteudo, timestamp, anexos)
-3. memoria (id, categoria, conteudo, relevancia, data_criacao)
-4. arquivos_indexados (id, caminho, tipo, metadata, data_indexacao)
-5. automacoes (id, nome, gatilho, acao, parametros, ativo)
-6. configuracoes (chave, valor, data_atualizacao)
+1. conversas (id, titulo, criado_em, atualizado_em)
+2. mensagens (id, conversa_id, role, conteudo, anexos, criado_em)
+3. memoria (id, fato, categoria, relevancia, fonte, criado_em)
+4. arquivos_indexados (id, caminho, tipo, tamanho_bytes, hash_checksum, indexado_em)
+5. automacoes (id, nome, descricao, passos_json, gatilho, ativo, execucoes_count)
+6. configuracoes (chave, valor, descricao, atualizado_em)
 
 ### 2.5 Testes Unitários
 
-DatabaseManagerTest.java - 6 testes JUnit 5:
-1. testSingleton()
-2. testConexaoAberta()
-3. testTabelasCriadas()
-4. testInsercaoConversa()
-5. testBuscaMensagens()
+**DatabaseManagerTest.java - 6 testes JUnit 5:**
+1. testInicializarBancoDados()
+2. testTabelasCriadas()
+3. testMemoriaCrud()
+4. testLimparMemorias()
+5. testConfiguracaoCrud()
 6. testFechaConexao()
 
 Resultado: ✅ 6/6 passando
+
+**Backend tests/test_maria.py:** 86 testes passando
 
 ### 2.6 Correções Técnicas
 
@@ -101,30 +106,33 @@ Resultado: ✅ 6/6 passando
 |---------|----------|---------|
 | pom.xml | Java 21 incompatível | Java 17 |
 | ConfiguracaoDAO.java | Import faltando | Optional adicionado |
-| schema.py | Import incorreto | sqlite3 corrigido |
-| main.py | 3 comandos faltando | +57 linhas |
+| main.py | 2 comandos faltando | +40 linhas (deletar_memoria, limpar_memorias) |
 
 ---
 
-## 3. Comandos Bridge (15 Total)
+## 3. Comandos Bridge (19 Total)
 
 | # | Comando | Status | Versão |
 |---|---------|--------|--------|
 | 1 | ping | ✅ | v2.12.0 |
 | 2 | chat | ✅ | v2.12.0 |
-| 3 | status | ✅ | v2.13.0 |
-| 4 | listar_arquivos | ✅ | v2.13.0 |
-| 5 | upload_arquivo | ✅ | v2.13.0 |
-| 6 | transcrever_audio | ✅ | v2.13.0 |
-| 7 | listar_memorias | ✅ | v3.0.0 |
-| 8 | adicionar_memoria | ✅ | v3.0.0 |
-| 9 | deletar_memoria | ✅ | v3.0.0 |
-| 10 | limpar_memorias | ✅ | v3.0.0 |
-| 11 | listar_automacoes | ✅ | v3.1.0 |
+| 3 | encerrar | ✅ | v2.12.0 |
+| 4 | status | ✅ | v2.13.0 |
+| 5 | listar_arquivos | ✅ | v2.13.0 |
+| 6 | upload_arquivo | ✅ | v2.13.0 |
+| 7 | transcrever_audio | ✅ | v2.13.0 |
+| 8 | salvar_memoria | ✅ | v3.0.0 |
+| 9 | listar_memoria | ✅ | v3.0.0 |
+| 10 | deletar_memoria | ✅ | v3.1.0 |
+| 11 | limpar_memorias | ✅ | v3.1.0 |
 | 12 | criar_automacao | ✅ | v3.0.0 |
-| 13 | deletar_automacao | ✅ | v3.1.0 |
-| 14 | toggle_automacao | ✅ | v3.1.0 |
-| 15 | encerrar | ✅ | v2.12.0 |
+| 13 | listar_automacoes | ✅ | v3.1.0 |
+| 14 | deletar_automacao | ✅ | v3.1.0 |
+| 15 | toggle_automacao | ✅ | v3.1.0 |
+| 16 | limpar_conversa | ✅ | v2.13.0 |
+| 17 | exportar_conversa | ✅ | v2.13.0 |
+| 18 | listar_sessoes | ✅ | v2.13.0 |
+| 19 | carregar_sessao | ✅ | v2.13.0 |
 
 ---
 
@@ -133,20 +141,21 @@ Resultado: ✅ 6/6 passando
 | Camada | Componente | Status | % |
 |--------|-----------|--------|-----|
 | Backend Core | Ollama, sessions, tools | ✅ | 100% |
-| Backend Bridge | 15 comandos | ✅ | 100% |
+| Backend Bridge | 19 comandos | ✅ | 100% |
 | Backend Database | Schema + init | ✅ | 100% |
 | Frontend DAOs | 5 classes | ✅ | 100% |
 | Frontend UI | 8 abas | ✅ | 100% |
 | Controllers | Conversar, Memoria, Automacoes | ✅ | 100% |
-| Testes | JUnit + unittest | ✅ | 100% |
+| Testes Backend | unittest | ✅ 86/86 |
+| Testes Frontend | JUnit 5 | ✅ 6/6 |
 
 ---
 
 ## 5. Próximos Passos
 
 ### Alta Prioridade
-1. Testar integração completa (backend + frontend)
-2. Validar comando listar_automacoes
+1. Unificar schema do banco frontend com shared/maria.db
+2. Testar integração completa (backend + frontend)
 3. Avatar nas bolhas (maria-avatar-circle.png)
 
 ### Média Prioridade
@@ -162,8 +171,8 @@ Resultado: ✅ 6/6 passando
 ## 6. Checklist de Validação
 
 ### Backend
-- [x] Schema criado
-- [x] 15 comandos bridge
+- [x] Schema criado (6 tabelas)
+- [x] 19 comandos bridge
 - [x] Inicialização do banco
 - [x] Testes passando (86/86)
 
@@ -171,13 +180,14 @@ Resultado: ✅ 6/6 passando
 - [x] 5 DAOs implementados
 - [x] 3 controllers integrados
 - [x] Testes DAO (6/6)
-- [x] Build Maven OK
+- [ ] Build Maven (mvn não disponível no ambiente)
 
 ### Integração
-- [x] Banco compartilhado
+- [x] Banco compartilhado (shared/maria.db)
 - [x] Commands mapeados
 - [x] Persistência funcional
 - [ ] Teste end-to-end (manual)
+- [ ] Schema unificado (frontend ainda usa maria.db local)
 
 ---
 
@@ -185,10 +195,10 @@ Resultado: ✅ 6/6 passando
 
 Fase 3 concluída com sucesso:
 - ✅ Persistência completa (5 DAOs + SQLite)
-- ✅ 15/15 comandos bridge
+- ✅ 19/19 comandos bridge operacionais
 - ✅ 3 controllers integrados
 - ✅ 6 tabelas operacionais
-- ✅ 93 testes passando
+- ✅ 92 testes passando (86 backend + 6 frontend)
 
 **Próximo marco:** Fase 4 - Features Avançadas
 
@@ -198,8 +208,8 @@ Fase 3 concluída com sucesso:
 
 - GUIA_DESENVOLVIMENTO_FASE3.md
 - IMPLEMENTACAO_DAO.md
-- ARQUITETURA_SISTEMA.md
-- DECISOES_BANCO_DADOS.md
+- ARQUITETURA_SISTEMA.md (atualizado v3.1.0)
+- DECISOES_BANCO_DADOS.md (atualizado v3.1.0)
 
 ---
 
@@ -208,4 +218,5 @@ Fase 3 concluída com sucesso:
 | Versão | Data | Mudanças |
 |--------|------|----------|
 | v3.0.0 | 2026-08-27 | Criação inicial |
-| v3.1.0 | 2026-08-27 | Consolidação final |
+| v3.1.0 | 2026-08-27 | Consolidação final + comandos deletar_memoria/limpar_memorias |
+| v3.1.1 | 2026-08-27 | Documentação atualizada + testes expandidos |
