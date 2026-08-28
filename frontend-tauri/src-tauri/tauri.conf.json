@@ -33,11 +33,34 @@
       "icons/128x128.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "externalBin": ["binaries/maria-backend"]
   },
   "plugins": {
     "shell": {
-      "scope": []
+      "scope": [
+        {
+          "name": "maria-backend",
+          "sidecar": true
+        },
+        {
+          "name": "python",
+          "cmd": "python",
+          "args": true
+        },
+        {
+          "name": "python3",
+          "cmd": "python3",
+          "args": true
+        }
+      ],
+      "sidecar": true
+    },
+    "updater": {
+      "active": true,
+      "endpoints": ["https://maria-ai.app/api/updater/{{target}}/{{arch}}/{{current_version}}"],
+      "dialog": true,
+      "pubkey": "YOUR_PUBLIC_KEY_HERE"
     }
   }
 }
