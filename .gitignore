@@ -1,53 +1,119 @@
-```
-# Dependencies
-node_modules/
+# Python & Dependencies
+**/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*$py.class
+*.py.backup
+*.py.swp
+*.py.swo
+*.py.tmp
+*.py.log
+*.py.cache
+*.py.compiled
+*.py.bak
+*.py.save
+*.py~
 
-# Build artifacts
-frontend-tauri/node_modules/
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+.ENV/
+backend/venv/
+backend/.venv/
+
+
+.junie/
+
+
+# Build artifacts (Python & Generic)
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.o
+*.obj
+*.a
+*.lib
+
+# Java / Maven
+**/target/
+target/
+frontend/target/
+frontend/maria-frontend/target/
+*.class
+.flattened-pom.xml
+.mvn/timing.properties
+
+# Databases locais
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+shared/*.db
+shared/*.db-wal
+shared/*.db-shm
+frontend/*.db
+frontend/*.db-wal
+frontend/*.db-shm
+
+# Logs
+*.log
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+.swp
+.swo
 
 # Environment variables
 .env
 .env.local
-*.env.*
+.env.*
+!.env.example
 
-# IDE and editor files
+# IDE specific
 .vscode/
 .idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.project
+.pydevproject
 
-# OS generated files
+# OS specific
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Logs
-*.log
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
+# Testing & Coverage
 coverage/
-*.lcov
+htmlcov/
+.coverage
+*.coverage
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
 
-# Temporary folders
-tmp/
-temp/
-
-# Tauri build outputs
-frontend-tauri/src-tauri/target/
-frontend-tauri/dist/
-
-# Rust-specific
-Cargo.lock
-target/
-
-# TypeScript/JavaScript build outputs
-*.js.map
-*.d.ts.map
-*.tsbuildinfo
-
-# Local development
-.nyc_output/
-```
+# Distribution / packaging
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
