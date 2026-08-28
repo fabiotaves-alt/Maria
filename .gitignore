@@ -14,7 +14,6 @@ __pycache__/
 *.py.compiled
 *.py.bak
 *.py.save
-*.py~
 
 # Virtual environments
 venv/
