@@ -1,50 +1,57 @@
 # Arquitetura do Sistema — MARIA
 
-**Versão:** v3.1.0  
-**Última atualização:** 2026-08-28  
-**Status da Fase:** ✅ Fase 3 Concluída (Integração Backend-Frontend & Schema Unificado)
+**Versão:** v4.0.0  
+**Última atualização:** 2026-08-29  
+**Status da Fase:** 🔄 Em Migração para v4.0 (Tauri + React) - Frontend JavaFX é legado
 
-Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo o modelo LLM configurado (`qwen3.5:4b`) e a estrutura implementada no monorepo.
+Este documento descreve a arquitetura atual do sistema MARIA. O projeto está em transição ativa da arquitetura JavaFX (v3.x - legado) para uma arquitetura moderna com **Tauri v2 + React + TypeScript**.
 
 ---
 
 ## 1. Visão Geral
 
-**MARIA** ("Modelo Assistente de Raciocínio e Inferência Aumentada") é uma assistente de IA de escritório que roda **100% localmente**, sem depender de internet após a instalação do modelo. O sistema consiste em dois processos independentes que se comunicam via IPC (stdin/stdout com protocolo JSON-lines) e banco SQLite compartilhado:
+**MARIA** ("Modelo Assistente de Raciocínio e Inferência Aumentada") é uma assistente de IA de escritório que roda **100% localmente**, sem depender de internet após a instalação do modelo. 
 
-- **Frontend**: JavaFX 21 (interface visual com navegação por 8 abas)
-- **Backend**: Python 3.11+ (LLM local via Ollama, lógica de negócio, ferramentas)
+### Arquitetura Atual (v4.0 - Tauri + React)
+
+O sistema consiste em:
+
+- **Frontend**: Tauri v2 + React + TypeScript (interface visual moderna com navegação por abas)
+- **Backend**: Python 3.11+ (LLM local via llama.cpp, lógica de negócio, ferramentas)
 - **Banco de Dados**: SQLite compartilhado (`shared/maria.db`) com schema canônico em `shared/schema.sql`
 
-### Diagrama de Arquitetura
+### Diagrama de Arquitetura (v4.0)
 
 ```
-┌─────────────────────────────────────┐   JSON-lines    ┌──────────────────────────────────┐
-│  Frontend JavaFX                    │ ◄─────────────► │  Backend Python                  │
-│  (com.tristar.maria)                │   stdin/stdout  │  (Ollama + ferramentas)          │
-│  Java 21 / JavaFX 21                │                 │  Python 3.11+                    │
-│                                     │                 │                                  │
-│  • App.java (entry point)           │                 │  • main.py (--bridge / CLI)      │
-│  • MainController (navegação)       │                 │  • ollama_client.py              │
-│  • ConversarController (chat)       │◄───────────────►│  • tools_schema.py               │
-│  • PythonBridgeService (comunicação)│                 │  • excel_handler.py              │
-│  • HeroController (tela inicial)    │                 │  • word_handler.py               │
-│  • 8 controllers de abas            │                 │  • session_storage.py            │
-│  • 5 DAOs (persistência)            │                 │  • database/schema.py            │
-└──────────────────┬──────────────────┘                 └────────────────┬─────────────────┘
-                   │                                                     │ HTTP localhost
-                   │ JDBC (WAL)                                          │
-                   ▼                                              ┌──────▼──────┐
-┌─────────────────────────────────────┐                           │   Ollama    │
-│  SQLite (shared/maria.db)           │◄──────────────────────────┤ qwen3.5:4b  │
-│  - conversas                        │     Shared Database       └─────────────┘
-│  - mensagens (ON DELETE CASCADE)    │       (WAL mode)
+┌─────────────────────────────────────┐   HTTP/Tauri IPC   ┌──────────────────────────────────┐
+│  Frontend Tauri + React             │ ◄────────────────► │  Backend Python                  │
+│  (React + TypeScript + Tailwind)    │    localhost:8081  │  (llama.cpp + ferramentas)       │
+│  Tauri v2 / Rust                    │                    │  Python 3.11+                    │
+│                                     │                    │                                  │
+│  • App.tsx (entry point)            │                    │  • main.py (--bridge / CLI)      │
+│  • TopBar (barra superior nativa)   │                    │  • llama_client.py               │
+│  • Sidebar (navegação)              │◄──────────────────►│  • tools_schema.py               │
+│  • ChatPanel (chat)                 │                    │  • excel_handler.py              │
+│  • CenterStage (hero)               │                    │  • word_handler.py               │
+│  • Hooks (useTheme, useMariaBridge) │                    │  • session_storage.py            │
+│                                     │                    │  • database/schema.py            │
+└────────────┬────────────────────────┘                    └────────────────┬─────────────────┘
+             │ Rust IPC (sidecar)                                          │ HTTP localhost
+             ▼                                                       ┌─────▼──────┐
+┌─────────────────────────────────────┐                                │  llama-    │
+│  SQLite (shared/maria.db)           │◄───────────────────────────────│  server    │
+│  - conversas                        │     Shared Database            │  :8080     │
+│  - mensagens (ON DELETE CASCADE)    │       (WAL mode)               └────────────┘
 │  - memoria                          │
 │  - arquivos_indexados               │
 │  - automacoes                       │
 │  - configuracoes                    │
 └─────────────────────────────────────┘
 ```
+
+### Nota sobre JavaFX (Legado v3.x)
+
+> ⚠️ **Atenção:** O frontend JavaFX foi descontinuado e está sendo mantido apenas como referência histórica. Todo o desenvolvimento ativo está focado na nova arquitetura Tauri + React. Consulte [`docs/arquivo/FRONTEND_JAVAFX_LEGADO.md`](arquivo/FRONTEND_JAVAFX_LEGADO.md) para documentação completa do frontend JavaFX.
 
 ---
 

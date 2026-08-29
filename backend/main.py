@@ -316,7 +316,7 @@ class MariaController:
 
 
 # ═════════════════════════════════════════════════════════════
-# Modo bridge (integração JavaFX ↔ Python)
+# Modo bridge (integração frontend ↔ Python)
 # ═════════════════════════════════════════════════════════════
 
 def _responder_bridge(identificador: str, status: str, dados=None, mensagem_erro: str | None = None):
@@ -370,7 +370,7 @@ def _get_system_status():
 
 def _modo_bridge(modelo: str | None = None):
     """
-    Modo de integração com o frontend JavaFX.
+    Modo de integração com o frontend (Tauri + React).
 
     Lê requisições JSON por linha do stdin no formato:
         {"id": "...", "comando": "...", "payload": {...}}
@@ -789,7 +789,7 @@ def main():
     parser.add_argument(
         "--bridge",
         action="store_true",
-        help="Executa em modo bridge (JSON por linha no stdin/stdout) para integração com o frontend JavaFX."
+        help="Executa em modo bridge (JSON por linha no stdin/stdout) para integração com o frontend Tauri."
     )
     args = parser.parse_args()
 
@@ -801,7 +801,7 @@ def main():
         print("Instale com: pip install requests\n")
         sys.exit(1)
 
-    # Modo bridge (frontend JavaFX)
+    # Modo bridge (frontend Tauri)
     if args.bridge:
         _modo_bridge(modelo=args.modelo)
         return
