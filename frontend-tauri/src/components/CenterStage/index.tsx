@@ -3,6 +3,7 @@ import { AuraBackground } from './AuraBackground';
 import { FeatureCards } from './FeatureCard';
 import { ActionBar } from './ActionBar';
 import mariaAvatar from '../../assets/maria-avatar.svg';
+import mariaLogo from '../../assets/maria-logo.svg';
 import { useTheme } from '../../hooks/useTheme';
 
 export function CenterStage() {
@@ -19,15 +20,17 @@ export function CenterStage() {
         <div className="flex flex-col gap-6">
           {/* Logo e subtítulo */}
           <div className="text-left">
-            <h1 
-              className="text-6xl font-light tracking-[0.2em] mb-3"
-              style={{ color: 'var(--maria-text)' }}
-            >
-              MARIA
-            </h1>
+            <img 
+              src={mariaLogo} 
+              alt="MARIA" 
+              className="h-16 w-auto mb-4"
+              style={{ 
+                filter: theme === 'light' ? 'brightness(0)' : 'brightness(2)',
+              }}
+            />
             <p 
               className="text-lg"
-              style={{ color: 'var(--maria-muted)' }}
+              style={{ color: 'var(--maria-text-muted)' }}
             >
               Sua assistente de IA pessoal e privada.
             </p>
