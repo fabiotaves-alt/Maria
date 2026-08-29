@@ -1,0 +1,7 @@
+   Compiling tauri v2.11.5
+   Compiling tauri-macros v2.6.3
+   Compiling maria-frontend v4.0.0 (C:\Users\betti\IdeaProjects\Maria\frontend-tauri\src-tauri)
+   Compiling tauri-plugin-fs v2.5.1
+   Compiling tauri-plugin-shell v2.3.5
+   Compiling tauri-plugin-dialog v2.7.2
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2m 37s

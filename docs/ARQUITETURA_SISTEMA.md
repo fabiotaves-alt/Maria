@@ -4,7 +4,7 @@
 **Última atualização:** 2026-08-28  
 **Status da Fase:** ✅ Fase 3 Concluída (Integração Backend-Frontend & Schema Unificado)
 
-Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo o modelo LLM configurado (`qwen3.5:4b`) e a estrutura implementada no monorepo.
+Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo o modelo LLM configurado (`qwen2.5-omni-3b` via llama-server como padrão em produção; `qwen3.5:4b` via Ollama mantido como caminho legado/opcional) e a estrutura implementada no monorepo. Consulte `backend/core/config.py` como fonte da verdade para configurações de modelo.
 
 ---
 
@@ -36,7 +36,7 @@ Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo 
                    │ JDBC (WAL)                                          │
                    ▼                                              ┌──────▼──────┐
 ┌─────────────────────────────────────┐                           │   Ollama    │
-│  SQLite (shared/maria.db)           │◄──────────────────────────┤ qwen3.5:4b  │
+│  SQLite (shared/maria.db)           │◄──────────────────────────┤ qwen3.5:4b (legado)│
 │  - conversas                        │     Shared Database       └─────────────┘
 │  - mensagens (ON DELETE CASCADE)    │       (WAL mode)
 │  - memoria                          │
@@ -126,3 +126,11 @@ Definido no arquivo [`shared/schema.sql`](../shared/schema.sql):
 | Frontend design | ✅ Implementado | Tema escuro com efeitos rosa e transições |
 | Testes Backend | ✅ 86/86 | pytest passando em 5.6s |
 | Testes Frontend | ✅ 8/8 | JUnit 5 passando |
+
+---
+
+## Nota sobre Modelos LLM
+
+- **Modelo padrão em produção:** `qwen2.5-omni-3b` via **llama-server** (`backend/core/llama_client.py`).
+- **Modelo legado/opcional:** `qwen3.5:4b` via **Ollama** (`backend/core/ollama_client.py`) — mantido apenas como caminho alternativo.
+- **Fonte da verdade:** `backend/core/config.py` — as constantes `LLAMA_MODEL` e `OLLAMA_MODEL` controlam o roteamento.

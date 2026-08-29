@@ -13,7 +13,6 @@ use tokio::process::Command;
 #[cfg(not(debug_assertions))]
 use std::process::Stdio;
 
-use chrono;
 #[cfg(debug_assertions)]
 use uuid;
 use rusqlite::{params, Connection, Result as SqliteResult};
@@ -114,6 +113,16 @@ async fn save_file(path: String, content: String) -> Result<(), String> {
         .map_err(|e| format!("Erro ao salvar arquivo: {}", e))
 }
 
+/// Garante que existe uma linha em `conversas` para o ID informado,
+/// evitando inserir mensagens órfãs em `mensagens`.
+fn garantir_conversa(conn: &Connection, conversation_id: i64) -> SqliteResult<()> {
+    conn.execute(
+        "INSERT OR IGNORE INTO conversas (id, titulo) VALUES (?1, 'Conversa Tauri')",
+        params![conversation_id],
+    )?;
+    Ok(())
+}
+
 /// Obtém histórico de chat do banco de dados SQLite (acesso direto via Rust)
 #[command]
 fn get_chat_history(conversation_id: i64) -> Result<Vec<Message>, String> {
@@ -124,9 +133,12 @@ fn get_chat_history(conversation_id: i64) -> Result<Vec<Message>, String> {
     let conn = Connection::open(&db_path)
         .map_err(|e| format!("Erro ao abrir banco de dados: {}", e))?;
 
+    conn.execute("PRAGMA foreign_keys = ON", [])
+        .map_err(|e| e.to_string())?;
+
     let mut stmt = conn.prepare(
-        "SELECT id, role, content, timestamp FROM messages 
-         WHERE conversation_id = ? ORDER BY timestamp ASC"
+        "SELECT id, role, conteudo AS content, criado_em AS timestamp \
+         FROM mensagens WHERE conversa_id = ?1 ORDER BY criado_em ASC"
     ).map_err(|e| e.to_string())?;
 
     let messages = stmt.query_map(params![conversation_id], |row| {
@@ -151,12 +163,14 @@ fn save_message(conversation_id: i64, role: String, content: String) -> Result<i
     
     let conn = Connection::open(&db_path)
         .map_err(|e| format!("Erro ao abrir banco de dados: {}", e))?;
+    conn.execute("PRAGMA foreign_keys = ON", [])
+        .map_err(|e| e.to_string())?;
 
-    let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-    
+    garantir_conversa(&conn, conversation_id).map_err(|e| e.to_string())?;
+
     conn.execute(
-        "INSERT INTO messages (conversation_id, role, content, timestamp) VALUES (?1, ?2, ?3, ?4)",
-        params![conversation_id, role, content, timestamp],
+        "INSERT INTO mensagens (conversa_id, role, conteudo) VALUES (?1, ?2, ?3)",
+        params![conversation_id, role, content],
     ).map_err(|e| format!("Erro ao inserir mensagem: {}", e))?;
 
     Ok(conn.last_insert_rowid())
@@ -259,3 +273,41 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn criar_banco_teste() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE conversas (id INTEGER PRIMARY KEY, titulo TEXT);
+             CREATE TABLE mensagens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                conversa_id INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                conteudo TEXT NOT NULL,
+                anexos TEXT,
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+             );"
+        ).unwrap();
+        conn
+    }
+
+    #[test]
+    fn test_garantir_conversa_e_insercao_de_mensagem() {
+        let conn = criar_banco_teste();
+        garantir_conversa(&conn, 1).unwrap();
+        conn.execute(
+            "INSERT INTO mensagens (conversa_id, role, conteudo) VALUES (?1, ?2, ?3)",
+            params![1, "user", "Olá"],
+        ).unwrap();
+
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM mensagens WHERE conversa_id = 1", [], |r| r.get(0)
+        ).unwrap();
+        assert_eq!(count, 1);
+    }
+}
+

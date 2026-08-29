@@ -2,6 +2,27 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.0.1] — Migração para Tauri + React (P0–P2)
+
+### 🔧 P0 — Bloqueadores críticos
+
+- **Servidor HTTP bridge no backend**: Implementado servidor Flask (`--bridge-http --porta 8081`) expor o protocolo bridge via REST em `http://127.0.0.1:8081/chat`. Função `_despachar_comando` unifica a lógica entre modo stdin/stdout (`_modo_bridge`) e servidor HTTP (`_criar_app_http`). Adicionadas dependências `flask>=3.0.0` e `flask-cors>=4.0.0` em `requirements.txt`.
+- **Corrigido schema SQLite no Rust**: `get_chat_history` e `save_message` agora utilizam tabelas `mensagens`/`conversas` (colunas `conversa_id`, `conteudo`, `criado_em`) conforme `shared/schema.sql`, com `PRAGMA foreign_keys = ON` e função `garantir_conversa`. Removida dependência `chrono` do `Cargo.toml`.
+
+### 🧹 P1 — Limpeza técnica
+
+- **Removido código órfão**: Deletado `frontend-tauri/src/pages/ConversarPage.tsx` (não importado por `App.tsx`).
+- **Migrado benchmark para LlamaClient**: `maria_runner.py` e `run_benchmark.py` agora importam de `backend/core/llama_client` em vez de `core.ollama_client`. Atualizado `README_benchmark.md` com instruções de llama-server.
+- **Corrigido requirements.txt**: Consolidado conteúdo na raiz do monorepo.
+
+### ✅ P2 — Completude
+
+- **Testes automatizados**: Adicionados testes Rust (`cargo test`) e TypeScript (`vitest run`) no frontend-tauri.
+- **Consolidada documentação**: Atualizados `docs/ARQUITETURA_SISTEMA.md`, `docs/DECISOES_BANCO_DADOS.md`, `docs/IMPLEMENTACAO_DAO.md` com notas sobre modelo padrão `qwen2.5-omni-3b` via llama-server e `qwen3.5:4b` como legado/opcional.
+- **Validado sidecar e instalador**: `build_sidecar.py` agora gera binário com suffixo do target triple (`maria-backend-<triple>[.exe]`) via `_obter_target_triple()`.
+
+---
+
 ## [4.0.0-alpha] — Em Desenvolvimento: Migração para Tauri + React
 
 ### 🚀 Nova Arquitetura (v4.0)

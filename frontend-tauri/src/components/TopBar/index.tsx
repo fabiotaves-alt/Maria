@@ -1,6 +1,6 @@
 import { Sun, Moon, Minus, Square, X } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
-import mariaLogo from '../../assets/maria-logo.svg';
+import mariaLogo from '../../assets/maria-logo.png';
 import { Window } from '@tauri-apps/api/window';
 
 export function TopBar() {

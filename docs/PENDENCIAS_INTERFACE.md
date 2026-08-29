@@ -10,7 +10,7 @@
 | Elemento | Onde aparece | Situação atual |
 |----------|-------------|----------------|
 | **Recursos do sistema (CPU/RAM/GPU)** | Sidebar → card "RECURSOS DO SISTEMA" | ✅ **Dados reais** via comando `status` do backend (psutil). Atualização a cada 5 segundos. Barras de progresso e labels dinâmicos. |
-| **MODO LOCAL / MODELO** | Topbar (labelModelo) | ✅ **Dinâmico**: Backend retorna modelo real (`qwen3.5:4b`) no comando `status`. Texto atualizado automaticamente. |
+| **MODO LOCAL / MODELO** | Topbar (labelModelo) | ✅ **Dinâmico**: Backend retorna modelo real (`qwen3.5:4b`, legado/opcional) no comando `status`. Texto atualizado automaticamente. |
 | **Ações rápidas (hero)** | Hero central → 4 botões | ✅ **Funcionais**: Preenchem campo de mensagem com prompts contextuais prontos para envio. |
 | **Anexar (📎)** | Input do chat | ✅ **Habilitado**: FileChooser abre, arquivo enviado via `upload_arquivo`, confirmação exibida no chat. |
 | **Voz (🎤)** | Input do chat | ✅ **Habilitado**: Gravação via `javax.sound.sampled`, envio para `transcrever_audio`, texto transcrito preenchido no campo. |

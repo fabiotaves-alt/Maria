@@ -63,7 +63,7 @@ Esta fase marca a transição do **MVP funcional** (v2.x) para o **produto compl
 │                   Backend Python                             │
 │  ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐  │
 │  │ main.py     │───│ MariaCtrl    │───│ OllamaClient     │  │
-│  │ (--bridge)  │   │ (Tools, Sess)│   │ (qwen3.5:4b)     │  │
+│  │ (--bridge)  │   │ (Tools, Sess)│   │ (qwen3.5:4b - legado)     │  │
 │  └─────────────┘   └──────────────┘   └──────────────────┘  │
 │         │                  │                                  │
 │         ▼                  ▼                                  │

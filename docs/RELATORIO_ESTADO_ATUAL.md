@@ -10,7 +10,7 @@
 
 O sistema MARIA é um monorepo com frontend JavaFX 21 (Maven) e backend Python 3.11+ (Ollama local), comunicando-se via bridge stdin/stdout JSON-lines e acessando um banco de dados SQLite unificado compartilhado (`shared/maria.db`).
 
-**Modelo LLM configurado:** `qwen3.5:4b` (centralizado em `backend/core/config.py`).
+**Modelo LLM configurado:** `qwen3.5:4b` (legado/opcional, centralizado em `backend/core/config.py`).
 
 **Testes executados nesta análise:** 86/86 backend (pytest) + 8/8 frontend (JUnit 5) = **94 testes passando**.
 

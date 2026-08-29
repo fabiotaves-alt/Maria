@@ -34,3 +34,9 @@ O banco de dados SQLite compartilhado segue um contrato unificado e idêntico em
 | `backend/database/connection.py` | Conexão SQLite Python com WAL e FKs |
 | `frontend/src/main/java/com/tristar/maria/dao/DatabaseManager.java` | Gerenciador JDBC Java com inicialização do schema |
 | `frontend/src/main/java/com/tristar/maria/dao/*.java` | Camada DAO (Conversa, Memoria, Automacao, Configuracao) |
+
+## Nota sobre Modelos LLM
+
+- **Modelo padrão em produção:** `qwen2.5-omni-3b` via **llama-server** (`backend/core/llama_client.py`).
+- **Modelo legado/opcional:** `qwen3.5:4b` via **Ollama** (`backend/core/ollama_client.py`) — mantido apenas como caminho alternativo.
+- **Fonte da verdade:** `backend/core/config.py` — as constantes `LLAMA_MODEL` e `OLLAMA_MODEL` controlam o roteamento.

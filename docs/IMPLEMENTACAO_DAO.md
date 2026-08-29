@@ -58,3 +58,9 @@ O arquivo `DatabaseManagerTest.java` valida:
 - CRUD de configurações com upsert e deleção
 - CRUD de automações com toggle de estado ativo
 - Cascata `ON DELETE CASCADE` entre conversas e mensagens
+
+## Nota sobre Modelos LLM
+
+- **Modelo padrão em produção:** `qwen2.5-omni-3b` via **llama-server** (`backend/core/llama_client.py`).
+- **Modelo legado/opcional:** `qwen3.5:4b` via **Ollama** (`backend/core/ollama_client.py`) — mantido apenas como caminho alternativo.
+- **Fonte da verdade:** `backend/core/config.py` — as constantes `LLAMA_MODEL` e `OLLAMA_MODEL` controlam o roteamento.

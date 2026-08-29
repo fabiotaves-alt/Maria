@@ -79,7 +79,7 @@ def rotear_tarefa(mensagem: str) -> str:
     classificacao = llama_3b.chat(prompt)
     
     if classificacao == 'rapida':
-        return usar_modelo('qwen3.5:4b')
+                return usar_modelo('qwen3.5:4b')  # modelo legado opcional
     elif classificacao == 'complexa':
         return usar_modelo('llama3.2:8b')
     else:

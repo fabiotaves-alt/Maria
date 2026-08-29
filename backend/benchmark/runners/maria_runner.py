@@ -13,7 +13,11 @@ if MARIA_ROOT not in sys.path:
     sys.path.insert(0, MARIA_ROOT)
 
 from core.chat_session import ChatSession, interpretar_confirmacao
-from core.ollama_client import OllamaClient, OllamaClientError, OllamaTimeoutError
+from core.llama_client import (
+    LlamaClient as OllamaClient,
+    LlamaClientError as OllamaClientError,
+    LlamaTimeoutError as OllamaTimeoutError,
+)
 from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real, FERRAMENTAS_LEITURA
 from core.tool_chaining import encadear_leitura_stream
 

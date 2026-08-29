@@ -15,7 +15,7 @@ Este documento serve como guia prático para novos desenvolvedores e para as pr�
 |-----------|--------|------------|
 | Python | 3.11+ | Ambiente virtual na raiz (`.venv/`) |
 | Ollama | atual | [ollama.com](https://ollama.com) |
-| **Modelo LLM** | **qwen3.5:4b** | `ollama pull qwen3.5:4b` |
+| **Modelo LLM** | **qwen3.5:4b (legado/opcional)** | `ollama pull qwen3.5:4b (legado)` |
 | JDK | 21 | OpenJDK/Temurin |
 | Maven | 3.9+ | ou wrapper da IDE |
 
@@ -34,9 +34,9 @@ python -m venv .venv
 # 3. Instalar dependências Python
 pip install -r requirements.txt
 
-# 4. Ollama + modelo
+# 4. Ollama + modelo (caminho legado/opcional)
 ollama serve
-ollama pull qwen3.5:4b
+ollama pull qwen3.5:4b (legado)  # modelo legado opcional
 
 # 5. Configurar variáveis de ambiente (opcional)
 # Copie backend/.env.example para backend/.env e ajuste se necessário
@@ -114,7 +114,7 @@ Resumo:
                                                       │ HTTP localhost
                                                 ┌─────▼─────┐
                                                 │  Ollama   │
-                                                │ qwen3.5:4b│
+                                                │ qwen3.5:4b (legado)│
                                                 └───────────┘
 ```
 
@@ -124,7 +124,7 @@ Resumo:
 
 ### Ação 1: Fine-tuning (Opcional, mas Recomendado)
 
-**Descrição:** Realizar fine-tuning LoRA do `qwen3.5:4b` com dados em português para tarefas de escritório (planilhas, documentos) para aumentar a precisão e reduzir alucinações.
+**Descrição:** Realizar fine-tuning LoRA do `qwen3.5:4b (legado)` com dados em português para tarefas de escritório (planilhas, documentos) para aumentar a precisão e reduzir alucinações.
 
 **Ferramentas sugeridas:**
 - PEFT (Parameter-Efficient Fine-Tuning)
@@ -134,7 +134,7 @@ Resumo:
 **Passos gerais:**
 1. Coletar/criar dataset de instruções em pt-BR para tarefas de escritório
 2. Configurar ambiente com `peft`, `transformers`, `accelerate`
-3. Treinar adapter LoRA no modelo base `qwen3.5:4b`
+3. Treinar adapter LoRA no modelo base `qwen3.5:4b (legado)`
 4. Avaliar resultados e integrar ao backend (carregar adapter junto com o modelo)
 
 **Prioridade:** Média  

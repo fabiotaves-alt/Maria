@@ -8,8 +8,8 @@ um executável único do backend Python usando PyInstaller.
 Uso:
     python build_sidecar.py
 
-Saída:
-    src-tauri/binaries/maria-backend (ou maria-backend.exe no Windows)
+ Saída:
+    src-tauri/binaries/maria-backend-<target-triple> (ou .exe no Windows)
 """
 
 import os
@@ -17,6 +17,14 @@ import sys
 import subprocess
 import shutil
 from pathlib import Path
+
+
+def _obter_target_triple() -> str:
+    resultado = subprocess.run(["rustc", "-vV"], capture_output=True, text=True, check=True)
+    for linha in resultado.stdout.splitlines():
+        if linha.startswith("host:"):
+            return linha.split(":", 1)[1].strip()
+    raise RuntimeError("Não foi possível determinar o target triple via 'rustc -vV'.")
 
 def main():
     # Diretórios
@@ -47,15 +55,16 @@ def main():
             sys.executable, "-m", "pip", "install", "-r", str(requirements_file)
         ])
     
-    # Comando PyInstaller
-    output_name = "maria-backend"
+        # Comando PyInstaller
+    target = _obter_target_triple()
+    output_name = f"maria-backend-{target}"
     if sys.platform == "win32":
         output_name += ".exe"
-    
+
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--onefile",
-        "--name", "maria-backend",
+        "--name", f"maria-backend-{target}",
         "--workpath", str(root_dir / "build"),
         "--distpath", str(binaries_dir),
         "--specpath", str(root_dir),

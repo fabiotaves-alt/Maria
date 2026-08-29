@@ -1,14 +1,13 @@
 # Benchmark MARIA
 
-O benchmark mede o comportamento real da MARIA usando o Ollama local e o modelo configurado, normalmente `qwen2.5:7b`. Não há modo `--reference-only`: é necessário executar `ollama serve` e manter o modelo instalado. O relatório inclui agora a taxa de conformidade de idioma (`language_compliance_rate`) nas respostas finais, além das métricas de tool calling, confirmação, execução, erros e latência.
+O benchmark mede o comportamento real da MARIA usando o llama-server local e o modelo configurado, normalmente `qwen2.5-omni-3b`. Não há modo `--reference-only`: é necessário executar o llama-server e manter o modelo carregado. O relatório inclui agora a taxa de conformidade de idioma (`language_compliance_rate`) nas respostas finais, além das métricas de tool calling, confirmação, execução, erros e latência.
 
 ## Executar
 
 A partir da raiz `MARIA/`:
 
 ```bash
-ollama serve
-ollama pull qwen2.5:7b
+llama-server -m <caminho/para/qwen2.5-omni-3b.gguf> --port 8080
 python -m benchmark.run_benchmark --tasks 25
 python -m benchmark.run_benchmark --task-ids 1 2 3
 python -m benchmark.run_benchmark --category criar_planilha

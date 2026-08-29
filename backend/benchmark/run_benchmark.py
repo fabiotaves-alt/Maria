@@ -11,12 +11,12 @@ from .benchmark_config import BENCHMARK_RESULTS_DIR, BENCHMARK_WARMUP_TIMEOUT, B
 from .runners.maria_runner import MariaRunner
 from .tasks import load_all_maria_tasks
 
-# ollama_client é um módulo local da raiz do projeto, não um pacote instalado.
+# llama_client é um módulo local da raiz do projeto, não um pacote instalado.
 MARIA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if MARIA_ROOT not in sys.path:
     sys.path.insert(0, MARIA_ROOT)
 
-from core.ollama_client import OllamaClient, OllamaClientError  # noqa: E402
+from core.llama_client import LlamaClient as OllamaClient, LlamaClientError as OllamaClientError  # noqa: E402
 
 
 def _parse_args() -> argparse.Namespace:
@@ -61,11 +61,11 @@ def _warmup_model() -> None:
             stream=False,
         )
     except OllamaClientError as error:
-        raise SystemExit(
-            "Falha no warmup do modelo: não foi possível obter resposta do Ollama.\n"
+                raise SystemExit(
+            "Falha no warmup do modelo: não foi possível obter resposta do llama-server.\n"
             f"Detalhes: {error}\n"
-            "Verifique se o Ollama está rodando (`ollama serve`) e se o modelo "
-            "está instalado (`ollama pull <modelo>`) antes de rodar o benchmark."
+            "Verifique se o llama-server está rodando (`llama-server -m <modelo.gguf> --port 8080`) "
+            "e o modelo qwen2.5-omni-3b está carregado antes de rodar o benchmark."
         ) from error
 
     duracao_s = time.monotonic() - inicio

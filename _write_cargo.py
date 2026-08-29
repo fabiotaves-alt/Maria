@@ -1,4 +1,4 @@
-[package]
+content = """[package]
 name = "maria-frontend"
 version = "4.0.0"
 description = "MARIA - Assistente de IA Pessoal 100% Local"
@@ -24,3 +24,7 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+"""
+with open("frontend-tauri/src-tauri/Cargo.toml", "w") as f:
+    f.write(content)
+print("Cargo.toml rewritten")
