@@ -117,3 +117,95 @@ pip-log.txt
 pip-delete-this-directory.txt
 .tox/
 .nox/
+
+# ══════════════════════════════════════════════════════════
+# 1. Node.js / React (Frontend)
+# ══════════════════════════════════════════════════════════
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ══════════════════════════════════════════════════════════
+# 2. Rust / Tauri (Backend Nativo)
+# ══════════════════════════════════════════════════════════
+src-tauri/target/
+src-tauri/gen/
+
+# ══════════════════════════════════════════════════════════
+# 3. Python (Backend IA)
+# ══════════════════════════════════════════════════════════
+# Cache e bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# PyInstaller (Sidecar gerado)
+src-tauri/binaries/
+*.spec
+
+# ══════════════════════════════════════════════════════════
+# 4. Banco de Dados e Dados Locais (CRÍTICO)
+# ══════════════════════════════════════════════════════════
+# Banco de dados do usuário (NUNCA suba para o Git)
+*.db
+*.sqlite
+*.sqlite3
+shared/*.db
+shared/*.db-journal
+shared/*.db-wal
+shared/*.db-shm
+
+# Sessões e arquivos gerados localmente
+sessoes_salvas/
+arquivos_gerados/
+backend/arquivos_gerados/
+
+# Modelos GGUF (são enormes, baixe via script)
+*.gguf
+models/
+
+# ══════════════════════════════════════════════════════════
+# 5. Segredos e Configurações Locais
+# ══════════════════════════════════════════════════════════
+.env
+.env.*
+!.env.example
+secrets.json
+*.pem
+*.key
+
+# ══════════════════════════════════════════════════════════
+# 6. Sistema Operacional e Editores
+# ══════════════════════════════════════════════════════════
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE (IntelliJ, VS Code)
+.idea/
+.vscode/
+*.iml
+*.suo
+*.user
+
+# ══════════════════════════════════════════════════════════
+# 7. Logs e Arquivos Temporários
+# ══════════════════════════════════════════════════════════
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+tmp/
+temp/
+
+# Gerados pelo Tauri
+frontend-tauri/src-tauri/gen/
+frontend-tauri/src-tauri/target/

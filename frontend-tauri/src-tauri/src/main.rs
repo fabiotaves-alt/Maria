@@ -3,17 +3,26 @@
     windows_subsystem = "windows"
 )]
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+#[cfg(debug_assertions)]
+use serde::Deserialize;
 use serde_json::Value;
 use tauri::command;
+#[cfg(not(debug_assertions))]
 use tokio::process::Command;
+#[cfg(not(debug_assertions))]
 use std::process::Stdio;
-use rusqlite::{Connection, Result as SqliteResult};
+
+use chrono;
+#[cfg(debug_assertions)]
+use uuid;
+use rusqlite::{params, Connection, Result as SqliteResult};
 
 // ─────────────────────────────────────────────────────────────
 // Tipos de dados para comunicação com o backend Python
 // ─────────────────────────────────────────────────────────────
 
+#[cfg(debug_assertions)]
 #[derive(Serialize, Deserialize, Debug)]
 struct PythonRequest {
     id: String,
@@ -21,7 +30,9 @@ struct PythonRequest {
     dados: Value,
 }
 
+#[cfg(debug_assertions)]
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(non_snake_case)]
 struct PythonResponse {
     id: String,
     status: String,
@@ -43,13 +54,13 @@ struct Message {
 
 /// Comando ping simples para verificar conectividade
 #[command]
-pub async fn ping() -> Result<String, String> {
+async fn ping() -> Result<String, String> {
     Ok("pong".to_string())
 }
 
 /// Envia uma mensagem para o backend Python e retorna a resposta
 #[command]
-pub async fn send_message(message: String) -> Result<String, String> {
+async fn send_message(message: String) -> Result<String, String> {
     // Em desenvolvimento, chama HTTP diretamente
     // Em produção, usará sidecar Python
     call_python_backend("chat", serde_json::json!({ "mensagem": message })).await
@@ -57,7 +68,7 @@ pub async fn send_message(message: String) -> Result<String, String> {
 
 /// Obtém status do sistema (CPU, RAM, GPU, modelo ativo)
 #[command]
-pub async fn get_status() -> Result<Value, String> {
+async fn get_status() -> Result<Value, String> {
     // Chama o backend Python para obter status real
     match call_python_backend("status", serde_json::json!({})).await {
         Ok(response) => {
@@ -89,7 +100,7 @@ pub async fn get_status() -> Result<Value, String> {
 
 /// Lê um arquivo do sistema
 #[command]
-pub async fn read_file(path: String) -> Result<String, String> {
+async fn read_file(path: String) -> Result<String, String> {
     tokio::fs::read_to_string(&path)
         .await
         .map_err(|e| format!("Erro ao ler arquivo: {}", e))
@@ -97,7 +108,7 @@ pub async fn read_file(path: String) -> Result<String, String> {
 
 /// Salva conteúdo em um arquivo
 #[command]
-pub async fn save_file(path: String, content: String) -> Result<(), String> {
+async fn save_file(path: String, content: String) -> Result<(), String> {
     tokio::fs::write(&path, content)
         .await
         .map_err(|e| format!("Erro ao salvar arquivo: {}", e))
@@ -105,7 +116,7 @@ pub async fn save_file(path: String, content: String) -> Result<(), String> {
 
 /// Obtém histórico de chat do banco de dados SQLite (acesso direto via Rust)
 #[command]
-pub fn get_chat_history(conversation_id: i64) -> Result<Vec<Message>, String> {
+fn get_chat_history(conversation_id: i64) -> Result<Vec<Message>, String> {
     let db_path = std::env::current_dir()
         .map_err(|e| e.to_string())?
         .join("../shared/maria.db");
@@ -118,7 +129,7 @@ pub fn get_chat_history(conversation_id: i64) -> Result<Vec<Message>, String> {
          WHERE conversation_id = ? ORDER BY timestamp ASC"
     ).map_err(|e| e.to_string())?;
 
-    let messages = stmt.query_map([conversation_id], |row| {
+    let messages = stmt.query_map(params![conversation_id], |row| {
         Ok(Message {
             id: row.get(0)?,
             role: row.get(1)?,
@@ -133,7 +144,7 @@ pub fn get_chat_history(conversation_id: i64) -> Result<Vec<Message>, String> {
 
 /// Salva uma nova mensagem no banco de dados
 #[command]
-pub fn save_message(conversation_id: i64, role: String, content: String) -> Result<i64, String> {
+fn save_message(conversation_id: i64, role: String, content: String) -> Result<i64, String> {
     let db_path = std::env::current_dir()
         .map_err(|e| e.to_string())?
         .join("../shared/maria.db");
@@ -145,7 +156,7 @@ pub fn save_message(conversation_id: i64, role: String, content: String) -> Resu
     
     conn.execute(
         "INSERT INTO messages (conversation_id, role, content, timestamp) VALUES (?1, ?2, ?3, ?4)",
-        [conversation_id, &role, &content, &timestamp],
+        params![conversation_id, role, content, timestamp],
     ).map_err(|e| format!("Erro ao inserir mensagem: {}", e))?;
 
     Ok(conn.last_insert_rowid())
@@ -170,7 +181,8 @@ async fn call_python_backend(comando: &str, dados: Value) -> Result<String, Stri
     }
 }
 
-/// Chama backend Python via HTTP (localhost:8081)
+/// Chama backend Python via HTTP (localhost:8081) — somente em desenvolvimento
+#[cfg(debug_assertions)]
 async fn call_python_http(comando: &str, dados: Value) -> Result<String, String> {
     let client = reqwest::Client::new();
     
@@ -199,7 +211,8 @@ async fn call_python_http(comando: &str, dados: Value) -> Result<String, String>
     }
 }
 
-/// Chama backend Python como processo sidecar
+/// Chama backend Python como processo sidecar (somente em produção)
+#[cfg(not(debug_assertions))]
 async fn call_python_sidecar(comando: &str, dados: Value) -> Result<String, String> {
     let output = Command::new("python3")
         .args([

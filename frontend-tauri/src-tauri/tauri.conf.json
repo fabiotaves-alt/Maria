@@ -38,23 +38,7 @@
   },
   "plugins": {
     "shell": {
-      "scope": [
-        {
-          "name": "maria-backend",
-          "sidecar": true
-        },
-        {
-          "name": "python",
-          "cmd": "python",
-          "args": true
-        },
-        {
-          "name": "python3",
-          "cmd": "python3",
-          "args": true
-        }
-      ],
-      "sidecar": true
+      "open": true
     },
     "updater": {
       "active": true,
