@@ -13,6 +13,26 @@ O investidor identificou **5 riscos críticos**:
 
 ---
 
+## ✅ Status da Migração (atualizado em 2026-08-28)
+
+### Frontend Tauri — Funcional (compila e roda)
+
+O app `frontend-tauri` está **compilando e iniciando corretamente** (Windows). Etapas concluídas:
+
+- [x] Setup Tauri v2 + React + TypeScript + Tailwind (Vite)
+- [x] Build Rust estabilizado:
+  - `build.rs` criado (corrige `OUT_DIR env var is not set`)
+  - Comandos `#[tauri::command]` sem `pub` (corrige `E0255: __cmd__... defined multiple times` — issue tauri-apps/tauri #15921)
+  - `params!` do rusqlite (corrige `mismatched types`)
+- [x] Config Tauri v2 corrigida: plugin shell (`"open": true`), capabilities com `shell:allow-execute`, `externalBin` para o sidecar
+- [x] Assets de build: `binaries/`, `icons/` e `gen_icons.py`
+- [x] `cargo check` dev + release sem erros; app inicia sem panic
+- [x] Ponte HTTP para o backend Python (`python main.py --bridge`, porta 8081) — fluxo de desenvolvimento
+
+> ⚠️ **Pendente para empacotamento (Fase 3):** gerar o sidecar real com `python src-tauri/build_sidecar.py` e validar o instalador em uma máquina limpa (sem Python).
+
+---
+
 ## 🎯 Estratégia Geral: "Não Reescrever, Evoluir"
 
 ### Princípios Fundamentais
@@ -147,6 +167,8 @@ maria/
 ---
 
 ## 🔧 Detalhamento Técnico: Ponte Python ↔ Tauri
+
+> ✅ **Status atual:** a **Opção A (HTTP)** foi implementada. Em desenvolvimento, o comando Rust `send_message`/`get_status` chama o backend via `http://localhost:8081/chat` (ver `call_python_http` em `src-tauri/src/main.rs`). Em produção, o `call_python_sidecar` usa o sidecar empacotado (compilado condicionalmente com `#[cfg(not(debug_assertions))]`).
 
 ### Opção A: HTTP Local (Recomendada)
 

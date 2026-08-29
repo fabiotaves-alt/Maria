@@ -12,18 +12,25 @@
 - [x] Barras de recursos (CPU/RAM/GPU) com dados reais via backend
 - [x] Badge dinâmico do modelo ativo (Qwen 3B / Llama 7B)
 
-### Backend Rust (COMPLETO - Aguardando Build)
-- [x] `Cargo.toml` atualizado com rusqlite e chrono
+### Backend Rust (COMPLETO - Compilando e Rodando ✅)
+- [x] `Cargo.toml` atualizado com rusqlite, chrono, uuid e reqwest
 - [x] `main.rs` com comandos:
-  - `send_message()` - envia mensagem para Python
+  - `send_message()` - envia mensagem para o backend Python (HTTP em dev / sidecar em prod)
   - `get_status()` - obtém status do sistema
   - `get_chat_history()` - lê SQLite diretamente (Rust → DB)
   - `save_message()` - salva mensagens no SQLite
+  - `read_file()` - lê arquivos do sistema
+  - `save_file()` - salva conteúdo em arquivos
   - `ping()` - health check
+- [x] `build.rs` criado com `tauri_build::build()` (requisito do `generate_context!()`)
+- [x] Comandos `#[tauri::command]` declarados **sem `pub`** — padrão oficial do Tauri (corrige erro `E0255: __cmd__... defined multiple times`)
 - [x] `tauri.conf.json` configurado para:
-  - Sidecar `maria-backend`
+  - Sidecar `maria-backend` via `externalBin`
   - Plugin updater OTA
-  - Escopo de shell para Python
+  - Plugin shell na sintaxe v2 (`"open": true`)
+- [x] `capabilities/default.json` com `shell:allow-execute` (permissões para o sidecar `maria-backend`, `python` e `python3`)
+- [x] `icons/` e `binaries/` criados (necessários para o `tauri-build` no Windows)
+- [x] Validação: `cargo check` e `cargo check --release` passam sem erros; `maria-frontend.exe` inicia sem panic
 
 ### Backend Python (EXISTENTE - Adaptado)
 - [x] `backend/core/router.py` - Roteador MoE implementado
@@ -80,6 +87,13 @@ cd backend
 python main.py --bridge
 ```
 
+> ⚠️ **Assets obrigatórios do `tauri-build`** (já criados neste repo):
+> - `src-tauri/binaries/maria-backend-x86_64-pc-windows-msvc.exe` — exigido por `externalBin` (placeholder em dev)
+> - `src-tauri/icons/` — `32x32.png`, `128x128.png`, `icon.ico`, `icon.icns`
+> - `src-tauri/build.rs` — build script do Tauri (obrigatório)
+>
+> Em produção, substitua o placeholder pelo sidecar real com `python src-tauri/build_sidecar.py`.
+
 ### 2. Build de Produção
 
 ```bash
@@ -122,12 +136,17 @@ workspace/
 │   │   └── App.tsx
 │   ├── src-tauri/
 │   │   ├── src/
-│   │   │   └── main.rs         # Rust + rusqlite + sidecar
+│   │   │   └── main.rs         # Comandos Tauri + rusqlite + bridge Python
+│   │   ├── capabilities/
+│   │   │   └── default.json    # Permissões shell:allow-execute (sidecar + Python)
 │   │   ├── binaries/
-│   │   │   └── maria-backend   # Gerado por build_sidecar.py
-│   │   ├── Cargo.toml          # rusqlite, chrono, tauri-plugin-shell
-│   │   ├── tauri.conf.json     # Config sidecar + updater
-│   │   └── build_sidecar.py    # Script PyInstaller
+│   │   │   └── maria-backend   # Sidecar (gerado por build_sidecar.py)
+│   │   ├── icons/              # Ícones 32x32.png, 128x128.png, icon.ico, icon.icns
+│   │   ├── build.rs            # Build script Tauri (tauri_build::build())
+│   │   ├── gen_icons.py        # Gera ícones placeholder (opcional)
+│   │   ├── build_sidecar.py    # Script PyInstaller
+│   │   ├── Cargo.toml          # rusqlite, chrono, uuid, reqwest + plugins Tauri
+│   │   └── tauri.conf.json     # externalBin + updater + plugin shell (v2)
 │   └── package.json
 └── shared/
     └── maria.db                # SQLite (histórico de chats)
@@ -157,11 +176,45 @@ workspace/
 
 | Comando Rust | Descrição | Origem dos Dados |
 |--------------|-----------|------------------|
-| `send_message(text)` | Envia mensagem ao LLM | Python (HTTP ou sidecar) |
+| `send_message(text)` | Envia mensagem ao LLM | Python (HTTP dev / sidecar prod) |
 | `get_status()` | CPU, RAM, GPU, modelo | Python (psutil) |
 | `get_chat_history(id)` | Histórico de conversas | SQLite (Rust direto) |
 | `save_message(conv, role, content)` | Salva nova mensagem | SQLite (Rust direto) |
+| `read_file(path)` | Lê arquivo do sistema | Rust (tokio::fs) |
+| `save_file(path, content)` | Salva conteúdo em arquivo | Rust (tokio::fs) |
 | `ping()` | Health check | Rust |
+
+---
+
+## 🔐 Permissões Shell (Tauri v2)
+
+No Tauri v2, o escopo de execução de comandos do plugin shell **não** fica mais no `tauri.conf.json` (sintaxe v1 removida). Ele é declarado em **arquivos de capability**:
+
+### `src-tauri/capabilities/default.json`
+
+```json
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability principal da janela main",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "maria-backend", "sidecar": true, "args": true },
+        { "name": "python", "cmd": "python", "args": true },
+        { "name": "python3", "cmd": "python3", "args": true }
+      ]
+    }
+  ]
+}
+```
+
+- **`shell:allow-execute`** habilita a execução de comandos via frontend.
+- O escopo (`allow`) define exatamente **quais** comandos podem ser executados e com quais argumentos (`args: true` = qualquer argumento).
+- A chave `"open": true` em `tauri.conf.json → plugins.shell` habilita o `shell.open()` (abrir links externos).
 
 ---
 
@@ -360,7 +413,9 @@ window.__TAURI__.core.invoke('get_status')
 
 ### Fase 3 - Empacotamento 1-Clique ⏳
 - [x] Script build_sidecar.py
-- [ ] Testar em Windows limpo (sem Python)
+- [x] Build Tauri validado (dev e release — `cargo check` sem erros, app inicia)
+- [x] Capabilities com `shell:allow-execute`
+- [ ] Sidecar real (`build_sidecar.py`) testado em Windows limpo (sem Python)
 - [ ] Wizard de primeira execução
 
 ### Fase 4 - Programa Fundador 📅
@@ -409,6 +464,54 @@ pip install pyinstaller
 # OU
 python src-tauri/build_sidecar.py  # Instala automaticamente
 ```
+
+### Erro: `__cmd__ping` is defined multiple times (E0255)
+
+**Sintoma:** Erro de compilação no `main.rs` apontando para **toda** função `#[command]`.
+
+**Causa:** Funções de comando declaradas como `pub fn`. No Tauri v2, `#[tauri::command]` + `pub` + multi-crate-type gera os `macro_rules!` `__cmd__...` duas vezes (issue oficial tauri-apps/tauri #15921).
+
+**Solução:** Remover o `pub` dos comandos (padrão do scaffold oficial do Tauri):
+```rust
+#[command]
+async fn ping() -> Result<String, String> { ... }  // sem "pub"
+```
+
+### Erro: `OUT_DIR env var is not set, do you have a build script?`
+
+**Causa:** Arquivo `src-tauri/build.rs` ausente — o `tauri::generate_context!()` depende das variáveis definidas pelo build script.
+
+**Solução:** Criar `src-tauri/build.rs`:
+```rust
+fn main() {
+    tauri_build::build()
+}
+```
+
+### Erro: `PluginInitialization("shell", ... unknown field 'scope', expected 'open')`
+
+**Causa:** `tauri.conf.json` usando a sintaxe v1 (`"scope"`/`"sidecar"`) no bloco `plugins.shell`, removida no Tauri v2.
+
+**Solução:** Usar o formato v2 e mover o escopo de execução para as capabilities:
+```json
+"plugins": { "shell": { "open": true } }
+```
+Conforme descrito na seção [Permissões Shell](#-permissões-shell-tauri-v2).
+
+### Erro: `resource path binaries\maria-backend-...exe doesn't exist`
+
+**Causa:** O binário listado em `bundle.externalBin` não existe — exigido pelo `tauri-build` mesmo em dev.
+
+**Solução:** Criar `src-tauri/binaries/` com o placeholder (dev) ou o binário real:
+```bash
+python src-tauri/build_sidecar.py   # gera o sidecar real (PyInstaller)
+```
+
+### Erro: `icons/icon.ico not found`
+
+**Causa:** Faltando `src-tauri/icons/` no Windows (necessário para gerar o recurso do executável).
+
+**Solução:** Adicionar `32x32.png`, `128x128.png`, `icon.ico` e `icon.icns` (ex.: rodar `python src-tauri/gen_icons.py` para placeholders).
 
 ---
 

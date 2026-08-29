@@ -76,18 +76,22 @@ maria/
 │   ├── database/              ← connection.py e schema.py
 │   ├── tests/                 ← 86 testes pytest (MANTIDOS)
 │   └── benchmark/             ← sistema de benchmark live
-└── frontend-tauri/            ← NOVO (substitui frontend/)
+└── frontend-tauri/            ← atual (Tauri v2 + React, v4.0)
     ├── src/                   ← React + TypeScript
-    │   ├── components/        ← Avatar, ChatInput, Sidebar, etc.
-    │   ├── pages/             ← 8 abas (Conversar, Arquivos, etc.)
-    │   ├── hooks/             ← useChat, useAudio, useFiles
-    │   ├── stores/            ← Zustand (estado global)
-    │   └── styles/            ← Tailwind CSS + aura rosa
+    │   ├── components/        ← TopBar, Sidebar, CenterStage, ChatPanel
+    │   ├── pages/             ← ConversarPage, etc.
+    │   ├── hooks/             ← useTheme, useMariaBridge
+    │   └── App.tsx
     ├── src-tauri/             ← Rust (Tauri v2)
-    │   ├── commands/          ← IPC: chat, files, system
-    │   └── sidecar.rs         ← Gerencia processo Python
-    ├── package.json
-    └── tauri.conf.json
+    │   ├── src/main.rs        ← comandos + rusqlite + bridge Python
+    │   ├── capabilities/      ← permissões shell (v2)
+    │   ├── binaries/          ← sidecar maria-backend
+    │   ├── icons/             ← 32x32, 128x128, .ico, .icns
+    │   ├── build.rs           ← build script Tauri
+    │   ├── build_sidecar.py   ← gera sidecar via PyInstaller
+    │   ├── Cargo.toml
+    │   └── tauri.conf.json
+    └── package.json
 ```
 
 ### v3.x (Arquitetura Atual - Legado)
@@ -241,20 +245,24 @@ mvn test
 
 ---
 
-### v4.0 (Nova Versão - Em Desenvolvimento)
+### v4.0 (Nova Versão - Funcional)
 
-> **Nota:** A documentação completa de instalação e execução da versão v4.0 será adicionada quando o frontend Tauri estiver funcional. Consulte [`docs/PLANO_MIGRACAO_TAURI_V4.md`](docs/PLANO_MIGRACAO_TAURI_V4.md) para detalhes do roadmap.
+> ✅ **Status:** o frontend Tauri compila e inicia corretamente no Windows. Documentação completa em [`frontend-tauri/IMPLEMENTACAO_COMPLETA.md`](frontend-tauri/IMPLEMENTACAO_COMPLETA.md). Roadmap em [`docs/PLANO_MIGRACAO_TAURI_V4.md`](docs/PLANO_MIGRACAO_TAURI_V4.md).
 
-**Fluxo previsto:**
+**Fluxo:**
 
 ```bash
-# Frontend Tauri (desenvolvimento)
+# 1. Backend Python (modo bridge HTTP, porta 8081) — necessário para o chat
+.venv\Scripts\python.exe backend\main.py --bridge
+
+# 2. Frontend Tauri (desenvolvimento)
 cd frontend-tauri
 npm install
 npm run tauri dev
 
-# Build para produção (instalador MSI/DEB)
-npm run tauri build
+# 3. Build para produção (instalador MSI/DEB)
+cd src-tauri && python build_sidecar.py   # gera o sidecar real (1x)
+cd .. && npm run tauri build
 ```
 
 O instalador one-click incluirá:

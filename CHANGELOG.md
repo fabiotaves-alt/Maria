@@ -16,6 +16,19 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - **Instalador One-Click**: MSI (Windows), .deb (Linux) e AppImage (macOS) com Python embeddable e modelos pré-baixados
 - **Arquitetura Híbrida de Modelos**: Roteamento inteligente entre Qwen2.5-Omni 3B (tarefas rápidas), Llama 3.2 8B (raciocínio complexo) e CodeQwen 7B (geração de scripts)
 
+#### 🔧 Estabilização do Build (Frontend Tauri)
+
+Correções aplicadas em **2026-08-28** para destravar a compilação e execução do app Tauri:
+
+- **Corrigido `E0255: __cmd__... defined multiple times`**: as funções `#[tauri::command]` eram declaradas como `pub` — no Tauri v2 isso gera macros `__cmd__...` duplicadas (issue oficial tauri-apps/tauri #15921). Removido o `pub` de todos os comandos (padrão do scaffold oficial).
+- **Criado `src-tauri/build.rs`**: build script com `tauri_build::build()` — resolve o erro `OUT_DIR env var is not set` no `tauri::generate_context!()`.
+- **Corrigido `tauri.conf.json` → plugins.shell**: substituída a sintaxe v1 (`scope`/`sidecar` — incompatível com o Tauri v2) por `"open": true`.
+- **Criado `src-tauri/capabilities/default.json`**: permissão `shell:allow-execute` com escopo para o sidecar `maria-backend` e os executáveis `python`/`python3` (novo local da configuração de shell no v2).
+- **Criados assets de build**: `src-tauri/binaries/` (placeholder do sidecar exigido por `externalBin`), `src-tauri/icons/` (PNG/ICO/ICNS) e script `gen_icons.py`.
+- **Uso de `params!` do rusqlite** nas instruções `INSERT`/`query_map` (substitui arrays heterogêneos que causavam `mismatched types`).
+- **Separação dev/prod com `#[cfg(...)]`**: `call_python_http`/`PythonRequest`/`PythonResponse` (dev) e `call_python_sidecar`/`tokio::process::Command` (prod) agora são condicionais — build dev e release sem warnings.
+- **Validação**: `cargo check` e `cargo check --release` passam sem erros; `maria-frontend.exe` inicia sem panic.
+
 #### Benefícios Esperados
 
 - ✅ **Design Moderno**: UI com glassmorphism, aura rosa e animações fluidas (Figma → código pixel-perfect)

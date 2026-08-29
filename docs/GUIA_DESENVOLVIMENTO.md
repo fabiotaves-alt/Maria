@@ -64,6 +64,29 @@ mvn javafx:run
 
 > ⚠️ **Nota:** A compilação/execução real requer JDK 21 + Maven instalados. Alternativamente, use IntelliJ IDEA com Maven integrado.
 
+#### Frontend (Tauri + React — em migração, **preferencial**)
+
+O frontend v4 usa Tauri v2 + React + TypeScript + Tailwind:
+
+```bash
+cd frontend-tauri
+
+# Instalar dependências
+npm install
+
+# Modo desenvolvimento (janela do app + hot reload do Vite)
+npm run tauri dev
+
+# Build de produção (gera MSI/DMG/AppImage)
+npm run tauri build   # antes: python src-tauri/build_sidecar.py
+```
+
+> ✅ **Estado atual:** o app compila e inicia corretamente. Para o chat funcionar em dev, inicie o backend Python em paralelo:
+> ```bash
+> .venv\Scripts\python.exe backend\main.py --bridge
+> ```
+> Veja `frontend-tauri/IMPLEMENTACAO_COMPLETA.md` para detalhes.
+
 #### Testes
 
 ```bash
@@ -244,7 +267,7 @@ maria/
 │   ├── tests/test_maria.py    ← suíte de testes
 │   ├── CHANGELOG.md           ← changelog do backend
 │   └── README.md              ← documentação do backend
-└── frontend/
+└── frontend/                   ← legado (JavaFX, em migração)
     ├── pom.xml                ← Maven (Java 21, JavaFX 21)
     └── src/main/
         ├── java/com/tristar/maria/
@@ -254,6 +277,22 @@ maria/
         └── resources/com/tristar/maria/
             ├── *.fxml               ← views
             └── theme-*.css          ← temas
+
+frontend-tauri/                ← atual (Tauri v2 + React, v4.0)
+├── src/                       ← React + TypeScript + Tailwind
+│   ├── components/            ← TopBar, Sidebar, CenterStage, ChatPanel
+│   ├── hooks/                 ← useTheme, useMariaBridge
+│   ├── pages/                 ← ConversarPage, etc.
+│   └── App.tsx
+└── src-tauri/                 ← Rust (Tauri v2)
+    ├── src/main.rs            ← comandos + rusqlite + bridge Python
+    ├── capabilities/default.json  ← permissões shell (v2)
+    ├── binaries/              ← sidecar maria-backend (gerado por build_sidecar.py)
+    ├── icons/                 ← 32x32, 128x128, .ico, .icns
+    ├── build.rs               ← build script Tauri
+    ├── Cargo.toml             ← rusqlite, chrono, uuid, reqwest + plugins
+    ├── tauri.conf.json        ← externalBin + updater + shell (v2)
+    └── build_sidecar.py       ← gera sidecar via PyInstaller
 ```
 
 ---
