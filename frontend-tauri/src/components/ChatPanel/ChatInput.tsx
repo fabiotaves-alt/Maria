@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Mic, Paperclip } from 'lucide-react';
+import { Send, Paperclip, Mic } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ChatInputProps {
@@ -7,74 +7,69 @@ interface ChatInputProps {
   loading?: boolean;
 }
 
-export function ChatInput({ onSend, loading = false }: ChatInputProps) {
+export function ChatInput({ onSend, loading }: ChatInputProps) {
   const [message, setMessage] = useState('');
 
-  const handleSend = () => {
-    if (!message.trim() || loading) return;
-    onSend(message);
-    setMessage('');
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (message.trim() && !loading) {
+      onSend(message.trim());
+      setMessage('');
     }
   };
 
   return (
-    <div 
-      className="glass p-1 flex items-end gap-1"
-      style={{ borderRadius: '24px' }}
-    >
-      {/* Botão anexar */}
-      <button 
-        className="p-3 rounded-full hover:opacity-80 transition-opacity"
-        style={{ color: 'var(--maria-muted)' }}
-        title="Anexar arquivo"
+    <form onSubmit={handleSubmit} className="relative">
+      <div
+        className="glass flex items-center gap-2 p-2"
+        style={{ borderRadius: '9999px' }}
       >
-        <Paperclip size={20} />
-      </button>
+        {/* Botão de anexo */}
+        <button
+          type="button"
+          className="p-2 rounded-full hover:opacity-80 transition-opacity"
+          style={{ color: 'var(--maria-muted)' }}
+        >
+          <Paperclip size={18} />
+        </button>
 
-      {/* Input de texto */}
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyPress={handleKeyPress}
-        placeholder="Digite sua mensagem..."
-        rows={1}
-        className="flex-1 bg-transparent border-none outline-none resize-none py-3 px-2 min-h-[44px] max-h-32 text-sm"
-        style={{ color: 'var(--maria-text)' }}
-      />
+        {/* Input de texto */}
+        <input
+          type="text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Digite sua mensagem..."
+          disabled={loading}
+          className="flex-1 bg-transparent border-none outline-none text-sm px-2"
+          style={{ 
+            color: 'var(--maria-text)',
+          }}
+        />
 
-      {/* Botão microfone */}
-      <button 
-        className="p-3 rounded-full hover:opacity-80 transition-opacity"
-        style={{ color: 'var(--maria-muted)' }}
-        title="Usar voz"
-      >
-        <Mic size={20} />
-      </button>
+        {/* Botão de microfone */}
+        <button
+          type="button"
+          className="p-2 rounded-full hover:opacity-80 transition-opacity"
+          style={{ color: 'var(--maria-muted)' }}
+        >
+          <Mic size={18} />
+        </button>
 
-      {/* Botão enviar - rosa em ambos os temas com ícone branco */}
-      <motion.button
-        onClick={handleSend}
-        disabled={loading || !message.trim()}
-        whileHover={{ scale: loading ? 1 : 1.05 }}
-        whileTap={{ scale: loading ? 1 : 0.95 }}
-        className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200"
-        style={{
-          background: loading || !message.trim() 
-            ? 'var(--maria-muted)' 
-            : 'var(--maria-pink)',
-          color: 'white',
-          opacity: loading || !message.trim() ? 0.5 : 1,
-          cursor: loading || !message.trim() ? 'not-allowed' : 'pointer',
-        }}
-      >
-        <Send size={18} />
-      </motion.button>
-    </div>
+        {/* Botão de enviar */}
+        <motion.button
+          type="submit"
+          disabled={loading || !message.trim()}
+          className="w-9 h-9 rounded-full flex items-center justify-center"
+          style={{
+            backgroundColor: message.trim() ? 'var(--maria-pink)' : 'rgba(255,255,255,0.1)',
+            opacity: message.trim() ? 1 : 0.5,
+          }}
+          whileHover={{ scale: message.trim() ? 1.05 : 1 }}
+          whileTap={{ scale: message.trim() ? 0.95 : 1 }}
+        >
+          <Send size={16} style={{ color: '#fff' }} />
+        </motion.button>
+      </div>
+    </form>
   );
 }

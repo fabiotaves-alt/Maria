@@ -1,211 +1,42 @@
-# Python & Dependencies
-**/__pycache__/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.py[cod]
-*$py.class
-*.py.backup
-*.py.swp
-*.py.swo
-*.py.tmp
-*.py.log
-*.py.cache
-*.py.compiled
-*.py.bak
-*.py.save
-*.py~
+```
+# Dependencies
+node_modules/
 
-# Virtual Environments
-venv/
-.venv/
-env/
-ENV/
-.ENV/
-backend/venv/
-backend/.venv/
-
-
-.junie/
-
-
-# Build artifacts (Python & Generic)
-build/
+# Build outputs
 dist/
-*.egg-info/
-*.egg
-*.whl
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
-*.o
-*.obj
-*.a
-*.lib
-
-# Java / Maven
-**/target/
+build/
 target/
-frontend/target/
-frontend/maria-frontend/target/
-*.class
-.flattened-pom.xml
-.mvn/timing.properties
 
-# Databases locais
-*.db
-*.db-wal
-*.db-shm
-*.sqlite
-*.sqlite3
-shared/*.db
-shared/*.db-wal
-shared/*.db-shm
-frontend/*.db
-frontend/*.db-wal
-frontend/*.db-shm
+# Tauri specific
+src-tauri/target/
 
 # Logs
 *.log
-*.log.*
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-*~
-.swp
-.swo
 
 # Environment variables
 .env
 .env.local
-.env.*
-!.env.example
+*.env.*
 
-# IDE specific
+# IDE files
 .vscode/
 .idea/
-*.iml
-*.ipr
-*.iws
-.settings/
-.project
-.pydevproject
+*.swp
+*.swo
+*.tmp
 
-# OS specific
-.DS_Store
-Thumbs.db
-desktop.ini
+# Python cache (if any Python files exist in the project)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Testing & Coverage
+# Coverage reports
 coverage/
 htmlcov/
-.coverage
 *.coverage
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
 
-# Distribution / packaging
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.nox/
-
-# ══════════════════════════════════════════════════════════
-# 1. Node.js / React (Frontend)
-# ══════════════════════════════════════════════════════════
-node_modules/
-dist/
-dist-ssr/
-*.local
-
-# ══════════════════════════════════════════════════════════
-# 2. Rust / Tauri (Backend Nativo)
-# ══════════════════════════════════════════════════════════
-src-tauri/target/
-src-tauri/gen/
-
-# ══════════════════════════════════════════════════════════
-# 3. Python (Backend IA)
-# ══════════════════════════════════════════════════════════
-# Cache e bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual Environments
-.venv/
-venv/
-env/
-
-# PyInstaller (Sidecar gerado)
-src-tauri/binaries/
-*.spec
-
-# ══════════════════════════════════════════════════════════
-# 4. Banco de Dados e Dados Locais (CRÍTICO)
-# ══════════════════════════════════════════════════════════
-# Banco de dados do usuário (NUNCA suba para o Git)
-*.db
-*.sqlite
-*.sqlite3
-shared/*.db
-shared/*.db-journal
-shared/*.db-wal
-shared/*.db-shm
-
-# Sessões e arquivos gerados localmente
-sessoes_salvas/
-arquivos_gerados/
-backend/arquivos_gerados/
-
-# Modelos GGUF (são enormes, baixe via script)
-*.gguf
-models/
-
-# ══════════════════════════════════════════════════════════
-# 5. Segredos e Configurações Locais
-# ══════════════════════════════════════════════════════════
-.env
-.env.*
-!.env.example
-secrets.json
-*.pem
-*.key
-
-# ══════════════════════════════════════════════════════════
-# 6. Sistema Operacional e Editores
-# ══════════════════════════════════════════════════════════
+# OS generated files
 .DS_Store
 Thumbs.db
-Desktop.ini
-
-# IDE (IntelliJ, VS Code)
-.idea/
-.vscode/
-*.iml
-*.suo
-*.user
-
-# ══════════════════════════════════════════════════════════
-# 7. Logs e Arquivos Temporários
-# ══════════════════════════════════════════════════════════
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-logs/
-tmp/
-temp/
-
-# Gerados pelo Tauri
-frontend-tauri/src-tauri/gen/
-frontend-tauri/src-tauri/target/
+```

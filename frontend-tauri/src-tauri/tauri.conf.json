@@ -12,13 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "MARIA - Assistente de IA",
-        "width": 1200,
+        "title": "MARIA",
+        "width": 1280,
         "height": 800,
         "resizable": true,
         "fullscreen": false,
-        "decorations": true,
-        "transparent": false
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {

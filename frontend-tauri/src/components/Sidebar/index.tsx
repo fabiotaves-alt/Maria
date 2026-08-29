@@ -78,14 +78,22 @@ export function Sidebar() {
             <motion.button
               key={item.id}
               onClick={() => setActiveItem(item.id)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative"
               style={{
-                background: isActive ? 'rgba(232, 90, 138, 0.1)' : 'transparent',
+                background: isActive ? 'rgba(255,255,255,0.02)' : 'transparent',
                 color: isActive ? 'var(--maria-pink)' : 'var(--maria-text)',
               }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
+              {/* Linha vertical rosa à esquerda - efeito hover/ativo */}
+              <div 
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full transition-all duration-200"
+                style={{
+                  backgroundColor: isActive ? 'var(--maria-pink)' : 'transparent',
+                  opacity: isActive ? 1 : 0,
+                }}
+              />
               <Icon
                 size={20}
                 style={{ color: isActive ? 'var(--maria-pink)' : 'var(--maria-muted)' }}

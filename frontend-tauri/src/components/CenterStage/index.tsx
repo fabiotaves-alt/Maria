@@ -2,109 +2,91 @@ import { motion } from 'framer-motion';
 import { AuraBackground } from './AuraBackground';
 import { FeatureCards } from './FeatureCard';
 import { ActionBar } from './ActionBar';
+import mariaAvatar from '../../assets/maria-avatar.svg';
+import { useTheme } from '../../hooks/useTheme';
 
 export function CenterStage() {
+  const { theme } = useTheme();
+  
   return (
     <main className="flex-1 relative flex flex-col items-center justify-center p-8 overflow-hidden">
       {/* Background com aura */}
       <AuraBackground />
 
-      {/* Header */}
-      <div className="text-center mb-8 z-10">
-        <h1 
-          className="text-5xl font-light tracking-[0.15em] mb-2"
-          style={{ color: 'var(--maria-text)' }}
-        >
-          MARIA
-        </h1>
-        <p 
-          className="text-base"
-          style={{ color: 'var(--maria-muted)' }}
-        >
-          Sua assistente de IA pessoal e privada.
-        </p>
-      </div>
-
-      {/* Avatar Central */}
-      <motion.div
-        className="relative mb-8 z-10"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Glow/aura atrás do avatar */}
-        <div
-          className="absolute inset-0 rounded-[24px]"
-          style={{
-            background: 'radial-gradient(circle, rgba(232,90,138,0.15) 0%, transparent 70%)',
-            filter: 'blur(60px)',
-          }}
-        />
-        
-        {/* Container do avatar */}
-        <motion.div
-          className="relative w-[350px] h-[450px] glass flex items-center justify-center overflow-hidden"
-          style={{ borderRadius: '24px' }}
-          animate={{ scale: [1, 1.02, 1] }}
-          transition={{ 
-            duration: 6, 
-            ease: 'easeInOut', 
-            repeat: Infinity 
-          }}
-        >
-          {/* Placeholder para o avatar - será substituído por imagem real
-              TEMA CLARO: Avatar com blusa de tricô bege clara
-              TEMA ESCURO: Avatar com camisa preta de botões
-          */}
-          <div 
-            className="w-full h-full flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, rgba(232,90,138,0.1) 0%, rgba(232,90,138,0.05) 100%)',
-            }}
-          >
-            <div className="text-center">
-              <div 
-                className="w-32 h-32 mx-auto mb-4 rounded-full flex items-center justify-center text-6xl font-light"
-                style={{ 
-                  background: 'rgba(232, 90, 138, 0.1)',
-                  color: 'var(--maria-pink)',
-                }}
-              >
-                M
-              </div>
-              <p className="text-sm" style={{ color: 'var(--maria-muted)' }}>
-                Avatar da MARIA
-              </p>
-              <p className="text-xs mt-2" style={{ color: 'var(--maria-muted)' }}>
-                (será substituído por imagem)
-              </p>
-              {/* Nota sobre as roupas do avatar */}
-              <div className="mt-4 px-4 py-2 rounded-lg" style={{ background: 'rgba(232,90,138,0.05)' }}>
-                <p className="text-xs" style={{ color: 'var(--maria-muted)' }}>
-                  <strong>Tema Claro:</strong> Blusa de tricô bege clara
-                </p>
-                <p className="text-xs" style={{ color: 'var(--maria-muted)' }}>
-                  <strong>Tema Escuro:</strong> Camisa preta de botões
-                </p>
-              </div>
-            </div>
+      {/* Container principal com layout de 2 colunas */}
+      <div className="flex items-center gap-12 z-10 max-w-5xl">
+        {/* Coluna esquerda: Logo + subtítulo + feature cards */}
+        <div className="flex flex-col gap-6">
+          {/* Logo e subtítulo */}
+          <div className="text-left">
+            <h1 
+              className="text-6xl font-light tracking-[0.2em] mb-3"
+              style={{ color: 'var(--maria-text)' }}
+            >
+              MARIA
+            </h1>
+            <p 
+              className="text-lg"
+              style={{ color: 'var(--maria-muted)' }}
+            >
+              Sua assistente de IA pessoal e privada.
+            </p>
           </div>
-          
-          {/* Borda sutil com glow */}
+
+          {/* Feature Cards - empilhados verticalmente */}
+          <FeatureCards />
+        </div>
+
+        {/* Coluna direita: Avatar com aura */}
+        <motion.div
+          className="relative"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Glow/aura atrás do avatar */}
           <div
-            className="absolute inset-0 rounded-[24px] pointer-events-none"
+            className="absolute inset-0 rounded-[24px]"
             style={{
-              boxShadow: '0 0 100px rgba(232,90,138,0.15), inset 0 0 30px rgba(232,90,138,0.05)',
-              border: '1px solid rgba(232,90,138,0.1)',
+              background: `radial-gradient(circle, ${theme === 'light' ? 'rgba(232,90,138,0.2)' : 'rgba(255,107,157,0.2)'} 0%, transparent 70%)`,
+              filter: 'blur(60px)',
             }}
           />
+          
+          {/* Container do avatar */}
+          <motion.div
+            className="relative w-[320px] h-[420px] glass flex items-center justify-center overflow-hidden"
+            style={{ borderRadius: '24px' }}
+            animate={{ scale: [1, 1.02, 1] }}
+            transition={{ 
+              duration: 6, 
+              ease: 'easeInOut', 
+              repeat: Infinity 
+            }}
+          >
+            {/* Imagem real do avatar */}
+            <img 
+              src={mariaAvatar} 
+              alt="MARIA Avatar" 
+              className="w-full h-full object-cover"
+              style={{
+                filter: theme === 'light' ? 'brightness(1.1)' : 'brightness(0.95)',
+              }}
+            />
+            
+            {/* Borda sutil com glow */}
+            <div
+              className="absolute inset-0 rounded-[24px] pointer-events-none"
+              style={{
+                boxShadow: `0 0 100px ${theme === 'light' ? 'rgba(232,90,138,0.15)' : 'rgba(255,107,157,0.15)'}, inset 0 0 30px rgba(255,255,255,0.05)`,
+                border: `1px solid ${theme === 'light' ? 'rgba(232,90,138,0.1)' : 'rgba(255,255,255,0.1)'}`,
+              }}
+            />
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
 
-      {/* Feature Cards */}
-      <FeatureCards />
-
-      {/* Action Bar */}
+      {/* Action Bar - abaixo do conteúdo principal */}
       <ActionBar />
 
       {/* Footer */}
