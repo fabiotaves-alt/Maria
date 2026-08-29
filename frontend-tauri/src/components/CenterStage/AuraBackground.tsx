@@ -1,14 +1,16 @@
 import { motion } from 'framer-motion';
+import { useTheme } from '../../hooks/useTheme';
 
 export function AuraBackground() {
+  const { theme } = useTheme();
+  
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Aura principal */}
+    <>
+      {/* Aura radial gradiente atrás do conteúdo */}
       <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(circle, rgba(232,90,138,0.08) 0%, transparent 70%)',
-          filter: 'blur(80px)',
+          background: `radial-gradient(circle at center, ${theme === 'light' ? 'rgba(232,90,138,0.08)' : 'rgba(255,107,157,0.06)'} 0%, transparent 60%)`,
         }}
         animate={{
           opacity: [0.3, 0.6, 0.3],
@@ -21,13 +23,30 @@ export function AuraBackground() {
         }}
       />
       
-      {/* Gradiente radial de fundo */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse at center, rgba(232,90,138,0.05) 0%, transparent 60%)',
-        }}
-      />
-    </div>
+      {/* Partículas sutis de luz */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {[...Array(3)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 rounded-full"
+            style={{
+              backgroundColor: theme === 'light' ? 'rgba(232,90,138,0.3)' : 'rgba(255,107,157,0.3)',
+              left: `${20 + i * 30}%`,
+              top: `${30 + i * 20}%`,
+            }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0, 0.5, 0],
+            }}
+            transition={{
+              duration: 3 + i,
+              ease: 'easeInOut',
+              repeat: Infinity,
+              delay: i * 0.5,
+            }}
+          />
+        ))}
+      </div>
+    </>
   );
 }

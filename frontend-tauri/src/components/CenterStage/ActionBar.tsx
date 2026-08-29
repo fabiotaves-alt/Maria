@@ -24,7 +24,7 @@ function ActionButton({ icon: Icon, label, onClick }: ActionButtonProps) {
       transition={{ duration: 0.2 }}
     >
       <div
-        className="w-10 h-10 rounded-full flex items-center justify-center"
+        className="w-12 h-12 rounded-full flex items-center justify-center"
         style={{ background: 'rgba(232, 90, 138, 0.1)' }}
       >
         <Icon size={24} style={{ color: 'var(--maria-pink)' }} />
@@ -45,7 +45,7 @@ export function ActionBar() {
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-3 mt-6">
+    <div className="grid grid-cols-4 gap-3 mt-8">
       {actions.map((action, index) => (
         <ActionButton key={index} {...action} />
       ))}

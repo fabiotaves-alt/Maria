@@ -1,0 +1,26 @@
+<svg width="350" height="450" viewBox="0 0 350 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient aura -->
+  <defs>
+    <radialGradient id="auraGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#e85a8a;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#e85a8a;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Aura background -->
+  <ellipse cx="175" cy="225" rx="150" ry="200" fill="url(#auraGradient)"/>
+  
+  <!-- Head silhouette -->
+  <circle cx="175" cy="140" r="60" fill="#f5d5c5"/>
+  
+  <!-- Hair -->
+  <path d="M115 130 Q115 80 175 80 Q235 80 235 130 Q235 160 220 170 Q175 180 130 170 Q115 160 115 130\" fill="#2d1810"/>
+  
+  <!-- Body/Shoulders silhouette (neutral clothing) -->
+  <path d="M100 220 Q100 200 175 200 Q250 200 250 220 L260 450 L90 450 Z\" fill="#1a1a1a"/>
+  
+  <!-- Subtle details -->
+  <circle cx="155" cy="135" r="5" fill="#1a1a1a" opacity="0.6"/>
+  <circle cx="195" cy="135" r="5" fill="#1a1a1a" opacity="0.6"/>
+  <path d="M165 155 Q175 165 185 155\" stroke="#d4a59a" stroke-width="2" fill="none"/>
+</svg>
