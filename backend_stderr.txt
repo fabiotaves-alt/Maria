@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "C:\Users\betti\IdeaProjects\Maria\backend\main.py", line 41, in <module>
-    from backend.core.llama_client import LlamaClient as OllamaClient
-  File "C:\Users\betti\IdeaProjects\Maria\backend\core\llama_client.py", line 20, in <module>
-    import requests
-ModuleNotFoundError: No module named 'requests'
