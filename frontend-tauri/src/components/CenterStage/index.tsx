@@ -2,8 +2,8 @@ import { motion } from 'framer-motion';
 import { AuraBackground } from './AuraBackground';
 import { FeatureCards } from './FeatureCard';
 import { ActionBar } from './ActionBar';
-import mariaAvatar from '../../assets/maria-avatar.svg';
-import mariaLogo from '../../assets/maria-logo.svg';
+import mariaAvatar from '../../assets/maria-avatar.png';
+import mariaLogo from '../../assets/maria-logo.png';
 import { useTheme } from '../../hooks/useTheme';
 
 export function CenterStage() {

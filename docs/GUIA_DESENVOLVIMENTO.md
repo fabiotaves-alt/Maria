@@ -1,23 +1,61 @@
 # Guia de Desenvolvimento — MARIA
 
-**Versão:** v2.13.0  
-**Última atualização:** 2026-08-24
+**Versão:** v4.0.0  
+**Última atualização:** 2026-08-29
 
-Este documento serve como guia prático para novos desenvolvedores e para as próximas fases de desenvolvimento do projeto MARIA.
+Este documento serve como guia prático para novos desenvolvedores e para o desenvolvimento contínuo do projeto MARIA.
 
 ---
 
-## 1. Configuração do Ambiente
+## 1. Visão Geral do Projeto
+
+### Status Atual: v4.0 em Desenvolvimento
+
+O projeto MARIA está em transição da arquitetura JavaFX (v3.x - legado) para uma arquitetura moderna com **Tauri v2 + React + TypeScript**. O frontend JavaFX foi descontinuado e todo o desenvolvimento ativo ocorre no novo frontend Tauri.
+
+### Arquitetura Ativa (v4.0)
+
+```
+┌─────────────────────────┐   HTTP/Tauri IPC   ┌──────────────────────────┐
+│  Frontend Tauri + React │ ◄────────────────► │  Backend Python          │
+│  Tailwind CSS + Framer  │    localhost:8081  │  (Ollama + ferramentas)  │
+│  TypeScript + Zustand   │                    │  Python 3.11+            │
+└────────────┬────────────┘                    └───────────┬──────────────┘
+             │                                             │ HTTP localhost
+             │ Rust IPC (sidecar)                    ┌─────▼──────────┐
+             ▼                                       │  Ollama        │
+    ┌─────────────────┐                              │  qwen3.5:4b    │
+    │ shared/maria.db │                              └────────────────┘
+    └─────────────────┘
+```
+
+**Componentes Principais:**
+- **Frontend**: Tauri v2 + React + TypeScript + Tailwind CSS + Framer Motion
+- **Backend**: Python 3.11+ com Ollama (qwen3.5:4b)
+- **Comunicação**: HTTP local (localhost:8081) + IPC nativo Tauri
+- **Banco de Dados**: SQLite compartilhado em `shared/maria.db`
+
+### Frontend JavaFX (Legado - Fase de Desenvolvimento Anterior)
+
+O frontend JavaFX (pasta `frontend/`) representa uma fase anterior de desenvolvimento e não está mais em uso ativo. Todo o desenvolvimento futuro ocorrerá no frontend Tauri (`frontend-tauri/`).
+
+Para referência histórica, a arquitetura JavaFX utilizava:
+- Java 21 + JavaFX 21
+- Comunicação via stdin/stdout (JSON-lines)
+- Maven para build e dependências
+
+---
+
+## 2. Configuração do Ambiente
 
 ### Pré-requisitos
 
 | Requisito | Versão | Observação |
 |-----------|--------|------------|
 | Python | 3.11+ | Ambiente virtual na raiz (`.venv/`) |
+| Node.js | 18+ | Para frontend React |
 | Ollama | atual | [ollama.com](https://ollama.com) |
 | **Modelo LLM** | **qwen3.5:4b** | `ollama pull qwen3.5:4b` |
-| JDK | 21 | OpenJDK/Temurin |
-| Maven | 3.9+ | ou wrapper da IDE |
 
 ### Instalação Passo a Passo
 
@@ -38,8 +76,9 @@ pip install -r requirements.txt
 ollama serve
 ollama pull qwen3.5:4b
 
-# 5. Configurar variáveis de ambiente (opcional)
-# Copie backend/.env.example para backend/.env e ajuste se necessário
+# 5. Instalar dependências Node.js
+cd frontend-tauri
+npm install
 ```
 
 ### Execução do Projeto
@@ -47,45 +86,26 @@ ollama pull qwen3.5:4b
 #### Backend (Python)
 
 ```bash
-# Modo bridge (usado pelo frontend JavaFX)
+# Modo bridge (usado pelo frontend Tauri)
 .venv\Scripts\python.exe backend\main.py --bridge
-
-# Modo CLI (terminal interativo)
-.venv\Scripts\python.exe backend\main.py
 ```
 
-#### Frontend (JavaFX)
-
-```bash
-cd frontend
-mvn clean compile
-mvn javafx:run
-```
-
-> ⚠️ **Nota:** A compilação/execução real requer JDK 21 + Maven instalados. Alternativamente, use IntelliJ IDEA com Maven integrado.
-
-#### Frontend (Tauri + React — em migração, **preferencial**)
-
-O frontend v4 usa Tauri v2 + React + TypeScript + Tailwind:
+#### Frontend (Tauri + React)
 
 ```bash
 cd frontend-tauri
-
-# Instalar dependências
-npm install
 
 # Modo desenvolvimento (janela do app + hot reload do Vite)
 npm run tauri dev
 
 # Build de produção (gera MSI/DMG/AppImage)
-npm run tauri build   # antes: python src-tauri/build_sidecar.py
+npm run tauri build
 ```
 
 > ✅ **Estado atual:** o app compila e inicia corretamente. Para o chat funcionar em dev, inicie o backend Python em paralelo:
 > ```bash
 > .venv\Scripts\python.exe backend\main.py --bridge
 > ```
-> Veja `frontend-tauri/IMPLEMENTACAO_COMPLETA.md` para detalhes.
 
 #### Testes
 
