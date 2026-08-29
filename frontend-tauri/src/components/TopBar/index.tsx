@@ -36,7 +36,9 @@ export function TopBar() {
           src={mariaLogo} 
           alt="MARIA" 
           className="h-8 w-auto"
-          style={{ filter: `brightness(${theme === 'light' ? 0 : 2})` }}
+          style={{ 
+            filter: theme === 'light' ? 'brightness(0)' : 'brightness(2)',
+          }}
         />
       </div>
 

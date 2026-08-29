@@ -42,6 +42,17 @@ html.dark {
   --maria-hover: var(--maria-hover-dark);
 }
 
+/* Default to light theme */
+html:not(.dark) {
+  --maria-bg: var(--maria-bg-light);
+  --maria-text: var(--maria-text-light);
+  --maria-text-muted: var(--maria-text-muted-light);
+  --maria-pink: var(--maria-pink-light);
+  --maria-card: var(--maria-card-light);
+  --maria-card-border: var(--maria-card-border-light);
+  --maria-hover: var(--maria-hover-light);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -52,11 +63,11 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  background-color: var(--maria-bg);
+  color: var(--maria-text);
 }
 
 body {
-  background-color: var(--maria-bg);
-  color: var(--maria-text);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }

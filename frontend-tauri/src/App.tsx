@@ -7,10 +7,7 @@ import { ChatPanel } from './components/ChatPanel';
 function App() {
   return (
     <ThemeProvider>
-      <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ 
-        backgroundColor: 'var(--maria-bg)',
-        color: 'var(--maria-text)',
-      }}>
+      <div className="h-screen w-screen flex flex-col overflow-hidden">
         <TopBar />
         <div className="flex-1 flex overflow-hidden">
           <Sidebar />
