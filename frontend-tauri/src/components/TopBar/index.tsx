@@ -7,18 +7,30 @@ export function TopBar() {
   const { theme, toggleTheme } = useTheme();
 
   const handleMinimize = async () => {
-    const appWindow = await Window.getCurrent();
-    await appWindow.minimize();
+    try {
+      const appWindow = await Window.getCurrent();
+      await appWindow.minimize();
+    } catch (error) {
+      console.error('Falha ao minimizar a janela:', error);
+    }
   };
 
   const handleMaximize = async () => {
-    const appWindow = await Window.getCurrent();
-    await appWindow.toggleMaximize();
+    try {
+      const appWindow = await Window.getCurrent();
+      await appWindow.toggleMaximize();
+    } catch (error) {
+      console.error('Falha ao maximizar a janela:', error);
+    }
   };
 
   const handleClose = async () => {
-    const appWindow = await Window.getCurrent();
-    await appWindow.close();
+    try {
+      const appWindow = await Window.getCurrent();
+      await appWindow.close();
+    } catch (error) {
+      console.error('Falha ao fechar a janela:', error);
+    }
   };
   
   return (

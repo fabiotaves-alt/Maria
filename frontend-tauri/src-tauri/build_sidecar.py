@@ -77,6 +77,22 @@ def main():
     if models_dir.exists():
         cmd.extend(["--add-data", f"{models_dir}{os.pathsep}models"])
     
+    # Raiz do monorepo no path de análise: o pacote `backend` (namespace
+    # package, sem __init__.py) só é resolvível com a raiz no sys.path, que
+    # o main.py adiciona apenas em runtime — o analisador do PyInstaller não
+    # executa isso. `--collect-submodules` garante também os imports feitos
+    # dentro de funções (ex.: backend.core.file_utils, excel_handler).
+    cmd.extend([
+        "--paths", str(backend_dir.parent),
+        "--collect-submodules", "backend",
+    ])
+
+    # Garantir que o Flask (modo --bridge-http) seja embutido no executável
+    cmd.extend([
+        "--hidden-import", "flask",
+        "--hidden-import", "flask_cors",
+    ])
+
     # Script principal
     main_script = backend_dir / "main.py"
     if not main_script.exists():

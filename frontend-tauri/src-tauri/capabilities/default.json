@@ -1,10 +1,15 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability principal da janela main - permite execução de comandos shell configurados (sidecar maria-backend e Python)",
+  "description": "Capability principal da janela main - permite controles de janela e execução de comandos shell configurados (sidecar maria-backend e Python)",
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-toggle-maximize",
     {
       "identifier": "shell:allow-execute",
       "allow": [

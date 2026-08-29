@@ -81,10 +81,10 @@ npm install
 npm run tauri dev
 ```
 
-**Nota:** O backend Python deve estar rodando separadamente:
+**Nota:** O backend Python deve estar rodando separadamente (modo bridge HTTP, porta 8081):
 ```bash
 cd backend
-python main.py --bridge
+python main.py --bridge-http
 ```
 
 > ⚠️ **Assets obrigatórios do `tauri-build`** (já criados neste repo):
@@ -370,16 +370,18 @@ useEffect(() => {
 ### Testar Comunicação Backend
 
 ```bash
-# Terminal 1: Backend Python
+# Terminal 1: Backend Python (modo bridge HTTP)
 cd backend
-python main.py --bridge
+python main.py --bridge-http
 
-# Terminal 2: Enviar comando manualmente
-echo '{"id": "test-1", "comando": "ping", "payload": {}}' | python main.py --bridge
-# Saída: {"id": "test-1", "status": "ok", "dados": "pong"}
+# Terminal 2: Enviar comando via HTTP (protocolo consumido pelo frontend Tauri)
+curl -X POST http://localhost:8081/chat -H "Content-Type: application/json" \
+  -d '{"id":"test-1","comando":"ping","dados":{}}'
+# Saída: {"id":"test-1","status":"ok","dados":"pong","mensagemErro":null}
 
-echo '{"id": "test-2", "comando": "status", "payload": {}}' | python main.py --bridge
-# Saída: {"id": "test-2", "status": "ok", "dados": {"cpu": 12.5, "ram": 45.2, ...}}
+curl -X POST http://localhost:8081/chat -H "Content-Type: application/json" \
+  -d '{"id":"test-2","comando":"status","dados":{}}'
+# Saída: {"id":"test-2","status":"ok","dados":{"cpu":12.5,"ram":45.2,"gpu":0.0,"modelo":"qwen2.5-omni-3b"},"mensagemErro":null}
 ```
 
 ### Testar Frontend
@@ -440,7 +442,7 @@ ps aux | grep main.py
 kill $(pgrep -f main.py)
 
 # Reiniciar backend
-cd backend && python main.py --bridge
+cd backend && python main.py --bridge-http
 ```
 
 ### Erro: "rusqlite não encontrado"

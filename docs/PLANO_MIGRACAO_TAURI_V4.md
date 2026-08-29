@@ -27,7 +27,7 @@ O app `frontend-tauri` está **compilando e iniciando corretamente** (Windows). 
 - [x] Config Tauri v2 corrigida: plugin shell (`"open": true`), capabilities com `shell:allow-execute`, `externalBin` para o sidecar
 - [x] Assets de build: `binaries/`, `icons/` e `gen_icons.py`
 - [x] `cargo check` dev + release sem erros; app inicia sem panic
-- [x] Ponte HTTP para o backend Python (`python main.py --bridge`, porta 8081) — fluxo de desenvolvimento
+- [x] Ponte HTTP para o backend Python (`python main.py --bridge-http`, porta 8081) — fluxo de desenvolvimento
 
 > ⚠️ **Pendente para empacotamento (Fase 3):** gerar o sidecar real com `python src-tauri/build_sidecar.py` e validar o instalador em uma máquina limpa (sem Python).
 

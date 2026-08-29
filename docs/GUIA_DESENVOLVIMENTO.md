@@ -81,9 +81,9 @@ npm run tauri dev
 npm run tauri build   # antes: python src-tauri/build_sidecar.py
 ```
 
-> ✅ **Estado atual:** o app compila e inicia corretamente. Para o chat funcionar em dev, inicie o backend Python em paralelo:
+> ✅ **Estado atual:** o app compila e inicia corretamente. Para o chat funcionar em dev, inicie o backend Python em paralelo no modo bridge HTTP (porta 8081 — consumido pelo frontend Tauri):
 > ```bash
-> .venv\Scripts\python.exe backend\main.py --bridge
+> .venv\Scripts\python.exe backend\main.py --bridge-http
 > ```
 > Veja `frontend-tauri/IMPLEMENTACAO_COMPLETA.md` para detalhes.
 
@@ -252,6 +252,7 @@ maria/
 ├── docs/                      ← documentação técnica
 │   ├── ARQUITETURA_SISTEMA.md      ← arquitetura real (ATIVO)
 │   ├── GUIA_DESENVOLVIMENTO.md     ← este arquivo (ATIVO)
+│   ├── GUIA_TESTES_EMPIRICOS.md    ← como construir e testar (ATIVO)
 │   ├── RELATORIO_ESTADO_ATUAL.md   ← estado atual (ATIVO)
 │   ├── PENDENCIAS_INTERFACE.md     ← pendências de UI (ATIVO)
 │   ├── DECISOES_BANCO_DADOS.md     ← decisões pendentes de DB (ATIVO)

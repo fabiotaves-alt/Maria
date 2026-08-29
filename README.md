@@ -106,6 +106,7 @@ maria/
 │   ├── DECISOES_BANCO_DADOS.md
 │   ├── GUIA_DESENVOLVIMENTO.md
 │   ├── GUIA_DESENVOLVIMENTO_FASE3.md
+│   ├── GUIA_TESTES_EMPIRICOS.md
 │   ├── IMPLEMENTACAO_DAO.md
 │   ├── INSTALACAO_WHISPER.md
 │   ├── INTEGRACAO_FRONTEND.md
@@ -247,13 +248,13 @@ mvn test
 
 ### v4.0 (Nova Versão - Funcional)
 
-> ✅ **Status:** o frontend Tauri compila e inicia corretamente no Windows. Documentação completa em [`frontend-tauri/IMPLEMENTACAO_COMPLETA.md`](frontend-tauri/IMPLEMENTACAO_COMPLETA.md). Roadmap em [`docs/PLANO_MIGRACAO_TAURI_V4.md`](docs/PLANO_MIGRACAO_TAURI_V4.md).
+> ✅ **Status:** o frontend Tauri compila e inicia corretamente no Windows. Documentação completa em [`frontend-tauri/IMPLEMENTACAO_COMPLETA.md`](frontend-tauri/IMPLEMENTACAO_COMPLETA.md). Roadmap em [`docs/PLANO_MIGRACAO_TAURI_V4.md`](docs/PLANO_MIGRACAO_TAURI_V4.md). Guia de testes em [`docs/GUIA_TESTES_EMPIRICOS.md`](docs/GUIA_TESTES_EMPIRICOS.md).
 
 **Fluxo:**
 
 ```bash
 # 1. Backend Python (modo bridge HTTP, porta 8081) — necessário para o chat
-.venv\Scripts\python.exe backend\main.py --bridge
+.venv\Scripts\python.exe backend\main.py --bridge-http
 
 # 2. Frontend Tauri (desenvolvimento)
 cd frontend-tauri

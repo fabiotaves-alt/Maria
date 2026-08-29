@@ -3,17 +3,13 @@
     windows_subsystem = "windows"
 )]
 
-use serde::Serialize;
-#[cfg(debug_assertions)]
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::command;
 #[cfg(not(debug_assertions))]
-use tokio::process::Command;
+use tauri::Manager;
 #[cfg(not(debug_assertions))]
-use std::process::Stdio;
-
-#[cfg(debug_assertions)]
+use tauri_plugin_shell::{process::CommandEvent, ShellExt};
 use uuid;
 use rusqlite::{params, Connection, Result as SqliteResult};
 
@@ -21,7 +17,6 @@ use rusqlite::{params, Connection, Result as SqliteResult};
 // Tipos de dados para comunicação com o backend Python
 // ─────────────────────────────────────────────────────────────
 
-#[cfg(debug_assertions)]
 #[derive(Serialize, Deserialize, Debug)]
 struct PythonRequest {
     id: String,
@@ -29,13 +24,12 @@ struct PythonRequest {
     dados: Value,
 }
 
-#[cfg(debug_assertions)]
 #[derive(Serialize, Deserialize, Debug)]
 #[allow(non_snake_case)]
 struct PythonResponse {
     id: String,
     status: String,
-    dados: Option<String>,
+    dados: Option<Value>,
     mensagemErro: Option<String>,
 }
 
@@ -60,8 +54,9 @@ async fn ping() -> Result<String, String> {
 /// Envia uma mensagem para o backend Python e retorna a resposta
 #[command]
 async fn send_message(message: String) -> Result<String, String> {
-    // Em desenvolvimento, chama HTTP diretamente
-    // Em produção, usará sidecar Python
+    // Sempre via HTTP: em dev o backend é iniciado manualmente
+    // (`python backend/main.py --bridge-http`); em produção o sidecar
+    // maria-backend é spawnado automaticamente no setup() (ver main()).
     call_python_backend("chat", serde_json::json!({ "mensagem": message })).await
 }
 
@@ -129,7 +124,7 @@ fn get_chat_history(conversation_id: i64) -> Result<Vec<Message>, String> {
     let db_path = std::env::current_dir()
         .map_err(|e| e.to_string())?
         .join("../shared/maria.db");
-    
+
     let conn = Connection::open(&db_path)
         .map_err(|e| format!("Erro ao abrir banco de dados: {}", e))?;
 
@@ -160,7 +155,7 @@ fn save_message(conversation_id: i64, role: String, content: String) -> Result<i
     let db_path = std::env::current_dir()
         .map_err(|e| e.to_string())?
         .join("../shared/maria.db");
-    
+
     let conn = Connection::open(&db_path)
         .map_err(|e| format!("Erro ao abrir banco de dados: {}", e))?;
     conn.execute("PRAGMA foreign_keys = ON", [])
@@ -180,26 +175,12 @@ fn save_message(conversation_id: i64, role: String, content: String) -> Result<i
 // Funções auxiliares para comunicação com Python
 // ─────────────────────────────────────────────────────────────
 
-/// Chama o backend Python via HTTP (desenvolvimento) ou sidecar (produção)
+/// Chama o backend MARIA via HTTP. Em desenvolvimento, o backend é iniciado
+/// manualmente pelo desenvolvedor (`python backend/main.py --bridge-http`).
+/// Em produção, o sidecar é iniciado automaticamente no setup() do app (ver main()).
 async fn call_python_backend(comando: &str, dados: Value) -> Result<String, String> {
-    #[cfg(debug_assertions)]
-    {
-        // Modo desenvolvimento: chama HTTP diretamente
-        call_python_http(comando, dados).await
-    }
-    
-    #[cfg(not(debug_assertions))]
-    {
-        // Modo produção: usa sidecar
-        call_python_sidecar(comando, dados).await
-    }
-}
-
-/// Chama backend Python via HTTP (localhost:8081) — somente em desenvolvimento
-#[cfg(debug_assertions)]
-async fn call_python_http(comando: &str, dados: Value) -> Result<String, String> {
     let client = reqwest::Client::new();
-    
+
     let request = PythonRequest {
         id: uuid::Uuid::new_v4().to_string(),
         comando: comando.to_string(),
@@ -211,44 +192,24 @@ async fn call_python_http(comando: &str, dados: Value) -> Result<String, String>
         .json(&request)
         .send()
         .await
-        .map_err(|e| format!("Erro de conexao com backend: {}", e))?;
+        .map_err(|e| format!("Erro de conexão com o backend MARIA: {}", e))?;
 
     let result: PythonResponse = response
         .json()
         .await
-        .map_err(|e| format!("Erro ao processar resposta: {}", e))?;
+        .map_err(|e| format!("Erro ao processar resposta do backend: {}", e))?;
 
     if result.status == "ok" {
-        Ok(result.dados.unwrap_or_default())
+        // O backend retorna `dados` como string (ping, chat, ...) ou como
+        // objeto/array JSON (status, listagem de memórias, ...). Para
+        // strings, devolve o conteúdo direto; para JSON, serializa.
+        Ok(match result.dados {
+            Some(Value::String(s)) => s,
+            Some(valor) => valor.to_string(),
+            None => String::new(),
+        })
     } else {
-        Err(result.mensagemErro.unwrap_or("Erro desconhecido".to_string()))
-    }
-}
-
-/// Chama backend Python como processo sidecar (somente em produção)
-#[cfg(not(debug_assertions))]
-async fn call_python_sidecar(comando: &str, dados: Value) -> Result<String, String> {
-    let output = Command::new("python3")
-        .args([
-            "backend/main.py",
-            "--bridge",
-            "--comando",
-            comando,
-            "--payload",
-            &dados.to_string(),
-        ])
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await
-        .map_err(|e| format!("Erro ao executar Python: {}", e))?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(format!("Erro no Python: {}", stderr))
+        Err(result.mensagemErro.unwrap_or_else(|| "Erro desconhecido no backend".to_string()))
     }
 }
 
@@ -261,6 +222,56 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .setup(|_app| {
+            #[cfg(not(debug_assertions))]
+            {
+                let shell = _app.handle().shell();
+                let (mut receptor, filho) = shell
+                    .sidecar("maria-backend")
+                    .expect("Sidecar 'maria-backend' não encontrado — rode build_sidecar.py antes do build.")
+                    .args(["--bridge-http", "--porta", "8081"])
+                    .spawn()
+                    .expect("Falha ao iniciar o sidecar maria-backend");
+
+                _app.manage(std::sync::Mutex::new(Some(filho)));
+
+                tauri::async_runtime::spawn(async move {
+                    while let Some(evento) = receptor.recv().await {
+                        match evento {
+                            CommandEvent::Stdout(linha) => {
+                                eprintln!("[maria-backend] {}", String::from_utf8_lossy(&linha));
+                            }
+                            CommandEvent::Stderr(linha) => {
+                                eprintln!("[maria-backend][erro] {}", String::from_utf8_lossy(&linha));
+                            }
+                            CommandEvent::Error(mensagem) => {
+                                eprintln!("[maria-backend][falha] {}", mensagem);
+                            }
+                            CommandEvent::Terminated(status) => {
+                                eprintln!("[maria-backend] processo encerrado: {:?}", status);
+                            }
+                            _ => {}
+                        }
+                    }
+                });
+            }
+            Ok(())
+        })
+        .on_window_event(|_window, _event| {
+            #[cfg(not(debug_assertions))]
+            if let tauri::WindowEvent::CloseRequested { .. } = _event {
+                if let Some(estado) = _window
+                    .app_handle()
+                    .try_state::<std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>>()
+                {
+                    if let Ok(mut guarda) = estado.lock() {
+                        if let Some(filho) = guarda.take() {
+                            let _ = filho.kill();
+                        }
+                    }
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             send_message,
             ping,

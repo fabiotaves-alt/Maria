@@ -20,6 +20,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - **Testes automatizados**: Adicionados testes Rust (`cargo test`) e TypeScript (`vitest run`) no frontend-tauri.
 - **Consolidada documentação**: Atualizados `docs/ARQUITETURA_SISTEMA.md`, `docs/DECISOES_BANCO_DADOS.md`, `docs/IMPLEMENTACAO_DAO.md` com notas sobre modelo padrão `qwen2.5-omni-3b` via llama-server e `qwen3.5:4b` como legado/opcional.
 - **Validado sidecar e instalador**: `build_sidecar.py` agora gera binário com suffixo do target triple (`maria-backend-<triple>[.exe]`) via `_obter_target_triple()`.
+- **Guia de testes empíricos**: Criado [`docs/GUIA_TESTES_EMPIRICOS.md`](docs/GUIA_TESTES_EMPIRICOS.md) com o passo a passo para construir e executar os 5 níveis de teste (build, unitários, llama-server ao vivo, bridge HTTP, benchmark e E2E de UI).
 
 ---
 

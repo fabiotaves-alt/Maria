@@ -1,0 +1,32 @@
+............2026-08-29 19:09:22,112 - backend.main - WARNING - Aquecimento do modelo falhou (não crítico): falha
+.........................2026-08-29 19:09:22,183 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+.2026-08-29 19:09:22,186 - backend.core.tools_schema - INFO - Executando ferramenta real: criar_documento({'nome_arquivo': 'teste_documento', 'titulo': 'Documento de Teste', 'conteudo': 'Primeiro parágrafo do documento.\n\nSegundo parágrafo do documento.'})
+2026-08-29 19:09:22,388 - backend.core.word_handler - INFO - Documento criado: C:\Users\betti\AppData\Local\Temp\tmp9nitf6u7\teste_documento.docx
+.2026-08-29 19:09:22,389 - backend.core.tools_schema - INFO - Executando ferramenta real: criar_planilha({'nome_arquivo': 'teste_planilha', 'colunas': ['Data', 'Descrição', 'Valor'], 'descricao': 'Planilha de teste'})
+2026-08-29 19:09:22,430 - backend.core.excel_handler - INFO - Planilha criada: C:\Users\betti\AppData\Local\Temp\tmp1mnia7zz\teste_planilha.xlsx
+.2026-08-29 19:09:22,463 - backend.core.excel_handler - INFO - Planilha criada: C:\Users\betti\AppData\Local\Temp\tmpw834onv6\teste_edicao.xlsx
+2026-08-29 19:09:22,499 - backend.core.excel_handler - INFO - Planilha sobrescrita: C:\Users\betti\AppData\Local\Temp\tmpw834onv6\teste_edicao.xlsx
+..2026-08-29 19:09:22,505 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: apagar_tudo({})
+.2026-08-29 19:09:22,508 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+.2026-08-29 19:09:22,513 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: resumir_documento({'nome_arquivo': 'notas.txt'})
+...............2026-08-29 19:09:22,559 - backend.core.llama_client - INFO - Tool call extraída via fallback textual: criar_planilha
+..2026-08-29 19:09:22,562 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+.2026-08-29 19:09:22,564 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+.......2026-08-29 19:09:22,577 - backend.core.ollama_client - WARNING - Tool call detectada via fallback textual no stream com métricas (origem=thinking): editar_planilha
+.2026-08-29 19:09:22,579 - backend.core.ollama_client - WARNING - Tool call detectada via fallback textual no stream com métricas (origem=content): criar_planilha
+..2026-08-29 19:09:22,584 - backend.core.ollama_client - WARNING - Tool call detectada via fallback textual (origem=thinking): criar_planilha
+.2026-08-29 19:09:22,587 - backend.core.ollama_client - WARNING - Tool call detectada via fallback textual (origem=content): editar_planilha
+...2026-08-29 19:09:22,595 - backend.core.ollama_client - WARNING - Tool call malformada: 'function' não é um dict: None
+.2026-08-29 19:09:22,597 - backend.core.ollama_client - WARNING - Tool call malformada: 'name' ausente ou inválido: None
+.2026-08-29 19:09:22,599 - backend.core.ollama_client - WARNING - Tool call detectada via fallback textual na continuação (origem=thinking): criar_planilha
+.............2026-08-29 19:09:22,629 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+.2026-08-29 19:09:22,632 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+.2026-08-29 19:09:22,634 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+2026-08-29 19:09:22,635 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+2026-08-29 19:09:22,636 - backend.core.tools_schema - INFO - Executando ferramenta de leitura: listar_arquivos({})
+2026-08-29 19:09:22,637 - backend.core.tool_chaining - WARNING - Limite de passos de leitura atingido sem resposta final.
+...
+----------------------------------------------------------------------
+Ran 96 tests in 0.576s
+
+OK

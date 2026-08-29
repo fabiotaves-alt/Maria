@@ -1215,10 +1215,10 @@ class TestSelecaoModeloCLI(unittest.TestCase):
 
     def test_controller_usa_modelo_padrao_quando_nao_informado(self):
         from backend.main import MariaController
-        from backend.core.config import OLLAMA_MODEL
+        from backend.core.config import LLAMA_MODEL
         controller = MariaController()
         controller.inicializar()
-        self.assertEqual(controller.cliente.model, OLLAMA_MODEL)
+        self.assertEqual(controller.cliente.model, LLAMA_MODEL)
 
 
 class TestAquecimentoModelo(unittest.TestCase):
