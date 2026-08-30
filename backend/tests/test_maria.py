@@ -1867,5 +1867,138 @@ class TestLlamaClientCompatibilidade(unittest.TestCase):
         self.assertIn("tool", roles)
 
 
+class TestSegurancaComandosBridge(unittest.TestCase):
+    """Testes de segurança para upload_arquivo e transcrever_audio (P0)."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.temp_fora = tempfile.TemporaryDirectory()
+        self.original_pastas = os.environ.get("PASTAS_PERMITIDAS")
+        os.environ["PASTAS_PERMITIDAS"] = self.temp_dir.name
+        self.pasta_gerados = os.path.join(self.temp_dir.name, "arquivos_gerados")
+        self.original_gerados = os.environ.get("PASTA_ARQUIVOS_GERADOS")
+        os.environ["PASTA_ARQUIVOS_GERADOS"] = self.pasta_gerados
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+        self.temp_fora.cleanup()
+        if self.original_pastas:
+            os.environ["PASTAS_PERMITIDAS"] = self.original_pastas
+        else:
+            os.environ.pop("PASTAS_PERMITIDAS", None)
+        if self.original_gerados:
+            os.environ["PASTA_ARQUIVOS_GERADOS"] = self.original_gerados
+        else:
+            os.environ.pop("PASTA_ARQUIVOS_GERADOS", None)
+        os.environ.pop("WHISPER_BIN", None)
+
+    def _despachar(self, comando, payload):
+        from backend.main import _despachar_comando
+        return _despachar_comando(None, comando, payload)
+
+    def test_upload_rejeita_diretorio(self):
+        """upload_arquivo deve rejeitar pastas (apenas arquivos)."""
+        status, dados, erro = self._despachar(
+            "upload_arquivo", {"caminho": self.temp_fora.name}
+        )
+        self.assertEqual(status, "erro")
+        self.assertIn("inválido", erro)
+
+    def test_upload_arquivo_valido_copia_para_pasta_gerenciada(self):
+        """upload_arquivo copia um arquivo válido para a pasta permitida."""
+        origem = os.path.join(self.temp_fora.name, "doc.txt")
+        with open(origem, "w", encoding="utf-8") as f:
+            f.write("conteúdo")
+
+        status, dados, erro = self._despachar("upload_arquivo", {"caminho": origem})
+
+        self.assertEqual(status, "ok", erro)
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.pasta_gerados, "doc.txt")),
+            f"Arquivo deveria estar em {self.pasta_gerados}: {dados}",
+        )
+
+    def test_transcrever_audio_rejeita_caminho_fora_das_pastas_permitidas(self):
+        """transcrever_audio não pode ler/deletar arquivos fora das pastas
+        permitidas (corrige deleção arbitrária via unlink)."""
+        audio_fora = os.path.join(self.temp_fora.name, "audio.wav")
+        with open(audio_fora, "wb") as f:
+            f.write(b"RIFF....")
+
+        status, dados, erro = self._despachar(
+            "transcrever_audio", {"caminho": audio_fora}
+        )
+
+        self.assertEqual(status, "erro")
+        # O arquivo fora da pasta permitida NÃO pode ser deletado
+        self.assertTrue(os.path.exists(audio_fora))
+
+    def test_transcrever_audio_rejeita_whisper_bin_invalido(self):
+        """WHISPER_BIN com caminho/espaços deve ser rejeitado (evita
+        execução de binário arbitrário)."""
+        audio = os.path.join(self.temp_dir.name, "audio.wav")
+        with open(audio, "wb") as f:
+            f.write(b"RIFF....")
+        os.environ["WHISPER_BIN"] = "C:/evil/dir/whisper-main.exe"
+
+        status, dados, erro = self._despachar(
+            "transcrever_audio", {"caminho": audio}
+        )
+
+        self.assertEqual(status, "erro")
+        self.assertIn("WHISPER_BIN", erro)
+
+
+class TestSegurancaApiHttp(unittest.TestCase):
+    """Testes de autenticação da API bridge HTTP (P1)."""
+
+    def setUp(self):
+        from backend.main import _criar_app_http, _carregar_token_api
+        self.token = _carregar_token_api()
+        self.app = _criar_app_http(None, self.token)
+        self.client = self.app.test_client()
+
+    def test_chat_sem_token_rejeitado(self):
+        resp = self.client.post("/chat", json={"id": "1", "comando": "status", "dados": {}})
+        self.assertEqual(resp.status_code, 401)
+
+    def test_chat_token_invalido_rejeitado(self):
+        resp = self.client.post(
+            "/chat",
+            json={"id": "1", "comando": "status", "dados": {}},
+            headers={"Authorization": "Bearer token-falso"},
+        )
+        self.assertEqual(resp.status_code, 401)
+
+    def test_ping_fica_aberto_para_health_check(self):
+        resp = self.client.get("/ping")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_cors_origem_maliciosa_nao_autorizada(self):
+        resp = self.client.options(
+            "/chat",
+            headers={
+                "Origin": "https://site-malicioso.example",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+        self.assertNotEqual(
+            resp.headers.get("Access-Control-Allow-Origin", ""), "*"
+        )
+
+    def test_cors_origem_tauri_autorizada(self):
+        resp = self.client.options(
+            "/chat",
+            headers={
+                "Origin": "http://tauri.localhost",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "authorization",
+            },
+        )
+        self.assertEqual(
+            resp.headers.get("Access-Control-Allow-Origin"), "http://tauri.localhost"
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

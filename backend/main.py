@@ -16,6 +16,8 @@ import argparse
 import logging
 import os
 import platform
+import re
+import secrets
 from datetime import datetime
 from pathlib import Path
 
@@ -428,8 +430,13 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
             from backend.core.file_utils import garantir_pasta_arquivos
 
             origem = Path(caminho)
-            if not origem.exists():
-                raise ValueError(f"Arquivo não encontrado: {caminho}")
+            if not origem.is_file():
+                raise ValueError(f"Arquivo não encontrado ou caminho inválido: {caminho}")
+
+            # Segurança: limite de tamanho para evitar cópias gigantes
+            TAMANHO_MAXIMO = 100 * 1024 * 1024  # 100 MB
+            if origem.stat().st_size > TAMANHO_MAXIMO:
+                raise ValueError("Arquivo excede o tamanho máximo de 100 MB.")
 
             pasta_destino = Path(garantir_pasta_arquivos())
             nome_destino = pasta_destino / origem.name
@@ -439,6 +446,7 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
                 contador += 1
 
             shutil.copy2(origem, nome_destino)
+            logger.info("upload_arquivo: '%s' -> '%s'", origem, nome_destino)
             return "ok", f"Arquivo copiado para: {nome_destino}", None
         except Exception as error:
             logger.error(f"Erro ao fazer upload: {error}")
@@ -451,18 +459,36 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
         try:
             import subprocess
             from pathlib import Path
+            from backend.core.file_utils import (
+                garantir_pasta_arquivos,
+                resolver_caminho_permitido,
+            )
 
             audio_path = Path(caminho)
-            if not audio_path.exists():
+            if not audio_path.is_file():
                 raise ValueError(f"Arquivo de áudio não encontrado: {caminho}")
 
+            # Segurança: o áudio deve estar dentro das pastas permitidas
+            # (use o comando upload_arquivo antes para copiá-lo para a pasta
+            # gerenciada). Isso impede leitura/deleção arbitrária de arquivos.
+            audio_path = resolver_caminho_permitido(str(audio_path))
+
+            # Segurança: binário restrito a nome simples (sem caminho/argumentos)
             whisper_bin = os.getenv("WHISPER_BIN", "whisper-main")
+            if not re.fullmatch(r"[\w.-]+(\.exe)?", whisper_bin):
+                raise ValueError(
+                    "WHISPER_BIN inválido: use apenas o nome do binário "
+                    "(sem caminho ou argumentos)."
+                )
+
+            # Arquivos temporários de saída na pasta gerenciada
+            saida_base = Path(garantir_pasta_arquivos()) / "temp_whisper"
             try:
                 subprocess.run(
-                    [whisper_bin, "-f", str(audio_path), "-otxt", "-of", "temp_whisper"],
+                    [whisper_bin, "-f", str(audio_path), "-otxt", "-of", str(saida_base)],
                     capture_output=True, text=True, timeout=60,
                 )
-                output_file = Path("temp_whisper.txt")
+                output_file = saida_base.with_suffix(".txt")
                 if output_file.exists():
                     transcricao = output_file.read_text(encoding="utf-8")
                     output_file.unlink()
@@ -711,17 +737,59 @@ def _modo_bridge(modelo: str | None = None):
             break
 
 
-def _criar_app_http(controller: "MariaController"):
+def _carregar_token_api() -> str:
+    """
+    Gera (ou recarrega) o token da API bridge HTTP e o persiste em
+    `shared/.bridge_token`.
+
+    O token é regenerado a cada inicialização do modo HTTP (mais seguro) e o
+    frontend Tauri o lê do arquivo a cada chamada (`call_python_backend` em
+    `main.rs`), injetando-o no header `Authorization: Bearer <token>`.
+    """
+    caminho = Path(_RAIZ_MONOREPO) / "shared" / ".bridge_token"
+    token = secrets.token_hex(32)
+    caminho.parent.mkdir(parents=True, exist_ok=True)
+    caminho.write_text(token, encoding="utf-8")
+    logger.info("Token da API bridge HTTP regenerado")
+    return token
+
+
+def _criar_app_http(controller: "MariaController", token: str):
     """
     App Flask que expõe o protocolo bridge via HTTP. Único endpoint POST /chat,
     aceitando {"id","comando","dados"} e respondendo {"id","status","dados","mensagemErro"}.
     Contrato consumido por frontend-tauri/src-tauri/src/main.rs (PythonRequest/PythonResponse).
+
+    Segurança:
+        - Autenticação obrigatória via header `Authorization: Bearer <token>`
+          (/ping permanece aberto como health check, sem dados sensíveis).
+        - CORS restrito às origens do frontend Tauri (dev e produção).
     """
     from flask import Flask, request, jsonify
     from flask_cors import CORS
 
     app = Flask(__name__)
-    CORS(app)
+    CORS(
+        app,
+        origins=[
+            "tauri://localhost",       # webview Tauri (macOS/Linux)
+            "http://tauri.localhost",  # webview Tauri (Windows)
+            "http://localhost:5173",   # Vite dev server
+        ],
+        allow_headers=["Content-Type", "Authorization"],
+    )
+
+    @app.before_request
+    def _exigir_autenticacao():
+        """Rejeita requisições sem token válido (exceto /ping)."""
+        if request.path == "/ping":
+            return None
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer ") or not secrets.compare_digest(auth[7:], token):
+            logger.warning("Requisição sem token válido rejeitada (rota: %s)", request.path)
+            return jsonify({"id": "", "status": "erro", "dados": None,
+                            "mensagemErro": "Não autorizado: token inválido ou ausente."}), 401
+        return None
 
     @app.route("/chat", methods=["POST"])
     def _rota_unica():
@@ -760,7 +828,7 @@ def _modo_bridge_http(modelo: str | None = None, porta: int = 8081):
         logger.error(f"Falha ao inicializar controller: {error}")
         raise SystemExit(f"Falha ao inicializar: {error}")
 
-    app = _criar_app_http(controller)
+    app = _criar_app_http(controller, _carregar_token_api())
     logger.info(f"Servidor HTTP bridge iniciado em http://127.0.0.1:{porta}")
     app.run(host="127.0.0.1", port=porta, debug=False, use_reloader=False)
 

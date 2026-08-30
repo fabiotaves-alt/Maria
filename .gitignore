@@ -176,3 +176,8 @@ htmlcov/
 .tox/
 .nox/
 
+
+# ============== 15. Segurança ============== 
+# Token da API bridge HTTP (regenerado a cada inicialização do backend) 
+shared/.bridge_token
+

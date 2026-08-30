@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability principal da janela main - permite controles de janela e execução de comandos shell configurados (sidecar maria-backend e Python)",
+  "description": "Capability principal da janela main - controles de janela e execução restrita do sidecar maria-backend",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -16,17 +16,7 @@
         {
           "name": "maria-backend",
           "sidecar": true,
-          "args": true
-        },
-        {
-          "name": "python",
-          "cmd": "python",
-          "args": true
-        },
-        {
-          "name": "python3",
-          "cmd": "python3",
-          "args": true
+          "args": ["--bridge-http", "--porta", "8081"]
         }
       ]
     }

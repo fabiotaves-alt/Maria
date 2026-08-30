@@ -83,6 +83,7 @@ npm run tauri build   # antes: python src-tauri/build_sidecar.py
 > ```bash
 > .venv\Scripts\python.exe backend\main.py --bridge-http
 > ```
+> O backend gera automaticamente um token de autenticação em `shared/.bridge_token` ao iniciar; o app Tauri o lê e injeta no header `Authorization` — nenhum passo manual é necessário. Para testes manuais com `curl`, consulte [`docs/SEGURANCA.md`](SEGURANCA.md).
 > Veja [`frontend-tauri/IMPLEMENTACAO_COMPLETA.md`](../frontend-tauri/IMPLEMENTACAO_COMPLETA.md) para detalhes.
 
 #### Testes
@@ -156,6 +157,7 @@ maria/
 │   ├── ARQUITETURA_SISTEMA.md      ← arquitetura real
 │   ├── GUIA_TESTES_EMPIRICOS.md    ← como construir e testar
 │   ├── DECISOES_BANCO_DADOS.md     ← decisões de banco de dados
+│   ├── SEGURANCA.md                ← medidas de segurança e pendências
 │   ├── INSTALACAO_WHISPER.md       ← instalação do Whisper.cpp
 │   ├── PLANO_MIGRACAO_TAURI_V4.md  ← referência da migração v4
 │   └── arquivo/                    ← documentos históricos (era JavaFX, planos concluídos)

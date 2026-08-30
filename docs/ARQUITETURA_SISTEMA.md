@@ -92,6 +92,19 @@ Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo 
 
 O frontend Tauri consome o backend Python via **HTTP JSON na porta 8081** (modo `--bridge-http`), com os mesmos 19 comandos do protocolo bridge original. Em produção, o backend é empacotado como **sidecar** (`binaries/maria-backend`) e executado pelo Tauri em modo `--bridge` (stdin/stdout JSON-lines).
 
+### Segurança da Camada HTTP
+
+| Medida | Implementação |
+|--------|---------------|
+| **Autenticação** | Header `Authorization: Bearer <token>` obrigatório em `/chat`; token de 32 bytes gerado pelo backend a cada inicialização e persistido em `shared/.bridge_token` (ignorado pelo git). O Rust (`call_python_backend`) lê o token e injeta o header automaticamente. `/ping` fica aberto para health check. |
+| **CORS** | Restrito às origens do frontend (`tauri://localhost`, `http://tauri.localhost`, `http://localhost:5173`). |
+| **Bind** | Servidor escuta apenas em `127.0.0.1` (sem exposição à rede). |
+| **CSP** | Política restritiva no `tauri.conf.json` (`default-src 'self'`; `connect-src` limitado à bridge + IPC Tauri). |
+| **Shell scope** | Capabilities restritas ao sidecar `maria-backend` com argumentos fixos (`--bridge-http --porta 8081`); scopes `python`/`python3` removidos. |
+| **Arquivos** | `upload_arquivo` valida tipo/limite de tamanho (100 MB); `transcrever_audio` valida caminho via `resolver_caminho_permitido()` e `WHISPER_BIN` por regex — impede leitura/deleção arbitrária de arquivos. |
+
+Detalhes completos e pendências: [`docs/SEGURANCA.md`](SEGURANCA.md).
+
 ---
 
 ## 4. Banco de Dados Compartilhado

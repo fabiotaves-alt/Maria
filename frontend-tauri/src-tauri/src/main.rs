@@ -187,9 +187,18 @@ async fn call_python_backend(comando: &str, dados: Value) -> Result<String, Stri
         dados,
     };
 
-    let response = client
-        .post("http://localhost:8081/chat")
-        .json(&request)
+    // Autenticação: lê o token regenerado pelo backend a cada inicialização
+    // (persistido em shared/.bridge_token) e injeta no header Authorization.
+    let mut requisicao = client.post("http://localhost:8081/chat").json(&request);
+    if let Ok(dir_raiz) = std::env::current_dir() {
+        let caminho_token = dir_raiz.join("../shared/.bridge_token");
+        if let Ok(token) = std::fs::read_to_string(&caminho_token) {
+            requisicao =
+                requisicao.header("Authorization", format!("Bearer {}", token.trim()));
+        }
+    }
+
+    let response = requisicao
         .send()
         .await
         .map_err(|e| format!("Erro de conexão com o backend MARIA: {}", e))?;
