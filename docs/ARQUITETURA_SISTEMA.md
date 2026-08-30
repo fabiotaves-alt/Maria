@@ -1,8 +1,8 @@
 # Arquitetura do Sistema — MARIA
 
-**Versão:** v3.1.0  
-**Última atualização:** 2026-08-28  
-**Status da Fase:** ✅ Fase 3 Concluída (Integração Backend-Frontend & Schema Unificado)
+**Versão:** v4.0.0
+**Última atualização:** 2026-08-30
+**Status:** ✅ Migração Tauri v4 concluída (frontend Tauri v2 + React + backend Python em bridge HTTP)
 
 Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo o modelo LLM configurado (`qwen2.5-omni-3b` via llama-server como padrão em produção; `qwen3.5:4b` via Ollama mantido como caminho legado/opcional) e a estrutura implementada no monorepo. Consulte `backend/core/config.py` como fonte da verdade para configurações de modelo.
 
@@ -10,38 +10,38 @@ Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo 
 
 ## 1. Visão Geral
 
-**MARIA** ("Modelo Assistente de Raciocínio e Inferência Aumentada") é uma assistente de IA de escritório que roda **100% localmente**, sem depender de internet após a instalação do modelo. O sistema consiste em dois processos independentes que se comunicam via IPC (stdin/stdout com protocolo JSON-lines) e banco SQLite compartilhado:
+**MARIA** ("Modelo Assistente de Raciocínio e Inferência Aumentada") é uma assistente de IA de escritório que roda **100% localmente**, sem depender de internet após a instalação do modelo. O sistema consiste em dois processos independentes que se comunicam via **HTTP (bridge JSON, porta 8081)** e banco SQLite compartilhado:
 
-- **Frontend**: JavaFX 21 (interface visual com navegação por 8 abas)
-- **Backend**: Python 3.11+ (LLM local via Ollama, lógica de negócio, ferramentas)
+- **Frontend**: Tauri v2 + React + TypeScript + Tailwind (interface visual com navegação por abas)
+- **Backend**: Python 3.11+ (LLM local via llama-server, lógica de negócio, ferramentas)
 - **Banco de Dados**: SQLite compartilhado (`shared/maria.db`) com schema canônico em `shared/schema.sql`
 
 ### Diagrama de Arquitetura
 
 ```
-┌─────────────────────────────────────┐   JSON-lines    ┌──────────────────────────────────┐
-│  Frontend JavaFX                    │ ◄─────────────► │  Backend Python                  │
-│  (com.tristar.maria)                │   stdin/stdout  │  (Ollama + ferramentas)          │
-│  Java 21 / JavaFX 21                │                 │  Python 3.11+                    │
-│                                     │                 │                                  │
-│  • App.java (entry point)           │                 │  • main.py (--bridge / CLI)      │
-│  • MainController (navegação)       │                 │  • ollama_client.py              │
-│  • ConversarController (chat)       │◄───────────────►│  • tools_schema.py               │
-│  • PythonBridgeService (comunicação)│                 │  • excel_handler.py              │
-│  • HeroController (tela inicial)    │                 │  • word_handler.py               │
-│  • 8 controllers de abas            │                 │  • session_storage.py            │
-│  • 5 DAOs (persistência)            │                 │  • database/schema.py            │
+┌─────────────────────────────────────┐   HTTP JSON    ┌──────────────────────────────────┐
+│  Frontend Tauri v2                  │ ◄────────────► │  Backend Python                  │
+│  (React + TS + Tailwind)            │  porta 8081    │  (llama-server + ferramentas)    │
+│  Rust: rusqlite, reqwest, sidecar   │  (--bridge-http│  Python 3.11+                    │
+│                                     │   em produção: │                                  │
+│  • App.tsx (entry point)            │   sidecar      │  • main.py (--bridge-http/CLI)   │
+│  • pages/ (ConversarPage, etc.)     │   stdin/stdout)│  • llama_client.py (produção)    │
+│  • components/ (TopBar, Sidebar,    │◄──────────────►│  • ollama_client.py (legado)     │
+│    CenterStage, ChatPanel)          │                │  • router.py (multi-modelo,      │
+│  • hooks/ (useMariaBridge, useTheme)│                │    em integração)                │
+│  • useMariaBridge → reqwest HTTP    │                │  • tools_schema.py + handlers    │
+│  • rusqlite (persistência local)    │                │  • session_storage.py            │
 └──────────────────┬──────────────────┘                 └────────────────┬─────────────────┘
                    │                                                     │ HTTP localhost
-                   │ JDBC (WAL)                                          │
-                   ▼                                              ┌──────▼──────┐
-┌─────────────────────────────────────┐                           │   Ollama    │
-│  SQLite (shared/maria.db)           │◄──────────────────────────┤ qwen3.5:4b (legado)│
-│  - conversas                        │     Shared Database       └─────────────┘
-│  - mensagens (ON DELETE CASCADE)    │       (WAL mode)
-│  - memoria                          │
-│  - arquivos_indexados               │
-│  - automacoes                       │
+                   │ rusqlite (WAL)                                      │ (porta 8080)
+                   ▼                                              ┌──────▼──────────┐
+┌─────────────────────────────────────┐                           │  llama-server   │
+│  SQLite (shared/maria.db)           │◄──────────────────────────┤ qwen2.5-omni-3b │
+│  - conversas                        │     Shared Database       └─────────────────┘
+│  - mensagens (ON DELETE CASCADE)    │       (WAL mode)          ┌─────────────────┐
+│  - memoria                          │                           │ Ollama (legado) │
+│  - arquivos_indexados               │                           │ qwen3.5:4b      │
+│  - automacoes                       │                           └─────────────────┘
 │  - configuracoes                    │
 └─────────────────────────────────────┘
 ```
@@ -50,43 +50,47 @@ Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo 
 
 ## 2. Componentes do Sistema
 
-### 2.1 Frontend (JavaFX)
+### 2.1 Frontend (Tauri v2 + React)
 
-**Tecnologias:** Java 21, JavaFX 21, Maven, SQLite JDBC, JUnit 5
+**Tecnologias:** Tauri v2 (Rust), React 18, TypeScript, Tailwind CSS, Vite, rusqlite, reqwest
 
-**Estrutura de Pacotes:** `com.tristar.maria`
+**Estrutura:** `frontend-tauri/`
 
 #### Componentes Principais
 
-| Classe | Responsabilidade |
+| Camada | Responsabilidade |
 |--------|------------------|
-| `App.java` | Entry point da aplicação; detecta SO dinamicamente, inicializa banco SQLite, inicia bridge Python |
-| `MainController.java` | Controller principal; gerencia navegação das 8 abas, alternância de tema claro/escuro |
-| `ConversarController.java` | Painel de chat permanente; envio/recebimento de mensagens via bridge, persistência no banco |
-| `HeroController.java` | Tela inicial (hero); cards de funcionalidades, ações rápidas |
-| `MenuItemsController.java` | Sidebar de navegação; destaque de aba ativa |
-| `PythonBridgeService.java` | Serviço de comunicação com backend Python (stdin/stdout JSON-lines) |
-| `BridgeManager.java` | Singleton estático para compartilhar instância da bridge entre controllers |
-| `Requisicao.java` / `Resposta.java` | Modelos de dados para protocolo bridge |
-| **DAOs (Persistência)** | |
-| `DatabaseManager.java` | Singleton JDBC; gerencia conexão com `shared/maria.db`, aplica WAL mode e FKs |
-| `ConversaDAO.java` | CRUD de conversas e mensagens com integridade referencial em cascata |
-| `MemoriaDAO.java` | CRUD de memórias de longo prazo (RAG) com busca textual e por categoria |
-| `AutomacaoDAO.java` | CRUD de automações com toggle ativo/inativo |
-| `ConfiguracaoDAO.java` | CRUD de configurações chave-valor com upsert |
+| `src/App.tsx` | Entry point React; roteamento entre páginas |
+| `src/pages/ConversarPage.tsx` | Painel de chat; envio/recebimento de mensagens via bridge HTTP, persistência no banco |
+| `src/components/TopBar.tsx` | Barra superior; indicador de modelo (MODO LOCAL/MODELO) e status do sistema |
+| `src/components/Sidebar.tsx` | Navegação por abas; card de recursos do sistema (CPU/RAM/GPU) |
+| `src/components/CenterStage.tsx` | Tela inicial (hero); cards de funcionalidades e ações rápidas |
+| `src/components/ChatPanel.tsx` | Componente de chat reutilizável (bolhas, anexos, voz) |
+| `src/hooks/useMariaBridge.ts` | Hook de comunicação com o backend Python via HTTP (porta 8081, `reqwest` no lado Rust) |
+| `src/hooks/useTheme.ts` | Alternância de tema claro/escuro |
+| `src-tauri/src/main.rs` | Comandos Tauri; ponte HTTP para o backend; sidecar `maria-backend` (produção) |
+| `src-tauri/Cargo.toml` | Dependências Rust: rusqlite, chrono, uuid, reqwest + plugins Tauri |
+| `src-tauri/build_sidecar.py` | Gera o binário sidecar do backend Python via PyInstaller |
 
-#### Estilização (CSS)
+#### Persistência (Rust)
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `theme-dark.css` | Tema escuro: fundo `#0a0a12`, aura e destaques rosa `#e05d8a` / `#f2a2bb` |
-| `theme-light.css` | Tema claro: fundo `#f7f3ec`, accent terracota `#c47b54` |
+| Módulo | Responsabilidade |
+|--------|------------------|
+| rusqlite (`main.rs`) | Conexão com `shared/maria.db`, aplica WAL mode e FKs |
+| Comandos Tauri | CRUD de conversas, mensagens, memória, automações e configurações |
+
+#### Estilização (Tailwind)
+
+| Tema | Descrição |
+|------|-----------|
+| Escuro (padrão) | Fundo `#0a0a12`, aura e destaques rosa `#e05d8a` / `#f2a2bb` |
+| Claro | Fundo `#f7f3ec`, accent terracota `#c47b54` |
 
 ---
 
 ## 3. Protocolo de Comunicação (Bridge)
 
-A comunicação entre frontend e backend utiliza um protocolo baseado em JSON-lines via stdin/stdout com 19 comandos mapeados.
+O frontend Tauri consome o backend Python via **HTTP JSON na porta 8081** (modo `--bridge-http`), com os mesmos 19 comandos do protocolo bridge original. Em produção, o backend é empacotado como **sidecar** (`binaries/maria-backend`) e executado pelo Tauri em modo `--bridge` (stdin/stdout JSON-lines).
 
 ---
 
@@ -106,7 +110,7 @@ Definido no arquivo [`shared/schema.sql`](../shared/schema.sql):
 | `configuracoes` | `chave`, `valor`, `descricao`, `atualizado_em` | Ambos |
 
 ### Concorrência e Integridade
-- **WAL Mode**: Ativado tanto no Python quanto no Java para concorrência de leitura/escrita sem locks.
+- **WAL Mode**: Ativado tanto no Python quanto no Rust (rusqlite) para concorrência de leitura/escrita sem locks.
 - **Foreign Keys**: `ON DELETE CASCADE` configurado para mensagens vinculadas a conversas.
 
 ---
@@ -115,17 +119,21 @@ Definido no arquivo [`shared/schema.sql`](../shared/schema.sql):
 
 | Camada | Estado | Observações |
 |--------|--------|-------------|
-| Backend core (Ollama, tools) | ✅ Funcional | MVP Fase 2 completo |
+| Backend core (llama-server, tools) | ✅ Funcional | MVP Fase 2 completo |
+| Backend legado (Ollama) | ✅ Funcional | Mantido como caminho opcional (`ollama_client.py`) |
 | Backend CLI | ✅ Funcional | `main.py` modo CLI |
-| Backend Bridge | ✅ 19 comandos | Todos mapeados e testados |
+| Backend Bridge stdin/stdout | ✅ 19 comandos | Usado pelo sidecar em produção |
+| Backend Bridge HTTP | ✅ Funcional | Porta 8081, consumido pelo frontend Tauri em dev |
 | Backend Database | ✅ Schema unificado | 6 tabelas + índices + WAL |
-| Bridge Java | ✅ Funcional | `PythonBridgeService` + `BridgeManager` |
-| Frontend navegação | ✅ Funcional | 8 abas implementadas |
-| Frontend chat | ✅ Funcional | Painel permanente integrado ao banco |
-| Frontend DAOs | ✅ 5 classes | Persistência unificada com `shared/maria.db` |
+| Frontend Tauri (Rust) | ✅ Funcional | App compila e inicia; sidecar configurado |
+| Frontend React (navegação) | ✅ Funcional | Abas implementadas (React Router) |
+| Frontend chat | ✅ Funcional | Integrado ao backend via `useMariaBridge` (HTTP) |
+| Frontend persistência | ✅ rusqlite | `shared/maria.db` compartilhado com o backend |
 | Frontend design | ✅ Implementado | Tema escuro com efeitos rosa e transições |
-| Testes Backend | ✅ 86/86 | pytest passando em 5.6s |
-| Testes Frontend | ✅ 8/8 | JUnit 5 passando |
+| Testes Backend | ✅ 86/86 | pytest passando |
+| Testes Frontend (TS) | ✅ Passando | `npm run test` |
+| Testes Frontend (Rust) | ✅ Passando | `cargo test` |
+| Documentação | ✅ Atualizada | v4.0; históricos em `docs/arquivo/` |
 
 ---
 

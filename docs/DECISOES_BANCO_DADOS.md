@@ -32,8 +32,9 @@ O banco de dados SQLite compartilhado segue um contrato unificado e idêntico em
 | `shared/schema.sql` | DDL canônico de referência |
 | `backend/database/schema.py` | Inicializador DDL em Python |
 | `backend/database/connection.py` | Conexão SQLite Python com WAL e FKs |
-| `frontend/src/main/java/com/tristar/maria/dao/DatabaseManager.java` | Gerenciador JDBC Java com inicialização do schema |
-| `frontend/src/main/java/com/tristar/maria/dao/*.java` | Camada DAO (Conversa, Memoria, Automacao, Configuracao) |
+| `frontend-tauri/src-tauri/src/main.rs` | Conexão rusqlite no Tauri (Rust) com WAL e FKs; comandos CRUD compartilhando `shared/maria.db` |
+
+> **Nota v4:** a camada DAO Java (`DatabaseManager.java`, `ConversaDAO.java`, etc.) da era JavaFX foi substituída pela persistência rusqlite no Tauri. Documento histórico: [`arquivo/IMPLEMENTACAO_DAO.md`](arquivo/IMPLEMENTACAO_DAO.md).
 
 ## Nota sobre Modelos LLM
 

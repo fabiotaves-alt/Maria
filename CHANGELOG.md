@@ -2,6 +2,19 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.0.2] — Documentação da v4.0 e Manutenção
+
+### 📚 Documentação
+
+- **README reescrito para a v4.0**: Com a migração para Tauri v2 + React concluída, o README agora documenta a arquitetura atual como única versão. Removidas todas as menções ao frontend legado JavaFX/JDK/Maven (diagrama antigo, estrutura de pastas `frontend/`, pré-requisitos JDK 21/Maven, comandos `mvn javafx:run`/`mvn test` e testes JUnit 5). Novas seções: stack real do frontend (React 18 + TypeScript + Vite + Tailwind CSS + Framer Motion + Zustand + lucide-react), arquitetura detalhada (`TopBar`/`Sidebar`/`CenterStage`/`ChatPanel`, `useTheme`, `useMariaBridge`, `AuraBackground`), estrutura de pastas corrigida conforme o disco (removida referência inexistente a `pages/`, adicionada `types/`), pré-requisitos únicos (Python 3.11+, Node 18+, Rust 1.70+), modos de execução do backend (CLI, `--bridge`, `--bridge-http`) e seção própria de **Testes** (unittest + smoke-test do llama-server + Vitest no frontend). Roadmap atualizado: "Migração UI" marcada como ✅ concluída.
+
+### 🧹 Manutenção
+
+- **`.gitignore` reorganizado**: Consolidadas as duas seções sobrepostas do arquivo (genérica + específica do projeto Tauri), eliminando 23 entradas duplicadas (ex.: `__pycache__/`, `*.log`, `*.db`, `*.sqlite`, `.env`, `.env.*`, `!.env.example`, `.idea/`, `.vscode/`, `dist/`, `Thumbs.db`). Padrões agrupados em 14 seções numeradas, preservando a ordem das regras de negação (`.env.*` antes de `!.env.example`) e a entrada `.junie/`. Nenhum padrão adicionado ou removido — validado com `Compare-Object` contra a versão anterior e com `git check-ignore` (bancos SQLite em `shared/` continuam ignorados e `.env.example` segue rastreado).
+
+---
+
+
 ## [4.0.1] — Migração para Tauri + React (P0–P2)
 
 ### 🔧 P0 — Bloqueadores críticos
@@ -12,7 +25,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 ### 🧹 P1 — Limpeza técnica
 
 - **Removido código órfão**: Deletado `frontend-tauri/src/pages/ConversarPage.tsx` (não importado por `App.tsx`).
-- **Migrado benchmark para LlamaClient**: `maria_runner.py` e `run_benchmark.py` agora importam de `backend/core/llama_client` em vez de `core.ollama_client`. Atualizado `README_benchmark.md` com instruções de llama-server.
+- **Migrado benchmark para LlamaClient**: `backend/benchmark/runners/maria_runner.py` e `backend/benchmark/run_benchmark.py` agora importam de `core.llama_client` (raiz do monorepo) em vez de `core.ollama_client`. Atualizado `backend/benchmark/README_benchmark.md` com instruções de llama-server.
 - **Corrigido requirements.txt**: Consolidado conteúdo na raiz do monorepo.
 
 ### ✅ P2 — Completude
@@ -112,7 +125,7 @@ Correções aplicadas em **2026-08-28** para destravar a compilação e execuç�
 ## [3.1.1] — Unificação de Schema e Correções Críticas Monorepo
 
 ### ✅ Banco de Dados e DAOs
-- **Schema SQLite canônico (shared/schema.sql)**: 6 tabelas unificadas em português (conversas, mensagens, memoria, rquivos_indexados, utomacoes, configuracoes) compartilhadas entre Python e Java em shared/maria.db.
+- **Schema SQLite canônico (shared/schema.sql)**: 6 tabelas unificadas em português (conversas, mensagens, memoria, arquivos_indexados, automacoes, configuracoes) compartilhadas entre Python e Java em shared/maria.db.
 - **Integridade referencial**: Ativação de PRAGMA foreign_keys = ON com ON DELETE CASCADE entre conversas e mensagens, e PRAGMA journal_mode = WAL.
 - **DAOs Java padronizados**: ConversaDAO.java, MemoriaDAO.java, AutomacaoDAO.java e ConfiguracaoDAO.java totalmente alinhados ao schema unificado.
 - **Migração preventiva**: DatabaseManager.java com verificação dinâmica de colunas para garantir compatibilidade com bases SQLite existentes.
