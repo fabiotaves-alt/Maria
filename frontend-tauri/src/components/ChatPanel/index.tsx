@@ -173,8 +173,8 @@ export function ChatPanel() {
           <span 
             className="w-2 h-2 rounded-full"
             style={{ 
-              backgroundColor: backendOnline ? '#4ade80' : '#ef4444',
-              boxShadow: backendOnline ? '0 0 8px rgba(74, 222, 128, 0.5)' : 'none'
+              backgroundColor: backendOnline ? 'var(--maria-green)' : '#ef4444',
+              boxShadow: backendOnline ? '0 0 8px rgba(34, 197, 94, 0.5)' : 'none'
             }}
           />
           <p className="text-xs text-center" style={{ color: 'var(--maria-muted)' }}>

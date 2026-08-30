@@ -11,10 +11,14 @@ function ActionButton({ icon: Icon, label, onClick }: ActionButtonProps) {
   return (
     <motion.button
       onClick={onClick}
-      className="bg-white/10 border border-white/20 backdrop-blur-lg rounded-2xl p-4 flex flex-col items-center gap-2 min-w-[100px] cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:bg-pink-500/20"
+      style={{
+        background: 'var(--maria-card)',
+        borderColor: 'var(--maria-card-border)',
+      }}
+      className="border backdrop-blur-lg rounded-2xl p-4 flex flex-col items-center gap-2 min-w-[100px] cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:bg-[var(--maria-hover)]"
       whileHover={{
         scale: 1.02,
-        boxShadow: '0 8px 30px rgba(232, 90, 138, 0.2)',
+        boxShadow: '0 8px 30px rgba(224, 93, 138, 0.2)',
       }}
       whileTap={{ scale: 0.98 }}
       initial={{ opacity: 0, y: 10 }}
@@ -23,11 +27,12 @@ function ActionButton({ icon: Icon, label, onClick }: ActionButtonProps) {
     >
       <div
         className="w-12 h-12 rounded-full flex items-center justify-center"
-        style={{ background: 'rgba(255,255,255,0.1)' }}
+        style={{ background: 'var(--maria-hover)' }}
       >
-        <Icon size={24} className="text-white" />
+        <Icon size={24} style={{ color: 'var(--maria-text)' }} />
       </div>
-      <span className="text-xs font-medium text-center text-white">
+      <span className="text-xs font-medium text-center"
+        style={{ color: 'var(--maria-text)' }}>
         {label}
       </span>
     </motion.button>

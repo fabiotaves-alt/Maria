@@ -47,26 +47,27 @@ export function CenterStage() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Aura pulsante atrás do avatar */}
+          {/* Aura tênue atrás do avatar (pulso desativado) */}
           <div
-            className="absolute w-[500px] h-[500px] rounded-full bg-pink-500/20 blur-[120px] animate-pulse"
+            className="absolute w-[460px] h-[460px] rounded-full bg-pink-500/10 blur-[100px]"
           />
           
-          {/* Container do avatar com borda sutil */}
+          {/* Círculo tênue atrás do avatar (no lugar do retângulo) */}
           <motion.div
-            className="relative w-[400px] h-[500px] flex items-center justify-center overflow-hidden rounded-2xl border border-pink-500/20"
-            animate={{ scale: [1, 1.02, 1] }}
-            transition={{ 
-              duration: 6, 
-              ease: 'easeInOut', 
-              repeat: Infinity 
-            }}
+            className="relative w-[420px] h-[420px] flex items-center justify-center overflow-hidden rounded-full border border-pink-500/20"
+            /* Animação de respiração desativada */
+            // animate={{ scale: [1, 1.02, 1] }}
+            // transition={{ 
+            //   duration: 6, 
+            //   ease: 'easeInOut', 
+            //   repeat: Infinity 
+            // }}
           >
             {/* Imagem real do avatar */}
             <img 
               src={mariaAvatar} 
               alt="MARIA Avatar" 
-              className="w-full h-full object-cover rounded-2xl"
+              className="w-full h-full object-cover rounded-full"
               style={{
                 filter: theme === 'light' ? 'brightness(1.1)' : 'brightness(0.95)',
               }}

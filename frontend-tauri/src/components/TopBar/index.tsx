@@ -55,7 +55,7 @@ export function TopBar() {
       </div>
 
       {/* Badge MODO LOCAL */}
-      <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }}>
+      <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'var(--maria-hover)' }}>
         <div className="w-2 h-2 rounded-full bg-green-400 animate-dot-pulse" />
         <span className="text-xs font-semibold" style={{ color: 'var(--maria-text)' }}>MODO LOCAL</span>
       </div>
@@ -65,28 +65,28 @@ export function TopBar() {
         <button
           onClick={toggleTheme}
           className="p-2 rounded-full hover:opacity-80 transition-opacity"
-          style={{ color: 'var(--maria-muted)' }}
+          style={{ color: 'var(--maria-pink)' }}
         >
           {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
         </button>
         <button 
           onClick={handleMinimize}
           className="p-2 rounded-full hover:opacity-80 transition-opacity" 
-          style={{ color: 'var(--maria-muted)' }}
+          style={{ color: 'var(--maria-pink)' }}
         >
           <Minus size={18} />
         </button>
         <button 
           onClick={handleMaximize}
           className="p-2 rounded-full hover:opacity-80 transition-opacity" 
-          style={{ color: 'var(--maria-muted)' }}
+          style={{ color: 'var(--maria-pink)' }}
         >
           <Square size={18} />
         </button>
         <button 
           onClick={handleClose}
           className="p-2 rounded-full hover:bg-red-500 hover:text-white transition-all" 
-          style={{ color: 'var(--maria-muted)' }}
+          style={{ color: 'var(--maria-pink)' }}
         >
           <X size={18} />
         </button>

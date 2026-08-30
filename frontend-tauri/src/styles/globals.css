@@ -8,25 +8,33 @@
   --maria-text-light: #1a1a1a;
   --maria-text-muted-light: #6b6b6b;
   --maria-pink-light: #e85a8a;
+  --maria-green-light: #16a34a;
   --maria-card-light: rgba(255, 255, 255, 0.7);
   --maria-card-border-light: rgba(0, 0, 0, 0.06);
   --maria-hover-light: rgba(0, 0, 0, 0.04);
-  
-  /* Tema Escuro */
-  --maria-bg-dark: #0d0d12;
-  --maria-text-dark: #f0f0f0;
-  --maria-text-muted-dark: #9a9a9a;
-  --maria-pink-dark: #ff6b9d;
-  --maria-card-dark: rgba(255, 255, 255, 0.05);
-  --maria-card-border-dark: rgba(255, 255, 255, 0.08);
-  --maria-hover-dark: rgba(255, 255, 255, 0.06);
+
+  /* Tema Escuro — paleta do conceito original */
+  --maria-bg-dark: #141a28;             /* Fundo principal (azul-marinho profundo) */
+  --maria-bg-gradient-dark: radial-gradient(ellipse 90% 80% at 50% 40%, #1e2638 0%, #161c2b 50%, #10141f 100%); /* Glow central que clareia */
+  --maria-bg-sidebar-dark: #13171d;     /* Fundo do menu lateral e chat */
+  --maria-text-dark: #ffffff;           /* Titulos e textos fortes */
+  --maria-text-secondary-dark: #9ca3af; /* Descricoes e labels */
+  --maria-text-muted-dark: #6b7280;     /* Versao e subtitulos baixos */
+  --maria-pink-dark: #e05d8a;           /* Accent rosa/magenta (Modo Local, Enviar) */
+  --maria-green-dark: #22c55e;          /* Indicador ativo (Funcionando Localmente) */
+  --maria-card-dark: #181d25;           /* Cards, inputs, botoes inferiores */
+  --maria-card-border-dark: #202731;    /* Linhas sutis divisorias */
+  --maria-hover-dark: #222934;          /* Hover de elementos clicaveis */
 }
 
 html.light {
   --maria-bg: var(--maria-bg-light);
+  --maria-bg-gradient: none;
   --maria-text: var(--maria-text-light);
   --maria-text-muted: var(--maria-text-muted-light);
+  --maria-muted: var(--maria-text-muted-light);
   --maria-pink: var(--maria-pink-light);
+  --maria-green: var(--maria-green-light);
   --maria-card: var(--maria-card-light);
   --maria-card-border: var(--maria-card-border-light);
   --maria-hover: var(--maria-hover-light);
@@ -34,9 +42,14 @@ html.light {
 
 html.dark {
   --maria-bg: var(--maria-bg-dark);
+  --maria-bg-gradient: var(--maria-bg-gradient-dark);
+  --maria-bg-sidebar: var(--maria-bg-sidebar-dark);
   --maria-text: var(--maria-text-dark);
+  --maria-text-secondary: var(--maria-text-secondary-dark);
   --maria-text-muted: var(--maria-text-muted-dark);
+  --maria-muted: var(--maria-text-secondary-dark);
   --maria-pink: var(--maria-pink-dark);
+  --maria-green: var(--maria-green-dark);
   --maria-card: var(--maria-card-dark);
   --maria-card-border: var(--maria-card-border-dark);
   --maria-hover: var(--maria-hover-dark);
@@ -45,9 +58,12 @@ html.dark {
 /* Default to light theme */
 html:not(.dark) {
   --maria-bg: var(--maria-bg-light);
+  --maria-bg-gradient: none;
   --maria-text: var(--maria-text-light);
   --maria-text-muted: var(--maria-text-muted-light);
+  --maria-muted: var(--maria-text-muted-light);
   --maria-pink: var(--maria-pink-light);
+  --maria-green: var(--maria-green-light);
   --maria-card: var(--maria-card-light);
   --maria-card-border: var(--maria-card-border-light);
   --maria-hover: var(--maria-hover-light);
@@ -63,7 +79,7 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: var(--maria-bg);
+  background: var(--maria-bg-gradient), var(--maria-bg);
   color: var(--maria-text);
 }
 
@@ -85,7 +101,7 @@ body {
   @apply glass;
 }
 
-/* Animações */
+/* Animacoes */
 @keyframes pulse-aura {
   0%, 100% {
     opacity: 0.3;
