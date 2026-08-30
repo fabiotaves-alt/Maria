@@ -1,45 +1,183 @@
-```
-# Dependencies
-node_modules/
-
-# Build artifacts
-dist/
-build/
-target/
-
-# Tauri specific
-**/*.app
-**/*.dmg
-**/*.exe
-**/*.msi
-**/*.AppImage
-
-# Logs
-*.log
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Python (if present)
+# ══════════════════════════════════════════════════════════
+# 1. Python & Dependencies
+# ══════════════════════════════════════════════════════════
+**/__pycache__/
 __pycache__/
+*.py[cod]
 *.pyc
 *.pyo
 *.pyd
+*$py.class
+*.py.backup
+*.py.swp
+*.py.swo
+*.py.tmp
+*.py.log
+*.py.cache
+*.py.compiled
+*.py.bak
+*.py.save
+*.py~
 .Python
+
+# ══════════════════════════════════════════════════════════
+# 2. Virtual Environments
+# ══════════════════════════════════════════════════════════
 venv/
 .venv/
+env/
+ENV/
+.ENV/
+backend/venv/
+backend/.venv/
+
+# ══════════════════════════════════════════════════════════
+# 3. Build artifacts (Python & Generic)
+# ══════════════════════════════════════════════════════════
+build/
+dist/
+dist-ssr/
+*.egg-info/
+*.egg
+*.whl
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.o
+*.obj
+*.a
+*.lib
+
+# ══════════════════════════════════════════════════════════
+# 4. Java / Maven
+# ══════════════════════════════════════════════════════════
+**/target/
+target/
+frontend/target/
+frontend/maria-frontend/target/
+*.class
+.flattened-pom.xml
+.mvn/timing.properties
+
+# ══════════════════════════════════════════════════════════
+# 5. Node.js / React (Frontend)
+# ══════════════════════════════════════════════════════════
+node_modules/
+*.local
+
+# ══════════════════════════════════════════════════════════
+# 6. Rust / Tauri (Backend Nativo)
+# ══════════════════════════════════════════════════════════
+src-tauri/target/
+src-tauri/gen/
+frontend-tauri/src-tauri/target/
+
+.junie/
+
+frontend-tauri/src-tauri/gen/
+src-tauri/binaries/
+*.spec
+
+# ══════════════════════════════════════════════════════════
+# 7. Bancos de Dados Locais (CRÍTICO - NUNCA subir)
+# ══════════════════════════════════════════════════════════
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+shared/*.db
+shared/*.db-journal
+shared/*.db-wal
+shared/*.db-shm
+frontend/*.db
+frontend/*.db-wal
+frontend/*.db-shm
+
+# ══════════════════════════════════════════════════════════
+# 8. Logs
+# ══════════════════════════════════════════════════════════
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+pip-log.txt
+pip-delete-this-directory.txt
+logs/
+
+# ══════════════════════════════════════════════════════════
+# 9. Arquivos Temporários
+# ══════════════════════════════════════════════════════════
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+.swp
+.swo
+tmp/
+temp/
+
+# ══════════════════════════════════════════════════════════
+# 10. Variáveis de Ambiente e Segredos
+# ══════════════════════════════════════════════════════════
 .env
-```
+.env.local
+.env.*
+!.env.example
+secrets.json
+*.pem
+*.key
+
+# ══════════════════════════════════════════════════════════
+# 11. Dados Gerados Localmente
+# ══════════════════════════════════════════════════════════
+sessoes_salvas/
+arquivos_gerados/
+backend/arquivos_gerados/
+*.gguf
+models/
+
+# ══════════════════════════════════════════════════════════
+# 12. IDE (IntelliJ, VS Code)
+# ══════════════════════════════════════════════════════════
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.suo
+*.user
+.settings/
+.project
+.pydevproject
+
+# ══════════════════════════════════════════════════════════
+# 13. Sistema Operacional
+# ══════════════════════════════════════════════════════════
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ══════════════════════════════════════════════════════════
+# 14. Testing & Coverage
+# ══════════════════════════════════════════════════════════
+coverage/
+htmlcov/
+.coverage
+*.coverage
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+.tox/
+.nox/
+
+
+# ============== 15. Segurança ============== 
+# Token da API bridge HTTP (regenerado a cada inicialização do backend) 
+shared/.bridge_token
+
