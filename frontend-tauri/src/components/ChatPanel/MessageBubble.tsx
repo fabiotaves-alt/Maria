@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { Message } from '../../types';
+import mariaAvatar from '../../assets/maria-avatar.png';
 
 interface MessageBubbleProps {
   message: Message;
@@ -15,25 +16,30 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       transition={{ duration: 0.3 }}
       className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
     >
+      {!isUser && (
+        <img 
+          src={mariaAvatar} 
+          alt="MARIA" 
+          className="w-8 h-8 rounded-full object-cover mr-2 self-end mb-1 border border-pink-500/20"
+        />
+      )}
       <div
-        className="glass px-4 py-3 max-w-[85%]"
-        style={{
-          borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-          background: isUser ? 'rgba(232, 90, 138, 0.15)' : 'var(--maria-card)',
-        }}
+        className={`px-4 py-3 max-w-[80%] ${
+          isUser 
+            ? 'bg-pink-500 text-white rounded-2xl rounded-br-none ml-auto' 
+            : 'bg-white/10 backdrop-blur-md text-white rounded-2xl rounded-bl-none mr-auto'
+        }`}
       >
         {/* Conteúdo da mensagem */}
         <div
           className="text-sm whitespace-pre-wrap"
-          style={{ color: isUser ? 'var(--maria-text)' : 'var(--maria-text)' }}
         >
           {message.content}
         </div>
 
         {/* Timestamp */}
         <div
-          className="text-[10px] mt-2 text-right"
-          style={{ color: 'var(--maria-muted)' }}
+          className="text-[10px] mt-2 text-right opacity-70"
         >
           {message.timestamp}
         </div>
