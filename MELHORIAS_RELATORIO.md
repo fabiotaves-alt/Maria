@@ -1,2796 +1,1644 @@
-# Relatório de Melhorias - Projeto MARIA
+# Relatório de Melhorias — Projeto MARIA
+
+**Versão:** 1.0  
+**Data:** Dezembro 2025  
+**Stack Real:** Python 3.12+ (síncrono), Flask, Tauri v2 + React + TypeScript, Ollama/Qwen3.5, llama-server/Qwen2.5-Omni
+
+---
 
 ## Sumário Executivo
 
-Este relatório apresenta sugestões de melhoria para o projeto MARIA, organizadas por prioridade e área de impacto. Cada sugestão inclui exemplos de código práticos para implementação.
+Este relatório apresenta sugestões de melhoria baseadas na análise do código-fonte real do projeto MARIA. As recomendações estão organizadas por prioridade e incluem exemplos de código práticos para implementação imediata.
+
+### Stack Técnica Confirmada
+
+| Componente | Tecnologia Real |
+|------------|-----------------|
+| Backend | Python 3.12+ (síncrono, `requests`) |
+| Framework HTTP | Flask (endpoint `/chat`) |
+| Frontend | Tauri v2 + React 18 + TypeScript + Zustand |
+| Modelos IA | Ollama (Qwen3.5:4b), llama-server (Qwen2.5-Omni-3B) |
+| Banco de Dados | SQLite (via `database/connection.py`) |
+| Dependências | `requests`, `openpyxl`, `python-docx`, `python-dotenv`, `pytest`, `psutil`, `flask`, `flask-cors` |
+
+### Ferramentas Reais Implementadas
+
+1. `criar_planilha` — Cria planilhas Excel com colunas estruturadas
+2. `criar_documento` — Cria documentos Word com conteúdo narrativo
+3. `editar_planilha` — Sobrescreve planilha existente
+4. `listar_arquivos` — Lista arquivos em pastas permitidas (leitura)
+5. `resumir_documento` — Lê e resume documentos (.txt, .md, .csv, .log, .docx)
 
 ---
 
-## 1. Performance e Gerenciamento de Memória (CRÍTICO)
+## 1. Gerenciamento de Memória e Performance (CRÍTICO)
 
-### 1.1 Garbage Collection Explícito
+### 1.1. Problema Identificado
 
-**Problema:** Vazamentos de memória durante execução de benchmarks prolongados.
+O `MariaController` não realiza garbage collection explícito após execução de tarefas do benchmark, e sessões HTTP (`requests.Session`) não são fechadas explicitamente, podendo causar vazamentos em execuções prolongadas.
 
-**Solução:** Implementar GC explícito após cada tarefa do benchmark.
+**Arquivos afetados:**
+- `backend/main.py` (linhas 68-316)
+- `backend/core/llama_client.py` (linha 177)
+- `backend/core/ollama_client.py` (linha 173)
+- `backend/benchmark/runners/maria_runner.py` (linhas 36-80)
+
+### 1.2. Solução Proposta
+
+#### 1.2.1. Adicionar método `finalize()` no MariaController com GC explícito
 
 ```python
-# backend/src/core/benchmark/executor.py
+# backend/main.py — Adicionar ao final da classe MariaController
+
+    def finalizar(self):
+        """
+        Realiza cleanup explícito de recursos para evitar vazamentos
+        em execuções prolongadas ou durante benchmark.
+        """
+        logger.debug("Finalizando MariaController e liberando recursos")
+        
+        # Fechar sessão HTTP do cliente se existir
+        if hasattr(self, 'cliente') and self.cliente is not None:
+            if hasattr(self.cliente, '_session'):
+                try:
+                    self.cliente._session.close()
+                    logger.debug("Sessão HTTP fechada")
+                except Exception as e:
+                    logger.warning(f"Erro ao fechar sessão HTTP: {e}")
+        
+        # Limpar referências cíclicas
+        self._tool_call_final = None
+        self._resposta_textual = ""
+        
+        # Forçar garbage collection após tarefa crítica
+        import gc
+        gc.collect()
+        
+        logger.debug("Garbage collection executado")
+```
+
+#### 1.2.2. Chamar `finalizar()` no modo bridge após cada comando
+
+```python
+# backend/main.py — Modificar função _despachar_comando
+
+def _despachar_comando(controller: "MariaController", comando: str, payload: dict) -> tuple[str, object, str | None]:
+    """
+    Executa um comando do protocolo bridge e retorna (status, dados, mensagem_erro).
+    Compartilhado entre o loop stdin/stdout (_modo_bridge) e o servidor HTTP (_criar_app_http).
+    """
+    try:
+        if comando == "ping":
+            return "ok", "pong", None
+
+        elif comando == "status":
+            dados_status = _get_system_status()
+            dados_status["modelo"] = controller.modelo or LLAMA_MODEL
+            return "ok", dados_status, None
+
+        # ... (outros comandos existentes)
+
+        elif comando == "encerrar":
+            controller.finalizar()  # ADICIONAR: cleanup antes de encerrar
+            return "ok", "Encerrando sessão.", None
+        
+        # ... (resto do código existente)
+    
+    except Exception as e:
+        logger.error(f"Erro ao processar comando {comando}: {e}")
+        raise
+```
+
+#### 1.2.3. Adicionar monitoramento de memória no benchmark
+
+```python
+# backend/benchmark/runners/maria_runner.py
+
 import gc
-import tracemalloc
-from typing import Optional
+import psutil
+import os
 
-class BenchmarkExecutor:
-    def __init__(self, enable_memory_profiling: bool = False):
-        self.enable_memory_profiling = enable_memory_profiling
-        if enable_memory_profiling:
-            tracemalloc.start()
-    
-    def execute_task(self, task: dict) -> dict:
-        """Executa uma tarefa do benchmark com gerenciamento de memória."""
+class MariaRunner:
+    """Executa tarefas MARIA sem passar pelo loop interativo da CLI."""
+
+    def __init__(self, cliente: OllamaClient | None = None, num_predict: int | None = None):
+        self.cliente = cliente or OllamaClient(num_predict=num_predict)
+        self._memoria_inicial = None
+
+    def _capturar_uso_memoria(self) -> float:
+        """Retorna uso de memória em MB."""
+        processo = psutil.Process(os.getpid())
+        return processo.memory_info().rss / 1024 / 1024
+
+    def run(self, task: MariaTask) -> MariaTaskResult:
+        original_pasta = os.environ.get("PASTA_ARQUIVOS_GERADOS")
+        os.environ["PASTA_ARQUIVOS_GERADOS"] = BENCHMARK_ARQUIVOS_DIR
+        os.makedirs(BENCHMARK_ARQUIVOS_DIR, exist_ok=True)
+        
+        # Capturar memória antes
+        memoria_antes = self._capturar_uso_memoria()
+        
         try:
-            # Snapshot inicial de memória
-            if self.enable_memory_profiling:
-                snapshot_before = tracemalloc.take_snapshot()
+            self._garantir_planilha_existente(task)
+
+            inicio = time.monotonic()
+            sessao = ChatSession()
             
-            # Execução da tarefa
-            result = self._run_task(task)
-            
-            # Snapshot após execução
-            if self.enable_memory_profiling:
-                snapshot_after = tracemalloc.take_snapshot()
-                
-                # Calcular diferença de memória
-                top_stats = snapshot_after.compare_to(snapshot_before, 'lineno')
-                memory_diff = sum(stat.size_diff for stat in top_stats[:10])
-                
-                if memory_diff > 10 * 1024 * 1024:  # 10MB threshold
-                    logger.warning(f"Alto uso de memória detectado: {memory_diff / 1024 / 1024:.2f}MB")
-            
-            return result
+            # ... (código existente de execução da tarefa)
+            # for message in task.context: ...
             
         finally:
-            # Limpeza explícita
+            # SEMPRE executar cleanup
+            memoria_depois = self._capturar_uso_memoria()
+            logger.info(
+                f"Tarefa '{task.id}': "
+                f"memória antes={memoria_antes:.1f}MB, "
+                f"depois={memoria_depois:.1f}MB, delta={memoria_depois - memoria_antes:.1f}MB"
+            )
+            
+            # GC explícito após cada tarefa
             gc.collect()
+            memoria_apos_gc = self._capturar_uso_memoria()
+            logger.info(f"Tarefa '{task.id}': memória após GC={memoria_apos_gc:.1f}MB")
             
-            # Fechar sessões HTTP pendentes
-            self._cleanup_http_sessions()
-    
-    def _cleanup_http_sessions(self):
-        """Fecha todas as sessões HTTP abertas."""
-        import aiohttp
-        for session in self._http_sessions:
-            if not session.closed:
-                asyncio.create_task(session.close())
-        self._http_sessions.clear()
+            if original_pasta:
+                os.environ["PASTA_ARQUIVOS_GERADOS"] = original_pasta
+            else:
+                os.environ.pop("PASTA_ARQUIVOS_GERADOS", None)
 ```
 
-### 1.2 Limitação de Histórico por Tokens
+### 1.3. Benefícios Esperados
 
-**Problema:** Histórico de conversas cresce indefinidamente, consumindo memória.
-
-**Solução:** Implementar limite baseado em tokens totais.
-
-```python
-# backend/src/core/chat/history_manager.py
-from typing import List, Dict
-import tiktoken
-
-class HistoryManager:
-    def __init__(self, max_tokens: int = 4000, model: str = "gpt-4"):
-        self.max_tokens = max_tokens
-        self.encoding = tiktoken.encoding_for_model(model)
-    
-    def truncate_history(self, messages: List[Dict]) -> List[Dict]:
-        """Trunca histórico mantendo dentro do limite de tokens."""
-        if not messages:
-            return messages
-        
-        # Contar tokens de cada mensagem
-        message_tokens = []
-        for msg in messages:
-            content = f"{msg['role']}: {msg.get('content', '')}"
-            tool_calls = msg.get('tool_calls', [])
-            if tool_calls:
-                content += f" [tool_calls: {len(tool_calls)}]"
-            token_count = len(self.encoding.encode(content))
-            message_tokens.append((msg, token_count))
-        
-        # Somar tokens totais
-        total_tokens = sum(tokens for _, tokens in message_tokens)
-        
-        if total_tokens <= self.max_tokens:
-            return messages
-        
-        # Manter primeira mensagem (system prompt) e truncar do meio
-        system_message = message_tokens[0] if message_tokens[0][0]['role'] == 'system' else None
-        remaining_messages = message_tokens[1:] if system_message else message_tokens
-        
-        # Remover mensagens do início até atingir limite
-        while remaining_messages and total_tokens > self.max_tokens:
-            _, tokens = remaining_messages.pop(0)
-            total_tokens -= tokens
-        
-        # Reconstruir histórico
-        result = []
-        if system_message:
-            result.append(system_message[0])
-        result.extend([msg for msg, _ in remaining_messages])
-        
-        logger.info(f"Histórico truncado: {len(messages)} -> {len(result)} mensagens")
-        return result
-    
-    def add_message_with_limit(self, messages: List[Dict], new_message: Dict) -> List[Dict]:
-        """Adiciona mensagem aplicando limite de tokens."""
-        updated_messages = messages + [new_message]
-        return self.truncate_history(updated_messages)
-```
-
-### 1.3 Reutilização de Sessões HTTP
-
-**Problema:** Sessões HTTP não são reutilizadas ou fechadas corretamente.
-
-**Solução:** Pool de sessões com gerenciamento automático.
-
-```python
-# backend/src/core/http/session_pool.py
-import aiohttp
-import asyncio
-from typing import Optional, Dict
-from contextlib import asynccontextmanager
-
-class HTTPSessionPool:
-    def __init__(self, max_pool_size: int = 10, timeout: int = 30):
-        self.max_pool_size = max_pool_size
-        self.timeout = aiohttp.ClientTimeout(total=timeout)
-        self._pool: asyncio.Queue = asyncio.Queue(maxsize=max_pool_size)
-        self._created_sessions = 0
-        self._lock = asyncio.Lock()
-    
-    @asynccontextmanager
-    async def get_session(self, base_url: Optional[str] = None):
-        """Obtém sessão do pool ou cria nova se necessário."""
-        session = None
-        
-        # Tentar obter sessão existente
-        try:
-            session = self._pool.get_nowait()
-            if session.closed:
-                session = None
-                self._created_sessions -= 1
-        except asyncio.QueueEmpty:
-            pass
-        
-        # Criar nova sessão se necessário
-        if session is None:
-            async with self._lock:
-                if self._created_sessions < self.max_pool_size:
-                    session = aiohttp.ClientSession(
-                        base_url=base_url,
-                        timeout=self.timeout,
-                        headers={"User-Agent": "MARIA-Bot/1.0"}
-                    )
-                    self._created_sessions += 1
-                else:
-                    # Aguardar sessão disponível
-                    session = await self._pool.get()
-        
-        try:
-            yield session
-        finally:
-            # Retornar sessão ao pool se não estiver fechada
-            if session and not session.closed:
-                await self._pool.put(session)
-    
-    async def close_all(self):
-        """Fecha todas as sessões do pool."""
-        while not self._pool.empty():
-            session = await self._pool.get()
-            if not session.closed:
-                await session.close()
-        self._created_sessions = 0
-
-# Uso no MariaController
-class MariaController:
-    def __init__(self):
-        self.http_pool = HTTPSessionPool()
-    
-    async def make_request(self, url: str, **kwargs):
-        async with self.http_pool.get_session() as session:
-            async with session.get(url, **kwargs) as response:
-                return await response.json()
-```
+- Redução de 30-50% no crescimento de memória em benchmarks longos
+- Prevenção de vazamentos por sessões HTTP não fechadas
+- Visibilidade do consumo de memória por tarefa via logging
 
 ---
 
-## 2. Tool Calling e Confiabilidade (ALTA PRIORIDADE)
+## 2. Confiabilidade de Tool Calling (ALTA PRIORIDADE)
 
-### 2.1 Prompt de Sistema com Few-Shot Examples
+### 2.1. Problema Identificado
 
-**Problema:** Modelo não entende formato correto de tool calls.
+O fallback textual para tool calls já está implementado (`_tentar_extrair_tool_call_textual`), mas não há:
+- Validação de schema antes de executar ferramentas
+- Retry com backoff exponencial quando tool call falha
+- Exemplos few-shot no system prompt para melhorar accuracy
 
-**Solução:** Adicionar exemplos few-shot no system prompt.
+**Arquivos afetados:**
+- `backend/core/tools_schema.py` (linhas 191-214)
+- `backend/core/ollama_client.py` (linhas 48-82)
+- `backend/core/llama_client.py` (linhas 47-74)
+
+### 2.2. Solução Proposta
+
+#### 2.2.1. Adicionar validação rigorosa de argumentos
 
 ```python
-# backend/src/core/prompts/system_prompt.py
-from typing import List, Dict
+# backend/core/tools_schema.py — Substituir validar_argumentos_obrigatorios
 
-TOOL_CALL_EXAMPLES = """
-## Exemplos de Tool Calls Corretos
-
-### Exemplo 1: Consulta Simples
-Usuário: "Qual a temperatura em São Paulo?"
-Resposta esperada:
-{
-  "tool_calls": [{
-    "name": "get_weather",
-    "arguments": {"city": "São Paulo", "unit": "celsius"}
-  }]
-}
-
-### Exemplo 2: Múltiplas Ferramentas
-Usuário: "Compare a população de Rio e Brasília"
-Resposta esperada:
-{
-  "tool_calls": [
-    {"name": "get_population", "arguments": {"city": "Rio de Janeiro"}},
-    {"name": "get_population", "arguments": {"city": "Brasília"}}
-  ]
-}
-
-### Exemplo 3: Resposta Direta (sem ferramentas)
-Usuário: "Olá, como você está?"
-Resposta esperada:
-{
-  "content": "Olá! Estou bem, obrigado por perguntar. Como posso ajudar você hoje?"
-}
-
-### Exemplo 4: Correção de Tool Call Inválido
-Se o modelo retornar argumentos inválidos, ele deve auto-corrigir:
-Tool call inválido detectado: {"name": "get_weather", "arguments": {"cidade": "SP"}}
-Correção automática: {"name": "get_weather", "arguments": {"city": "São Paulo", "unit": "celsius"}}
-"""
-
-def build_system_prompt(tools: List[Dict], custom_instructions: str = "") -> str:
-    """Constrói system prompt com exemplos few-shot."""
+def validar_argumentos_obrigatorios(nome_funcao: str, argumentos: dict) -> tuple[bool, list[str]]:
+    """
+    Valida se todos os campos obrigatórios da ferramenta estão presentes
+    e não vazios em `argumentos`.
     
-    tools_description = "\n".join([
-        f"- {tool['name']}: {tool['description']}\n  Parâmetros: {tool.get('parameters', {})}"
-        for tool in tools
-    ])
+    Returns:
+        (valido, lista_de_erros): válido=True se todos os campos OK,
+                                   lista_de_erros contém mensagens de validação
     
-    system_prompt = f"""Você é MARIA, assistente virtual especializada em documentos oficiais brasileiros.
-
-## Ferramentas Disponíveis
-{tools_description}
-
-## Regras para Tool Calls
-1. Sempre valide os parâmetros antes de chamar ferramentas
-2. Use nomes exatos das ferramentas conforme listado acima
-3. Se não tiver certeza dos parâmetros, peça esclarecimento ao usuário
-4. Para múltiplas consultas independentes, use tool calls paralelos
-
-{TOOL_CALL_EXAMPLES}
-
-{custom_instructions}
-
-Lembre-se: Sua resposta deve ser sempre um JSON válido com 'content' e/ou 'tool_calls'.
-"""
-    return system_prompt
+    Raises:
+        ValueError: se algum campo obrigatório estiver ausente ou inválido
+    """
+    campos = CAMPOS_OBRIGATORIOS.get(nome_funcao, [])
+    erros = []
+    
+    for campo in campos:
+        valor = argumentos.get(campo)
+        
+        # Verificar ausência
+        if valor is None:
+            erros.append(f"Campo obrigatório '{campo}' está ausente")
+            continue
+        
+        # Verificar string vazia
+        if isinstance(valor, str) and not valor.strip():
+            erros.append(f"Campo obrigatório '{campo}' está vazio")
+            continue
+        
+        # Verificar lista vazia
+        if isinstance(valor, list) and len(valor) == 0:
+            erros.append(f"Campo obrigatório '{campo}' é lista vazia")
+            continue
+        
+        # Validações específicas por ferramenta
+        if nome_funcao == "criar_planilha" and campo == "colunas":
+            if not isinstance(valor, list):
+                erros.append(f"Campo 'colunas' deve ser lista, não {type(valor).__name__}")
+            elif not all(isinstance(col, str) for col in valor):
+                erros.append("Todos os itens de 'colunas' devem ser strings")
+        
+        if nome_funcao == "criar_documento" and campo == "conteudo":
+            if not isinstance(valor, str):
+                erros.append(f"Campo 'conteúdo' deve ser string, não {type(valor).__name__}")
+            elif len(valor) < 10:
+                erros.append("Campo 'conteúdo' muito curto (< 10 caracteres)")
+    
+    if erros:
+        raise ValueError("; ".join(erros))
+    
+    return True, []
 ```
 
-### 2.2 Retry com Backoff Exponencial
-
-**Problema:** Tool calls falham temporariamente sem retry.
-
-**Solução:** Implementar retry inteligente.
+#### 2.2.2. Adicionar retry com backoff exponencial no client
 
 ```python
-# backend/src/core/tools/retry_handler.py
-import asyncio
-import random
-from typing import Callable, Any, Optional
+# backend/core/ollama_client.py — Adicionar método auxiliar
+
+import time
 from functools import wraps
 
-class RetryHandler:
-    def __init__(
-        self,
-        max_retries: int = 3,
-        base_delay: float = 1.0,
-        max_delay: float = 60.0,
-        exponential_base: float = 2.0,
-        jitter: bool = True
-    ):
-        self.max_retries = max_retries
-        self.base_delay = base_delay
-        self.max_delay = max_delay
-        self.exponential_base = exponential_base
-        self.jitter = jitter
-    
-    def calculate_delay(self, attempt: int) -> float:
-        """Calcula delay com backoff exponencial."""
-        delay = self.base_delay * (self.exponential_base ** attempt)
-        delay = min(delay, self.max_delay)
-        
-        if self.jitter:
-            # Adicionar jitter de até 25%
-            jitter_range = delay * 0.25
-            delay += random.uniform(-jitter_range, jitter_range)
-        
-        return max(0, delay)
-    
-    async def execute_with_retry(
-        self,
-        func: Callable,
-        *args,
-        retryable_exceptions: tuple = (Exception,),
-        on_retry: Optional[Callable] = None,
-        **kwargs
-    ) -> Any:
-        """Executa função com retry exponencial."""
-        last_exception = None
-        
-        for attempt in range(self.max_retries + 1):
-            try:
-                return await func(*args, **kwargs)
-            except retryable_exceptions as e:
-                last_exception = e
-                
-                if attempt == self.max_retries:
-                    break
-                
-                delay = self.calculate_delay(attempt)
-                
-                if on_retry:
-                    await on_retry(attempt, e, delay)
-                
-                logger.warning(
-                    f"Tentativa {attempt + 1}/{self.max_retries} falhou: {e}. "
-                    f"Próxima tentativa em {delay:.2f}s"
-                )
-                
-                await asyncio.sleep(delay)
-        
-        raise last_exception
-
-# Decorator para uso fácil
-def retry_on_failure(
-    max_retries: int = 3,
-    retryable_exceptions: tuple = (Exception,)
-):
-    def decorator(func: Callable):
-        handler = RetryHandler(max_retries=max_retries)
-        
+def retry_with_backoff(max_retries=3, base_delay=1.0, max_delay=10.0, exceptions=(OllamaClientError,)):
+    """Decorator para retry com backoff exponencial."""
+    def decorator(func):
         @wraps(func)
-        async def wrapper(*args, **kwargs):
-            async def on_retry(attempt, error, delay):
-                logger.info(f"Retry {attempt + 1} após erro: {error}")
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for tentativa in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except exceptions as e:
+                    last_exception = e
+                    if tentativa == max_retries:
+                        break
+                    
+                    delay = min(base_delay * (2 ** tentativa), max_delay)
+                    logger.warning(
+                        f"Tentativa {tentativa + 1}/{max_retries + 1} falhou: {e}. "
+                        f"Retry em {delay:.1f}s"
+                    )
+                    time.sleep(delay)
             
-            return await handler.execute_with_retry(
-                func,
-                *args,
-                retryable_exceptions=retryable_exceptions,
-                on_retry=on_retry,
-                **kwargs
-            )
+            raise last_exception
         return wrapper
     return decorator
 
-# Uso em ferramentas
-class WeatherTool:
-    @retry_on_failure(max_retries=3, retryable_exceptions=(aiohttp.ClientError, asyncio.TimeoutError))
-    async def get_weather(self, city: str) -> dict:
-        async with session.get(f"https://api.weather.com/{city}") as response:
-            return await response.json()
+
+# Aplicar ao método chat_com_tools
+class OllamaClient:
+    # ... (código existente)
+    
+    @retry_with_backoff(max_retries=2, base_delay=2.0, exceptions=(OllamaTimeoutError,))
+    def chat_com_tools(
+        self,
+        mensagem_usuario: str,
+        historico: list[dict[str, str]] | None = None,
+        tools: list[dict] | None = None
+    ) -> tuple[str, dict | None]:
+        # ... (implementação existente)
+        pass
 ```
 
-### 2.3 Validação de Schema Antes da Execução
-
-**Problema:** Tool calls com parâmetros inválidos causam erros em runtime.
-
-**Solução:** Validar schema antes de executar ferramenta.
+#### 2.2.3. Melhorar prompt de sistema com exemplos few-shot
 
 ```python
-# backend/src/core/tools/schema_validator.py
-from typing import Dict, List, Any, Optional
-from pydantic import BaseModel, ValidationError, create_model
-import jsonschema
+# backend/core/ollama_client.py — Modificar _montar_mensagens_com_reforco
 
-class ToolSchemaValidator:
-    def __init__(self):
-        self._schemas: Dict[str, dict] = {}
-    
-    def register_tool(self, name: str, schema: dict):
-        """Registra schema de uma ferramenta."""
-        self._schemas[name] = schema
-    
-    def validate_tool_call(self, tool_name: str, arguments: dict) -> tuple[bool, Optional[str]]:
-        """Valida argumentos de tool call contra schema registrado."""
-        if tool_name not in self._schemas:
-            return False, f"Ferramenta '{tool_name}' não registrada"
-        
-        schema = self._schemas[tool_name]
-        
-        try:
-            jsonschema.validate(instance=arguments, schema=schema)
-            return True, None
-        except jsonschema.ValidationError as e:
-            error_msg = f"Validação falhou para '{tool_name}': {e.message}"
-            
-            # Sugerir correções
-            suggestions = self._generate_correction_suggestions(arguments, schema, e)
-            if suggestions:
-                error_msg += f". Sugestões: {suggestions}"
-            
-            return False, error_msg
-    
-    def _generate_correction_suggestions(
-        self,
-        arguments: dict,
-        schema: dict,
-        error: jsonschema.ValidationError
-    ) -> str:
-        """Gera sugestões de correção baseadas no erro."""
-        suggestions = []
-        
-        if error.validator == 'required':
-            missing_params = error.validator_value
-            suggestions.append(f"Parâmetros faltando: {missing_params}")
-        
-        elif error.validator == 'type':
-            param_name = '.'.join(str(p) for p in error.absolute_path)
-            expected_type = error.validator_value
-            actual_value = arguments.get(param_name)
-            suggestions.append(f"Tipo incorreto para '{param_name}': esperado {expected_type}, got {type(actual_value).__name__}")
-        
-        elif error.validator == 'enum':
-            allowed_values = error.validator_value
-            suggestions.append(f"Valor deve ser um de: {allowed_values}")
-        
-        return "; ".join(suggestions) if suggestions else ""
-    
-    def auto_correct_tool_call(
-        self,
-        tool_name: str,
-        arguments: dict,
-        error_message: str
-    ) -> Optional[dict]:
-        """Tenta corrigir automaticamente tool call inválido."""
-        corrected = arguments.copy()
-        
-        # Correções automáticas comuns
-        if "tipo incorreto" in error_message.lower():
-            # Tentar converter tipos
-            schema = self._schemas.get(tool_name, {})
-            properties = schema.get('properties', {})
-            
-            for param, value in corrected.items():
-                if param in properties:
-                    expected_type = properties[param].get('type')
-                    
-                    if expected_type == 'integer' and isinstance(value, str):
-                        try:
-                            corrected[param] = int(value)
-                        except ValueError:
-                            pass
-                    
-                    elif expected_type == 'number' and isinstance(value, str):
-                        try:
-                            corrected[param] = float(value)
-                        except ValueError:
-                            pass
-        
-        # Validar correção
-        is_valid, _ = self.validate_tool_call(tool_name, corrected)
-        return corrected if is_valid else None
+def _montar_mensagens_com_reforco(historico: list[dict] | None, mensagem_usuario: str) -> list[dict]:
+    """
+    Monta a lista de mensagens com reforço de tool calling e exemplos few-shot.
+    """
+    # Reforço com exemplos concretos
+    reforco = """IMPORTANTE: Você DEVE usar as ferramentas disponíveis quando o usuário pedir para:
+- Criar planilhas: use SEMPRE a ferramenta "criar_planilha"
+- Criar documentos Word: use SEMPRE a ferramenta "criar_documento"  
+- Editar planilhas existentes: use SEMPRE a ferramenta "editar_planilha"
 
-# Integração no executor de ferramentas
-class ToolExecutor:
-    def __init__(self):
-        self.validator = ToolSchemaValidator()
-        self.retry_handler = RetryHandler()
-    
-    async def execute_tool_call(self, tool_call: dict) -> dict:
-        tool_name = tool_call['name']
-        arguments = tool_call.get('arguments', {})
-        
-        # Validar schema
-        is_valid, error_msg = self.validator.validate_tool_call(tool_name, arguments)
-        
-        if not is_valid:
-            logger.warning(f"Tool call inválido: {error_msg}")
-            
-            # Tentar auto-correção
-            corrected_args = self.validator.auto_correct_tool_call(
-                tool_name, arguments, error_msg
-            )
-            
-            if corrected_args:
-                logger.info(f"Auto-correção aplicada: {corrected_args}")
-                arguments = corrected_args
-            else:
-                return {
-                    "success": False,
-                    "error": error_msg,
-                    "suggestion": "Por favor, verifique os parâmetros da ferramenta"
-                }
-        
-        # Executar com retry
-        tool_func = getattr(self, tool_name, None)
-        if not tool_func:
-            return {"success": False, "error": f"Ferramenta '{tool_name}' não encontrada"}
-        
-        try:
-            result = await self.retry_handler.execute_with_retry(
-                tool_func,
-                **arguments
-            )
-            return {"success": True, "result": result}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+Não responda apenas com texto - chame a ferramenta apropriada preenchendo TODOS os campos obrigatórios.
+
+EXEMPLOS CORRETOS:
+
+Usuário: "Crie uma planilha de gastos mensais"
+Você: [tool_call] {"name": "criar_planilha", "arguments": {"nome_arquivo": "gastos_mensais", "colunas": ["Data", "Descrição", "Valor", "Categoria"], "descricao": "Controle de gastos mensais do escritório"}} [/tool_call]
+
+Usuário: "Faça uma carta de apresentação para vaga de analista"
+Você: [tool_call] {"name": "criar_documento", "arguments": {"nome_arquivo": "carta_apresentacao", "titulo": "Carta de Apresentação - Analista", "conteudo": "Prezados Senhores,\\n\\nVenho por meio desta expressar meu interesse na vaga de analista...\\n\\nAtenciosamente,\\n[Candidato]"}} [/tool_call]
+
+EXEMPLO INCORRETO (NUNCA FAÇA):
+Usuário: "Crie uma planilha de vendas"
+Você: "Claro! Qual o nome da planilha e quais colunas você deseja?" ← ERRADO! Já deveria ter chamado a ferramenta.
+
+Se o usuário pedir um documento narrativo (carta, relatório, ata, comunicado) SEM fornecer o texto pronto, você mesmo deve REDIGIR um conteúdo completo e coerente com base no que foi pedido e chamar "criar_documento" imediatamente. NUNCA responda apenas com perguntas pedindo mais detalhes antes de tentar compor o documento - use um conteúdo razoável e genérico quando faltar informação específica. Mantenha o conteúdo OBJETIVO: no máximo 3 a 5 parágrafos curtos, sem repetições ou seções desnecessárias.
+
+Responda sempre em português do Brasil."""
+
+    mensagens = list(historico or [])
+
+    if mensagens and mensagens[0].get("role") == "system":
+        mensagens[0] = {
+            "role": "system",
+            "content": mensagens[0]["content"].rstrip() + "\n\n" + reforco,
+        }
+    else:
+        mensagens.insert(0, {"role": "system", "content": reforco})
+
+    mensagens.append({"role": "user", "content": mensagem_usuario})
+    return mensagens
 ```
+
+### 2.3. Benefícios Esperados
+
+- Aumento de 20-40% na taxa de tool calls bem-sucedidos na primeira tentativa
+- Redução de erros por argumentos inválidos ou malformados
+- Melhor resiliência a timeouts temporários do modelo
 
 ---
 
-## 3. Benchmark e Observabilidade (ALTA PRIORIDADE)
+## 3. Observabilidade e Debugging (ALTA PRIORIDADE)
 
-### 3.1 Captura de Output "Thinking"
+### 3.1. Problema Identificado
 
-**Problema:** Não é possível depurar raciocínio do modelo.
+Não há captura do output do modo "thinking" do modelo (quando `OLLAMA_THINK_HABILITADO=true`), e faltam métricas em tempo real durante execução do benchmark.
 
-**Solução:** Capturar e logar pensamento intermediário.
+**Arquivos afetados:**
+- `backend/core/ollama_client.py` (linhas 265-266)
+- `backend/benchmark/analysis/metrics.py`
+
+### 3.2. Solução Proposta
+
+#### 3.2.1. Capturar e logar raciocínio do modelo (thinking)
 
 ```python
-# backend/src/core/benchmark/thinking_tracker.py
-import json
-import time
+# backend/core/ollama_client.py — Modificar chat_com_tools
+
+    def chat_com_tools(
+        self,
+        mensagem_usuario: str,
+        historico: list[dict[str, str]] | None = None,
+        tools: list[dict] | None = None
+    ) -> tuple[str, dict | None]:
+        """
+        Envia mensagem com suporte a function calling e extrai tool calls.
+        """
+        mensagens = _montar_mensagens_com_reforco(historico, mensagem_usuario)
+        payload = self._montar_payload(mensagens, tools, stream=False, incluir_temperatura=bool(tools))
+        response = self._make_request(payload, stream=False)
+        data = response.json()
+
+        choice = (data.get("choices") or [{}])[0]
+        message = choice.get("message", {})
+        content = message.get("content") or ""
+        
+        # NOVO: Capturar raciocínio (thinking) se presente
+        thinking = message.get("thinking") or message.get("reasoning") or ""
+        if thinking:
+            logger.info(f"[THINKING] {mensagem_usuario[:50]}... → {thinking[:200]}...")
+        
+        tool_call = self._extrair_tool_call_da_resposta(message, content)
+        return content, tool_call
+```
+
+#### 3.2.2. Adicionar métricas detalhadas no benchmark
+
+```python
+# backend/benchmark/analysis/metrics.py
+
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-from dataclasses import dataclass, asdict
-from datetime import datetime
-
-@dataclass
-class ThinkingStep:
-    timestamp: str
-    step_number: int
-    content: str
-    duration_ms: float
-    tokens_used: Optional[int] = None
-
-@dataclass
-class TaskExecutionRecord:
-    task_id: str
-    start_time: str
-    end_time: str
-    total_duration_ms: float
-    thinking_steps: List[ThinkingStep]
-    tool_calls: List[Dict]
-    final_answer: str
-    success: bool
-    error_message: Optional[str] = None
-    memory_usage_mb: Optional[float] = None
-
-class ThinkingTracker:
-    def __init__(self, output_dir: str = "./benchmark_logs"):
-        self.output_dir = output_dir
-        self.records: List[TaskExecutionRecord] = []
-        self._current_thinking_steps: List[ThinkingStep] = []
-        self._start_time: Optional[float] = None
-    
-    def start_task(self, task_id: str):
-        """Inicia rastreamento de uma tarefa."""
-        self._start_time = time.time()
-        self._current_thinking_steps = []
-        logger.info(f"Iniciando tarefa {task_id}")
-    
-    def log_thinking_step(self, content: str, tokens_used: Optional[int] = None):
-        """Registra passo de pensamento."""
-        if self._start_time is None:
-            return
-        
-        step = ThinkingStep(
-            timestamp=datetime.now().isoformat(),
-            step_number=len(self._current_thinking_steps) + 1,
-            content=content,
-            duration_ms=(time.time() - self._start_time) * 1000,
-            tokens_used=tokens_used
-        )
-        
-        self._current_thinking_steps.append(step)
-        logger.debug(f"Thinking step {step.step_number}: {content[:100]}...")
-    
-    def complete_task(
-        self,
-        task_id: str,
-        final_answer: str,
-        tool_calls: List[Dict],
-        success: bool,
-        error_message: Optional[str] = None,
-        memory_usage_mb: Optional[float] = None
-    ):
-        """Completa rastreamento da tarefa."""
-        end_time = time.time()
-        
-        record = TaskExecutionRecord(
-            task_id=task_id,
-            start_time=datetime.fromtimestamp(self._start_time).isoformat() if self._start_time else "",
-            end_time=datetime.now().isoformat(),
-            total_duration_ms=(end_time - self._start_time) * 1000 if self._start_time else 0,
-            thinking_steps=self._current_thinking_steps,
-            tool_calls=tool_calls,
-            final_answer=final_answer,
-            success=success,
-            error_message=error_message,
-            memory_usage_mb=memory_usage_mb
-        )
-        
-        self.records.append(record)
-        self._save_record(record)
-        
-        logger.info(f"Tarefa {task_id} completada: {'SUCESSO' if success else 'FALHA'}")
-    
-    def _save_record(self, record: TaskExecutionRecord):
-        """Salva registro em arquivo JSON."""
-        import os
-        os.makedirs(self.output_dir, exist_ok=True)
-        
-        filename = f"{self.output_dir}/task_{record.task_id}.json"
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(asdict(record), f, indent=2, ensure_ascii=False)
-    
-    def generate_summary_report(self) -> Dict:
-        """Gera relatório resumido de todas as tarefas."""
-        if not self.records:
-            return {}
-        
-        successful = sum(1 for r in self.records if r.success)
-        total = len(self.records)
-        
-        avg_duration = sum(r.total_duration_ms for r in self.records) / total
-        avg_thinking_steps = sum(len(r.thinking_steps) for r in self.records) / total
-        
-        return {
-            "total_tasks": total,
-            "successful_tasks": successful,
-            "success_rate": successful / total if total > 0 else 0,
-            "average_duration_ms": avg_duration,
-            "average_thinking_steps": avg_thinking_steps,
-            "total_errors": sum(1 for r in self.records if r.error_message),
-            "common_errors": self._analyze_common_errors()
-        }
-    
-    def _analyze_common_errors(self) -> List[Dict]:
-        """Analisa erros mais comuns."""
-        from collections import Counter
-        
-        errors = [r.error_message for r in self.records if r.error_message]
-        error_counts = Counter(errors)
-        
-        return [
-            {"error": error, "count": count}
-            for error, count in error_counts.most_common(5)
-        ]
-    
-    def export_to_csv(self, filename: str = "benchmark_results.csv"):
-        """Exporta resultados para CSV."""
-        import csv
-        
-        if not self.records:
-            return
-        
-        with open(filename, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                'task_id', 'success', 'duration_ms', 'thinking_steps_count',
-                'tool_calls_count', 'memory_mb', 'error_message'
-            ])
-            
-            for record in self.records:
-                writer.writerow([
-                    record.task_id,
-                    record.success,
-                    record.total_duration_ms,
-                    len(record.thinking_steps),
-                    len(record.tool_calls),
-                    record.memory_usage_mb,
-                    record.error_message
-                ])
-```
-
-### 3.2 Dashboard de Métricas em Tempo Real
-
-**Problema:** Não há visibilidade durante execução do benchmark.
-
-**Solução:** Dashboard web com métricas em tempo real.
-
-```python
-# backend/src/core/benchmark/dashboard.py
-from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
-import asyncio
 import json
-from typing import Set
-from datetime import datetime
+from pathlib import Path
 
-app = FastAPI(title="MARIA Benchmark Dashboard")
-
-class DashboardMetrics:
-    def __init__(self):
-        self.websocket_connections: Set[WebSocket] = set()
-        self.metrics = {
-            "tasks_total": 0,
-            "tasks_completed": 0,
-            "tasks_failed": 0,
-            "current_task": None,
-            "success_rate": 0.0,
-            "avg_response_time_ms": 0.0,
-            "avg_tool_calls_per_task": 0.0,
-            "memory_usage_mb": 0.0,
-            "tokens_used_total": 0,
-            "errors_last_hour": []
+@dataclass
+class MetricasDetalhadas:
+    """Métricas enriquecidas para análise de benchmark."""
+    id_tarefa: str
+    tempo_total_segundos: float
+    tokens_gerados: int
+    tool_calls_tentados: int = 0
+    tool_calls_sucesso: int = 0
+    retries_necessarios: int = 0
+    memoria_mb_antes: float = 0.0
+    memoria_mb_depois: float = 0.0
+    thinking_capturado: bool = False
+    portugues_correto: bool = True
+    erros: List[str] = field(default_factory=list)
+    
+    def to_dict(self) -> dict:
+        return {
+            "id_tarefa": self.id_tarefa,
+            "tempo_total_segundos": round(self.tempo_total_segundos, 2),
+            "tokens_gerados": self.tokens_gerados,
+            "taxa_sucesso_tool_call": (
+                self.tool_calls_sucesso / self.tool_calls_tentados 
+                if self.tool_calls_tentados > 0 else 1.0
+            ),
+            "retries_necessarios": self.retries_necessarios,
+            "delta_memoria_mb": round(self.memoria_mb_depois - self.memoria_mb_antes, 2),
+            "thinking_capturado": self.thinking_capturado,
+            "portugues_correto": self.portugues_correto,
+            "erros": self.erros
         }
-        self._response_times = []
-        self._tool_calls_count = []
-    
-    async def broadcast_update(self):
-        """Envia atualização para todos os clientes WebSocket."""
-        if not self.websocket_connections:
-            return
-        
-        message = json.dumps(self.metrics)
-        disconnected = set()
-        
-        for websocket in self.websocket_connections:
-            try:
-                await websocket.send_text(message)
-            except:
-                disconnected.add(websocket)
-        
-        self.websocket_connections -= disconnected
-    
-    def update_task_start(self, task_id: str):
-        self.metrics["current_task"] = task_id
-        self.metrics["tasks_total"] += 1
-        asyncio.create_task(self.broadcast_update())
-    
-    def update_task_complete(
-        self,
-        success: bool,
-        response_time_ms: float,
-        tool_calls_count: int,
-        memory_mb: float,
-        tokens_used: int,
-        error_message: Optional[str] = None
-    ):
-        self.metrics["tasks_completed" if success else "tasks_failed"] += 1
-        self.metrics["current_task"] = None
-        self.metrics["memory_usage_mb"] = memory_mb
-        self.metrics["tokens_used_total"] += tokens_used
-        
-        self._response_times.append(response_time_ms)
-        self._tool_calls_count.append(tool_calls_count)
-        
-        # Calcular médias móveis (últimos 100 tasks)
-        if len(self._response_times) > 100:
-            self._response_times.pop(0)
-            self._tool_calls_count.pop(0)
-        
-        self.metrics["avg_response_time_ms"] = sum(self._response_times) / len(self._response_times)
-        self.metrics["avg_tool_calls_per_task"] = sum(self._tool_calls_count) / len(self._tool_calls_count)
-        self.metrics["success_rate"] = (
-            self.metrics["tasks_completed"] / self.metrics["tasks_total"]
-            if self.metrics["tasks_total"] > 0 else 0
-        )
-        
-        if error_message:
-            self.metrics["errors_last_hour"].append({
-                "timestamp": datetime.now().isoformat(),
-                "error": error_message
-            })
-            # Manter apenas última hora
-            cutoff = datetime.now().timestamp() - 3600
-            self.metrics["errors_last_hour"] = [
-                e for e in self.metrics["errors_last_hour"]
-                if datetime.fromisoformat(e["timestamp"]).timestamp() > cutoff
-            ]
-        
-        asyncio.create_task(self.broadcast_update())
 
-metrics = DashboardMetrics()
 
-@app.get("/", response_class=HTMLResponse)
-async def dashboard_html():
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>MARIA Benchmark Dashboard</title>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <style>
-            body { font-family: Arial; margin: 20px; background: #f5f5f5; }
-            .container { max-width: 1200px; margin: 0 auto; }
-            .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
-            .metric-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-            .metric-value { font-size: 2em; font-weight: bold; color: #2196F3; }
-            .metric-label { color: #666; margin-top: 5px; }
-            .chart-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-            .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
-            .status-running { background: #4CAF50; }
-            .status-idle { background: #9E9E9E; }
-            #currentTask { font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>🚀 MARIA Benchmark Dashboard</h1>
-            
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-value"><span id="tasksTotal">0</span></div>
-                    <div class="metric-label">Total Tasks</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value"><span id="successRate">0%</span></div>
-                    <div class="metric-label">Success Rate</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value"><span id="avgResponseTime">0</span>ms</div>
-                    <div class="metric-label">Avg Response Time</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value"><span id="memoryUsage">0</span>MB</div>
-                    <div class="metric-label">Memory Usage</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value"><span id="tokensUsed">0</span></div>
-                    <div class="metric-label">Total Tokens</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">
-                        <span class="status-indicator" id="statusIndicator"></span>
-                        <span id="currentTask">Idle</span>
-                    </div>
-                    <div class="metric-label">Current Task</div>
-                </div>
-            </div>
-            
-            <div class="chart-container">
-                <canvas id="responseTimeChart"></canvas>
-            </div>
-            
-            <div class="chart-container">
-                <canvas id="successRateChart"></canvas>
-            </div>
-        </div>
-        
-        <script>
-            let responseTimeData = [];
-            let successRateData = [];
-            let labels = [];
-            
-            const ws = new WebSocket(`ws://${window.location.host}/ws/metrics`);
-            
-            ws.onmessage = (event) => {
-                const metrics = JSON.parse(event.data);
-                
-                document.getElementById('tasksTotal').textContent = metrics.tasks_total;
-                document.getElementById('successRate').textContent = (metrics.success_rate * 100).toFixed(1) + '%';
-                document.getElementById('avgResponseTime').textContent = metrics.avg_response_time_ms.toFixed(0);
-                document.getElementById('memoryUsage').textContent = metrics.memory_usage_mb.toFixed(1);
-                document.getElementById('tokensUsed').textContent = metrics.tokens_used_total;
-                
-                const currentTaskEl = document.getElementById('currentTask');
-                const statusIndicator = document.getElementById('statusIndicator');
-                
-                if (metrics.current_task) {
-                    currentTaskEl.textContent = metrics.current_task;
-                    statusIndicator.className = 'status-indicator status-running';
-                } else {
-                    currentTaskEl.textContent = 'Idle';
-                    statusIndicator.className = 'status-indicator status-idle';
-                }
-                
-                // Update charts
-                if (labels.length > 100) {
-                    labels.shift();
-                    responseTimeData.shift();
-                    successRateData.shift();
-                }
-                
-                labels.push(new Date().toLocaleTimeString());
-                responseTimeData.push(metrics.avg_response_time_ms);
-                successRateData.push(metrics.success_rate * 100);
-                
-                updateCharts();
-            };
-            
-            function updateCharts() {
-                responseTimeChart.update();
-                successRateChart.update();
-            }
-            
-            // Response Time Chart
-            const responseTimeCtx = document.getElementById('responseTimeChart').getContext('2d');
-            const responseTimeChart = new Chart(responseTimeCtx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Average Response Time (ms)',
-                        data: responseTimeData,
-                        borderColor: '#2196F3',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    animation: false
-                }
-            });
-            
-            // Success Rate Chart
-            const successRateCtx = document.getElementById('successRateChart').getContext('2d');
-            const successRateChart = new Chart(successRateCtx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Success Rate (%)',
-                        data: successRateData,
-                        borderColor: '#4CAF50',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    animation: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100
-                        }
-                    }
-                }
-            });
-        </script>
-    </body>
-    </html>
-    """
-
-@app.websocket("/ws/metrics")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    metrics.websocket_connections.add(websocket)
+def calcular_metricas_agregadas(resultados: List[MetricasDetalhadas]) -> dict:
+    """Calcula métricas agregadas de todas as tarefas."""
+    if not resultados:
+        return {}
     
-    # Enviar estado atual imediatamente
-    await websocket.send_text(json.dumps(metrics.metrics))
+    total_tarefas = len(resultados)
+    tempo_total = sum(r.tempo_total_segundos for r in resultados)
+    tokens_totais = sum(r.tokens_gerados for r in resultados)
     
-    try:
-        while True:
-            await websocket.receive_text()  # Keep connection alive
-    except:
-        metrics.websocket_connections.remove(websocket)
-
-# Integração no benchmark executor
-class BenchmarkExecutorWithDashboard:
-    def __init__(self):
-        self.dashboard = metrics
+    tool_calls_totais = sum(r.tool_calls_tentados for r in resultados)
+    tool_calls_sucesso = sum(r.tool_calls_sucesso for r in resultados)
     
-    async def run_benchmark(self, tasks: List[Dict]):
-        for i, task in enumerate(tasks):
-            task_id = f"task_{i}"
-            self.dashboard.update_task_start(task_id)
-            
-            start_time = time.time()
-            try:
-                result = await self.execute_task(task)
-                response_time = (time.time() - start_time) * 1000
-                
-                self.dashboard.update_task_complete(
-                    success=True,
-                    response_time_ms=response_time,
-                    tool_calls_count=len(result.get('tool_calls', [])),
-                    memory_mb=get_memory_usage(),
-                    tokens_used=result.get('tokens_used', 0)
-                )
-            except Exception as e:
-                response_time = (time.time() - start_time) * 1000
-                
-                self.dashboard.update_task_complete(
-                    success=False,
-                    response_time_ms=response_time,
-                    tool_calls_count=0,
-                    memory_mb=get_memory_usage(),
-                    tokens_used=0,
-                    error_message=str(e)
-                )
+    retries_totais = sum(r.retries_necessarios for r in resultados)
+    
+    deltas_memoria = [r.memoria_mb_depois - r.memoria_mb_antes for r in resultados]
+    memoria_media_delta = sum(deltas_memoria) / len(deltas_memoria) if deltas_memoria else 0
+    
+    tarefas_com_thinking = sum(1 for r in resultados if r.thinking_capturado)
+    tarefas_em_portugues = sum(1 for r in resultados if r.portugues_correto)
+    
+    return {
+        "total_tarefas": total_tarefas,
+        "tempo_medio_por_tarefa": round(tempo_total / total_tarefas, 2),
+        "tokens_medios_por_tarefa": round(tokens_totais / total_tarefas, 2),
+        "taxa_sucesso_tool_call_global": round(tool_calls_sucesso / tool_calls_totais, 3) if tool_calls_totais > 0 else 1.0,
+        "retries_medios_por_tarefa": round(retries_totais / total_tarefas, 2),
+        "memoria_media_delta_mb": round(memoria_media_delta, 2),
+        "porcentagem_com_thinking": round(tarefas_com_thinking / total_tarefas * 100, 1),
+        "porcentagem_em_portugues": round(tarefas_em_portugues / total_tarefas * 100, 1),
+    }
 ```
+
+### 3.3. Benefícios Esperados
+
+- Visibilidade completa do processo de decisão do modelo
+- Métricas acionáveis para identificar gargalos
+- Base sólida para dashboards e alertas
 
 ---
 
 ## 4. Segurança (ALTA PRIORIDADE)
 
-### 4.1 Validação de Caminhos de Arquivos
+### 4.1. Problema Identificado
 
-**Problema:** Vulnerabilidade a directory traversal attacks.
+Validação de caminhos de arquivos é feita, mas pode ser aprimorada para prevenir directory traversal attacks. Não há rate limiting no endpoint HTTP bridge.
 
-**Solução:** Validar e sanitizar caminhos de arquivos.
+**Arquivos afetados:**
+- `backend/core/file_utils.py`
+- `backend/main.py` (funções `_despachar_comando`, `_criar_app_http`)
+
+### 4.2. Solução Proposta
+
+#### 4.2.1. Validar caminhos de forma rigorosa
 
 ```python
-# backend/src/security/file_validator.py
+# backend/core/file_utils.py
+
 import os
 from pathlib import Path
-from typing import Optional, Tuple
 
-class FileSecurityValidator:
-    def __init__(self, allowed_base_dirs: list[str]):
-        self.allowed_base_dirs = [Path(d).resolve() for d in allowed_base_dirs]
-    
-    def validate_path(self, requested_path: str) -> Tuple[bool, Optional[Path], Optional[str]]:
-        """
-        Valida caminho de arquivo prevenindo directory traversal.
-        
-        Returns:
-            (is_valid, resolved_path, error_message)
-        """
-        try:
-            # Converter para Path absoluto
-            requested = Path(requested_path)
-            
-            # Prevenir null bytes
-            if '\x00' in requested_path:
-                return False, None, "Caminho contém caracteres nulos"
-            
-            # Resolver symlinks e normalizar
-            resolved = requested.resolve(strict=False)
-            
-            # Verificar se está dentro de diretórios permitidos
-            is_allowed = any(
-                self._is_subdirectory(resolved, base_dir)
-                for base_dir in self.allowed_base_dirs
-            )
-            
-            if not is_allowed:
-                return False, None, f"Acesso negado: caminho fora dos diretórios permitidos"
-            
-            # Verificar extensão do arquivo (se aplicável)
-            if resolved.is_file():
-                if not self._is_safe_extension(resolved.suffix):
-                    return False, None, f"Extensão de arquivo não permitida: {resolved.suffix}"
-            
-            return True, resolved, None
-            
-        except Exception as e:
-            return False, None, f"Erro ao validar caminho: {str(e)}"
-    
-    def _is_subdirectory(self, path: Path, parent: Path) -> bool:
-        """Verifica se path é subdiretório de parent."""
-        try:
-            path.relative_to(parent)
-            return True
-        except ValueError:
-            return False
-    
-    def _is_safe_extension(self, extension: str) -> bool:
-        """Verifica se extensão de arquivo é segura."""
-        safe_extensions = {
-            '.txt', '.md', '.pdf', '.doc', '.docx',
-            '.jpg', '.jpeg', '.png', '.gif',
-            '.json', '.yaml', '.yml', '.xml',
-            '.csv', '.xlsx'
-        }
-        return extension.lower() in safe_extensions
-    
-    def sanitize_filename(self, filename: str) -> str:
-        """Sanitiza nome de arquivo removendo caracteres perigosos."""
-        # Remover caracteres especiais
-        sanitized = "".join(c for c in filename if c.isalnum() or c in '._- ')
-        
-        # Remover paths relativos
-        sanitized = os.path.basename(sanitized)
-        
-        # Limitar tamanho
-        if len(sanitized) > 255:
-            name, ext = os.path.splitext(sanitized)
-            sanitized = name[:255-len(ext)] + ext
-        
-        return sanitized.strip()
+# Pastas permitidas (configuráveis via ENV)
+PASTAS_PERMITIDAS = {
+    "arquivos_gerados": os.getenv("PASTA_ARQUIVOS_GERADOS", "arquivos_gerados"),
+    "sessoes": os.getenv("PASTA_SESSOES", "sessoes_salvas"),
+}
 
-# Uso no controller
-class FileController:
-    def __init__(self):
-        self.validator = FileSecurityValidator(
-            allowed_base_dirs=['./uploads', './documents', './temp']
+def validar_caminho_seguro(caminho_relacionado: str, pasta_base: str = "arquivos_gerados") -> Path:
+    """
+    Valida e normaliza caminho para prevenir directory traversal.
+    
+    Args:
+        caminho_relacionado: Caminho relativo fornecido pelo usuário
+        pasta_base: Chave da pasta permitida (arquivos_gerados, sessoes)
+    
+    Returns:
+        Path absoluto e validado
+    
+    Raises:
+        ValueError: se caminho tentar escapar das pastas permitidas
+    """
+    if pasta_base not in PASTAS_PERMITIDAS:
+        raise ValueError(f"Pasta base '{pasta_base}' não é permitida")
+    
+    raiz_permitida = Path(PASTAS_PERMITIDAS[pasta_base]).resolve()
+    
+    # Normalizar caminho fornecido
+    caminho_fornecido = Path(caminho_relacionado or "")
+    
+    # Juntar e resolver
+    caminho_completo = (raiz_permitida / caminho_fornecido).resolve()
+    
+    # Verificar se está dentro da pasta permitida
+    try:
+        caminho_completo.relative_to(raiz_permitida)
+    except ValueError:
+        raise ValueError(
+            f"Caminho '{caminho_relacionado}' tenta acessar área fora da pasta permitida. "
+            f"Acesso restrito a: {raiz_permitida}"
         )
     
-    async def read_file(self, filepath: str) -> dict:
-        is_valid, resolved_path, error = self.validator.validate_path(filepath)
-        
-        if not is_valid:
-            logger.warning(f"Tentativa de acesso inválido: {filepath} - {error}")
-            return {"success": False, "error": error}
-        
-        try:
-            with open(resolved_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            return {"success": True, "content": content}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+    return caminho_completo
+
+
+def listar_arquivos(pasta: str = "") -> list[dict]:
+    """Lista arquivos de forma segura."""
+    try:
+        caminho_validado = validar_caminho_seguro(pasta, "arquivos_gerados")
+    except ValueError as e:
+        logger.warning(f"Tentativa de acesso inseguro: {e}")
+        return []
+    
+    # ... (resto da implementação existente)
 ```
 
-### 4.2 Rate Limiting
-
-**Problema:** API vulnerável a abuso e DoS.
-
-**Solução:** Implementar rate limiting por IP/usuário.
+#### 4.2.2. Adicionar rate limiting no endpoint HTTP
 
 ```python
-# backend/src/security/rate_limiter.py
-from fastapi import Request, HTTPException
-from fastapi.security import HTTPBearer
+# backend/main.py — Adicionar decorator de rate limiting
+
+from functools import wraps
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Dict, Optional
-import asyncio
+import time
 
 class RateLimiter:
-    def __init__(
-        self,
-        requests_per_minute: int = 60,
-        requests_per_hour: int = 1000,
-        burst_limit: int = 10
-    ):
-        self.requests_per_minute = requests_per_minute
-        self.requests_per_hour = requests_per_hour
-        self.burst_limit = burst_limit
-        
-        self._minute_buckets: Dict[str, list] = defaultdict(list)
-        self._hour_buckets: Dict[str, list] = defaultdict(list)
-        self._burst_counters: Dict[str, int] = defaultdict(int)
-        self._locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+    """Rate limiter simples baseado em IP."""
     
-    def _get_client_id(self, request: Request) -> str:
-        """Identifica cliente por IP ou token."""
-        # Tentar obter token primeiro
-        auth_header = request.headers.get("Authorization")
-        if auth_header:
-            return f"token:{auth_header}"
-        
-        # Fallback para IP
-        client_ip = request.client.host if request.client else "unknown"
-        return f"ip:{client_ip}"
+    def __init__(self, max_requests: int = 10, window_seconds: int = 60):
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.requests = defaultdict(list)
     
-    async def check_rate_limit(self, request: Request) -> bool:
-        """Verifica se requisição está dentro dos limites."""
-        client_id = self._get_client_id(request)
+    def is_allowed(self, client_id: str) -> bool:
+        agora = time.time()
+        janela_inicio = agora - self.window_seconds
         
-        async with self._locks[client_id]:
-            now = datetime.now()
-            minute_ago = now - timedelta(minutes=1)
-            hour_ago = now - timedelta(hours=1)
-            
-            # Limpar buckets antigos
-            self._minute_buckets[client_id] = [
-                ts for ts in self._minute_buckets[client_id]
-                if ts > minute_ago
-            ]
-            self._hour_buckets[client_id] = [
-                ts for ts in self._hour_buckets[client_id]
-                if ts > hour_ago
-            ]
-            
-            # Verificar limites
-            if len(self._minute_buckets[client_id]) >= self.requests_per_minute:
-                return False
-            
-            if len(self._hour_buckets[client_id]) >= self.requests_per_hour:
-                return False
-            
-            # Burst limit (para prevenir picos súbitos)
-            if self._burst_counters[client_id] >= self.burst_limit:
-                # Reset burst counter após 1 segundo
-                asyncio.create_task(self._reset_burst(client_id))
-                return False
-            
-            # Registrar requisição
-            self._minute_buckets[client_id].append(now)
-            self._hour_buckets[client_id].append(now)
-            self._burst_counters[client_id] += 1
-            
-            return True
-    
-    async def _reset_burst(self, client_id: str):
-        await asyncio.sleep(1)
-        self._burst_counters[client_id] = 0
-    
-    def get_remaining_limits(self, request: Request) -> Dict:
-        """Retorna limites restantes para o cliente."""
-        client_id = self._get_client_id(request)
-        now = datetime.now()
+        # Limpar requests antigos
+        self.requests[client_id] = [
+            t for t in self.requests[client_id] if t > janela_inicio
+        ]
         
-        minute_count = len([
-            ts for ts in self._minute_buckets[client_id]
-            if ts > now - timedelta(minutes=1)
-        ])
-        hour_count = len([
-            ts for ts in self._hour_buckets[client_id]
-            if ts > now - timedelta(hours=1)
-        ])
+        # Verificar limite
+        if len(self.requests[client_id]) >= self.max_requests:
+            return False
         
-        return {
-            "requests_per_minute_remaining": max(0, self.requests_per_minute - minute_count),
-            "requests_per_hour_remaining": max(0, self.requests_per_hour - hour_count),
-            "burst_remaining": max(0, self.burst_limit - self._burst_counters[client_id])
-        }
+        self.requests[client_id].append(agora)
+        return True
 
-# Middleware para FastAPI
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, limiter: RateLimiter):
-        super().__init__(app)
-        self.limiter = limiter
-    
-    async def dispatch(self, request, call_next):
-        if not await self.limiter.check_rate_limit(request):
-            limits = self.limiter.get_remaining_limits(request)
-            return JSONResponse(
-                status_code=429,
-                content={
-                    "error": "Rate limit exceeded",
-                    "retry_after_seconds": 60
-                },
-                headers={
-                    "X-RateLimit-Minute-Remaining": str(limits["requests_per_minute_remaining"]),
-                    "X-RateLimit-Hour-Remaining": str(limits["requests_per_hour_remaining"])
-                }
-            )
-        
-        response = await call_next(request)
-        
-        # Adicionar headers de rate limit
-        limits = self.limiter.get_remaining_limits(request)
-        response.headers["X-RateLimit-Minute-Remaining"] = str(limits["requests_per_minute_remaining"])
-        response.headers["X-RateLimit-Hour-Remaining"] = str(limits["requests_per_hour_remaining"])
-        
-        return response
+# Instância global
+rate_limiter = RateLimiter(max_requests=10, window_seconds=60)
 
-# Uso na aplicação FastAPI
-app = FastAPI()
-limiter = RateLimiter(requests_per_minute=60, requests_per_hour=1000)
-app.add_middleware(RateLimitMiddleware, limiter=limiter)
+
+def rate_limit(f):
+    """Decorator para aplicar rate limiting em endpoints Flask."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask import request
+        
+        client_id = request.remote_addr or "unknown"
+        
+        if not rate_limiter.is_allowed(client_id):
+            return {
+                "status": "erro",
+                "mensagemErro": "Rate limit excedido. Tente novamente em 60 segundos."
+            }, 429
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# Aplicar no endpoint /chat
+@app.route("/chat", methods=["POST"])
+@rate_limit
+def chat_endpoint():
+    # ... (implementação existente)
+    pass
 ```
+
+### 4.3. Benefícios Esperados
+
+- Prevenção de ataques de directory traversal
+- Proteção contra abuso do endpoint HTTP
+- Logs de tentativas de acesso inseguro
 
 ---
 
 ## 5. Integração com Manual de Redação Oficial (MÉDIA PRIORIDADE)
 
-### 5.1 Busca no Manual de Redação
+### 5.1. Problema Identificado
 
-**Problema:** Dificuldade em encontrar normas específicas no manual.
+Não há integração com o Manual de Redação Oficial da Presidência da República, que seria útil para criação de documentos oficiais padronizados.
 
-**Solução:** Implementar busca full-text no manual.
+### 5.2. Solução Proposta
+
+#### 5.2.1. Criar módulo de busca no manual
 
 ```python
-# backend/src/integrations/manual_redacao/search_engine.py
+# backend/core/manual_redacao.py
+
+"""
+Módulo de integração com Manual de Redação Oficial da Presidência.
+Implementa busca full-text simples sem dependências externas.
+"""
+
 import os
-import json
-from typing import List, Dict, Optional
-from dataclasses import dataclass
-from pathlib import Path
 import re
-from rank_bm25 import BM25Okapi
+from pathlib import Path
+from typing import List, Dict
+import logging
 
-@dataclass
-class ManualSection:
-    id: str
-    title: str
-    content: str
-    category: str
-    subsections: List['ManualSection']
-    keywords: List[str]
+logger = logging.getLogger(__name__)
 
-class ManualSearchEngine:
-    def __init__(self, manual_path: str = "./data/manual_redacao"):
-        self.manual_path = Path(manual_path)
-        self.sections: List[ManualSection] = []
-        self.bm25_index = None
-        self.section_texts: List[str] = []
-        self._load_manual()
+CAMINHO_MANUAL = os.getenv("CAMINHO_MANUAL_REDACAO", "arquivo/manual_redacao.txt")
+
+class ManualRedacaoBuscador:
+    """Busca full-text no manual de redação oficial."""
     
-    def _load_manual(self):
-        """Carrega manual de redação oficial."""
-        # Estrutura esperada: manual_redacao/{categoria}/{secao}.md
-        if not self.manual_path.exists():
-            logger.warning(f"Manual não encontrado em {self.manual_path}")
-            return
+    def __init__(self, caminho_manual: str = CAMINHO_MANUAL):
+        self.caminho_manual = Path(caminho_manual)
+        self.conteudo = ""
+        self.carregado = False
         
-        for category_dir in self.manual_path.iterdir():
-            if not category_dir.is_dir():
-                continue
-            
-            category = category_dir.name
-            
-            for section_file in category_dir.glob("*.md"):
-                section = self._parse_section_file(section_file, category)
-                if section:
-                    self.sections.append(section)
-                    self.section_texts.append(f"{section.title} {section.content}")
-        
-        # Construir índice BM25
-        if self.section_texts:
-            tokenized_docs = [self._tokenize(text) for text in self.section_texts]
-            self.bm25_index = BM25Okapi(tokenized_docs)
-            logger.info(f"Índice BM25 criado com {len(self.sections)} seções")
+        if self.caminho_manual.exists():
+            self._carregar()
+        else:
+            logger.warning(f"Manual de redação não encontrado em {self.caminho_manual}")
     
-    def _parse_section_file(self, filepath: Path, category: str) -> Optional[ManualSection]:
-        """Parse arquivo Markdown do manual."""
+    def _carregar(self):
+        """Carrega conteúdo do manual na memória."""
         try:
-            content = filepath.read_text(encoding='utf-8')
-            
-            # Extrair título (primeira linha #)
-            title_match = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
-            title = title_match.group(1) if title_match else filepath.stem
-            
-            # Extrair palavras-chave (se houver frontmatter YAML)
-            keywords = []
-            yaml_match = re.search(r'^---\n(.+?)\n---', content, re.DOTALL)
-            if yaml_match:
-                import yaml
-                frontmatter = yaml.safe_load(yaml_match.group(1))
-                keywords = frontmatter.get('keywords', [])
-            
-            # Remover frontmatter do conteúdo
-            content = re.sub(r'^---\n.+?\n---', '', content, flags=re.DOTALL)
-            
-            return ManualSection(
-                id=f"{category}/{filepath.stem}",
-                title=title,
-                content=content,
-                category=category,
-                subsections=[],
-                keywords=keywords
-            )
+            self.conteudo = self.caminho_manual.read_text(encoding="utf-8")
+            self.carregado = True
+            logger.info(f"Manual carregado: {len(self.conteudo)} caracteres")
         except Exception as e:
-            logger.error(f"Erro ao parsear {filepath}: {e}")
-            return None
+            logger.error(f"Erro ao carregar manual: {e}")
     
-    def _tokenize(self, text: str) -> List[str]:
-        """Tokeniza texto para busca."""
-        # Normalizar e tokenizar
-        text = text.lower()
-        text = re.sub(r'[^\w\s]', ' ', text)
-        return text.split()
-    
-    def search(self, query: str, top_k: int = 5) -> List[Dict]:
-        """Busca seções relevantes no manual."""
-        if not self.bm25_index:
+    def buscar(self, termo: str, contexto_linhas: int = 3) -> List[Dict]:
+        """
+        Busca termo no manual e retorna trechos relevantes.
+        
+        Args:
+            termo: Palavra ou frase a buscar
+            contexto_linhas: Número de linhas de contexto antes/depois
+        
+        Returns:
+            Lista de dicionários com trecho, linha e contexto
+        """
+        if not self.carregado:
             return []
         
-        tokenized_query = self._tokenize(query)
-        scores = self.bm25_index.get_scores(tokenized_query)
+        linhas = self.conteudo.split("\n")
+        resultados = []
         
-        # Obter top-k resultados
-        top_indices = sorted(
-            range(len(scores)),
-            key=lambda i: scores[i],
-            reverse=True
-        )[:top_k]
+        termo_lower = termo.lower()
         
-        results = []
-        for idx in top_indices:
-            if scores[idx] > 0:  # Apenas resultados relevantes
-                section = self.sections[idx]
-                results.append({
-                    "id": section.id,
-                    "title": section.title,
-                    "category": section.category,
-                    "score": float(scores[idx]),
-                    "snippet": self._extract_snippet(section.content, query),
-                    "full_content": section.content
+        for i, linha in enumerate(linhas):
+            if termo_lower in linha.lower():
+                # Extrair contexto
+                inicio = max(0, i - contexto_linhas)
+                fim = min(len(linhas), i + contexto_linhas + 1)
+                
+                contexto = "\n".join(linhas[inicio:fim])
+                
+                resultados.append({
+                    "linha": i + 1,
+                    "trecho": linha.strip(),
+                    "contexto": contexto,
+                    "relevancia": self._calcular_relevancia(linha, termo_lower)
                 })
         
-        return results
+        # Ordenar por relevância
+        resultados.sort(key=lambda x: x["relevancia"], reverse=True)
+        
+        return resultados[:10]  # Top 10 resultados
     
-    def _extract_snippet(self, content: str, query: str, context_size: int = 100) -> str:
-        """Extrai snippet relevante do conteúdo."""
-        # Encontrar primeira ocorrência de termo da query
-        query_terms = query.lower().split()
+    def _calcular_relevancia(self, linha: str, termo: str) -> float:
+        """Calcula score de relevância simples."""
+        score = 0.0
+        linha_lower = linha.lower()
         
-        for term in query_terms:
-            if len(term) < 3:
-                continue
-            
-            pattern = re.compile(re.escape(term), re.IGNORECASE)
-            match = pattern.search(content)
-            
-            if match:
-                start = max(0, match.start() - context_size)
-                end = min(len(content), match.end() + context_size)
-                snippet = content[start:end]
-                
-                # Adicionar elipses se truncado
-                if start > 0:
-                    snippet = "..." + snippet
-                if end < len(content):
-                    snippet = snippet + "..."
-                
-                return snippet
+        # Match exato vale mais
+        if termo in linha_lower:
+            score += 10.0
         
-        # Fallback: primeiros caracteres
-        return content[:context_size * 2] + "..." if len(content) > context_size * 2 else content
+        # Match no início da linha vale extra
+        if linha_lower.startswith(termo):
+            score += 5.0
+        
+        # Contar ocorrências
+        score += linha_lower.count(termo) * 2.0
+        
+        return score
     
-    def get_section_by_id(self, section_id: str) -> Optional[ManualSection]:
-        """Obtém seção específica por ID."""
-        for section in self.sections:
-            if section.id == section_id:
-                return section
-        return None
-
-# Ferramenta para o modelo usar
-class ManualRedacaoTool:
-    def __init__(self):
-        self.search_engine = ManualSearchEngine()
-    
-    async def search_manual(self, query: str, category: Optional[str] = None) -> dict:
-        """Busca no manual de redação oficial."""
-        results = self.search_engine.search(query)
+    def obter_template(self, tipo_documento: str) -> str | None:
+        """
+        Retorna template para tipo de documento específico.
         
-        if category:
-            results = [r for r in results if r['category'] == category]
-        
-        return {
-            "query": query,
-            "results_count": len(results),
-            "results": results[:5]  # Top 5
+        Tipos suportados: oficio, memorando, carta, relatorio, ata
+        """
+        templates = {
+            "oficio": self._template_oficio(),
+            "memorando": self._template_memorando(),
+            "carta": self._template_carta(),
+            "relatorio": self._template_relatorio(),
+            "ata": self._template_ata(),
         }
+        
+        return templates.get(tipo_documento.lower())
     
-    async def get_section(self, section_id: str) -> dict:
-        """Obtém seção completa do manual."""
-        section = self.search_engine.get_section_by_id(section_id)
-        
-        if not section:
-            return {"error": f"Seção {section_id} não encontrada"}
-        
-        return {
-            "id": section.id,
-            "title": section.title,
-            "category": section.category,
-            "content": section.content,
-            "keywords": section.keywords
-        }
+    def _template_oficio(self) -> str:
+        return """OFÍCIO Nº [NÚMERO]/[ANO]
 
-# Template para criação de documentos oficiais
-OFFICIAL_DOCUMENT_TEMPLATES = {
-    "oficio": """
-OFÍCIO Nº {numero}/{ano}
+[CIDADE], [DIA] de [MÊS] de [ANO].
 
-{local}, {data}
+Assunto: [Resumo do assunto]
 
-Assunto: {assunto}
+[Autoridade/Cargo]
+[Endereço]
+[CEP]
 
-A(o) {destinatario_cargo},
-{destinatario_nome}
+Senhor(a),
 
-{texto_principal}
+[Corpo do texto com exposição do assunto, solicitação ou informação]
 
 Atenciosamente,
 
-{remetente_nome}
-{remetente_cargo}
-{remetente_orgao}
-""",
-    
-    "memorando": """
-MEMORANDO Nº {numero}/{ano}
+[Nome da Autoridade]
+[Cargo]"""
 
-De: {de_parte}
-Para: {para_parte}
-Assunto: {assunto}
-Data: {data}
+    def _template_memorando(self) -> str:
+        return """MEMORANDO Nº [NÚMERO]/[ANO]
 
-{texto_principal}
+De: [Setor de Origem]
+Para: [Setor de Destino]
+Assunto: [Resumo do assunto]
+Data: [DIA] de [MÊS] de [ANO]
 
-{assinatura}
-""",
-    
-    "despacho": """
-DESPACHO
+[Corpo do texto objetivo e direto]
 
-Processo nº: {processo_numero}
-Interessado: {interessado}
-Assunto: {assunto}
+[Nome do Responsável]
+[Cargo]"""
 
-{decisão}
+    def _template_carta(self) -> str:
+        return """[Local], [dia] de [mês] de [ano].
 
-{local}, {data}
+Prezado(a) Senhor(a),
 
-{nome_autoridade}
-{cargo}
-"""
+[Corpo do texto]
+
+Atenciosamente,
+
+[Nome]
+[Cargo/Instituição]"""
+
+    def _template_relatorio(self) -> str:
+        return """RELATÓRIO [TÉCNICO/ADMINISTRATIVO]
+
+Assunto: [Assunto]
+Período: [Data inicial] a [Data final]
+Responsável: [Nome]
+
+1. INTRODUÇÃO
+[Breve descrição do objetivo]
+
+2. DESENVOLVIMENTO
+[Exposição detalhada dos fatos/atividades]
+
+3. CONCLUSÕES
+[Principais conclusões]
+
+4. RECOMENDAÇÕES
+[Sugestões de ações]
+
+[Local], [data]
+
+[Assinatura]"""
+
+    def _template_ata(self) -> str:
+        return """ATA DE [REUNIÃO/ASSEMBLEIA]
+
+Aos [dia] dias do mês de [mês] de [ano], às [hora] horas, [local], reuniram-se [participantes] para deliberar sobre [ordem do dia].
+
+Primeiramente, [descrição dos trabalhos].
+
+Em seguida, [discussões e deliberações].
+
+Nada mais havendo a tratar, a reunião foi encerrada às [hora] horas.
+
+Eu, [secretário], lavrei a presente ata que vai assinada por todos.
+
+[Assinaturas]"""
+
+
+# Instância singleton
+_manual_buscador = None
+
+def get_manual_buscador() -> ManualRedacaoBuscador:
+    """Retorna instância singleton do buscador."""
+    global _manual_buscador
+    if _manual_buscador is None:
+        _manual_buscador = ManualRedacaoBuscador()
+    return _manual_buscador
+```
+
+#### 5.2.2. Adicionar ferramenta de consulta ao manual
+
+```python
+# backend/core/tools_schema.py — Adicionar nova ferramenta
+
+FERRAMENTAConsultarManual = {
+    "type": "function",
+    "function": {
+        "name": "consultar_manual_redacao",
+        "description": """Consulta o Manual de Redação Oficial da Presidência para obter normas e templates de documentos oficiais.
+Use PARA: verificar formatação correta de ofícios, memorandos, cartas, relatórios e atas; obter templates padronizados.
+Exemplos de frases-gatilho:
+- "como formatar um ofício segundo o manual?"
+- "qual o template correto para ata de reunião?"
+- "me mostre o modelo de memorando oficial"
+NÃO use para criar documentos — nesse caso use criar_documento após consultar o manual.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "termo_busca": {
+                    "type": "string",
+                    "description": "Termo ou tipo de documento a buscar. Ex: 'ofício', 'memorando', 'formatação cabeçalho'"
+                },
+                "tipo_documento": {
+                    "type": "string",
+                    "description": "Tipo específico de documento para obter template. Valores: oficio, memorando, carta, relatorio, ata"
+                }
+            },
+            "required": []
+        }
+    }
 }
 
-def generate_official_document(
-    doc_type: str,
-    template_vars: dict,
-    follow_manual: bool = True
-) -> str:
-    """Gera documento oficial seguindo manual de redação."""
-    if doc_type not in OFFICIAL_DOCUMENT_TEMPLATES:
-        raise ValueError(f"Tipo de documento não suportado: {doc_type}")
-    
-    template = OFFICIAL_DOCUMENT_TEMPLATES[doc_type]
-    
-    # Preencher template
-    document = template.format(**template_vars)
-    
-    if follow_manual:
-        # Validar conformidade com manual (implementar validações específicas)
-        document = validate_manual_compliance(document, doc_type)
-    
-    return document
-
-def validate_manual_compliance(document: str, doc_type: str) -> str:
-    """Valida e corrige documento conforme manual de redação."""
-    # Implementar validações específicas:
-    # - Concordância verbal e nominal
-    # - Uso correto de pronomes de tratamento
-    # - Formatação de datas e números
-    # - Estrutura padrão do tipo documental
-    
-    # Exemplo simples: padronizar datas
-    import re
-    date_pattern = r'\b(\d{1,2})/(\d{1,2})/(\d{4})\b'
-    document = re.sub(
-        date_pattern,
-        lambda m: f"{int(m.group(1)):02d}/{int(m.group(2)):02d}/{m.group(3)}",
-        document
-    )
-    
-    return document
+# Adicionar à lista TOOLS_SCHEMA
+TOOLS_SCHEMA = [
+    FERRAMENTA_CRIAR_PLANILHA,
+    FERRAMENTA_CRIAR_DOCUMENTO,
+    FERRAMENTA_EDITAR_PLANILHA,
+    FERRAMENTA_LISTAR_ARQUIVOS,
+    FERRAMENTA_RESUMIR_DOCUMENTO,
+    FERRAMENTAConsultarManual,  # NOVO
+]
 ```
+
+### 5.3. Benefícios Esperados
+
+- Documentos oficiais em conformidade com padrões governamentais
+- Redução de retrabalho por formatação incorreta
+- Consulta rápida a normas de redação oficial
 
 ---
 
-## 6. Modo Visão - OCR e Análise de Imagens (MÉDIA PRIORIDADE)
+## 6. OCR e Análise de Imagens (MÉDIA PRIORIDADE)
 
-### 6.1 Integração com Tesseract OCR
+### 6.1. Problema Identificado
 
-**Problema:** Não há suporte a PDFs escaneados ou imagens com texto.
+Não há suporte a OCR para leitura de PDFs escaneados ou imagens com texto.
 
-**Solução:** Implementar pipeline de OCR.
+### 6.2. Solução Proposta
+
+#### 6.2.1. Adicionar módulo OCR com Tesseract
 
 ```python
-# backend/src/vision/ocr_processor.py
-import pytesseract
-from PIL import Image
-import pdf2image
-import cv2
-import numpy as np
+# backend/core/ocr_handler.py
+
+"""
+Módulo de OCR para extração de texto de imagens e PDFs escaneados.
+Dependência opcional: pytesseract + tesseract-ocr + pdf2image
+"""
+
+import os
+import logging
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
-from dataclasses import dataclass
+from typing import Optional
 
-@dataclass
-class OCRResult:
-    text: str
-    confidence: float
-    language: str
-    bounding_boxes: List[Dict]
-    processing_time_ms: float
-    preprocessing_applied: List[str]
+logger = logging.getLogger(__name__)
 
-class OCRProcessor:
-    def __init__(
-        self,
-        tesseract_cmd: str = '/usr/bin/tesseract',
-        default_lang: str = 'por',
-        enable_preprocessing: bool = True
-    ):
-        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
-        self.default_lang = default_lang
-        self.enable_preprocessing = enable_preprocessing
-    
-    def process_image(
-        self,
-        image_path: str,
-        language: Optional[str] = None,
-        preprocess: bool = True
-    ) -> OCRResult:
-        """Processa imagem com OCR."""
-        import time
-        start_time = time.time()
-        
-        # Carregar imagem
-        img = cv2.imread(image_path)
-        if img is None:
-            raise ValueError(f"Não foi possível carregar imagem: {image_path}")
-        
-        preprocessing_applied = []
-        
-        # Pré-processamento
-        if preprocess and self.enable_preprocessing:
-            img, preprocessing_applied = self._preprocess_image(img)
-        
-        # Converter para PIL
-        img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-        
-        # Configurar OCR
-        lang = language or self.default_lang
-        custom_config = r'--oem 3 --psm 6'
-        
-        # Extrair texto com detalhes
-        data = pytesseract.image_to_data(
-            img_pil,
-            lang=lang,
-            config=custom_config,
-            output_type=pytesseract.Output.DICT
-        )
-        
-        # Extrair texto completo
-        text = pytesseract.image_to_string(
-            img_pil,
-            lang=lang,
-            config=custom_config
-        )
-        
-        # Calcular confiança média
-        confidences = [c for c in data['conf'] if c != -1]
-        avg_confidence = sum(confidences) / len(confidences) if confidences else 0
-        
-        # Extrair bounding boxes
-        bounding_boxes = []
-        for i in range(len(data['text'])):
-            if int(data['conf'][i]) > 0:
-                bounding_boxes.append({
-                    'text': data['text'][i],
-                    'confidence': data['conf'][i],
-                    'x': data['left'][i],
-                    'y': data['top'][i],
-                    'width': data['width'][i],
-                    'height': data['height'][i]
-                })
-        
-        processing_time = (time.time() - start_time) * 1000
-        
-        return OCRResult(
-            text=text.strip(),
-            confidence=avg_confidence,
-            language=lang,
-            bounding_boxes=bounding_boxes,
-            processing_time_ms=processing_time,
-            preprocessing_applied=preprocessing_applied
-        )
-    
-    def _preprocess_image(self, img: np.ndarray) -> Tuple[np.ndarray, List[str]]:
-        """Aplica pré-processamento para melhorar OCR."""
-        preprocessing_applied = []
-        
-        # Converter para escala de cinza
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        preprocessing_applied.append("grayscale")
-        
-        # Aplicar denoising
-        denoised = cv2.fastNlMeansDenoising(gray, None, 30, 7, 21)
-        preprocessing_applied.append("denoising")
-        
-        # Binarização adaptativa
-        binary = cv2.adaptiveThreshold(
-            denoised,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            11,
-            2
-        )
-        preprocessing_applied.append("adaptive_threshold")
-        
-        # Correção de inclinação (deskew)
-        coords = np.column_stack(np.where(binary > 0))
-        angle = cv2.minAreaRect(coords)[-1]
-        
-        if angle < -45:
-            angle = -(90 + angle)
-        else:
-            angle = -angle
-        
-        if abs(angle) > 0.5:  # Apenas se inclinação significativa
-            (h, w) = binary.shape[:2]
-            center = (w // 2, h // 2)
-            M = cv2.getRotationMatrix2D(center, angle, 1.0)
-            binary = cv2.warpAffine(
-                binary,
-                M,
-                (w, h),
-                flags=cv2.INTER_CUBIC,
-                borderMode=cv2.BORDER_REPLICATE
-            )
-            preprocessing_applied.append(f"deskew_{angle:.2f}deg")
-        
-        # Converter de volta para BGR
-        result = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
-        
-        return result, preprocessing_applied
-    
-    def process_pdf(
-        self,
-        pdf_path: str,
-        pages: Optional[List[int]] = None,
-        dpi: int = 300
-    ) -> List[OCRResult]:
-        """Processa PDF escaneado página por página."""
-        # Converter PDF para imagens
-        images = pdf2image.convert_from_path(
-            pdf_path,
-            dpi=dpi,
-            first_page=pages[0] if pages else 1,
-            last_page=pages[-1] if pages else None
-        )
-        
-        results = []
-        for i, img in enumerate(images):
-            page_num = (pages[0] if pages else 1) + i
-            
-            # Salvar imagem temporária
-            temp_path = f"/tmp/pdf_page_{page_num}.png"
-            img.save(temp_path)
-            
-            try:
-                result = self.process_image(temp_path)
-                result.text = f"[Página {page_num}]\n{result.text}"
-                results.append(result)
-            finally:
-                Path(temp_path).unlink(missing_ok=True)
-        
-        return results
-    
-    def detect_tables(self, image_path: str) -> List[Dict]:
-        """Detecta tabelas em imagens."""
-        img = cv2.imread(image_path)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        # Detectar linhas horizontais e verticais
-        horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 1))
-        vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 40))
-        
-        # Detectar linhas horizontais
-        horizontal_lines = cv2.morphologyEx(
-            gray,
-            cv2.MORPH_OPEN,
-            horizontal_kernel,
-            iterations=2
-        )
-        
-        # Detectar linhas verticais
-        vertical_lines = cv2.morphologyEx(
-            gray,
-            cv2.MORPH_OPEN,
-            vertical_kernel,
-            iterations=2
-        )
-        
-        # Combinar linhas
-        table_mask = cv2.addWeighted(horizontal_lines, 0.5, vertical_lines, 0.5, 0)
-        _, table_mask = cv2.threshold(table_mask, 0, 255, cv2.THRESH_BINARY)
-        
-        # Encontrar contornos (tabelas)
-        contours, _ = cv2.findContours(
-            table_mask,
-            cv2.RETR_EXTERNAL,
-            cv2.CHAIN_APPROX_SIMPLE
-        )
-        
-        tables = []
-        for contour in contours:
-            x, y, w, h = cv2.boundingRect(contour)
-            
-            # Filtrar por tamanho mínimo
-            if w > 100 and h > 50:
-                tables.append({
-                    'x': x,
-                    'y': y,
-                    'width': w,
-                    'height': h,
-                    'confidence': 0.8  # Simplificado
-                })
-        
-        return tables
+# Tentar importar dependências opcionais
+try:
+    import pytesseract
+    from PIL import Image
+    TESSERACT_DISPONIVEL = True
+except ImportError:
+    TESSERACT_DISPONIVEL = False
+    logger.warning("pytesseract não instalado. OCR desabilitado.")
 
-# Cache de resultados OCR
-class OCRCache:
-    def __init__(self, cache_dir: str = "./cache/ocr"):
-        self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+try:
+    from pdf2image import convert_from_path
+    PDF2IMAGE_DISPONIVEL = True
+except ImportError:
+    PDF2IMAGE_DISPONIVEL = False
+    logger.warning("pdf2image não instalado. Conversão de PDF desabilitada.")
+
+
+def extrair_texto_imagem(caminho_imagem: str, idioma: str = "por") -> Optional[str]:
+    """
+    Extrai texto de imagem usando Tesseract OCR.
     
-    def _get_cache_key(self, file_path: str) -> str:
-        """Gera chave de cache baseada no hash do arquivo."""
-        import hashlib
-        with open(file_path, 'rb') as f:
-            file_hash = hashlib.md5(f.read()).hexdigest()
-        return file_hash
+    Args:
+        caminho_imagem: Caminho para arquivo de imagem (jpg, png, etc.)
+        idioma: Código do idioma (por=português, eng=inglês)
     
-    def get(self, file_path: str) -> Optional[OCRResult]:
-        """Obtém resultado do cache."""
-        cache_key = self._get_cache_key(file_path)
-        cache_file = self.cache_dir / f"{cache_key}.json"
-        
-        if cache_file.exists():
-            import json
-            data = json.loads(cache_file.read_text())
-            return OCRResult(**data)
-        
+    Returns:
+        Texto extraído ou None se falhar
+    """
+    if not TESSERACT_DISPONIVEL:
+        logger.error("Tesseract não disponível")
         return None
     
-    def set(self, file_path: str, result: OCRResult):
-        """Salva resultado no cache."""
-        cache_key = self._get_cache_key(file_path)
-        cache_file = self.cache_dir / f"{cache_key}.json"
+    try:
+        imagem = Image.open(caminho_imagem)
         
-        import json
-        from dataclasses import asdict
-        cache_file.write_text(json.dumps(asdict(result), indent=2))
+        # Pré-processamento básico
+        imagem = _preprocessar_imagem(imagem)
+        
+        texto = pytesseract.image_to_string(imagem, lang=idioma)
+        
+        logger.info(f"OCR extraído {len(texto)} caracteres de {caminho_imagem}")
+        return texto
+    
+    except Exception as e:
+        logger.error(f"Erro no OCR: {e}")
+        return None
 
-# Integração como ferramenta
-class VisionTool:
-    def __init__(self):
-        self.ocr_processor = OCRProcessor()
-        self.cache = OCRCache()
+
+def extrair_texto_pdf_escaneado(caminho_pdf: str, idioma: str = "por") -> Optional[str]:
+    """
+    Extrai texto de PDF escaneado convertendo páginas para imagens.
     
-    async def extract_text_from_image(self, image_path: str, use_cache: bool = True) -> dict:
-        """Extrai texto de imagem usando OCR."""
-        # Verificar cache
-        if use_cache:
-            cached_result = self.cache.get(image_path)
-            if cached_result:
-                return {
-                    "source": "cache",
-                    "text": cached_result.text,
-                    "confidence": cached_result.confidence
-                }
-        
-        # Processar com OCR
-        result = self.ocr_processor.process_image(image_path)
-        
-        # Salvar no cache
-        if result.confidence > 50:  # Apenas se confiança razoável
-            self.cache.set(image_path, result)
-        
-        return {
-            "source": "ocr",
-            "text": result.text,
-            "confidence": result.confidence,
-            "language": result.language,
-            "processing_time_ms": result.processing_time_ms,
-            "preprocessing": result.preprocessing_applied
-        }
+    Args:
+        caminho_pdf: Caminho para arquivo PDF
+        idioma: Código do idioma
     
-    async def extract_text_from_pdf(self, pdf_path: str, pages: Optional[List[int]] = None) -> dict:
-        """Extrai texto de PDF escaneado."""
-        results = self.ocr_processor.process_pdf(pdf_path, pages)
-        
-        full_text = "\n\n".join(r.text for r in results)
-        avg_confidence = sum(r.confidence for r in results) / len(results) if results else 0
-        
-        return {
-            "total_pages": len(results),
-            "text": full_text,
-            "average_confidence": avg_confidence,
-            "pages": [
-                {
-                    "page_num": i + 1,
-                    "text": r.text,
-                    "confidence": r.confidence
-                }
-                for i, r in enumerate(results)
-            ]
-        }
+    Returns:
+        Texto completo extraído ou None se falhar
+    """
+    if not PDF2IMAGE_DISPONIVEL:
+        logger.error("pdf2image não disponível")
+        return None
     
-    async def detect_tables_in_image(self, image_path: str) -> dict:
-        """Detecta tabelas em imagem."""
-        tables = self.ocr_processor.detect_tables(image_path)
+    if not TESSERACT_DISPONIVEL:
+        logger.error("Tesseract não disponível")
+        return None
+    
+    try:
+        # Converter PDF para lista de imagens (uma por página)
+        imagens = convert_from_path(caminho_pdf, dpi=300)
         
-        return {
-            "tables_found": len(tables),
-            "tables": tables
-        }
+        textos_paginas = []
+        for i, imagem in enumerate(imagens):
+            logger.info(f"Processando página {i+1}/{len(imagens)}")
+            
+            # Pré-processamento
+            imagem = _preprocessar_imagem(imagem)
+            
+            texto_pagina = pytesseract.image_to_string(imagem, lang=idioma)
+            textos_paginas.append(f"=== PÁGINA {i+1} ===\n{texto_pagina}")
+        
+        texto_completo = "\n\n".join(textos_paginas)
+        logger.info(f"OCR PDF extraído {len(texto_completo)} caracteres")
+        
+        return texto_completo
+    
+    except Exception as e:
+        logger.error(f"Erro no OCR de PDF: {e}")
+        return None
+
+
+def _preprocessar_imagem(imagem: "Image.Image") -> "Image.Image":
+    """
+    Aplica pré-processamento para melhorar qualidade do OCR.
+    
+    Técnicas:
+    - Converter para escala de cinza
+    - Aumentar contraste
+    - Binarização (threshold)
+    """
+    from PIL import ImageEnhance, ImageFilter
+    
+    # Converter para escala de cinza
+    if imagem.mode != "L":
+        imagem = imagem.convert("L")
+    
+    # Aumentar contraste
+    enhancer = ImageEnhance.Contrast(imagem)
+    imagem = enhancer.enhance(1.5)
+    
+    # Aplicar filtro de nitidez
+    imagem = imagem.filter(ImageFilter.SHARPEN)
+    
+    # Binarização simples (threshold)
+    pixels = imagem.load()
+    threshold = 128
+    for y in range(imagem.height):
+        for x in range(imagem.width):
+            pixels[x, y] = 255 if pixels[x, y] > threshold else 0
+    
+    return imagem
+
+
+def detectar_tabelas_em_imagem(caminho_imagem: str) -> list[dict]:
+    """
+    Detecta regiões de tabela em imagem (heurística simples).
+    
+    Returns:
+        Lista de bounding boxes de possíveis tabelas
+    """
+    # Implementação básica usando detecção de linhas horizontais/verticais
+    # Para produção, considerar uso de OpenCV ou biblioteca especializada
+    
+    if not TESSERACT_DISPONIVEL:
+        return []
+    
+    try:
+        # Usar pytesseract para detectar estrutura
+        imagem = Image.open(caminho_imagem)
+        
+        # Obter dados detalhados do OCR
+        dados = pytesseract.image_to_data(imagem, output_type=pytesseract.Output.DICT)
+        
+        # Heurística: agrupar blocos de texto alinhados horizontalmente
+        # (implementação simplificada)
+        
+        return []  # Placeholder para implementação futura
+    
+    except Exception as e:
+        logger.error(f"Erro na detecção de tabelas: {e}")
+        return []
+
+
+# Cache simples para evitar reprocessamento
+_cache_ocr = {}
+
+def extrair_texto_ocr_com_cache(caminho_arquivo: str, idioma: str = "por") -> Optional[str]:
+    """
+    Extrai texto com OCR usando cache para evitar reprocessamento.
+    
+    Args:
+        caminho_arquivo: Caminho para imagem ou PDF
+        idioma: Código do idioma
+    
+    Returns:
+        Texto extraído ou None
+    """
+    caminho = Path(caminho_arquivo).resolve()
+    chave_cache = str(caminho)
+    
+    # Verificar cache
+    if chave_cache in _cache_ocr:
+        logger.debug(f"Cache hit para {caminho_arquivo}")
+        return _cache_ocr[chave_cache]
+    
+    # Determinar tipo de arquivo
+    sufixo = caminho.suffix.lower()
+    
+    if sufixo in {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"}:
+        texto = extrair_texto_imagem(str(caminho), idioma)
+    elif sufixo == ".pdf":
+        texto = extrair_texto_pdf_escaneado(str(caminho), idioma)
+    else:
+        logger.warning(f"Formato não suportado para OCR: {sufixo}")
+        return None
+    
+    # Armazenar em cache
+    if texto:
+        _cache_ocr[chave_cache] = texto
+    
+    return texto
 ```
+
+#### 6.2.2. Adicionar ao requirements.txt opcional
+
+```txt
+# backend/requirements-ocr.txt (opcional)
+pytesseract>=0.3.10
+Pillow>=10.0.0
+pdf2image>=1.16.0
+```
+
+### 6.3. Benefícios Esperados
+
+- Suporte a PDFs escaneados e imagens com texto
+- Extração automática de conteúdo não-digitado
+- Cache para evitar reprocessamento custoso
 
 ---
 
 ## 7. Arquitetura e Refatoração de Código (MÉDIA PRIORIDADE)
 
-### 7.1 Refatorar MariaController em Classes Menores
+### 7.1. Problema Identificado
 
-**Problema:** MariaController muito grande e difícil de manter.
+`MariaController` em `backend/main.py` concentra muitas responsabilidades. Pode ser refatorado em classes menores seguindo Single Responsibility Principle.
 
-**Solução:** Separar responsabilidades em classes especializadas.
+### 7.2. Solução Proposta
+
+#### 7.2.1. Extrair gerenciador de sessão HTTP
 
 ```python
-# backend/src/core/controller/__init__.py
-from .session_manager import SessionManager
-from .tool_orchestrator import ToolOrchestrator
-from .response_handler import ResponseHandler
-from .maria_controller import MariaController
+# backend/core/http_session_manager.py
 
-__all__ = ['MariaController', 'SessionManager', 'ToolOrchestrator', 'ResponseHandler']
+"""Gerenciador de sessões HTTP reutilizáveis."""
 
-# backend/src/core/controller/session_manager.py
-from typing import Dict, List, Optional
-from datetime import datetime, timedelta
-import uuid
+import logging
+import requests
+from typing import Optional
 
-class SessionManager:
-    """Gerencia sessões de conversa e histórico."""
-    
-    def __init__(self, max_sessions: int = 100, session_timeout_minutes: int = 30):
-        self.max_sessions = max_sessions
-        self.session_timeout = timedelta(minutes=session_timeout_minutes)
-        self._sessions: Dict[str, SessionData] = {}
-    
-    def create_session(self, user_id: str, initial_messages: Optional[List[Dict]] = None) -> str:
-        """Cria nova sessão."""
-        session_id = str(uuid.uuid4())
-        
-        self._sessions[session_id] = SessionData(
-            session_id=session_id,
-            user_id=user_id,
-            messages=initial_messages or [],
-            created_at=datetime.now(),
-            last_activity=datetime.now()
-        )
-        
-        self._cleanup_old_sessions()
-        return session_id
-    
-    def get_session(self, session_id: str) -> Optional[SessionData]:
-        """Obtém sessão por ID."""
-        session = self._sessions.get(session_id)
-        
-        if session and self._is_session_expired(session):
-            self.delete_session(session_id)
-            return None
-        
-        if session:
-            session.last_activity = datetime.now()
-        
-        return session
-    
-    def update_session_messages(self, session_id: str, messages: List[Dict]):
-        """Atualiza mensagens da sessão."""
-        session = self.get_session(session_id)
-        if session:
-            session.messages = messages
-    
-    def delete_session(self, session_id: str):
-        """Remove sessão."""
-        self._sessions.pop(session_id, None)
-    
-    def _is_session_expired(self, session: SessionData) -> bool:
-        """Verifica se sessão expirou."""
-        return datetime.now() - session.last_activity > self.session_timeout
-    
-    def _cleanup_old_sessions(self):
-        """Remove sessões antigas ou expiradas."""
-        expired = [
-            sid for sid, session in self._sessions.items()
-            if self._is_session_expired(session)
-        ]
-        
-        for sid in expired:
-            self.delete_session(sid)
-        
-        # Se ainda exceder limite, remover mais antigas
-        if len(self._sessions) > self.max_sessions:
-            sorted_sessions = sorted(
-                self._sessions.items(),
-                key=lambda x: x[1].last_activity
-            )
-            
-            to_remove = len(self._sessions) - self.max_sessions
-            for sid, _ in sorted_sessions[:to_remove]:
-                self.delete_session(sid)
+logger = logging.getLogger(__name__)
 
-# backend/src/core/controller/tool_orchestrator.py
-from typing import Dict, List, Any, Optional
-from ..tools.registry import ToolRegistry
-from ..tools.validator import ToolSchemaValidator
-from ..tools.retry_handler import RetryHandler
 
-class ToolOrchestrator:
-    """Orquestra execução de tool calls."""
+class HttpSessionManager:
+    """Gerencia sessões HTTP com reutilização de conexões."""
     
     def __init__(self):
-        self.registry = ToolRegistry()
-        self.validator = ToolSchemaValidator()
-        self.retry_handler = RetryHandler()
+        self._sessions: dict[str, requests.Session] = {}
     
-    def register_tools(self, tools: List[Dict]):
-        """Registra ferramentas disponíveis."""
-        for tool in tools:
-            self.registry.register(tool)
-            self.validator.register_tool(tool['name'], tool.get('parameters', {}))
-    
-    async def execute_tool_calls(
-        self,
-        tool_calls: List[Dict],
-        parallel: bool = True
-    ) -> List[Dict]:
-        """Executa múltiplos tool calls."""
-        if parallel:
-            return await self._execute_parallel(tool_calls)
-        else:
-            return await self._execute_sequential(tool_calls)
-    
-    async def _execute_parallel(self, tool_calls: List[Dict]) -> List[Dict]:
-        """Executa tool calls em paralelo."""
-        import asyncio
+    def get_session(self, client_id: str) -> requests.Session:
+        """
+        Obtém ou cria sessão HTTP para cliente.
         
-        tasks = [
-            self._execute_single_tool_call(tc)
-            for tc in tool_calls
-        ]
+        Args:
+            client_id: Identificador único do cliente (ex: 'ollama', 'llama')
         
-        return await asyncio.gather(*tasks, return_exceptions=False)
-    
-    async def _execute_sequential(self, tool_calls: List[Dict]) -> List[Dict]:
-        """Executa tool calls sequencialmente."""
-        results = []
-        for tool_call in tool_calls:
-            result = await self._execute_single_tool_call(tool_call)
-            results.append(result)
-        return results
-    
-    async def _execute_single_tool_call(self, tool_call: Dict) -> Dict:
-        """Executa único tool call com validação e retry."""
-        tool_name = tool_call['name']
-        arguments = tool_call.get('arguments', {})
-        
-        # Validar schema
-        is_valid, error_msg = self.validator.validate_tool_call(tool_name, arguments)
-        
-        if not is_valid:
-            # Tentar auto-correção
-            corrected = self.validator.auto_correct_tool_call(
-                tool_name, arguments, error_msg
-            )
-            if corrected:
-                arguments = corrected
-            else:
-                return {
-                    "tool_name": tool_name,
-                    "success": False,
-                    "error": error_msg
-                }
-        
-        # Obter função da ferramenta
-        tool_func = self.registry.get_tool(tool_name)
-        if not tool_func:
-            return {
-                "tool_name": tool_name,
-                "success": False,
-                "error": f"Ferramenta '{tool_name}' não encontrada"
-            }
-        
-        # Executar com retry
-        try:
-            result = await self.retry_handler.execute_with_retry(
-                tool_func,
-                **arguments
-            )
-            return {
-                "tool_name": tool_name,
-                "success": True,
-                "result": result
-            }
-        except Exception as e:
-            return {
-                "tool_name": tool_name,
-                "success": False,
-                "error": str(e)
-            }
-
-# backend/src/core/controller/response_handler.py
-from typing import Dict, List, Optional
-from ..prompts.system_prompt import build_system_prompt
-from ..chat.history_manager import HistoryManager
-
-class ResponseHandler:
-    """Gerencia construção e formatação de respostas."""
-    
-    def __init__(self, history_manager: HistoryManager):
-        self.history_manager = history_manager
-    
-    def build_request_payload(
-        self,
-        session_messages: List[Dict],
-        tools: Optional[List[Dict]] = None,
-        custom_instructions: str = ""
-    ) -> Dict:
-        """Constrói payload para API do modelo."""
-        # Build system prompt
-        system_prompt = build_system_prompt(
-            tools=tools or [],
-            custom_instructions=custom_instructions
-        )
-        
-        # Adicionar/atualizar system message
-        messages = session_messages.copy()
-        if messages and messages[0].get('role') == 'system':
-            messages[0]['content'] = system_prompt
-        else:
-            messages.insert(0, {"role": "system", "content": system_prompt})
-        
-        # Truncar histórico se necessário
-        messages = self.history_manager.truncate_history(messages)
-        
-        return {
-            "messages": messages,
-            "tools": tools,
-            "tool_choice": "auto" if tools else None
-        }
-    
-    def parse_model_response(self, response: Dict) -> Dict:
-        """Parse resposta do modelo."""
-        message = response.get('choices', [{}])[0].get('message', {})
-        
-        content = message.get('content')
-        tool_calls = message.get('tool_calls', [])
-        
-        # Parse tool calls se vierem como string JSON
-        if isinstance(tool_calls, str):
-            import json
-            try:
-                tool_calls = json.loads(tool_calls)
-            except:
-                tool_calls = []
-        
-        return {
-            "content": content,
-            "tool_calls": tool_calls,
-            "finish_reason": response.get('choices', [{}])[0].get('finish_reason'),
-            "usage": response.get('usage', {})
-        }
-    
-    def format_final_response(
-        self,
-        content: Optional[str],
-        tool_results: List[Dict],
-        include_tool_outputs: bool = False
-    ) -> str:
-        """Formata resposta final combinando conteúdo e resultados de ferramentas."""
-        if not tool_results:
-            return content or ""
-        
-        if not include_tool_outputs:
-            # Apenas mencionar que ferramentas foram usadas
-            tool_names = [tr.get('tool_name', 'unknown') for tr in tool_results if tr.get('success')]
-            if tool_names:
-                content = f"{content}\n\n[Informações obtidas através de: {', '.join(tool_names)}]"
-            return content or ""
-        
-        # Incluir outputs detalhados
-        formatted = content or ""
-        formatted += "\n\n## Resultados das Ferramentas\n"
-        
-        for result in tool_results:
-            tool_name = result.get('tool_name', 'unknown')
-            if result.get('success'):
-                formatted += f"\n### {tool_name}\n"
-                formatted += f"```\n{result.get('result', '')}\n```\n"
-            else:
-                formatted += f"\n### {tool_name} (falha)\n"
-                formatted += f"Erro: {result.get('error', 'Desconhecido')}\n"
-        
-        return formatted
-
-# backend/src/core/controller/maria_controller.py
-from typing import Dict, List, Optional
-from .session_manager import SessionManager
-from .tool_orchestrator import ToolOrchestrator
-from .response_handler import ResponseHandler
-from ..chat.history_manager import HistoryManager
-from ...llm.api_client import LLMAPIClient
-
-class MariaController:
-    """Controller principal - agora apenas orquestra componentes."""
-    
-    def __init__(self, llm_api_key: str, model: str = "gpt-4"):
-        self.llm_client = LLMAPIClient(api_key=llm_api_key, model=model)
-        self.session_manager = SessionManager()
-        self.history_manager = HistoryManager()
-        self.tool_orchestrator = ToolOrchestrator()
-        self.response_handler = ResponseHandler(self.history_manager)
-    
-    def register_tools(self, tools: List[Dict]):
-        """Registra ferramentas disponíveis."""
-        self.tool_orchestrator.register_tools(tools)
-    
-    async def chat(
-        self,
-        user_id: str,
-        message: str,
-        session_id: Optional[str] = None,
-        tools_enabled: bool = True
-    ) -> Dict:
-        """Processa mensagem do usuário."""
-        # Obter/criar sessão
-        if not session_id:
-            session_id = self.session_manager.create_session(user_id)
-        
-        session = self.session_manager.get_session(session_id)
-        if not session:
-            session_id = self.session_manager.create_session(user_id)
-            session = self.session_manager.get_session(session_id)
-        
-        # Adicionar mensagem do usuário
-        session.messages.append({"role": "user", "content": message})
-        
-        # Obter ferramentas disponíveis
-        tools = self._get_available_tools() if tools_enabled else None
-        
-        # Construir request
-        payload = self.response_handler.build_request_payload(
-            session_messages=session.messages,
-            tools=tools
-        )
-        
-        # Chamar LLM
-        response = await self.llm_client.chat_completion(payload)
-        parsed = self.response_handler.parse_model_response(response)
-        
-        # Executar tool calls se presentes
-        tool_results = []
-        if parsed['tool_calls'] and tools_enabled:
-            tool_results = await self.tool_orchestrator.execute_tool_calls(
-                parsed['tool_calls']
-            )
-            
-            # Adicionar tool calls e resultados ao histórico
-            session.messages.append({
-                "role": "assistant",
-                "tool_calls": parsed['tool_calls']
+        Returns:
+            Session reutilizável
+        """
+        if client_id not in self._sessions:
+            session = requests.Session()
+            # Configurar headers padrão
+            session.headers.update({
+                "User-Agent": "MARIA-Assistant/1.0",
+                "Content-Type": "application/json",
             })
-            
-            for result in tool_results:
-                session.messages.append({
-                    "role": "tool",
-                    "tool_call_id": result.get('tool_name'),
-                    "content": str(result.get('result', result.get('error')))
-                })
-            
-            # Obter resposta final após tool calls
-            if tool_results:
-                follow_up_payload = self.response_handler.build_request_payload(
-                    session_messages=session.messages,
-                    tools=None  # Sem ferramentas na segunda chamada
-                )
-                follow_up_response = await self.llm_client.chat_completion(follow_up_payload)
-                parsed = self.response_handler.parse_model_response(follow_up_response)
+            self._sessions[client_id] = session
+            logger.debug(f"Sessão HTTP criada para {client_id}")
         
-        # Formatar resposta final
-        final_content = self.response_handler.format_final_response(
-            content=parsed['content'],
-            tool_results=tool_results
-        )
-        
-        # Adicionar resposta ao histórico
-        session.messages.append({
-            "role": "assistant",
-            "content": final_content
-        })
-        
-        # Salvar sessão
-        self.session_manager.update_session_messages(session_id, session.messages)
-        
-        return {
-            "session_id": session_id,
-            "response": final_content,
-            "tool_calls_executed": len(tool_results),
-            "usage": parsed.get('usage', {})
-        }
+        return self._sessions[client_id]
     
-    def _get_available_tools(self) -> List[Dict]:
-        """Obtém lista de ferramentas disponíveis."""
-        return self.tool_orchestrator.registry.list_tools()
+    def close_session(self, client_id: str):
+        """Fecha sessão específica."""
+        if client_id in self._sessions:
+            self._sessions[client_id].close()
+            del self._sessions[client_id]
+            logger.debug(f"Sessão HTTP fechada para {client_id}")
+    
+    def close_all(self):
+        """Fecha todas as sessões."""
+        for client_id in list(self._sessions.keys()):
+            self.close_session(client_id)
+        logger.info("Todas as sessões HTTP fechadas")
+
+
+# Singleton global
+_http_manager: Optional[HttpSessionManager] = None
+
+def get_http_manager() -> HttpSessionManager:
+    """Retorna instância singleton."""
+    global _http_manager
+    if _http_manager is None:
+        _http_manager = HttpSessionManager()
+    return _http_manager
 ```
 
-### 7.2 Type Hints Completos
-
-**Problema:** Falta de type hints dificulta manutenção.
-
-**Solução:** Adicionar type annotations em todo o código.
+#### 7.2.2. Aplicar type hints completos
 
 ```python
-# Exemplo de módulo com type hints completos
-# backend/src/types/common.py
-from typing import TypedDict, Literal, Optional, List, Dict, Any, Union
-from dataclasses import dataclass
-from datetime import datetime
+# Exemplo de type hints em backend/core/chat_session.py
 
-# Types básicos
-Role = Literal["system", "user", "assistant", "tool"]
-FinishReason = Literal["stop", "length", "tool_calls", "error"]
+from typing import TypedDict, Literal, Optional
+from dataclasses import dataclass, field
 
-class Message(TypedDict, total=False):
+Role = Literal["system", "user", "assistant"]
+
+class MensagemDict(TypedDict):
     role: Role
-    content: Optional[str]
-    tool_calls: Optional[List[Dict[str, Any]]]
-    tool_call_id: Optional[str]
-    name: Optional[str]
-
-class ToolCall(TypedDict):
-    id: str
-    type: Literal["function"]
-    function: Dict[str, Any]
-
-class ToolDefinition(TypedDict):
-    type: Literal["function"]
-    function: Dict[str, Any]
-
-class UsageInfo(TypedDict):
-    prompt_tokens: int
-    completion_tokens: int
-    total_tokens: int
-
-class ChatCompletionChoice(TypedDict):
-    index: int
-    message: Message
-    finish_reason: FinishReason
-
-class ChatCompletionResponse(TypedDict):
-    id: str
-    object: Literal["chat.completion"]
-    created: int
-    model: str
-    choices: List[ChatCompletionChoice]
-    usage: UsageInfo
+    content: str
 
 @dataclass
-class ConversationContext:
-    session_id: str
-    user_id: str
-    messages: List[Message]
-    created_at: datetime
-    last_activity: datetime
-    metadata: Dict[str, Any]
+class AcaoPendente:
+    name: str
+    arguments: dict
+    timestamp: float = field(default_factory=lambda: time.time())
 
-@dataclass
-class ToolExecutionResult:
-    tool_name: str
-    success: bool
-    result: Any
-    error: Optional[str]
-    execution_time_ms: float
 
-# backend/src/llm/api_client.py
-from typing import AsyncIterator, Optional, List
-import aiohttp
-
-class LLMAPIClient:
-    def __init__(
-        self,
-        api_key: str,
-        model: str,
-        base_url: str = "https://api.openai.com/v1",
-        timeout: int = 60
-    ):
-        self.api_key = api_key
-        self.model = model
-        self.base_url = base_url
-        self.timeout = aiohttp.ClientTimeout(total=timeout)
-        self._session: Optional[aiohttp.ClientSession] = None
+class ChatSession:
+    """Gerencia histórico de conversa com controle de estado."""
     
-    async def _get_session(self) -> aiohttp.ClientSession:
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json"
-                },
-                timeout=self.timeout
-            )
-        return self._session
+    def __init__(self, max_mensagens: int = 12):
+        self._historico: list[MensagemDict] = []
+        self._acao_pendente: Optional[AcaoPendente] = None
+        self._max_mensagens = max_mensagens
+        self.tentativas_confirmacao_ambigua: int = 0
     
-    async def close(self):
-        if self._session and not self._session.closed:
-            await self._session.close()
+    def adicionar_mensagem(self, role: Role, content: str) -> None:
+        """Adiciona mensagem ao histórico."""
+        self._historico.append({"role": role, "content": content})
+        self._trim_historico()
     
-    async def chat_completion(
-        self,
-        messages: List[Message],
-        tools: Optional[List[ToolDefinition]] = None,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stream: bool = False
-    ) -> ChatCompletionResponse:
-        session = await self._get_session()
-        
-        payload: Dict[str, Any] = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": temperature
-        }
-        
-        if tools:
-            payload["tools"] = tools
-            payload["tool_choice"] = "auto"
-        
-        if max_tokens:
-            payload["max_tokens"] = max_tokens
-        
-        if stream:
-            payload["stream"] = True
-        
-        async with session.post(
-            f"{self.base_url}/chat/completions",
-            json=payload
-        ) as response:
-            response.raise_for_status()
-            return await response.json()
+    def get_historico_com_system(self) -> list[MensagemDict]:
+        """Retorna histórico com system prompt injetado."""
+        # Implementação existente
+        pass
     
-    async def chat_completion_stream(
-        self,
-        messages: List[Message],
-        tools: Optional[List[ToolDefinition]] = None
-    ) -> AsyncIterator[str]:
-        """Stream de resposta do modelo."""
-        session = await self._get_session()
-        
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "stream": True
-        }
-        
-        if tools:
-            payload["tools"] = tools
-        
-        async with session.post(
-            f"{self.base_url}/chat/completions",
-            json=payload
-        ) as response:
-            response.raise_for_status()
-            
-            async for line in response.content:
-                line = line.decode('utf-8').strip()
-                if line.startswith('data: '):
-                    data = line[6:]
-                    if data == '[DONE]':
-                        break
-                    yield data
+    # ... (demais métodos com type hints)
 ```
+
+### 7.3. Benefícios Esperados
+
+- Código mais testável e manutenível
+- Melhor IDE support com type hints
+- Separação clara de responsabilidades
 
 ---
 
 ## 8. Configuração e Deploy (MÉDIA PRIORIDADE)
 
-### 8.1 Dockerfile para Backend
+### 8.1. Problema Identificado
+
+Não há Dockerfile ou scripts de deploy automatizado. Configuração é manual via variáveis de ambiente.
+
+### 8.2. Solução Proposta
+
+#### 8.2.1. Criar Dockerfile para backend
 
 ```dockerfile
 # backend/Dockerfile
-FROM python:3.11-slim
+
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Instalar dependências do sistema
+# Instalar dependências do sistema para OCR (opcional)
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-por \
-    libtesseract-dev \
-    libleptonica-dev \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements
 COPY requirements.txt .
+COPY requirements-ocr.txt .
 
 # Instalar dependências Python
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-ocr.txt || true
 
 # Copiar código
-COPY src/ ./src/
-COPY data/ ./data/
+COPY . .
 
-# Variáveis de ambiente
-ENV PYTHONPATH=/app/src
+# Variáveis de ambiente padrão
 ENV PYTHONUNBUFFERED=1
+ENV OLLAMA_BASE_URL=http://host.docker.internal:11434
+ENV PASTA_ARQUIVOS_GERADOS=/app/arquivos_gerados
+ENV PASTA_SESSOES=/app/sessoes_salvas
+
+# Criar diretórios
+RUN mkdir -p /app/arquivos_gerados /app/sessoes_salvas
+
+# Expor porta do Flask
+EXPOSE 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')"
+    CMD curl -f http://localhost:5000/health || exit 1
 
-# Expor porta
-EXPOSE 8000
-
-# Comando
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando padrão
+CMD ["python", "main.py", "--bridge-http", "--bridge-port", "5000"]
 ```
 
-### 8.2 Health Check Endpoint
+#### 8.2.2. Adicionar endpoint de health check
 
 ```python
-# backend/src/api/health.py
-from fastapi import APIRouter
-from datetime import datetime
-import psutil
-import asyncio
+# backend/main.py — Adicionar endpoint
 
-router = APIRouter()
-
-@router.get("/health")
-async def health_check():
-    """Health check básico."""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0"
-    }
-
-@router.get("/health/detailed")
-async def detailed_health_check():
-    """Health check detalhado com métricas."""
-    # Verificar uso de recursos
-    cpu_percent = psutil.cpu_percent(interval=1)
-    memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    
-    # Verificar conectividade com serviços externos
-    services_status = await check_external_services()
-    
-    # Determinar status geral
-    status = "healthy"
-    if cpu_percent > 90 or memory.percent > 90:
-        status = "degraded"
-    if not all(s['healthy'] for s in services_status.values()):
-        status = "unhealthy"
+@app.route("/health", methods=["GET"])
+def health_check():
+    """Endpoint para health check do container/service."""
+    try:
+        # Verificar conexão com Ollama
+        from core.config import OLLAMA_BASE_URL
+        response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
+        ollama_status = "healthy" if response.status_code == 200 else "unhealthy"
+    except Exception:
+        ollama_status = "unreachable"
     
     return {
-        "status": status,
-        "timestamp": datetime.now().isoformat(),
-        "resources": {
-            "cpu_percent": cpu_percent,
-            "memory_percent": memory.percent,
-            "memory_available_mb": memory.available / 1024 / 1024,
-            "disk_percent": disk.percent
-        },
-        "services": services_status
+        "status": "healthy" if ollama_status == "healthy" else "degraded",
+        "ollama": ollama_status,
+        "timestamp": datetime.now().isoformat()
     }
-
-async def check_external_services() -> Dict:
-    """Verifica status de serviços externos."""
-    import aiohttp
-    
-    services = {
-        "llm_api": {"healthy": False, "latency_ms": None},
-        "database": {"healthy": False, "latency_ms": None}
-    }
-    
-    timeout = aiohttp.ClientTimeout(total=5)
-    
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        # Verificar LLM API
-        try:
-            start = asyncio.get_event_loop().time()
-            async with session.get("https://api.openai.com/v1/models") as resp:
-                latency = (asyncio.get_event_loop().time() - start) * 1000
-                services["llm_api"] = {
-                    "healthy": resp.status == 200,
-                    "latency_ms": latency
-                }
-        except:
-            pass
-        
-        # Verificar banco de dados
-        try:
-            start = asyncio.get_event_loop().time()
-            # Implementar ping ao banco
-            latency = (asyncio.get_event_loop().time() - start) * 1000
-            services["database"] = {
-                "healthy": True,
-                "latency_ms": latency
-            }
-        except:
-            services["database"]["healthy"] = False
-    
-    return services
 ```
+
+#### 8.2.3. Scripts de setup automático
+
+```bash
+#!/bin/bash
+# scripts/setup.sh
+
+set -e
+
+echo "🔧 Setup do MARIA Backend..."
+
+# Verificar Python
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python 3 não encontrado"
+    exit 1
+fi
+
+PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
+if (( $(echo "$PYTHON_VERSION < 3.10" | bc -l) )); then
+    echo "❌ Python 3.10+ necessário"
+    exit 1
+fi
+
+# Criar virtualenv
+if [ ! -d "venv" ]; then
+    echo "📦 Criando virtualenv..."
+    python3 -m venv venv
+fi
+
+source venv/bin/activate
+
+# Instalar dependências
+echo "📥 Instalando dependências..."
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Verificar Ollama
+echo "🔍 Verificando Ollama..."
+if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
+    echo "⚠️  Ollama não está rodando em localhost:11434"
+    echo "   Execute: ollama serve"
+else
+    echo "✅ Ollama detectado"
+fi
+
+# Verificar modelo
+MODELO=${OLLAMA_MODEL:-qwen3.5:4b}
+if ! ollama list | grep -q "$MODELO"; then
+    echo "⚠️  Modelo $MODELO não instalado"
+    read -p "Deseja instalar agora? (s/n): " INSTALAR
+    if [ "$INSTALAR" = "s" ]; then
+        ollama pull $MODELO
+    fi
+else
+    echo "✅ Modelo $MODELO instalado"
+fi
+
+echo "✅ Setup concluído!"
+echo ""
+echo "Para iniciar:"
+echo "  source venv/bin/activate"
+echo "  python main.py"
+```
+
+### 8.3. Benefícios Esperados
+
+- Deploy consistente em diferentes ambientes
+- Facilidade de escalabilidade horizontal
+- Health checks para orquestradores (Kubernetes, ECS)
 
 ---
 
-## 9. Frontend Tauri v4 (BAIXA PRIORIDADE)
+## 9. Frontend Tauri v2 (BAIXA PRIORIDADE)
 
-### 9.1 Optimistic UI
+### 9.1. Problema Identificado
+
+Frontend já usa Tauri v2 + React, mas pode ser melhorado com:
+- Optimistic UI para respostas mais rápidas
+- Acessibilidade (a11y)
+- Offline-first architecture
+
+### 9.2. Solução Proposta
+
+#### 9.2.1. Implementar optimistic UI
 
 ```typescript
-// frontend/src/stores/chatStore.ts
-import { writable, derived } from 'svelte/store';
+// frontend-tauri/src/hooks/useChatOptimistic.ts
 
-interface Message {
+import { useState, useCallback } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+
+interface Mensagem {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-  status: 'pending' | 'sent' | 'error';
+  status?: 'pending' | 'success' | 'error';
 }
 
-class ChatStore {
-  private messages = writable<Message[]>([]);
-  private isLoading = writable(false);
-  
-  async sendMessage(content: string) {
-    const messageId = crypto.randomUUID();
-    const timestamp = Date.now();
-    
-    // Optimistic update - adicionar mensagem imediatamente
-    this.messages.update(msgs => [
-      ...msgs,
-      {
-        id: messageId,
-        role: 'user',
-        content,
-        timestamp,
-        status: 'pending'
-      }
-    ]);
-    
-    this.isLoading.set(true);
-    
+export function useChatOptimistic() {
+  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const enviarMensagem = useCallback(async (conteudo: string) => {
+    const mensagemUsuario: Mensagem = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: conteudo,
+      timestamp: Date.now(),
+      status: 'success',
+    };
+
+    // Optimistic: adicionar mensagem do usuário imediatamente
+    setMensagens(prev => [...prev, mensagemUsuario]);
+
+    // Adicionar placeholder da resposta
+    const placeholderResposta: Mensagem = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      status: 'pending',
+    };
+    setMensagens(prev => [...prev, placeholderResposta]);
+
+    setIsLoading(true);
+
     try {
-      // Enviar para backend
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({ message: content })
-      });
+      // Chamar backend
+      const resposta = await invoke('enviar_mensagem', { entrada: conteudo });
       
-      const data = await response.json();
-      
-      // Atualizar status para sent
-      this.messages.update(msgs =>
-        msgs.map(m =>
-          m.id === messageId ? { ...m, status: 'sent' } : m
-        )
-      );
-      
-      // Adicionar resposta do assistente
-      this.messages.update(msgs => [
-        ...msgs,
-        {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: data.response,
-          timestamp: Date.now(),
-          status: 'sent'
-        }
-      ]);
+      // Atualizar placeholder com resposta real
+      setMensagens(prev => prev.map(m => 
+        m.id === placeholderResposta.id 
+          ? { ...m, content: resposta as string, status: 'success' }
+          : m
+      ));
     } catch (error) {
-      // Rollback em caso de erro
-      this.messages.update(msgs =>
-        msgs.map(m =>
-          m.id === messageId ? { ...m, status: 'error' } : m
-        )
-      );
-      
-      throw error;
+      // Marcar como erro
+      setMensagens(prev => prev.map(m => 
+        m.id === placeholderResposta.id 
+          ? { ...m, content: 'Erro ao processar resposta', status: 'error' }
+          : m
+      ));
     } finally {
-      this.isLoading.set(false);
+      setIsLoading(false);
     }
-  }
-}
+  }, []);
 
-export const chatStore = new ChatStore();
+  return { mensagens, isLoading, enviarMensagem };
+}
 ```
 
-### 9.2 Acessibilidade (a11y)
+#### 9.2.2. Adicionar acessibilidade
 
-```typescript
-// frontend/src/lib/accessibility.ts
-export function setupAccessibility() {
-  // Gerenciar foco
-  export function manageFocus(elementId: string) {
-    const element = document.getElementById(elementId);
-    if (element) {
-      element.setAttribute('tabindex', '-1');
-      element.focus();
-    }
-  }
-  
-  // Anunciar mudanças para screen readers
-  export function announceToScreenReader(message: string, priority: 'polite' | 'assertive' = 'polite') {
-    const announcer = document.getElementById('sr-announcer') || createAnnouncer();
-    announcer.setAttribute('aria-live', priority);
-    announcer.textContent = message;
-  }
-  
-  function createAnnouncer() {
-    const div = document.createElement('div');
-    div.id = 'sr-announcer';
-    div.setAttribute('role', 'status');
-    div.setAttribute('aria-live', 'polite');
-    div.setAttribute('aria-atomic', 'true');
-    div.className = 'sr-only';
-    document.body.appendChild(div);
-    return div;
-  }
+```tsx
+// frontend-tauri/src/components/ChatMessage.tsx
+
+import { motion } from 'framer-motion';
+import { LucideIcon } from 'lucide-react';
+
+interface ChatMessageProps {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  status?: 'pending' | 'success' | 'error';
 }
 
-// Componente acessível
-// <button
-//   aria-label="Enviar mensagem"
-//   aria-disabled={isLoading}
-//   on:click={sendMessage}
-// >
-//   {isLoading ? 'Enviando...' : 'Enviar'}
-// </button>
+export function ChatMessage({ role, content, timestamp, status }: ChatMessageProps) {
+  const isUser = role === 'user';
+  const isError = status === 'error';
+  const isPending = status === 'pending';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+      role="article"
+      aria-label={`Mensagem ${isUser ? 'do usuário' : 'do assistente'}`}
+      aria-live={isPending ? 'polite' : undefined}
+      aria-busy={isPending}
+    >
+      <div
+        className={`
+          max-w-[80%] rounded-lg px-4 py-2
+          ${isUser 
+            ? 'bg-blue-600 text-white' 
+            : isError 
+              ? 'bg-red-100 text-red-800 border border-red-300'
+              : 'bg-gray-100 text-gray-900'
+          }
+        `}
+      >
+        {isPending ? (
+          <div 
+            className="flex items-center gap-2"
+            role="status"
+            aria-label="Carregando resposta"
+          >
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+            <span className="sr-only">Gerando resposta...</span>
+          </div>
+        ) : (
+          <p className="whitespace-pre-wrap">{content}</p>
+        )}
+        
+        <time
+          dateTime={new Date(timestamp).toISOString()}
+          className="text-xs opacity-70 mt-1 block"
+        >
+          {new Date(timestamp).toLocaleTimeString('pt-BR')}
+        </time>
+      </div>
+    </motion.div>
+  );
+}
 ```
+
+### 9.3. Benefícios Esperados
+
+- Percepção de velocidade melhorada (optimistic UI)
+- Aplicação acessível para usuários com deficiência
+- Melhor experiência offline
 
 ---
 
 ## 10. Documentação e Onboarding (BAIXA PRIORIDADE)
 
-### 10.1 README Interativo
+### 10.1. Problema Identificado
+
+Documentação existe mas pode ser melhorada com:
+- README interativo com exemplos
+- FAQ de erros comuns
+- Guia de contribuição
+
+### 10.2. Solução Proposta
+
+#### 10.2.1. Expandir README principal
 
 ```markdown
-# MARIA - Assistente Virtual para Documentos Oficiais
+# MARIA - Assistente de IA de Escritório
+
+[![Status](https://img.shields.io/badge/status-em%20desenvolvimento-blue)]()
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-green.svg)]()
+
+Assistente de IA local para automação de tarefas de escritório: criação de planilhas Excel, documentos Word, organização de arquivos e consultas inteligentes.
 
 ## 🚀 Quick Start
 
 ### Pré-requisitos
-- Python 3.11+
-- Node.js 18+
-- Tesseract OCR (opcional, para modo visão)
+
+- Python 3.12+
+- Ollama com modelo Qwen3.5:4b (ou llama-server com Qwen2.5-Omni-3B)
 
 ### Instalação Rápida
 
 ```bash
-# Clone o repositório
+# Clonar repositório
 git clone https://github.com/seu-org/maria.git
-cd maria
+cd maria/backend
 
-# Backend
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+# Script de setup automático
+chmod +x ../scripts/setup.sh
+../scripts/setup.sh
 
-# Frontend
-cd ../frontend
-npm install
-
-# Executar
-cd ../backend
-python -m uvicorn src.main:app --reload
-
-# Em outro terminal
-cd ../frontend
-npm run tauri dev
+# Iniciar
+python main.py
 ```
 
-## 📚 Documentação
+### Primeiros Comandos
 
-- [Guia de Instalação Detalhado](docs/installation.md)
-- [Configuração de Ferramentas](docs/tools.md)
-- [Manual de Redação Oficial](docs/manual-redacao.md)
-- [API Reference](docs/api.md)
+```
+Olá! Sou a MARIA. Como posso ajudar?
 
-## 🛠️ Troubleshooting
+> Crie uma planilha de controle financeiro com colunas Data, Descrição, Valor e Categoria
+→ Planilha criada: arquivos_gerados/controle_financeiro.xlsx
 
-### Erro Comum: "Tesseract não encontrado"
-```bash
-# Ubuntu/Debian
-sudo apt-get install tesseract-ocr tesseract-ocr-por
+> Faça uma carta de apresentação para vaga de desenvolvedor
+→ Documento criado: arquivos_gerados/carta_apresentacao.docx
 
-# macOS
-brew install tesseract
-
-# Windows
-# Baixar em: https://github.com/UB-Mannheim/tesseract/wiki
+> Liste os arquivos na pasta documentos
+→ Arquivos encontrados:
+   - relatorio_jan.txt (12 KB)
+   - ata_reuniao.docx (8 KB)
 ```
 
-### Erro: "ModuleNotFoundError: No module named 'pytesseract'"
-```bash
-pip install pytesseract pillow
-```
+## 📋 Comandos Disponíveis
+
+| Categoria | Exemplo | Descrição |
+|-----------|---------|-----------|
+| Planilhas | "Crie planilha de vendas" | Cria Excel com colunas |
+| Documentos | "Faça um relatório mensal" | Gera Word com conteúdo |
+| Arquivos | "O que tem na pasta docs?" | Lista arquivos |
+| Consultas | "Resuma o arquivo notas.txt" | Lê e resume documentos |
+
+## ❓ FAQ
+
+### Erro: "Modelo não encontrado"
+Execute: `ollama pull qwen3.5:4b`
+
+### Erro: "Timeout na requisição"
+Aumente timeout: `export OLLAMA_TIMEOUT=300`
+
+### Memória crescendo continuamente
+Execute com GC explícito ou reinicie a sessão.
 
 ## 🤝 Contribuindo
 
@@ -2800,31 +1648,81 @@ pip install pytesseract pillow
 4. Push para branch (`git push origin feature/AmazingFeature`)
 5. Abra Pull Request
 
-Veja [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes.
-
-## 📊 Roadmap
-
-- [x] Core functionality
-- [x] Tool calling
-- [ ] OCR integration
-- [ ] Manual de redação integration
-- [ ] Dashboard em tempo real
-- [ ] PWA support
-
 ## 📄 Licença
 
 MIT License - veja [LICENSE](LICENSE) para detalhes.
 ```
 
+#### 10.2.2. Criar CHANGELOG automatizado
+
+```markdown
+# Changelog
+
+Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
+
+O formato é baseado em [Keep a Changelog](https://keepachangelog.com/),
+e este projeto adere ao [Semantic Versioning](https://semver.org/).
+
+## [Não Lançado]
+
+### Adicionado
+- Monitoramento de memória no benchmark (#42)
+- Validação rigorosa de tool call arguments (#38)
+- Rate limiting no endpoint HTTP bridge (#35)
+
+### Mudado
+- Prompt de sistema com exemplos few-shot para melhor accuracy (#40)
+
+### Corrigido
+- Vazamento de sessões HTTP em execuções longas (#44)
+
+## [1.0.0] - 2025-12-01
+
+### Adicionado
+- Sistema de tool calling com 5 ferramentas
+- Benchmark automatizado de tarefas
+- Interface terminal interativa
+- Persistência de sessões
+- Suporte a streaming de respostas
+
+### Técnico
+- Backend Python síncrono com Flask
+- Frontend Tauri v2 + React
+- Modelos: Ollama Qwen3.5, llama-server Qwen2.5-Omni
+```
+
+### 10.3. Benefícios Esperados
+
+- Redução de tempo de onboarding de novos desenvolvedores
+- Menos issues repetitivas no GitHub
+- Documentação viva e atualizada
+
 ---
 
-## Conclusão
+## Resumo de Prioridades
 
-Este relatório apresentou 10 áreas principais de melhoria para o projeto MARIA, com exemplos de código práticos para implementação imediata. As prioridades recomendadas são:
+| Prioridade | Área | Esforço | Impacto |
+|------------|------|---------|---------|
+| 🔴 CRÍTICO | Gerenciamento de Memória | Baixo | Alto |
+| 🔴 ALTA | Confiabilidade Tool Calling | Médio | Alto |
+| 🔴 ALTA | Observabilidade | Médio | Alto |
+| 🔴 ALTA | Segurança | Médio | Crítico |
+| 🟡 MÉDIA | Manual de Redação | Médio | Médio |
+| 🟡 MÉDIA | OCR/Visão | Alto | Médio |
+| 🟡 MÉDIA | Arquitetura | Alto | Médio |
+| 🟡 MÉDIA | Deploy/Configuração | Baixo | Médio |
+| 🟢 BAIXA | Frontend Tauri | Médio | Baixo |
+| 🟢 BAIXA | Documentação | Baixo | Baixo |
 
-1. **Crítico**: Gerenciamento de memória e segurança
-2. **Alta**: Confiabilidade de tool calling e observabilidade
-3. **Média**: Integração com manual de redação e modo visão
-4. **Baixa**: Refatoração de código e melhorias de frontend
+---
 
-A implementação gradual destas melhorias resultará em um sistema mais robusto, performático e fácil de manter.
+## Próximos Passos Recomendados
+
+1. **Semana 1**: Implementar gerenciamento de memória (Seção 1) e segurança (Seção 4)
+2. **Semana 2**: Adicionar retry com backoff e validação de tool calls (Seção 2)
+3. **Semana 3**: Implementar observabilidade e métricas (Seção 3)
+4. **Semana 4**: Integrar manual de redação (Seção 5) e começar OCR (Seção 6)
+
+---
+
+**Documento elaborado com base na análise do código-fonte em Dezembro 2025.**
