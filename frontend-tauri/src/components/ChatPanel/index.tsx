@@ -123,20 +123,20 @@ export function ChatPanel() {
       </header>
 
       {/* Área de mensagens */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 pt-6">
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
         
         {loading && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
             className="flex justify-start mb-4"
           >
             <div
-              className="px-4 py-3 glass"
-              style={{ borderRadius: '16px 16px 16px 4px' }}
+              className="px-4 py-3 bg-white/10 backdrop-blur-md text-white rounded-2xl rounded-bl-none max-w-[80%]"
             >
               <div className="flex gap-2">
                 <motion.div

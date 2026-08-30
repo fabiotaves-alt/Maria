@@ -11,10 +11,8 @@ function ActionButton({ icon: Icon, label, onClick }: ActionButtonProps) {
   return (
     <motion.button
       onClick={onClick}
-      className="glass p-4 flex flex-col items-center gap-2 min-w-[100px] cursor-pointer"
-      style={{ borderRadius: '16px' }}
+      className="bg-white/10 border border-white/20 backdrop-blur-lg rounded-2xl p-4 flex flex-col items-center gap-2 min-w-[100px] cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:bg-pink-500/20"
       whileHover={{
-        y: -2,
         scale: 1.02,
         boxShadow: '0 8px 30px rgba(232, 90, 138, 0.2)',
       }}
@@ -25,11 +23,11 @@ function ActionButton({ icon: Icon, label, onClick }: ActionButtonProps) {
     >
       <div
         className="w-12 h-12 rounded-full flex items-center justify-center"
-        style={{ background: 'rgba(232, 90, 138, 0.1)' }}
+        style={{ background: 'rgba(255,255,255,0.1)' }}
       >
-        <Icon size={24} style={{ color: 'var(--maria-pink)' }} />
+        <Icon size={24} className="text-white" />
       </div>
-      <span className="text-xs font-medium text-center" style={{ color: 'var(--maria-text)' }}>
+      <span className="text-xs font-medium text-center text-white">
         {label}
       </span>
     </motion.button>
