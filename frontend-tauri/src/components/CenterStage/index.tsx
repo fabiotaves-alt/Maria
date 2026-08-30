@@ -15,15 +15,15 @@ export function CenterStage() {
       <AuraBackground />
 
       {/* Container principal com layout de 2 colunas */}
-      <div className="flex items-center gap-12 z-10 max-w-5xl">
+      <div className="flex flex-row items-center gap-12 z-10 max-w-6xl w-full">
         {/* Coluna esquerda: Logo + subtítulo + feature cards */}
-        <div className="flex flex-col gap-6">
+        <div className="w-1/2 flex flex-col justify-center gap-8">
           {/* Logo e subtítulo */}
           <div className="text-left">
             <img 
               src={mariaLogo} 
               alt="MARIA" 
-              className="h-16 w-auto mb-4"
+              className="h-20 w-auto mb-4"
               style={{ 
                 filter: theme === 'light' ? 'brightness(0)' : 'brightness(2)',
               }}
@@ -42,24 +42,19 @@ export function CenterStage() {
 
         {/* Coluna direita: Avatar com aura */}
         <motion.div
-          className="relative"
+          className="w-1/2 relative flex items-center justify-center"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Glow/aura atrás do avatar */}
+          {/* Aura pulsante atrás do avatar */}
           <div
-            className="absolute inset-0 rounded-[24px]"
-            style={{
-              background: `radial-gradient(circle, ${theme === 'light' ? 'rgba(232,90,138,0.2)' : 'rgba(255,107,157,0.2)'} 0%, transparent 70%)`,
-              filter: 'blur(60px)',
-            }}
+            className="absolute w-[500px] h-[500px] rounded-full bg-pink-500/20 blur-[120px] animate-pulse"
           />
           
-          {/* Container do avatar */}
+          {/* Container do avatar com borda sutil */}
           <motion.div
-            className="relative w-[320px] h-[420px] glass flex items-center justify-center overflow-hidden"
-            style={{ borderRadius: '24px' }}
+            className="relative w-[400px] h-[500px] flex items-center justify-center overflow-hidden rounded-2xl border border-pink-500/20"
             animate={{ scale: [1, 1.02, 1] }}
             transition={{ 
               duration: 6, 
@@ -71,18 +66,9 @@ export function CenterStage() {
             <img 
               src={mariaAvatar} 
               alt="MARIA Avatar" 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover rounded-2xl"
               style={{
                 filter: theme === 'light' ? 'brightness(1.1)' : 'brightness(0.95)',
-              }}
-            />
-            
-            {/* Borda sutil com glow */}
-            <div
-              className="absolute inset-0 rounded-[24px] pointer-events-none"
-              style={{
-                boxShadow: `0 0 100px ${theme === 'light' ? 'rgba(232,90,138,0.15)' : 'rgba(255,107,157,0.15)'}, inset 0 0 30px rgba(255,255,255,0.05)`,
-                border: `1px solid ${theme === 'light' ? 'rgba(232,90,138,0.1)' : 'rgba(255,255,255,0.1)'}`,
               }}
             />
           </motion.div>

@@ -21,7 +21,7 @@ export function ChatInput({ onSend, loading }: ChatInputProps) {
   return (
     <form onSubmit={handleSubmit} className="relative">
       <div
-        className="glass flex items-center gap-2 p-2"
+        className="bg-white/10 border border-white/20 backdrop-blur-lg flex items-center gap-2 p-2"
         style={{ borderRadius: '9999px' }}
       >
         {/* Botão de anexo */}
@@ -59,15 +59,14 @@ export function ChatInput({ onSend, loading }: ChatInputProps) {
         <motion.button
           type="submit"
           disabled={loading || !message.trim()}
-          className="w-9 h-9 rounded-full flex items-center justify-center"
+          className="w-12 h-12 rounded-full bg-pink-500 flex items-center justify-center hover:scale-105 transition-transform"
           style={{
-            backgroundColor: message.trim() ? 'var(--maria-pink)' : 'rgba(255,255,255,0.1)',
             opacity: message.trim() ? 1 : 0.5,
           }}
           whileHover={{ scale: message.trim() ? 1.05 : 1 }}
           whileTap={{ scale: message.trim() ? 0.95 : 1 }}
         >
-          <Send size={16} style={{ color: '#fff' }} />
+          <Send size={18} className="text-white" />
         </motion.button>
       </div>
     </form>
