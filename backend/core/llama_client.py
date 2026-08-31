@@ -377,12 +377,12 @@ class LlamaClient:
             incluir_temperatura=bool(tools),
             num_predict_override=num_predict_override,
         )
+        inicio = time.monotonic()
         response = self._make_request(payload, stream=True)
 
         conteudo_acumulado = ""
         tool_call_final: dict | None = None
         eval_count = 0
-        inicio = time.monotonic()
         t_primeiro_token: float | None = None
 
         # Acumuladores para tool call em streaming (delta)
@@ -527,12 +527,12 @@ class LlamaClient:
             incluir_temperatura=bool(tools),
             num_predict_override=LLAMA_NUM_PREDICT_CONTINUACAO,
         )
+        inicio = time.monotonic()
         response = self._make_request(payload, stream=True)
 
         conteudo_acumulado = ""
         tool_call_final: dict | None = None
         eval_count = 0
-        inicio = time.monotonic()
         t_primeiro_token: float | None = None
 
         tc_nome_acumulado = ""

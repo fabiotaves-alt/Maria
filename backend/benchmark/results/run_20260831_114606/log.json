@@ -1,0 +1,1921 @@
+[
+  {
+    "task_id": 1,
+    "task_name": "Conversa simples",
+    "category": "conversa",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": null,
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Olá! Posso ajudar você com tarefas administrativas, organização, redação de documentos e análise de dados. Se precisar de uma planilha para controle de gastos, estoque ou orçamento, posso criar uma com colunas estruturadas. Também posso redigir cartas, relatórios, ofícios ou e-mails institucionais. Se tiver um arquivo já existente que você quer revisar ou resumir, posso ajudar com isso também. Como você gostaria de começar? 😊",
+    "latency_ms": 383845.17029998824,
+    "errors": [],
+    "raw_tool_args": {},
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 1,
+    "task_name": "Conversa simples",
+    "category": "conversa",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": null,
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Olá! Posso ajudar você com tarefas administrativas, organização, redação de documentos e análise de dados. Se precisar de uma planilha para controle de gastos, estoque ou orçamento, posso criar uma com as colunas adequadas. Também posso redigir cartas, relatórios, ofícios ou e-mails institucionais. Se tiver algum arquivo já existente que queira ver ou editar, posso listar os arquivos disponíveis ou resumir um documento. Como você gostaria de começar?",
+    "latency_ms": 100040.44799998519,
+    "errors": [],
+    "raw_tool_args": {},
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 1,
+    "task_name": "Conversa simples",
+    "category": "conversa",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": null,
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Olá! Posso ajudar você com tarefas administrativas, organização, redação de documentos e análise de dados. Se precisar de uma planilha para controle de gastos, estoque ou orçamento, posso criar uma com colunas estruturadas. Também posso redigir cartas, relatórios, ofícios ou e-mails institucionais. Se tiver algum arquivo já existente que você queira ver ou editar, posso listar os arquivos disponíveis ou resumir um documento. Como você gostaria de começar?",
+    "latency_ms": 101109.3092999945,
+    "errors": [],
+    "raw_tool_args": {},
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 2,
+    "task_name": "Conversa sobre produtividade",
+    "category": "conversa",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": null,
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": false,
+    "runtime_ok": true,
+    "final_message": "Comece o dia definindo 3 tarefas prioritárias e conclua o dia revisando o que foi feito — isso mantém você focado e com progresso visível.",
+    "latency_ms": 45003.35949999862,
+    "errors": [],
+    "raw_tool_args": {},
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 2,
+    "task_name": "Conversa sobre produtividade",
+    "category": "conversa",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": null,
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": false,
+    "runtime_ok": true,
+    "final_message": "Comece o dia definindo 3 tarefas prioritárias e conclua cada uma com um check list simples — isso mantém você focado e evita distrações desnecessárias.",
+    "latency_ms": 36543.08639999363,
+    "errors": [],
+    "raw_tool_args": {},
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 2,
+    "task_name": "Conversa sobre produtividade",
+    "category": "conversa",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": null,
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": false,
+    "runtime_ok": true,
+    "final_message": "Comece o dia definindo 3 tarefas prioritárias e conclua cada uma com um check list simples — isso mantém o foco e evita distrações.",
+    "latency_ms": 34997.700900014024,
+    "errors": [],
+    "raw_tool_args": {},
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 3,
+    "task_name": "Planilha básica",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+    "latency_ms": 49949.05870000366,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "gastos",
+      "colunas": [
+        "Data",
+        "Valor"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 3,
+    "task_name": "Planilha básica",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos_1.xlsx",
+    "latency_ms": 35851.061099994695,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "gastos",
+      "colunas": [
+        "Data",
+        "Valor"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 3,
+    "task_name": "Planilha básica",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos_2.xlsx",
+    "latency_ms": 34704.64829998673,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "gastos",
+      "colunas": [
+        "Data",
+        "Valor"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 4,
+    "task_name": "Planilha financeira",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\despesas.xlsx",
+    "latency_ms": 85541.91589998663,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "despesas",
+      "colunas": [
+        "Data",
+        "Descrição",
+        "Categoria",
+        "Valor"
+      ],
+      "descricao": "Planilha para controle mensal de despesas do escritório, com categorias como alimentação, transporte, serviços e outros."
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 4,
+    "task_name": "Planilha financeira",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\despesas_1.xlsx",
+    "latency_ms": 68515.32219999353,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "despesas",
+      "colunas": [
+        "Data",
+        "Descrição",
+        "Categoria",
+        "Valor"
+      ],
+      "descricao": "Planilha para controle mensal de despesas do escritório, com categorias como alimentação, transporte, serviços e outros."
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 4,
+    "task_name": "Planilha financeira",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\despesas_2.xlsx",
+    "latency_ms": 64116.6477999941,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "despesas",
+      "colunas": [
+        "Data",
+        "Descrição",
+        "Categoria",
+        "Valor"
+      ],
+      "descricao": "Planilha para controle mensal de despesas do escritório, com categorias como alimentação, transporte, serviços e outros."
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 5,
+    "task_name": "Planilha estoque",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque.xlsx",
+    "latency_ms": 52693.68209998356,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "estoque",
+      "colunas": [
+        "Produto",
+        "SKU",
+        "Quantidade",
+        "Custo",
+        "Fornecedor"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 5,
+    "task_name": "Planilha estoque",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque_1.xlsx",
+    "latency_ms": 41839.006499998504,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "estoque",
+      "colunas": [
+        "Produto",
+        "SKU",
+        "Quantidade",
+        "Custo",
+        "Fornecedor"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 5,
+    "task_name": "Planilha estoque",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque_2.xlsx",
+    "latency_ms": 41442.21639999887,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "estoque",
+      "colunas": [
+        "Produto",
+        "SKU",
+        "Quantidade",
+        "Custo",
+        "Fornecedor"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 6,
+    "task_name": "Planilha contatos",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos.xlsx",
+    "latency_ms": 41876.42179999966,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "contatos",
+      "colunas": [
+        "Nome",
+        "Email",
+        "Telefone"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 6,
+    "task_name": "Planilha contatos",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos_1.xlsx",
+    "latency_ms": 34102.60189999826,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "contatos",
+      "colunas": [
+        "Nome",
+        "Email",
+        "Telefone"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 6,
+    "task_name": "Planilha contatos",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos_2.xlsx",
+    "latency_ms": 34266.99530001497,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "contatos",
+      "colunas": [
+        "Nome",
+        "Email",
+        "Telefone"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 7,
+    "task_name": "Documento curto",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\pauta_reuniao.docx",
+    "latency_ms": 134797.20090000774,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "pauta_reuniao",
+      "titulo": "Pauta",
+      "conteudo": "Reunião às 10 horas e revisão das tarefas.\\n\\nA pauta para a reunião será composta pela realização da reunião às 10 horas e pela revisão das tarefas pendentes. O objetivo é alinhar os próximos passos e definir responsabilidades para os próximos dias.",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 7,
+    "task_name": "Documento curto",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\pauta_reuniao_1.docx",
+    "latency_ms": 113742.64709997806,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "pauta_reuniao",
+      "titulo": "Pauta",
+      "conteudo": "Reunião às 10 horas e revisão das tarefas.\\n\\nA pauta para a reunião será composta pela realização da reunião às 10 horas e pela revisão das tarefas pendentes. O objetivo é alinhar os próximos passos e garantir a execução eficaz das atividades planejadas.",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 7,
+    "task_name": "Documento curto",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\pauta_reuniao_2.docx",
+    "latency_ms": 103851.2139999948,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "pauta_reuniao",
+      "titulo": "Pauta",
+      "conteudo": "Reunião às 10 horas e revisão das tarefas.\\n\\nA pauta da reunião será composta pela realização de uma reunião às 10 horas, com foco na revisão das tarefas pendentes e na definição de próximos passos para o andamento dos projetos em andamento."
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 8,
+    "task_name": "Documento carta",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\carta_apresentacao.docx",
+    "latency_ms": 261931.88889999874,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "carta_apresentacao",
+      "titulo": "Carta de Apresentação",
+      "conteudo": "Senhor(a),\n\nCom o objetivo de apresentar a equipe e os serviços oferecidos pela nossa empresa, estou honrada em encerrar esta carta de apresentação.\n\nA [Nome da Empresa] é uma organização especializada em soluções inovadoras para o setor de tecnologia e gestão de processos. Nossa missão é proporcionar soluções eficientes, sustentáveis e alinhadas aos objetivos dos nossos clientes.\n\nNossa equipe é composta por profissionais altamente qualificados, com experiência em áreas como desenvolvimento de software, automação de processos e consultoria estratégica. Oferecemos serviços personalizados, com foco em resultados reais e impacto positivo.\n\nEstamos disponíveis para atender a suas necessidades com transparência, compromisso e excelência. Agradecemos pela atenção e esperamos a oportunidade de colaborar com você.\n\nAtenciosamente,\n\n[Seu Nome]\n[Seu Cargo]\n[Nome da Empresa]\n[Contato: e-mail e telefone]",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 8,
+    "task_name": "Documento carta",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\carta_apresentacao_1.docx",
+    "latency_ms": 248587.05219998956,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "carta_apresentacao",
+      "titulo": "Carta de Apresentação",
+      "conteudo": "Senhor(a),\n\nCom o objetivo de apresentar minha candidatura ao cargo de [cargo específico], estou encerrando esta carta com o intuito de demonstrar minha experiência, competências e compromisso com os valores da instituição.\n\nPossuo [quantidade] anos de experiência profissional em [área específica], desenvolvendo projetos que contribuíram para o crescimento e eficiência operacional da empresa. Minha formação em [curso ou área] foi complementada por treinamentos em gestão e liderança, o que me permite atuar com responsabilidade e visão estratégica.\n\nEstou convencido(a) de que minhas qualidades e experiências me tornam um profissional alinhado aos objetivos da instituição. Agradeço pela oportunidade de apresentar minha candidatura e fico à disposição para qualquer esclarecimento adicional.\n\nAtenciosamente,\n\n[Seu Nome]\n[Seu Cargo ou Função]\n[Contato: e-mail e telefone]\n\nData: [Data atual]",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 8,
+    "task_name": "Documento carta",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\carta_apresentacao_2.docx",
+    "latency_ms": 242503.14620000427,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "carta_apresentacao",
+      "titulo": "Carta de Apresentação",
+      "conteudo": "Senhor(a),\n\nCom o objetivo de apresentar a equipe e os serviços oferecidos pela nossa organização, encamos agradecer pela oportunidade de estabelecer contato com você.\n\nA [Nome da Empresa] é uma empresa especializada em soluções integradas para o setor de tecnologia e inovação. Nossa missão é proporcionar produtos e serviços de alta qualidade, com foco em atendimento personalizado, eficiência e sustentabilidade.\n\nA equipe da [Nome da Empresa] conta com profissionais qualificados, com experiência em áreas como desenvolvimento de software, gestão de projetos e inovação de processos. Estamos comprometidos com a excelência e a entrega contínua de resultados.\n\nAgradecemos pela atenção e esperamos que esta apresentação seja um ponto de partida para futuras parcerias.\n\nAtenciosamente,\n\n[Assinatura]\n[Nome Completo]\n[Cargo]\n[Nome da Empresa]\n[Contato: e-mail e telefone]",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 9,
+    "task_name": "Documento relatório",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_reuniao.docx",
+    "latency_ms": 261965.89849999873,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "relatorio_reuniao.docx",
+      "titulo": "Relatório da Reunião de Hoje",
+      "conteudo": "Introdução\n\nNa reunião de hoje, foi realizada uma análise detalhada sobre a possibilidade de expansão da empresa. O tema central foi a discussão sobre o aporte de capital para o crescimento da operação, com foco em como esse aporte seria distribuído entre os sócios.\n\nDecisões\n\nDurante a reunião, foi apresentada a proposta de expansão da empresa com o aporte de 25 por cento do capital social atual, dividido igualmente entre os sócios. Após análise e discussão, a proposta foi aceita por todos os participantes.\n\nPróximos passos\n\nCom a aceitação da proposta, a próxima etapa será a formalização do acordo de aporte, com a elaboração de um documento jurídico que detalhe a divisão dos recursos e os compromissos de cada sócio. Em seguida, será iniciada a fase de planejamento estratégico para a expansão, com definição de metas, cronograma e responsabilidades específicas.",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 9,
+    "task_name": "Documento relatório",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_reuniao_1.docx",
+    "latency_ms": 254507.49339998583,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "relatorio_reuniao.docx",
+      "titulo": "Relatório da Reunião de Hoje",
+      "conteudo": "Introdução\n\nNa reunião de hoje, foi realizada uma análise detalhada sobre a possibilidade de expansão da empresa. O tema central foi a discussão sobre o aporte de capital necessário para o desenvolvimento de novos projetos e a ampliação dos serviços oferecidos ao mercado.\n\nDecisões\n\nDurante a reunião, foi apresentada a proposta de expansão da empresa com o aporte de 25 por cento do capital social atual, dividido igualmente entre os sócios. Após análise e discussão, a proposta foi aceita por todos os participantes, consolidando o compromisso com a expansão.\n\nPróximos Passos\n\nCom a aceitação da proposta, os próximos passos incluem a elaboração de um plano de ação detalhado, com cronograma de atividades, orçamento estimado e responsabilidades definidas para cada sócio. A equipe de gestão será responsável por desenvolver o plano e apresentar uma versão preliminar para aprovação na próxima reunião.",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 9,
+    "task_name": "Documento relatório",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_reuniao_2.docx",
+    "latency_ms": 259123.12360000215,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "relatorio_reuniao.docx",
+      "titulo": "Relatório da Reunião de Hoje",
+      "conteudo": "Introdução\n\nNa reunião de hoje, foi realizada uma análise detalhada sobre a possibilidade de expansão da empresa. O tema central foi a discussão sobre o aporte de capital necessário para o desenvolvimento de novos projetos e a ampliação dos serviços oferecidos ao mercado.\n\nDecisões\n\nDurante a reunião, foi apresentada a proposta de expansão da empresa com o aporte de 25 por cento do capital social atual, dividido igualmente entre os sócios. Após análise e discussão, a proposta foi aceita por todos os participantes, consolidando o compromisso com o crescimento da empresa.\n\nPróximos passos\n\nCom a aceitação da proposta, os próximos passos incluem a elaboração de um plano de ação detalhado, com metas específicas, cronograma de execução e orçamento estimado. A equipe de gestão será responsável por definir as áreas prioritárias de expansão e apresentar um relatório completo para a aprovação em reunião futura.",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 10,
+    "task_name": "Documento comunicado",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\comunicado_horario_atendimento.docx",
+    "latency_ms": 222791.41350000282,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "comunicado_horario_atendimento.docx",
+      "titulo": "Comunicado sobre a Alteração do Horário de Atendimento",
+      "conteudo": "O presente comunicado visa informar oficialmente a equipe sobre a mudança do horário de atendimento do departamento.\n\nA partir de hoje, o horário de atendimento será ajustado para as seguintes horas: das 8h00 às 18h00, com intervalo de almoço de 12h00 às 13h00. Esta alteração foi implementada para melhorar a eficiência operacional e atender com maior agilidade às demandas dos clientes.\n\nA equipe será responsável por garantir que todos os processos internos sejam adaptados para acompanhar o novo horário. Caso haja qualquer dúvida ou necessidade de ajuste, os colaboradores podem entrar em contato com o setor de gestão.\n\nAtenciosamente,\nEquipe de Gestão do Departamento",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 10,
+    "task_name": "Documento comunicado",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\comunicado_horario_atendimento_1.docx",
+    "latency_ms": 215129.64169998304,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "comunicado_horario_atendimento.docx",
+      "titulo": "Comunicado sobre a Alteração do Horário de Atendimento",
+      "conteudo": "O presente comunicado visa informar oficialmente a equipe sobre a mudança do horário de atendimento do departamento.\n\nA partir de hoje, o horário de atendimento será ajustado para as seguintes horas: das 8h00 às 18h00, de segunda-feira a sexta-feira. O horário de almoço será mantido entre as 12h00 e 13h00.\n\nEssa alteração foi implementada com o objetivo de melhorar a eficiência operacional e garantir maior disponibilidade para atender os clientes durante os horários de pico.\n\nA equipe será responsável por comunicar essa mudança aos clientes e fornecer suporte para quaisquer dúvidas que possam surgir.\n\nAtenciosamente,\nEquipe de Gestão do Departamento de Atendimento",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 10,
+    "task_name": "Documento comunicado",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\comunicado_horario_atendimento_2.docx",
+    "latency_ms": 220203.5756999976,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "comunicado_horario_atendimento.docx",
+      "titulo": "Comunicado sobre a Alteração do Horário de Atendimento",
+      "conteudo": "O presente comunicado visa informar oficialmente a equipe sobre a mudança do horário de atendimento do escritório.\n\nA partir de hoje, o horário de atendimento será ajustado para as seguintes horas:\n- Horário de funcionamento: das 8h00 às 18h00, de segunda-feira a sexta-feira.\n- O horário de almoço será mantido entre as 12h00 e 13h00.\n\nEssa alteração foi decidida com o objetivo de melhorar a eficiência operacional e garantir maior disponibilidade para os atendimentos dos clientes.\n\nA equipe será informada com antecedência sobre qualquer ajuste futuro, e todos os colaboradores serão responsáveis por comunicar os novos horários aos respectivos clientes e parceiros.\n\nAtenciosamente,\nEquipe de Gestão",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 11,
+    "task_name": "Editar gastos",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+    "latency_ms": 56077.427199983504,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "gastos",
+      "colunas": [
+        "Data",
+        "Valor",
+        "Categoria"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 11,
+    "task_name": "Editar gastos",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+    "latency_ms": 33430.87109999033,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "gastos",
+      "colunas": [
+        "Data",
+        "Valor",
+        "Categoria"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 11,
+    "task_name": "Editar gastos",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+    "latency_ms": 34012.50839998829,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "gastos",
+      "colunas": [
+        "Data",
+        "Valor",
+        "Categoria"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 12,
+    "task_name": "Editar estoque",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque.xlsx",
+    "latency_ms": 55134.601400000975,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "estoque",
+      "colunas": [
+        "Produto",
+        "Quantidade",
+        "Estoque mínimo"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 12,
+    "task_name": "Editar estoque",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque.xlsx",
+    "latency_ms": 35778.057700023055,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "estoque",
+      "colunas": [
+        "Produto",
+        "Quantidade",
+        "Estoque mínimo"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 12,
+    "task_name": "Editar estoque",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque.xlsx",
+    "latency_ms": 35819.44749999093,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "estoque",
+      "colunas": [
+        "Produto",
+        "Quantidade",
+        "Estoque mínimo"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 13,
+    "task_name": "Editar contatos",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos.xlsx",
+    "latency_ms": 52452.18150000437,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "contatos",
+      "colunas": [
+        "Nome",
+        "Email",
+        "Empresa"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 13,
+    "task_name": "Editar contatos",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos.xlsx",
+    "latency_ms": 33668.659999995725,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "contatos",
+      "colunas": [
+        "Nome",
+        "Email",
+        "Empresa"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 13,
+    "task_name": "Editar contatos",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos.xlsx",
+    "latency_ms": 33415.028400020674,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "contatos",
+      "colunas": [
+        "Nome",
+        "Email",
+        "Empresa"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 14,
+    "task_name": "Confirmação de criação",
+    "category": "confirmacao",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\agenda.xlsx",
+    "latency_ms": 47308.990799996536,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "agenda",
+      "colunas": [
+        "Dia",
+        "Compromisso"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 14,
+    "task_name": "Confirmação de criação",
+    "category": "confirmacao",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\agenda_1.xlsx",
+    "latency_ms": 33804.18639999698,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "agenda",
+      "colunas": [
+        "Dia",
+        "Compromisso"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 14,
+    "task_name": "Confirmação de criação",
+    "category": "confirmacao",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\agenda_2.xlsx",
+    "latency_ms": 33407.22689998802,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "agenda",
+      "colunas": [
+        "Dia",
+        "Compromisso"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 15,
+    "task_name": "Confirmação de documento",
+    "category": "confirmacao",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": false,
+    "keyword_match": false,
+    "runtime_ok": false,
+    "final_message": "",
+    "latency_ms": 509662.4479999882,
+    "errors": [
+      {
+        "kind": "TimeoutError",
+        "message": "Tarefa excedeu o timeout de 400 segundos."
+      }
+    ],
+    "raw_tool_args": {
+      "nome_arquivo": "ata_reuniao",
+      "titulo": "Ata",
+      "conteudo": "ATA DE REUNIÃO\n\nData: 05 de abril de 2025\nHorário: 14h00\nLocal: Sala de Reuniões do Departamento de Gestão\n\nAssunto: Avaliação dos resultados do primeiro trimestre de 2025.\n\nParticipantes:\n- João Silva - Gerente de Operações\n- Maria Oliveira - Coordenadora de Projetos\n- Carlos Mendes - Analista Financeiro\n- Ana Costa - Supervisor de Atendimento\n\nObjetivo da reunião:\nAvaliar os resultados do primeiro trimestre de 2025, identificar desafios operacionais e definir ações para o segundo trimestre.\n\nPonto 1: Relatório de desempenho operacional\nJoão Silva apresentou os indicadores de produção, com destaque para o aumento de 12% no volume de vendas em relação ao trimestre anterior. Foram identificados atrasos na entrega de 3 produtos, que serão analisados em reunião com a equipe logística.\n\nPonto 2: Análise financeira\nCarlos Mendes apresentou o balanço financeiro do trimestre, destacando um aumento de 8% no custo operacional, principalmente devido ao aumento de energia elétrica. A equipe de finanças irá revisar os contratos de fornecimento para otimizar os custos.\n\nPonto 3: Atendimento ao cliente\nAna Costa relatou um aumento de 15% nas reclamações recebidas, com foco em serviços de suporte técnico. A equipe de atendimento será reestruturada para melhorar a resposta e a satisfação do cliente.\n\nPonto 4: Ações para o segundo trimestre\nForam definidas as seguintes ações:\n- Revisão do cronograma de entregas com a equipe logística\n- Reestruturação da equipe de atendimento\n- Elaboração de um plano de redução de custos operacionais\n\nConclusão:\nA reunião encerrou com o acordo de que as ações definidas serão implementadas nos próximos 30 dias, com relatórios mensais de progresso.\n\nAssinaturas:\nJoão Silva\nMaria Oliveira\nCarlos Mendes\nAna Costa\n\nFim do documento.",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 15,
+    "task_name": "Confirmação de documento",
+    "category": "confirmacao",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": false,
+    "keyword_match": false,
+    "runtime_ok": false,
+    "final_message": "",
+    "latency_ms": 402864.7305999766,
+    "errors": [
+      {
+        "kind": "TimeoutError",
+        "message": "Tarefa excedeu o timeout de 400 segundos."
+      }
+    ],
+    "raw_tool_args": {
+      "nome_arquivo": "ata_reuniao.docx",
+      "titulo": "Ata",
+      "conteudo": "Ata de Reunião\n\nData: 05 de abril de 2025\nHorário: 14h00\nLocal: Sala de Reuniões do Departamento de Gestão\n\nAssunto: Avaliação do andamento das atividades do primeiro trimestre de 2025.\n\nParticipantes:\n- João Silva - Gerente de Projetos\n- Maria Oliveira - Coordenadora de Operações\n- Carlos Mendes - Analista Financeiro\n- Ana Paula Santos - Supervisor de Atendimento\n\nPonto 1: Apresentação do andamento das atividades do primeiro trimestre.\nO gerente de projetos apresentou os principais indicadores de progresso, destacando que 75% dos projetos estão dentro do prazo previsto, com 15% atrasados por questões de recursos. A equipe de operações informou que os processos internos estão funcionando com eficiência, com redução de 10% no tempo médio de resposta.\n\nPonto 2: Discussão sobre os próximos passos.\nFoi decidido que a equipe de atendimento deve elaborar um plano de ação para melhorar a satisfação do cliente, com entrega em até 5 dias úteis. Além disso, será realizada uma reunião semanal para acompanhamento das metas.\n\nPonto 3: Ações definidas.\n- Elaboração do plano de ação pelo supervisor de atendimento.\n- Revisão dos orçamentos para os próximos projetos pelo analista financeiro.\n- Apresentação do relatório final do primeiro trimestre no dia 10 de abril.\n\nFoi registrado o acerto de todos os participantes e a assinatura da ata.\n\nAssinaturas:\nJoão Silva\nMaria Oliveira\nCarlos Mendes\nAna Paula Santos",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 15,
+    "task_name": "Confirmação de documento",
+    "category": "confirmacao",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": false,
+    "keyword_match": false,
+    "runtime_ok": false,
+    "final_message": "",
+    "latency_ms": 403570.56049999665,
+    "errors": [
+      {
+        "kind": "TimeoutError",
+        "message": "Tarefa excedeu o timeout de 400 segundos."
+      }
+    ],
+    "raw_tool_args": {
+      "nome_arquivo": "ata_reuniao.docx",
+      "titulo": "Ata",
+      "conteudo": "Ata de Reunião\n\nData: 05 de abril de 2025\nHorário: 14h00\nLocal: Sala de Reuniões do Departamento de Gestão\n\nAssunto: Avaliação do andamento das atividades do primeiro trimestre de 2025.\n\nParticipantes:\n- João Silva - Gerente de Projetos\n- Maria Oliveira - Coordenadora de Operações\n- Carlos Mendes - Analista Financeiro\n- Ana Santos - Supervisor de Atendimento\n\nPonto 1: Apresentação do andamento das atividades do primeiro trimestre.\nO gerente de projetos apresentou os principais indicadores de progresso, destacando que 75% dos projetos estão dentro do prazo previsto, com 15% atrasados devido a atrasos na entrega de materiais.\n\nPonto 2: Discussão sobre os desafios enfrentados.\nOs participantes identificaram dificuldades no acesso a recursos e na comunicação entre equipes. Foi decidido que uma reunião semanal será realizada para melhorar a troca de informações.\n\nPonto 3: Definição de ações para o segundo trimestre.\nForam definidas as seguintes ações:\n- Acompanhamento diário de entregas de materiais.\n- Revisão dos prazos de cada projeto com base nos dados reais.\n- Implementação de um sistema de alerta para atrasos.\n\nPonto 4: Próximos passos.\nA próxima reunião será realizada no dia 12 de abril de 2025, às 14h00, com o mesmo formato e participantes.\n\nFim da reunião.\n\nAssinaturas:\nJoão Silva\nMaria Oliveira\nCarlos Mendes\nAna Santos",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 16,
+    "task_name": "Ambiguidade planilha",
+    "category": "ambiguidade",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada por ambiguidade.",
+    "latency_ms": 42102.023700019345,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "projetos",
+      "colunas": [
+        "Projeto",
+        "Status"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 16,
+    "task_name": "Ambiguidade planilha",
+    "category": "ambiguidade",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada por ambiguidade.",
+    "latency_ms": 33237.504799995804,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "projetos",
+      "colunas": [
+        "Projeto",
+        "Status"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 16,
+    "task_name": "Ambiguidade planilha",
+    "category": "ambiguidade",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada por ambiguidade.",
+    "latency_ms": 33280.66439999384,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "projetos",
+      "colunas": [
+        "Projeto",
+        "Status"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 17,
+    "task_name": "Ambiguidade documento",
+    "category": "ambiguidade",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada por ambiguidade.",
+    "latency_ms": 309309.9434999749,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "reuniao_projeto.docx",
+      "titulo": "Relatório da Reunião do Projeto",
+      "conteudo": "A reunião do projeto foi realizada no dia 5 de abril de 2025, às 14h30, no salão de reuniões do escritório.\n\nO objetivo principal da reunião foi alinhar as etapas do desenvolvimento do projeto, definir responsabilidades e estabelecer prazos para as próximas fases. Participaram do evento os coordenadores do projeto, os líderes de equipe e representantes dos setores de finanças e logística.\n\nDurante a reunião, foram discutidas as principais atividades a serem executadas, incluindo a elaboração do cronograma, a definição dos indicadores de sucesso e a identificação de possíveis riscos. Os participantes concordaram em manter uma comunicação diária por e-mail para garantir transparência e agilidade nas decisões.\n\nA reunião encerrou com a aprovação do cronograma preliminar e a definição de uma reunião de acompanhamento para o dia 15 de abril de 2025, às 10h, com foco na avaliação dos primeiros resultados.\n\nO documento será encaminhado aos envolvidos para acompanhamento e aprimoramento das ações futuras.",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 17,
+    "task_name": "Ambiguidade documento",
+    "category": "ambiguidade",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada por ambiguidade.",
+    "latency_ms": 277076.4452999865,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "reuniao_projeto.docx",
+      "titulo": "Relatório da Reunião do Projeto",
+      "conteudo": "A reunião do projeto foi realizada no dia 10 de abril de 2025, às 14h30, no auditório do escritório central.\n\nO objetivo principal da reunião foi alinhar as equipes envolvidas no desenvolvimento do projeto, definir as próximas etapas e discutir os principais desafios enfrentados até o momento.\n\nDurante a reunião, foram apresentadas as atualizações dos principais módulos do projeto, com foco nos avanços técnicos e nos prazos de entrega. As equipes de desenvolvimento, design e operações compartilharam seus relatórios e identificaram pontos críticos que exigem atenção imediata.\n\nForam definidas as próximas ações: aprimoramento do cronograma, revisão dos recursos humanos e ações de comunicação interna para manter a transparência entre as equipes. A reunião encerrou com um compromisso de reunião semanal para acompanhar o andamento do projeto.\n\nO relatório será encaminhado aos gestores envolvidos para análise e aprovação.",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 17,
+    "task_name": "Ambiguidade documento",
+    "category": "ambiguidade",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada por ambiguidade.",
+    "latency_ms": 285386.70459997957,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "reuniao_projeto.docx",
+      "titulo": "Relatório da Reunião do Projeto",
+      "conteudo": "A reunião do projeto foi realizada no dia 10 de abril de 2025, às 14h30, no auditório do escritório central.\n\nO objetivo principal da reunião foi alinhar as equipes envolvidas no desenvolvimento do projeto, discutir os avanços alcançados até o momento e definir as próximas etapas. Participaram do evento os coordenadores de área, os líderes de equipe e representantes dos setores de tecnologia e comunicação.\n\nDurante a reunião, foram apresentados os principais indicadores de progresso, incluindo o andamento das fases de planejamento, desenvolvimento e testes. Os participantes concordaram com a atualização dos prazos e reforçaram a importância da comunicação contínua entre as equipes.\n\nAs decisões tomadas durante a reunião incluem a definição de uma nova agenda de entregas, a atribuição de responsabilidades específicas para cada fase e a criação de um relatório semanal para acompanhar o andamento do projeto. A próxima reunião está programada para o dia 25 de abril de 2025, às 15h00.",
+      "tipo_documento_oficial": "nenhum"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 18,
+    "task_name": "Ambiguidade edição",
+    "category": "ambiguidade",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada por ambiguidade.",
+    "latency_ms": 53769.52150001307,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "projetos",
+      "colunas": [
+        "Projeto",
+        "Status"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 18,
+    "task_name": "Ambiguidade edição",
+    "category": "ambiguidade",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada por ambiguidade.",
+    "latency_ms": 32954.048800020246,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "projetos",
+      "colunas": [
+        "Projeto",
+        "Status"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 18,
+    "task_name": "Ambiguidade edição",
+    "category": "ambiguidade",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada por ambiguidade.",
+    "latency_ms": 32582.671599986497,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "projetos",
+      "colunas": [
+        "Projeto",
+        "Status"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 19,
+    "task_name": "Negação planilha",
+    "category": "cancelamento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada.",
+    "latency_ms": 49160.8503999887,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "tarefas",
+      "colunas": [
+        "Tarefa",
+        "Prioridade",
+        "Data de Vencimento"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 19,
+    "task_name": "Negação planilha",
+    "category": "cancelamento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada.",
+    "latency_ms": 38193.96149998647,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "tarefas",
+      "colunas": [
+        "Tarefa",
+        "Prioridade",
+        "Data Limite"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 19,
+    "task_name": "Negação planilha",
+    "category": "cancelamento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Ação cancelada.",
+    "latency_ms": 38238.449900003616,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "tarefas",
+      "colunas": [
+        "Tarefa",
+        "Prioridade",
+        "Data Limite"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 20,
+    "task_name": "Negação documento",
+    "category": "cancelamento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "consultar_manual_redacao",
+    "tool_correct": false,
+    "confirmation_completed": false,
+    "keyword_match": false,
+    "runtime_ok": false,
+    "final_message": "",
+    "latency_ms": 41178.85369999567,
+    "errors": [
+      {
+        "kind": "OllamaClientError",
+        "message": "Erro na API do llama-server: status 500\nDetalhes: {\"error\":{\"code\":500,\"message\":\"Failed to parse messages: Missing tool call type: {\\\"function\\\":{\\\"name\\\":\\\"consultar_manual_redacao\\\",\\\"arguments\\\":{\\\"tipo_documento\\\":\\\"oficio\\\",\\\"termo_busca\\\":\\\"aviso formal\\\"}}}\",\"type\":\"server_error\"}}"
+      }
+    ],
+    "raw_tool_args": {
+      "tipo_documento": "oficio",
+      "termo_busca": "aviso formal"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 20,
+    "task_name": "Negação documento",
+    "category": "cancelamento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "consultar_manual_redacao",
+    "tool_correct": false,
+    "confirmation_completed": false,
+    "keyword_match": false,
+    "runtime_ok": false,
+    "final_message": "",
+    "latency_ms": 33706.04399999138,
+    "errors": [
+      {
+        "kind": "OllamaClientError",
+        "message": "Erro na API do llama-server: status 500\nDetalhes: {\"error\":{\"code\":500,\"message\":\"Failed to parse messages: Missing tool call type: {\\\"function\\\":{\\\"name\\\":\\\"consultar_manual_redacao\\\",\\\"arguments\\\":{\\\"tipo_documento\\\":\\\"oficio\\\",\\\"termo_busca\\\":\\\"aviso formal\\\"}}}\",\"type\":\"server_error\"}}"
+      }
+    ],
+    "raw_tool_args": {
+      "tipo_documento": "oficio",
+      "termo_busca": "aviso formal"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 20,
+    "task_name": "Negação documento",
+    "category": "cancelamento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "consultar_manual_redacao",
+    "tool_correct": false,
+    "confirmation_completed": false,
+    "keyword_match": false,
+    "runtime_ok": false,
+    "final_message": "",
+    "latency_ms": 33829.787299997406,
+    "errors": [
+      {
+        "kind": "OllamaClientError",
+        "message": "Erro na API do llama-server: status 500\nDetalhes: {\"error\":{\"code\":500,\"message\":\"Failed to parse messages: Missing tool call type: {\\\"function\\\":{\\\"name\\\":\\\"consultar_manual_redacao\\\",\\\"arguments\\\":{\\\"tipo_documento\\\":\\\"oficio\\\",\\\"termo_busca\\\":\\\"aviso formal\\\"}}}\",\"type\":\"server_error\"}}"
+      }
+    ],
+    "raw_tool_args": {
+      "tipo_documento": "oficio",
+      "termo_busca": "aviso formal"
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 21,
+    "task_name": "Negação edição",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": null,
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "O arquivo \"inexistente_futura\" não foi encontrado. Não posso editar um arquivo que não existe.  \n\nSe você quiser, posso listar os arquivos existentes na pasta para verificar o que está disponível. Deseja que eu faça isso?",
+    "latency_ms": 59389.23190001515,
+    "errors": [],
+    "raw_tool_args": {},
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 21,
+    "task_name": "Negação edição",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": null,
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "O arquivo \"inexistente_futura\" não foi encontrado. Não posso editar um arquivo que não existe.  \n\nSe você quiser, posso listar os arquivos existentes na pasta para verificar o que está disponível. Deseja que eu faça isso?",
+    "latency_ms": 48326.06389999273,
+    "errors": [],
+    "raw_tool_args": {},
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 21,
+    "task_name": "Negação edição",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": null,
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "O arquivo \"inexistente_futura\" não foi encontrado. Não posso editar um arquivo que não existe.  \n\nSe você quiser, posso listar os arquivos existentes na pasta para verificar o que está disponível. Deseja que eu faça isso?",
+    "latency_ms": 48820.71550001274,
+    "errors": [],
+    "raw_tool_args": {},
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 22,
+    "task_name": "Edição inexistente A",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": false,
+    "confirmation_completed": true,
+    "keyword_match": false,
+    "runtime_ok": true,
+    "final_message": "",
+    "latency_ms": 39828.62239997485,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "arquivo_ausente_a",
+      "colunas": [
+        "A"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 22,
+    "task_name": "Edição inexistente A",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": false,
+    "confirmation_completed": true,
+    "keyword_match": false,
+    "runtime_ok": true,
+    "final_message": "",
+    "latency_ms": 31560.399399982998,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "arquivo_ausente_a",
+      "colunas": [
+        "A"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 22,
+    "task_name": "Edição inexistente A",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": false,
+    "confirmation_completed": true,
+    "keyword_match": false,
+    "runtime_ok": true,
+    "final_message": "",
+    "latency_ms": 31765.42129999143,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "arquivo_ausente_a",
+      "colunas": [
+        "A"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 23,
+    "task_name": "Edição inexistente B",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": false,
+    "confirmation_completed": true,
+    "keyword_match": false,
+    "runtime_ok": true,
+    "final_message": "",
+    "latency_ms": 46191.33659999352,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "arquivo_ausente_b",
+      "colunas": [
+        "X",
+        "Y"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 23,
+    "task_name": "Edição inexistente B",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": false,
+    "confirmation_completed": true,
+    "keyword_match": false,
+    "runtime_ok": true,
+    "final_message": "",
+    "latency_ms": 34064.074099995196,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "arquivo_ausente_b",
+      "colunas": [
+        "X",
+        "Y"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 23,
+    "task_name": "Edição inexistente B",
+    "category": "editar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "editar_planilha",
+    "tool_correct": false,
+    "confirmation_completed": true,
+    "keyword_match": false,
+    "runtime_ok": true,
+    "final_message": "",
+    "latency_ms": 34111.180399981095,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "arquivo_ausente_b",
+      "colunas": [
+        "X",
+        "Y"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 24,
+    "task_name": "Nome com caminho relativo",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\teste_seguro.xlsx",
+    "latency_ms": 41613.27899998287,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "teste_seguro",
+      "colunas": [
+        "Nome"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 24,
+    "task_name": "Nome com caminho relativo",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\teste_seguro_1.xlsx",
+    "latency_ms": 30186.174800008303,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "teste_seguro",
+      "colunas": [
+        "Nome"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 24,
+    "task_name": "Nome com caminho relativo",
+    "category": "criar_planilha",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_planilha",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\teste_seguro_2.xlsx",
+    "latency_ms": 29944.03159999638,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "teste_seguro",
+      "colunas": [
+        "Nome"
+      ]
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 25,
+    "task_name": "Nome com caracteres inseguros",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_seguro.docx",
+    "latency_ms": 104207.77660000022,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "relatorio_seguro",
+      "titulo": "Relatório de Segurança - Teste",
+      "conteudo": "Este é um relatório de segurança de teste para fins de demonstração.\n\nO documento foi criado para validar o funcionamento do sistema de geração de documentos em ambiente local.\n\nNenhum conteúdo real foi incluído, e o relatório não tem fins práticos ou operacionais."
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 25,
+    "task_name": "Nome com caracteres inseguros",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_seguro_1.docx",
+    "latency_ms": 95178.9346000005,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "relatorio_seguro",
+      "titulo": "Relatório de Segurança - Teste",
+      "conteudo": "Este é um relatório de segurança de teste para fins de demonstração.\n\nO documento foi criado com o objetivo de validar a funcionalidade do sistema de gerenciamento de arquivos.\n\nNenhum dado sensível foi incluído, e o conteúdo é apenas para fins educacionais e de teste."
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  },
+  {
+    "task_id": 25,
+    "task_name": "Nome com caracteres inseguros",
+    "category": "criar_documento",
+    "model": "qwen2.5-omni-3b",
+    "tool_detected": "criar_documento",
+    "tool_correct": true,
+    "confirmation_completed": true,
+    "keyword_match": true,
+    "runtime_ok": true,
+    "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_seguro_2.docx",
+    "latency_ms": 102094.71710000071,
+    "errors": [],
+    "raw_tool_args": {
+      "nome_arquivo": "relatorio_seguro",
+      "titulo": "Relatório de Segurança - Teste",
+      "conteudo": "Este é um relatório de segurança de teste para fins de demonstração.\n\nO documento foi criado para validar a funcionalidade do sistema de gerenciamento de arquivos e documentos.\n\nNenhum conteúdo real ou sensível foi incluído. O objetivo é apenas testar a integridade do processo de criação de documentos em ambiente local."
+    },
+    "language_ok": true,
+    "tokens_gerados": 0,
+    "tokens_por_segundo": 0.0,
+    "args_correct": true,
+    "ttft_ms": null
+  }
+]

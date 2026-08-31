@@ -2,7 +2,7 @@
 
 > Controle do desenvolvimento do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Última alteração:** 2026-08-30
+**Última alteração:** 2026-08-31
 
 ---
 
@@ -27,6 +27,7 @@
 | 4.0.1 | — | Migração Tauri + React (P0–P2): bridge HTTP, schema SQLite, fixes | ✅ Concluída |
 | 4.0.2 | — | Documentação da v4.0 e manutenção (README, .gitignore) | ✅ Concluída |
 | **4.1.0** | **2026-08-30** | **RAG do Manual de Redação da Presidência da República (SQLite FTS5)** | ✅ Concluída |
+| **4.1.1** | **2026-08-31** | **Correção do cálculo de TTFT no LlamaClient** | ✅ Concluída |
 
 ---
 
@@ -74,3 +75,9 @@
 - Modo de contexto: trechos truncados em `MANUAL_REDACAO_MAX_CHARS_POR_TRECHO` (800) para não estourar `OLLAMA_NUM_CTX`/`LLAMA_NUM_CTX`.
 - Arquivos: `schema.sql`, `schema.py`, `ingest_manual_redacao.py`, `manual_redacao.py`, `tools_schema.py`, `config.py`, `chat_session.py`, `ollama_client.py`, `llama_client.py`, `test_maria.py`, `.gitignore`.
 - Testes: **116/116 OK** (2× execuções), incluindo 11 novos (3 classes).
+
+### 4.1.1 — Correção TTFT (2026-08-31)
+- Em `chat_stream()` e `continuar_com_resultado_ferramenta_stream()` de `llama_client.py`, `inicio = time.monotonic()` movido a **antes** de `_make_request(payload, stream=True)`.
+- TTFT agora medido desde o envio do POST HTTP até o primeiro chunk recebido (antes: ~0.07ms; agora: 50ms–5s típico segundo hardware).
+- Arquivos: `llama_client.py`, `docs/CHANGELOG.md` (novo), `docs/PROGRESSO_DESENVOLVIMENTO_V1.md`.
+- Testes: **116/116 OK** + **33 subtests OK**; `py_compile` OK.
