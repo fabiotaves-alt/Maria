@@ -22,6 +22,7 @@ from backend.core.tools_schema import (
     FERRAMENTA_CRIAR_DOCUMENTO,
     FERRAMENTA_EDITAR_PLANILHA,
     executar_ferramenta_leitura,
+    FERRAMENTAS_LEITURA,
 )
 from backend.core.excel_handler import criar_planilha_real, editar_planilha_real
 from backend.core.file_utils import (
@@ -1998,6 +1999,139 @@ class TestSegurancaApiHttp(unittest.TestCase):
         self.assertEqual(
             resp.headers.get("Access-Control-Allow-Origin"), "http://tauri.localhost"
         )
+
+
+def _fts5_disponivel() -> bool:
+    """Verifica em tempo de execução se o SQLite local suporta FTS5."""
+    import sqlite3
+    try:
+        conexao_teste = sqlite3.connect(":memory:")
+        conexao_teste.execute("CREATE VIRTUAL TABLE t USING fts5(x)")
+        conexao_teste.close()
+        return True
+    except sqlite3.OperationalError:
+        return False
+
+
+class TestManualRedacaoIngestao(unittest.TestCase):
+    """Testes para o parser/chunker do Manual de Redação (ingest_manual_redacao.py)."""
+
+    def test_extrair_chunks_classifica_secao_oficio(self):
+        from backend.database.ingest_manual_redacao import extrair_chunks
+        texto = (
+            "#### **5 O padrão ofício**\n"
+            "Texto introdutório do padrão ofício.\n"
+            "##### 5.1.7 Fechos para comunicações\n"
+            "Conteúdo bastante longo sobre os fechos oficiais utilizados em comunicações formais do governo federal.\n"
+            "##### 5.1.8 Identificação do signatário\n"
+            "Conteúdo sobre como identificar corretamente o signatário do documento oficial em questão.\n"
+        )
+        chunks = extrair_chunks(texto)
+        secoes = {c["secao"]: c["tipo_documento"] for c in chunks}
+        self.assertIn("5.1.7 Fechos para comunicações", secoes)
+        self.assertEqual(secoes["5.1.7 Fechos para comunicações"], "oficio")
+
+    def test_extrair_chunks_descarta_secoes_vazias(self):
+        from backend.database.ingest_manual_redacao import extrair_chunks
+        texto = "# **Capítulo I**\n\n#### **1 Panorama**\num\n"
+        chunks = extrair_chunks(texto)
+        self.assertEqual(chunks, [])
+
+    def test_classificar_tipo_documento_mapeia_exposicao_e_mensagem(self):
+        from backend.database.ingest_manual_redacao import _classificar_tipo_documento
+        self.assertEqual(_classificar_tipo_documento("6.2.1 Definição e finalidade"), "exposicao_motivos")
+        self.assertEqual(_classificar_tipo_documento("6.3.2 Forma e estrutura"), "mensagem")
+        self.assertEqual(_classificar_tipo_documento("6.4.1 Definição e finalidade"), "email")
+        self.assertEqual(_classificar_tipo_documento("Prefácio"), "geral")
+
+
+@unittest.skipUnless(_fts5_disponivel(), "SQLite local sem suporte a FTS5")
+class TestManualRedacaoConsulta(unittest.TestCase):
+    """Testes para o módulo de consulta RAG (core/manual_redacao.py)."""
+
+    def setUp(self):
+        import backend.database.connection as connection_module
+        connection_module._CONNECTION = None
+        self.temp_dir = tempfile.TemporaryDirectory()
+        connection_module.init_db(f"{self.temp_dir.name}/teste_manual.db")
+        from backend.database.schema import init_db
+        init_db()
+        conn = connection_module.get_connection()
+        conn.executemany(
+            "INSERT INTO manual_redacao_fts (tipo_documento, secao, conteudo) VALUES (?, ?, ?)",
+            [
+                ("oficio", "5.1.7 Fechos para comunicações",
+                 "O fecho das comunicações oficiais objetiva saudar o destinatário com respeitosamente ou atenciosamente."),
+                ("oficio", "4.4 Vocativo",
+                 "O vocativo a ser empregado em comunicações dirigidas aos chefes de poder é Senhor mais o cargo."),
+                ("mensagem", "6.3.2 Forma e estrutura",
+                 "A mensagem não obedece a um único e rígido modelo, mas apresenta a mesma estrutura do padrão ofício."),
+            ],
+        )
+        conn.commit()
+
+    def tearDown(self):
+        import backend.database.connection as connection_module
+        connection_module.close_connection()
+        connection_module._DB_PATH = None  # evita que _DB_PATH aponte para o temp_dir já removido
+        self.temp_dir.cleanup()
+
+    def test_consulta_com_tipo_e_termo_busca(self):
+        from backend.core.manual_redacao import consultar_manual
+        resultado = consultar_manual(tipo_documento="oficio", termo_busca="vocativo")
+        self.assertIn("Vocativo", resultado)
+        self.assertNotIn("6.3.2", resultado)
+
+    def test_consulta_sem_termo_busca_filtra_apenas_por_tipo(self):
+        from backend.core.manual_redacao import consultar_manual
+        resultado = consultar_manual(tipo_documento="mensagem")
+        self.assertIn("6.3.2 Forma e estrutura", resultado)
+
+    def test_consulta_sem_resultados_retorna_mensagem_amigavel(self):
+        from backend.core.manual_redacao import consultar_manual
+        resultado = consultar_manual(tipo_documento="email", termo_busca="anexo")
+        self.assertIn("Nenhum trecho", resultado)
+
+    def test_consulta_tipo_invalido_e_ignorado_sem_erro(self):
+        from backend.core.manual_redacao import consultar_manual
+        resultado = consultar_manual(tipo_documento="tipo_que_nao_existe", termo_busca="fecho")
+        self.assertIn("Fechos", resultado)
+
+    def test_consulta_trunca_trechos_muito_longos(self):
+        """Cobre a correção da Tarefa 3: trechos maiores que
+        MANUAL_REDACAO_MAX_CHARS_POR_TRECHO devem ser truncados com
+        marcador '[...]' para não estourar o contexto do modelo."""
+        from backend.core.manual_redacao import consultar_manual
+        import backend.database.connection as connection_module
+
+        conn = connection_module.get_connection()
+        conteudo_longo = "palavra " * 500  # muito acima do limite padrão (800 caracteres)
+        conn.execute(
+            "INSERT INTO manual_redacao_fts (tipo_documento, secao, conteudo) VALUES (?, ?, ?)",
+            ("geral", "99.9 Seção de teste longa", conteudo_longo),
+        )
+        conn.commit()
+
+        resultado = consultar_manual(tipo_documento="geral", termo_busca="palavra")
+        self.assertIn("[...]", resultado)
+
+
+class TestFerramentaConsultarManualRedacao(unittest.TestCase):
+    """Testes para a integração da ferramenta em tools_schema.py."""
+
+    def test_consultar_manual_redacao_esta_em_ferramentas_leitura(self):
+        self.assertIn("consultar_manual_redacao", FERRAMENTAS_LEITURA)
+
+    def test_ferramenta_criar_documento_nao_menciona_memorandos(self):
+        """Cobre a correção de consistência da Tarefa 4.5: 'memorando' foi
+        unificado sob 'ofício' no Manual, então criar_documento não deve
+        mais listá-lo como exemplo de uso direto."""
+        descricao = FERRAMENTA_CRIAR_DOCUMENTO["function"]["description"]
+        self.assertNotIn("memorandos", descricao)
+
+    def test_executar_ferramenta_leitura_ferramenta_desconhecida_ainda_falha(self):
+        with self.assertRaises(ValueError):
+            executar_ferramenta_leitura("ferramenta_inexistente", {})
 
 
 if __name__ == "__main__":

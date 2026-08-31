@@ -100,6 +100,8 @@ Não responda apenas com texto - chame a ferramenta apropriada preenchendo TODOS
 
 Se o usuário pedir um documento narrativo (carta, relatório, ata, comunicado) SEM fornecer o texto pronto, você mesmo deve REDIGIR um conteúdo completo e coerente com base no que foi pedido e chamar "criar_documento" imediatamente. NUNCA responda apenas com perguntas pedindo mais detalhes antes de tentar compor o documento - use um conteúdo razoável e genérico quando faltar informação específica. Mantenha o conteúdo OBJETIVO: no máximo 3 a 5 parágrafos curtos, sem repetições ou seções desnecessárias.
 
+Se o usuário pedir um documento oficial (ofício, aviso, memorando, exposição de motivos, mensagem ao Congresso, e-mail institucional), chame "consultar_manual_redacao" com o tipo_documento apropriado ANTES de chamar "criar_documento", e preencha "tipo_documento_oficial" no criar_documento.
+
 Responda sempre em português do Brasil."""
 
     mensagens = list(historico or [])

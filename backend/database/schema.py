@@ -11,6 +11,7 @@ Tabelas:
 """
 
 from backend.database.connection import get_connection, close_connection
+import sqlite3
 
 
 def init_db():
@@ -123,7 +124,24 @@ def init_db():
             ('idioma', 'pt-BR', 'Idioma da interface'),
             ('notificacoes_som', 'true', 'Emitir sons de notificação')
     """)
-    
+
+    # Tabela virtual FTS5: Manual de Redação da Presidência da República (RAG)
+    try:
+        cursor.execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS manual_redacao_fts USING fts5(
+                tipo_documento UNINDEXED,
+                secao,
+                conteudo,
+                tokenize = 'unicode61 remove_diacritics 2'
+            )
+        """)
+    except sqlite3.OperationalError as error:
+        import logging
+        logging.getLogger(__name__).warning(
+            f"Não foi possível criar a tabela FTS5 'manual_redacao_fts' "
+            f"(SQLite pode ter sido compilado sem suporte a FTS5): {error}"
+        )
+
     conn.commit()
 
 
@@ -138,6 +156,7 @@ def limpar_tudo():
     cursor.execute("DROP TABLE IF EXISTS memoria")
     cursor.execute("DROP TABLE IF EXISTS configuracoes")
     cursor.execute("DROP TABLE IF EXISTS conversas")
+    cursor.execute("DROP TABLE IF EXISTS manual_redacao_fts")
     
     conn.commit()
 

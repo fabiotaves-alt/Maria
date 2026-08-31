@@ -141,6 +141,7 @@ arquivos_gerados/
 backend/arquivos_gerados/
 *.gguf
 models/
+backend/database/manual_redacao_chunks.json
 
 # ══════════════════════════════════════════════════════════
 # 12. IDE (IntelliJ, VS Code)

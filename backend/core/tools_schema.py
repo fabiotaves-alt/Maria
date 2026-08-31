@@ -63,13 +63,14 @@ FERRAMENTA_CRIAR_DOCUMENTO = {
     "function": {
         "name": "criar_documento",
         "description": """Cria um novo documento de texto (Word) com conteúdo narrativo completo, gerado pelo próprio modelo.
-Use PARA: textos corridos, cartas, relatórios narrativos, comunicados, memorandos, mensagens formais.
+Use PARA: textos corridos, cartas, relatórios narrativos, comunicados, mensagens formais.
     O campo 'conteudo' deve conter o texto completo e coerente do documento, com parágrafos separados por uma linha em branco (\\n\\n).
 Exemplos de frases-gatilho:
 - "crie um texto sobre reunião"
 - "quero um documento com uma carta de apresentação"
 - "preciso de um relatório em formato de texto"
-NÃO use para dados estruturados em colunas ou tabelas.""",
+NÃO use para dados estruturados em colunas ou tabelas.
+Se o documento for um ofício, exposição de motivos, mensagem oficial ou e-mail institucional (inclusive o que seria historicamente chamado de aviso ou memorando), chame consultar_manual_redacao ANTES desta ferramenta e preencha tipo_documento_oficial de acordo.""",
         "parameters": {
             "type": "object",
             "properties": {
@@ -84,6 +85,11 @@ NÃO use para dados estruturados em colunas ou tabelas.""",
                 "conteudo": {
                     "type": "string",
                     "description": "Texto completo e coerente do documento, com parágrafos separados por uma linha em branco (\\n\\n)."
+                },
+                "tipo_documento_oficial": {
+                    "type": "string",
+                    "enum": ["oficio", "exposicao_motivos", "mensagem", "email", "nenhum"],
+                    "description": "Preencha quando o documento seguir um padrão oficial do Manual de Redação da Presidência da República (consultado previamente via consultar_manual_redacao). Use 'nenhum' para documentos narrativos comuns."
                 }
             },
             "required": ["nome_arquivo", "titulo", "conteudo"]
@@ -175,8 +181,37 @@ NÃO use para criar um documento novo — nesse caso use criar_documento.""",
     }
 }
 
+FERRAMENTA_CONSULTAR_MANUAL_REDACAO = {
+    "type": "function",
+    "function": {
+        "name": "consultar_manual_redacao",
+        "description": """Consulta o Manual de Redação da Presidência da República para obter estrutura, formatação e exemplos de documentos oficiais. Somente leitura, não modifica nada.
+Use SEMPRE antes de criar_documento quando o usuário pedir um ofício, aviso, memorando (todos unificados em "ofício" desde a 3a edição do Manual), exposição de motivos, mensagem oficial (ao Congresso Nacional, veto, etc.) ou e-mail institucional.
+Exemplos de frases-gatilho:
+- "redija um ofício para..."
+- "crie uma exposição de motivos sobre..."
+- "escreva um e-mail institucional informando..."
+NÃO use para documentos narrativos comuns (cartas informais, relatórios internos sem padrão oficial).""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "tipo_documento": {
+                    "type": "string",
+                    "enum": ["oficio", "exposicao_motivos", "mensagem", "email", "geral"],
+                    "description": "Tipo de documento oficial. Use 'oficio' também para o que seria aviso ou memorando (termos abolidos pelo Manual)."
+                },
+                "termo_busca": {
+                    "type": "string",
+                    "description": "Palavras-chave opcionais para refinar a busca. Ex.: 'fecho', 'vocativo', 'pronome de tratamento'."
+                }
+            },
+            "required": ["tipo_documento"]
+        }
+    }
+}
+
 # Ferramentas de leitura: executadas sem confirmação (não modificam nada)
-FERRAMENTAS_LEITURA = {"listar_arquivos", "resumir_documento"}
+FERRAMENTAS_LEITURA = {"listar_arquivos", "resumir_documento", "consultar_manual_redacao"}
 
 # Lista de todas as ferramentas disponíveis
 TOOLS_SCHEMA = [
@@ -185,6 +220,7 @@ TOOLS_SCHEMA = [
     FERRAMENTA_EDITAR_PLANILHA,
     FERRAMENTA_LISTAR_ARQUIVOS,
     FERRAMENTA_RESUMIR_DOCUMENTO,
+    FERRAMENTA_CONSULTAR_MANUAL_REDACAO,
 ]
 
 
@@ -331,6 +367,13 @@ def executar_ferramenta_leitura(nome_funcao: str, argumentos: dict) -> str:
         if instrucoes:
             cabecalho += f"\nPedido do usuário: {instrucoes}"
         return f"{cabecalho}{aviso}\n\n{doc['texto']}"
+
+    elif nome_funcao == "consultar_manual_redacao":
+        from backend.core.manual_redacao import consultar_manual
+        return consultar_manual(
+            tipo_documento=argumentos.get("tipo_documento"),
+            termo_busca=argumentos.get("termo_busca"),
+        )
 
     else:
         raise ValueError(f"Ferramenta de leitura desconhecida: {nome_funcao}")

@@ -74,3 +74,7 @@ EXTENSOES_LEITURA = {".txt", ".md", ".csv", ".log", ".docx"}
 MAX_CHARS_LEITURA = int(os.getenv("MAX_CHARS_LEITURA", "6000"))
 MAX_TAMANHO_ARQUIVO_MB = int(os.getenv("MAX_TAMANHO_ARQUIVO_MB", "5"))
 MAX_PASSOS_LEITURA = int(os.getenv("MAX_PASSOS_LEITURA", "3"))
+
+# Manual de Redação da Presidência da República (RAG via FTS5)
+MANUAL_REDACAO_TOP_K = int(os.getenv("MANUAL_REDACAO_TOP_K", "5"))
+MANUAL_REDACAO_MAX_CHARS_POR_TRECHO = int(os.getenv("MANUAL_REDACAO_MAX_CHARS_POR_TRECHO", "800"))

@@ -88,3 +88,11 @@ VALUES
     ('modelo_ollama', 'qwen3.5:4b', 'Modelo padrão do Ollama'),
     ('idioma', 'pt-BR', 'Idioma da interface'),
     ('notificacoes_som', 'true', 'Emitir sons de notificação');
+
+-- 7. Tabela virtual FTS5: Manual de Redação da Presidência da República (RAG textual)
+CREATE VIRTUAL TABLE IF NOT EXISTS manual_redacao_fts USING fts5(
+    tipo_documento UNINDEXED,  -- oficio | exposicao_motivos | mensagem | email | geral | elaboracao_normativa | processo_legislativo
+    secao,                     -- ex: "5.1.7 Fechos para comunicações"
+    conteudo,
+    tokenize = 'unicode61 remove_diacritics 2'
+);

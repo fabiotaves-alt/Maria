@@ -2,6 +2,31 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.0] — RAG do Manual de Redação da Presidência da República (FTS5) — 2026-08-30
+
+### ✨ Nova funcionalidade
+
+- **RAG textual via SQLite FTS5**: Adicionada consulta ao **Manual de Redação da Presidência da República** (3ª edição) sem nenhuma dependência nova, reaproveitando `shared/maria.db`. Ferramenta de leitura `consultar_manual_redacao`, encadeada automaticamente antes de `criar_documento` quando o pedido é de um documento oficial (ofício, exposição de motivos, mensagem ou e-mail institucional).
+- **Chunker e ingestão**: `backend/database/ingest_manual_redacao.py` segmenta o `.md` por cabeçalhos Markdown, classifica cada trecho por `tipo_documento` (com base no número da seção) e popula a tabela virtual `manual_redacao_fts`. Idempotente (execuções repetidas não duplicam) e com JSON de depuração ignorado no Git. **255 trechos** ingeridos a partir de `backend/docs/manual_redacao_presidencia.md` (copiado de `docs/`).
+- **Consistência de domínio**: desde a 3ª edição do Manual, "aviso" e "memorando" foram unificados sob o termo **ofício** ("padrão ofício"). O enum de `tipo_documento` usa `oficio` para cobrir os três casos históricos; nenhuma categoria separada `aviso`/`memorando` foi criada. O parâmetro opcional `tipo_documento_oficial` em `criar_documento` orienta a formatação.
+
+### 🔧 Implementação técnica
+
+- **`shared/schema.sql`**: tabela virtual `manual_redacao_fts` com `tokenize = 'unicode61 remove_diacritics 2'` (busca tolerante a acentos).
+- **`backend/database/schema.py`**: criação da FTS5 em `init_db()` (com `try/except` para SQLite sem FTS5) e `DROP TABLE` em `limpar_tudo()`.
+- **`backend/core/manual_redacao.py`** (novo): `consultar_manual()` com query FTS5 segura (tokens escapados, AND implícito), ordenação `bm25` e truncamento por trecho (`MANUAL_REDACAO_MAX_CHARS_POR_TRECHO`, padrão 800) — evita estourar o contexto do modelo (padrão OLLAMA_NUM_CTX=2048 / LLAMA_NUM_CTX=8192).
+- **`backend/core/tools_schema.py`**: nova `FERRAMENTA_CONSULTAR_MANUAL_REDACAO`, registrada em `FERRAMENTAS_LEITURA` e `TOOLS_SCHEMA`; ramo em `executar_ferramenta_leitura`; `FERRAMENTA_CRIAR_DOCUMENTO` atualizada (removida menção a "memorandos", adicionada instrução de consulta prévia e campo `tipo_documento_oficial`).
+- **`backend/core/config.py`**: `MANUAL_REDACAO_TOP_K` (5) e `MANUAL_REDACAO_MAX_CHARS_POR_TRECHO` (800), com override via ENV.
+- **Reforço de prompt**: `chat_session.py` (regra 9 e linha de ferramenta), `ollama_client.py` e `llama_client.py` instruem o modelo a chamar `consultar_manual_redacao` antes de `criar_documento` para documentos oficiais.
+- **`.gitignore`**: `backend/database/manual_redacao_chunks.json` (artefato de depuração).
+
+### 🧪 Testes
+
+- **Status**: 116/116 testes passaram (`python -m unittest discover -s backend/tests -v`), executados 2× para confirmar isolamento do `_DB_PATH` em `TestManualRedacaoConsulta`.
+- **3 novas classes**: `TestManualRedacaoIngestao` (chunker/classificador), `TestManualRedacaoConsulta` (consulta FTS5, truncamento, isolamento) e `TestFerramentaConsultarManualRedacao` (integração da ferramenta e consistência do domínio). Total: 11 testes novos.
+- **Cobertura de código**: adições concentradas em `schema.py`, `ingest_manual_redacao.py`, `manual_redacao.py`, `tools_schema.py` e reforços de prompt — sem cobertura formal nova mensurada (não executado `coverage`); validação via `py_compile` + suíte unitária completa.
+
+---
 ## [4.0.2] — Documentação da v4.0 e Manutenção
 
 ### 📚 Documentação
