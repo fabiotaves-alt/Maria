@@ -30,3 +30,13 @@ python -m benchmark.compare_runs \
 Adicione uma instância de `MariaTask` em `tasks_core.py` ou `tasks_edges.py`, usando um ID novo, uma categoria, a mensagem do usuário e, quando aplicável, `expected_tool` e `confirm_sequence`. Tarefas de edição dependem de uma planilha existente no diretório isolado do benchmark.
 
 Os resultados são gravados em `benchmark/results/run_<timestamp>/report.md` e `log.json`. Arquivos gerados durante a avaliação ficam em `benchmark/results/arquivos_gerados_benchmark`.
+
+## Orçamento de tokens por tipo de resposta
+
+Para caber no `BENCHMARK_TASK_TIMEOUT` (400s) deste hardware (CPU, sem GPU, ~1,15–1,22 tok/s), as respostas que compõem documentos narrativos usam um orçamento de tokens **reduzido** (`LLAMA_NUM_PREDICT_DOCUMENTO=300`, configurável via ENV). Antes esse valor era 600 e uma única tarefa de documento (ex.: Task 15) podia ultrapassar 400s de geração, estourando o timeout.
+
+- `LLAMA_NUM_PREDICT_DOCUMENTO` **padrão 300** — documentos narrativos (carta, relatório, ata, comunicado).
+- `LLAMA_NUM_PREDICT_CONTINUACAO` **padrão 200** — continuação após ferramenta de leitura.
+- `LLAMA_NUM_PREDICT` **padrão 400** — demais respostas.
+
+> ⚠️ Aumentar `LLAMA_NUM_PREDICT_DOCUMENTO` de volta para 600 não é recomendado neste hardware: o problema subjacente é o throughput (~1,2 tok/s), não um timeout configurável. O orçamento reduzido mantém as tarefas de documento dentro do limite enquanto o hardware for CPU-only.

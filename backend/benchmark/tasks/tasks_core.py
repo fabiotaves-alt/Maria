@@ -4,7 +4,7 @@ from .task_schema import MariaTask, MariaTaskCategory
 
 TASKS_CORE = [
     MariaTask(1, "Conversa simples", "Saudação sem ferramenta", "Olá, como você pode me ajudar?", expected_keywords=[], category=MariaTaskCategory.CONVERSA),
-    MariaTask(2, "Conversa sobre produtividade", "Pedido informativo", "Dê uma dica curta para organizar meu dia.", expected_keywords=["organ"], category=MariaTaskCategory.CONVERSA),
+    MariaTask(2, "Conversa sobre produtividade", "Pedido informativo", "Dê uma dica curta para organizar meu dia.", expected_keywords=["tarefa", "prioridade", "foco", "dia"], category=MariaTaskCategory.CONVERSA),
     MariaTask(3, "Planilha básica", "Planilha de gastos com duas colunas", "Crie uma planilha de gastos com colunas Data e Valor.", expected_tool="criar_planilha", expected_keywords=["planilha"], confirm_sequence=["sim"], category=MariaTaskCategory.CRIAR_PLANILHA, expected_args_subset={"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}),
     MariaTask(4, "Planilha financeira", "Planilha com descrição", "Crie uma planilha de despesas com Data, Descrição, Categoria e Valor, descrevendo o propósito.", expected_tool="criar_planilha", expected_keywords=["planilha"], confirm_sequence=["sim"], category=MariaTaskCategory.CRIAR_PLANILHA),
     MariaTask(5, "Planilha estoque", "Planilha com muitas colunas", "Crie uma planilha de estoque com Produto, SKU, Quantidade, Custo e Fornecedor.", expected_tool="criar_planilha", expected_keywords=["planilha"], confirm_sequence=["sim"], category=MariaTaskCategory.CRIAR_PLANILHA),

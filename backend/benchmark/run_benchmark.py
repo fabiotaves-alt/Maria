@@ -16,6 +16,9 @@ MARIA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if MARIA_ROOT not in sys.path:
     sys.path.insert(0, MARIA_ROOT)
 
+import requests
+
+from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL
 from core.llama_client import LlamaClient as OllamaClient, LlamaClientError as OllamaClientError  # noqa: E402
 
 
@@ -48,10 +51,35 @@ def _select_tasks(tasks, args):
     return tasks
 
 
-def _warmup_model() -> None:
-    """Aquece o modelo uma vez antes de iniciar as tarefas do benchmark."""
+def _consultar_modelo_carregado() -> str | None:
+    """Consulta GET {LLAMA_BASE_URL}/v1/models e retorna o id do primeiro
+    modelo carregado no llama-server, ou None se não for possível obter."""
+    try:
+        resp = requests.get(f"{LLAMA_BASE_URL}/v1/models", timeout=5)
+        if resp.status_code == 200:
+            modelos = [m.get("id", "") for m in resp.json().get("data", [])]
+            return modelos[0] if modelos else None
+    except requests.exceptions.RequestException:
+        pass
+    return None
+
+
+def _warmup_model() -> str | None:
+    """Aquece o modelo uma vez antes de iniciar as tarefas do benchmark.
+
+    Retorna o nome do modelo efetivamente carregado (via /v1/models), ou None.
+    Também alerta no console quando o id reportado diverge de LLAMA_MODEL.
+    """
     print(f"Aquecendo o modelo (timeout de warmup: {BENCHMARK_WARMUP_TIMEOUT}s)...")
     inicio = time.monotonic()
+
+    modelo_carregado = _consultar_modelo_carregado()
+    if modelo_carregado and modelo_carregado != LLAMA_MODEL:
+        print(
+            f"[AVISO] LLAMA_MODEL configurado = '{LLAMA_MODEL}', mas o modelo "
+            f"carregado no llama-server (/v1/models) = '{modelo_carregado}'.\n"
+            "As execuções podem não estar usando o modelo desejado."
+        )
 
     try:
         cliente_warmup = OllamaClient(timeout=BENCHMARK_WARMUP_TIMEOUT)
@@ -71,6 +99,8 @@ def _warmup_model() -> None:
     duracao_s = time.monotonic() - inicio
     print(f"Modelo aquecido em {duracao_s:.1f}s. Resposta de teste: {resposta.strip()!r}")
 
+    return modelo_carregado
+
 
 def main() -> int:
     args = _parse_args()
@@ -78,7 +108,7 @@ def main() -> int:
     if not tasks:
         raise SystemExit("Nenhuma tarefa selecionada.")
 
-    _warmup_model()
+    modelo_carregado = _warmup_model()
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = os.path.join(args.output_dir, f"run_{timestamp}")
@@ -132,7 +162,9 @@ def main() -> int:
 
     generate_report(resultados_individuais_todas_tarefas,
                     calculate_maria_metrics(resultados_individuais_todas_tarefas),
-                    run_dir)
+                    run_dir,
+                    modelo_configurado=LLAMA_MODEL,
+                    modelo_carregado=modelo_carregado)
 
     print("\nResumo")
     print(f"Tarefas: {calculate_maria_metrics(resultados_individuais_todas_tarefas).total_tasks}")

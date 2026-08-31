@@ -14,6 +14,7 @@ import json
 import logging
 import re
 import time
+import uuid
 from collections.abc import Generator
 from pathlib import Path
 
@@ -495,6 +496,37 @@ class LlamaClient:
         mensagens = _montar_mensagens_com_reforco(historico, mensagem_usuario)
         yield from self.chat_stream(mensagens, tools=tools)
 
+    def chat_com_tools_stream_com_metricas(
+        self,
+        mensagem_usuario: str,
+        historico: list[dict[str, str]] | None = None,
+        tools: list[dict] | None = None,
+    ) -> tuple[str, dict | None, int, float, float | None]:
+        """
+        Envia uma mensagem em streaming e retorna (texto, tool_call,
+        tokens_gerados, tokens_por_segundo, ttft_ms). ttft_ms é o tempo até o
+        primeiro token em MILISSEGUNDOS (chat_stream usa segundos internamente
+        em metricas_saida["ttft"] — converter aqui).
+        """
+        mensagens = _montar_mensagens_com_reforco(historico, mensagem_usuario)
+        metricas: dict = {}
+        partes_texto: list[str] = []
+        tool_call_final: dict | None = None
+
+        for chunk, tool_chunk in self.chat_stream(mensagens, tools=tools, metricas_saida=metricas):
+            if chunk is not None:
+                partes_texto.append(chunk)
+            if tool_chunk is not None:
+                tool_call_final = tool_chunk
+
+        texto_final = "".join(partes_texto)
+        tokens_gerados = metricas.get("tokens_gerados", 0)
+        tokens_por_segundo = metricas.get("tokens_por_segundo", 0.0)
+        ttft_s = metricas.get("ttft")
+        ttft_ms = round(ttft_s * 1000, 1) if ttft_s is not None else None
+
+        return texto_final, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms
+
     def continuar_com_resultado_ferramenta_stream(
         self,
         historico: list[dict],
@@ -512,15 +544,24 @@ class LlamaClient:
             (None, tool_call_info) como último item.
         """
         mensagens = list(historico)
+        tool_call_id = f"call_{uuid.uuid4().hex[:8]}"
         mensagens.append({
             "role": "assistant",
             "content": "",
-            "tool_calls": [{"function": {
-                "name": tool_call.get("name", ""),
-                "arguments": tool_call.get("arguments", {}),
-            }}],
+            "tool_calls": [{
+                "id": tool_call_id,
+                "type": "function",
+                "function": {
+                    "name": tool_call.get("name", ""),
+                    "arguments": json.dumps(tool_call.get("arguments", {}), ensure_ascii=False),
+                },
+            }],
         })
-        mensagens.append({"role": "tool", "content": resultado})
+        mensagens.append({
+            "role": "tool",
+            "tool_call_id": tool_call_id,
+            "content": resultado,
+        })
 
         payload = self._montar_payload(
             mensagens, tools, stream=True,

@@ -41,6 +41,8 @@ def generate_report(
     results: list[MariaTaskResult],
     metrics: MariaBenchmarkMetrics,
     output_dir: str,
+    modelo_configurado: str | None = None,
+    modelo_carregado: str | None = None,
 ) -> str:
     os.makedirs(output_dir, exist_ok=True)
     generated_at = datetime.now().isoformat(timespec="seconds")
@@ -53,10 +55,27 @@ def generate_report(
         or not result.keyword_match
     ]
 
+    modelo_cfg = modelo_configurado or "—"
+    modelo_ld = modelo_carregado or "—"
+    alerta_modelo = ""
+    if modelo_configurado and modelo_carregado and modelo_configurado != modelo_carregado:
+        alerta_modelo = (
+            f"\n> ⚠️ **Atenção:** `LLAMA_MODEL` ({modelo_configurado}) diverge do modelo "
+            f"efetivamente carregado no llama-server via `/v1/models` ({modelo_carregado}). "
+            f"As execucas podem não estar usando o modelo desejado.\n"
+        )
+
     report = f"""# Relatório do Benchmark MARIA
 
 Gerado em: {generated_at}
 
+## Modelo
+
+| Origem | Nome |
+|---|---:|
+| Configurado (`LLAMA_MODEL`) | {modelo_cfg} |
+| Carregado (`/v1/models`) | {modelo_ld} |
+{alerta_modelo}
 ## Métricas gerais
 
 | Métrica | Resultado |

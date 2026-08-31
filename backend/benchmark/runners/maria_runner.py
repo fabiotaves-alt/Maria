@@ -109,11 +109,13 @@ class MariaRunner:
                     if resultado is False:
                         resposta_textual = "Ação cancelada."
                         confirmation_completed = True
+                        tool_call_final = None  # ferramenta não foi executada
                         break
                     ambiguidades += 1
                     if ambiguidades >= 2:
                         resposta_textual = "Ação cancelada por ambiguidade."
                         confirmation_completed = True
+                        tool_call_final = None  # ferramenta não foi executada
                         break
 
             if time.monotonic() - inicio > BENCHMARK_TASK_TIMEOUT:
@@ -124,6 +126,8 @@ class MariaRunner:
         except (PermissionError, OSError, ValueError, TimeoutError) as error:
             logger.error("Erro na tarefa %s: %s", task.id, error)
             errors.append({"kind": type(error).__name__, "message": str(error)})
+            if not resposta_textual.strip():
+                resposta_textual = f"[ERRO] {error}"
         except OllamaClientError as error:
             logger.error("Erro do Ollama na tarefa %s: %s", task.id, error)
             errors.append({"kind": "OllamaClientError", "message": str(error)})

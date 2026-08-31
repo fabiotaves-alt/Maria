@@ -1613,6 +1613,91 @@ class TestRunRepeatedComCallback(unittest.TestCase):
         self.assertEqual(chamadas, [1, 2, 3])
 
 
+class TestMariaRunnerNegaEAmbiguidade(unittest.TestCase):
+    """Tarefa 4: em negação ou ambiguidade, a ferramenta não é executada e
+    tool_call_final passa a ser None (tool_correct=True quando
+    expected_tool=None)."""
+
+    def _falso_cliente_com_tool(self, nome_tool: str):
+        class ClienteFalso:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return ("", {"name": nome_tool, "arguments": {}}, 5, 2.0, 0.5)
+
+        return ClienteFalso()
+
+    def test_negacao_anula_tool_call(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        task = MariaTask(
+            9004, "Negação teste", "desc",
+            "Crie uma planilha simples de tarefas.",
+            expected_tool=None, expected_keywords=["cancelada"],
+            confirm_sequence=["não"], expected_final_message="cancelada",
+            category=MariaTaskCategory.CANCELAMENTO,
+        )
+        runner = MariaRunner(cliente=self._falso_cliente_com_tool("criar_planilha"))
+        resultado = runner.run(task)
+
+        self.assertIsNone(resultado.tool_detected)
+        self.assertTrue(resultado.tool_correct)
+        self.assertTrue(resultado.confirmation_completed)
+        self.assertEqual(resultado.final_message, "Ação cancelada.")
+
+    def test_ambiguidade_anula_tool_call(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        task = MariaTask(
+            9005, "Ambiguidade teste", "desc",
+            "Crie uma planilha de projetos com Projeto e Status.",
+            expected_tool=None, expected_keywords=["cancelada"],
+            confirm_sequence=["talvez", "hummm"], expected_final_message="cancelada",
+            category=MariaTaskCategory.AMBIGUIDADE,
+        )
+        runner = MariaRunner(cliente=self._falso_cliente_com_tool("criar_planilha"))
+        resultado = runner.run(task)
+
+        self.assertIsNone(resultado.tool_detected)
+        self.assertTrue(resultado.tool_correct)
+        self.assertTrue(resultado.confirmation_completed)
+        self.assertEqual(resultado.final_message, "Ação cancelada por ambiguidade.")
+
+
+class TestMariaRunnerMensagemDeErro(unittest.TestCase):
+    """Tarefa 5: erro ao executar ferramenta preenche final_message
+    com a mensagem do erro em vez de deixar vazia."""
+
+    def test_value_error_edicao_inexistente_preenche_final_message(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteFalso:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return ("", {
+                    "name": "editar_planilha",
+                    "arguments": {"nome_arquivo": "arquivo_ausente_a", "colunas": ["A"]},
+                }, 5, 2.0, 0.5)
+
+        task = MariaTask(
+            9006, "Edição inexistente teste", "desc",
+            "Edite a planilha arquivo_ausente_a com a coluna A.",
+            expected_tool=None, expected_keywords=["exist"],
+            confirm_sequence=["sim"], category=MariaTaskCategory.EDITAR_PLANILHA,
+        )
+        runner = MariaRunner(cliente=ClienteFalso())
+        resultado = runner.run(task)
+
+        self.assertFalse(resultado.runtime_ok)
+        self.assertTrue(resultado.errors)
+        self.assertIn("ValueError", resultado.errors[0]["kind"])
+        self.assertIn("não encontrado", resultado.final_message)
+
+
 # ═══════════════════════════════════════════════════════════════
 # Testes do LlamaClient (llama-server / API OpenAI-compatible)
 # ═══════════════════════════════════════════════════════════════
@@ -1775,6 +1860,40 @@ class TestLlamaClientStreaming(unittest.TestCase):
         self.assertEqual(metricas["tokens_gerados"], 3)
         self.assertIn("ttft", metricas)
 
+    @patch('backend.core.llama_client.requests.Session')
+    def test_chat_com_tools_stream_com_metricas_retorna_metricas(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+
+        linhas = [
+            b'data: ' + json.dumps({"choices": [{"delta": {"content": "R"}, "finish_reason": None}]}).encode(),
+            b'data: ' + json.dumps({"choices": [{"delta": {"content": "esposta"}, "finish_reason": None}]}).encode(),
+            b'data: ' + json.dumps({"choices": [{"delta": {}, "finish_reason": "stop"}], "usage": {"completion_tokens": 2}}).encode(),
+            b'data: [DONE]',
+        ]
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas)
+        mock_session.post.return_value = mock_response
+
+        cliente = LlamaClient()
+        self.assertTrue(hasattr(cliente, "chat_com_tools_stream_com_metricas"))
+
+        texto, tool_call, tokens_gerados, tokens_por_segundo, ttft_ms = (
+            cliente.chat_com_tools_stream_com_metricas(
+                mensagem_usuario="olá",
+                historico=[],
+                tools=None,
+            )
+        )
+        self.assertEqual(texto, "Resposta")
+        self.assertIsNone(tool_call)
+        self.assertGreater(tokens_gerados, 0)
+        self.assertGreater(tokens_por_segundo, 0)
+        self.assertIsNotNone(ttft_ms)
+
 
 class TestLlamaClientErros(unittest.TestCase):
     """Testa tratamento de erros de conexão e timeout."""
@@ -1864,8 +1983,25 @@ class TestLlamaClientCompatibilidade(unittest.TestCase):
         self.assertIn("Feito", textos)
         # Verifica que o payload inclui mensagem role=tool
         payload_enviado = mock_session.post.call_args.kwargs["json"]
-        roles = [m["role"] for m in payload_enviado["messages"]]
+        mensagens = payload_enviado["messages"]
+        roles = [m["role"] for m in mensagens]
         self.assertIn("tool", roles)
+
+        # Verifica formato correto de tool calling (id, type e tool_call_id)
+        msg_assistant = next(m for m in mensagens if m["role"] == "assistant")
+        tool_call_payload = msg_assistant["tool_calls"][0]
+        self.assertIn("id", tool_call_payload)
+        self.assertTrue(tool_call_payload["id"])
+        self.assertEqual(tool_call_payload["type"], "function")
+        self.assertEqual(
+            tool_call_payload["function"]["name"], "listar_arquivos"
+        )
+        self.assertEqual(
+            tool_call_payload["function"]["arguments"],
+            json.dumps({}, ensure_ascii=False),
+        )
+        msg_tool = next(m for m in mensagens if m["role"] == "tool")
+        self.assertEqual(msg_tool["tool_call_id"], tool_call_payload["id"])
 
 
 class TestSegurancaComandosBridge(unittest.TestCase):
