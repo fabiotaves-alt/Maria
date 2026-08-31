@@ -28,9 +28,13 @@ def _obter_target_triple() -> str:
 
 def main():
     # Diretórios
-    root_dir = Path(__file__).parent.parent
-    backend_dir = root_dir.parent / "backend"
-    binaries_dir = root_dir / "binaries"
+    # Base: `src-tauri` (onde o tauri.conf.json resolve os caminhos do
+    # `externalBin`). Os artefatos ficam todos dentro de `src-tauri`,
+    # evitando o bug de gravar o sidecar em `frontend-tauri/binaries`.
+    src_tauri_dir = Path(__file__).parent                # → src-tauri
+    backend_dir = src_tauri_dir.parent.parent / "backend"  # → maria/backend
+    binaries_dir = src_tauri_dir / "binaries"            # → src-tauri/binaries
+    build_dir = src_tauri_dir / "build"                  # temporário do PyInstaller
     
     # Criar diretório de saída
     binaries_dir.mkdir(exist_ok=True)
@@ -65,9 +69,9 @@ def main():
         sys.executable, "-m", "PyInstaller",
         "--onefile",
         "--name", f"maria-backend-{target}",
-        "--workpath", str(root_dir / "build"),
+        "--workpath", str(build_dir),
         "--distpath", str(binaries_dir),
-        "--specpath", str(root_dir),
+        "--specpath", str(src_tauri_dir),
         "--clean",
         "--noconfirm",
     ]
@@ -109,12 +113,11 @@ def main():
         subprocess.check_call(cmd)
         print(f"\n✓ Sidecar construído com sucesso: {binaries_dir / output_name}")
         
-        # Limpar arquivos temporários do PyInstaller
-        build_dir = root_dir / "build"
+        # Limpar arquivos temporários do PyInstaller (dentro de src-tauri)
         if build_dir.exists():
             shutil.rmtree(build_dir)
         
-        spec_file = root_dir / "maria-backend.spec"
+        spec_file = src_tauri_dir / "maria-backend.spec"
         if spec_file.exists():
             spec_file.unlink()
             
