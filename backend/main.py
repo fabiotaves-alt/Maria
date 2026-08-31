@@ -344,7 +344,7 @@ def _get_system_status():
         }
 
     try:
-        cpu_percent = psutil.cpu_percent(interval=None)
+        cpu_percent = psutil.cpu_percent(interval=0.5)
         ram_percent = psutil.virtual_memory().percent
     except Exception as e:
         logger.warning(f"Erro ao obter recursos: {e}")
@@ -746,7 +746,7 @@ def _carregar_token_api() -> str:
     frontend Tauri o lê do arquivo a cada chamada (`call_python_backend` em
     `main.rs`), injetando-o no header `Authorization: Bearer <token>`.
     """
-    caminho = Path(_RAIZ_MONOREPO) / "shared" / ".bridge_token"
+    caminho = Path(_RAIZ_MONOREPO) /"frontend-tauri"/ "shared" / ".bridge_token"
     token = secrets.token_hex(32)
     caminho.parent.mkdir(parents=True, exist_ok=True)
     caminho.write_text(token, encoding="utf-8")
