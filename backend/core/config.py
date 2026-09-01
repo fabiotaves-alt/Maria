@@ -78,3 +78,9 @@ MAX_PASSOS_LEITURA = int(os.getenv("MAX_PASSOS_LEITURA", "3"))
 # Manual de Redação da Presidência da República (RAG via FTS5)
 MANUAL_REDACAO_TOP_K = int(os.getenv("MANUAL_REDACAO_TOP_K", "5"))
 MANUAL_REDACAO_MAX_CHARS_POR_TRECHO = int(os.getenv("MANUAL_REDACAO_MAX_CHARS_POR_TRECHO", "800"))
+
+# ---- Ambiente de execução ----
+# "development" habilita origens extras de CORS (ex.: Vite dev server).
+# Qualquer outro valor (padrão: "production") aplica a configuração mais restrita.
+MARIA_ENV = os.getenv("MARIA_ENV", "production").strip().lower()
+

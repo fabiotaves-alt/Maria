@@ -39,6 +39,7 @@ from backend.core.config import (
     LOG_LEVEL,
     MAX_MENSAGENS_HISTORICO,
     LLAMA_MODEL,
+    MARIA_ENV,
 )
 from backend.core.llama_client import LlamaClient as OllamaClient
 from backend.core.chat_session import ChatSession, interpretar_confirmacao
@@ -457,6 +458,7 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
         if not caminho:
             return "erro", None, "Campo 'caminho' vazio."
         try:
+            import shutil
             import subprocess
             from pathlib import Path
             from backend.core.file_utils import (
@@ -468,23 +470,49 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
             if not audio_path.is_file():
                 raise ValueError(f"Arquivo de áudio não encontrado: {caminho}")
 
-            # Segurança: o áudio deve estar dentro das pastas permitidas
-            # (use o comando upload_arquivo antes para copiá-lo para a pasta
-            # gerenciada). Isso impede leitura/deleção arbitrária de arquivos.
+            # Segurança: o áudio deve estar dentro das pastas permitidas.
             audio_path = resolver_caminho_permitido(str(audio_path))
 
-            # Segurança: binário restrito a nome simples (sem caminho/argumentos)
-            whisper_bin = os.getenv("WHISPER_BIN", "whisper-main")
-            if not re.fullmatch(r"[\w.-]+(\.exe)?", whisper_bin):
+            # Segurança: binário restrito a nome simples (sem caminho/argumentos).
+            whisper_bin_nome = os.getenv("WHISPER_BIN", "whisper-main")
+            if not re.fullmatch(r"[\w.-]+(\.exe)?", whisper_bin_nome):
                 raise ValueError(
                     "WHISPER_BIN inválido: use apenas o nome do binário "
                     "(sem caminho ou argumentos)."
                 )
 
+            # Segurança: resolve via PATH mas EXIGE que o caminho resolvido
+            # esteja dentro de um diretório explicitamente permitido,
+            # rejeitando binários encontrados em diretórios genéricos do
+            # PATH do usuário/sistema (mitiga PATH hijacking).
+            caminho_resolvido = shutil.which(whisper_bin_nome)
+            if not caminho_resolvido:
+                raise ValueError(
+                    f"Binário '{whisper_bin_nome}' não encontrado. "
+                    "Instale whisper.cpp ou configure WHISPER_BIN."
+                )
+
+            dir_permitido_whisper = os.getenv(
+                "WHISPER_ALLOWED_DIR",
+                str(Path(_RAIZ_MONOREPO) / "bin"),
+            )
+            caminho_resolvido_abs = Path(caminho_resolvido).resolve()
+            dir_permitido_abs = Path(dir_permitido_whisper).resolve()
+            if not (
+                caminho_resolvido_abs == dir_permitido_abs
+                or caminho_resolvido_abs.is_relative_to(dir_permitido_abs)
+            ):
+                raise ValueError(
+                    f"Binário resolvido fora do diretório permitido: "
+                    f"{caminho_resolvido_abs}. Configure WHISPER_ALLOWED_DIR "
+                    "ou instale o binário no diretório esperado do app."
+                )
+            whisper_bin = str(caminho_resolvido_abs)
+
             # Arquivos temporários de saída na pasta gerenciada
             saida_base = Path(garantir_pasta_arquivos()) / "temp_whisper"
             try:
-                subprocess.run(
+                resultado = subprocess.run(
                     [whisper_bin, "-f", str(audio_path), "-otxt", "-of", str(saida_base)],
                     capture_output=True, text=True, timeout=60,
                 )
@@ -493,6 +521,10 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
                     transcricao = output_file.read_text(encoding="utf-8")
                     output_file.unlink()
                 else:
+                    logger.warning(
+                        "whisper.cpp não gerou saída (returncode=%s): %s",
+                        resultado.returncode, resultado.stderr.strip()[:500],
+                    )
                     transcricao = "[Transcrição não gerada - verificar whisper.cpp]"
                 audio_path.unlink(missing_ok=True)
             except FileNotFoundError:
@@ -739,17 +771,25 @@ def _modo_bridge(modelo: str | None = None):
 
 def _carregar_token_api() -> str:
     """
-    Gera (ou recarrega) o token da API bridge HTTP e o persiste em
-    `shared/.bridge_token`.
-
-    O token é regenerado a cada inicialização do modo HTTP (mais seguro) e o
-    frontend Tauri o lê do arquivo a cada chamada (`call_python_backend` em
-    `main.rs`), injetando-o no header `Authorization: Bearer <token>`.
+    Gera o token da API bridge HTTP e o persiste atomicamente em
+    `shared/.bridge_token`, restringindo a permissão de leitura ao
+    usuário atual (POSIX). O frontend Tauri relê este arquivo a cada
+    chamada (ver `call_python_backend` em main.rs), portanto não é
+    necessário nenhum mecanismo adicional de sincronização.
     """
-    caminho = Path(_RAIZ_MONOREPO) /"frontend-tauri"/ "shared" / ".bridge_token"
+    caminho = Path(_RAIZ_MONOREPO) / "frontend-tauri" / "shared" / ".bridge_token"
     token = secrets.token_hex(32)
     caminho.parent.mkdir(parents=True, exist_ok=True)
-    caminho.write_text(token, encoding="utf-8")
+
+    arquivo_temp = caminho.with_suffix(".tmp")
+    try:
+        arquivo_temp.write_text(token, encoding="utf-8")
+        os.replace(arquivo_temp, caminho)  # rename atômico no mesmo filesystem
+        if os.name == "posix":
+            os.chmod(caminho, 0o600)
+    finally:
+        arquivo_temp.unlink(missing_ok=True)
+
     logger.info("Token da API bridge HTTP regenerado")
     return token
 
@@ -769,13 +809,16 @@ def _criar_app_http(controller: "MariaController", token: str):
     from flask_cors import CORS
 
     app = Flask(__name__)
+    _ORIGENS_BASE = ["tauri://localhost", "http://tauri.localhost"]
+    _ORIGENS_DEV_EXTRA = ["http://localhost:5173"]  # Vite dev server
+
+    origens_cors = _ORIGENS_BASE + (_ORIGENS_DEV_EXTRA if MARIA_ENV == "development" else [])
+    if MARIA_ENV != "development":
+        logger.info("MARIA_ENV=%s: CORS restrito às origens de produção do Tauri.", MARIA_ENV)
+
     CORS(
         app,
-        origins=[
-            "tauri://localhost",       # webview Tauri (macOS/Linux)
-            "http://tauri.localhost",  # webview Tauri (Windows)
-            "http://localhost:5173",   # Vite dev server
-        ],
+        origins=origens_cors,
         allow_headers=["Content-Type", "Authorization"],
     )
 
