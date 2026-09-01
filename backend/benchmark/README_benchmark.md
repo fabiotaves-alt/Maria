@@ -8,7 +8,7 @@ A partir da raiz `MARIA/`:
 
 ```bash
 llama-server -m <caminho/para/qwen2.5-omni-3b.gguf> --port 8080
-python -m benchmark.run_benchmark --tasks 25
+python -m backend.benchmark.run_benchmark --tasks 25
 python -m benchmark.run_benchmark --task-ids 1 2 3
 python -m benchmark.run_benchmark --category criar_planilha
 ```

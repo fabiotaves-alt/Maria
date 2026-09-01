@@ -106,7 +106,7 @@ rustc --version  # stable
 python --version # 3.11+
 ```
 
-> Para um guia mais detalhado com troubleshooting, consulte [`docs/GUIA_INSTALACAO.md`](docs/GUIA_INSTALACAO.md).
+> Para um guia mais detalhado com troubleshooting, consulte [`docs/INSTALL_GUIDE.md`](docs/INSTALL_GUIDE.md).
 
 ### 2. Clonar o repositório e configurar o ambiente Python
 
@@ -340,9 +340,10 @@ maria/
     ├── SEGURANCA.md               ← modelo de ameaças, medidas e pendências
     ├── GUIA_DESENVOLVIMENTO.md    ← guia prático para novos desenvolvedores
     ├── GUIA_TESTES_EMPIRICOS.md   ← 5 níveis de teste (build → E2E)
-    ├── GUIA_INSTALACAO.md         ← instalação completa e setup de IA (llama + whisper)
+    ├── INSTALL_GUIDE.md           ← instalação detalhada com troubleshooting
     ├── DECISOES_BANCO_DADOS.md    ← decisões de design do banco
-    └── arquivo/                   ← histórico arquivado (diagnósticos, migrações e fases anteriores)
+    ├── INSTALACAO_WHISPER.md      ← instalação do whisper.cpp para transcrição
+    └── arquivo/                   ← histórico da era JavaFX (v2.x/v3.x)
 ```
 
 ---
@@ -369,7 +370,8 @@ maria/
 | [`docs/SEGURANCA.md`](docs/SEGURANCA.md) | Modelo de ameaças, medidas implementadas e roadmap de segurança |
 | [`docs/GUIA_DESENVOLVIMENTO.md`](docs/GUIA_DESENVOLVIMENTO.md) | Setup, padrões de código, fluxo de trabalho e backlog técnico |
 | [`docs/GUIA_TESTES_EMPIRICOS.md`](docs/GUIA_TESTES_EMPIRICOS.md) | Como construir e validar os 5 níveis de teste |
-| [`docs/GUIA_INSTALACAO.md`](docs/GUIA_INSTALACAO.md) | Instalação passo a passo completa, setup de LLM e Whisper (Windows/PowerShell) |
+| [`docs/INSTALL_GUIDE.md`](docs/INSTALL_GUIDE.md) | Instalação passo a passo com troubleshooting (Windows/PowerShell) |
+| [`docs/INSTALACAO_WHISPER.md`](docs/INSTALACAO_WHISPER.md) | Como compilar e configurar o whisper.cpp para transcrição de áudio |
 | [`docs/DECISOES_BANCO_DADOS.md`](docs/DECISOES_BANCO_DADOS.md) | Decisões de design do schema SQLite compartilhado |
 | [`CHANGELOG.md`](CHANGELOG.md) | Histórico completo de versões |
 
@@ -395,3 +397,4 @@ maria/
 ## Licença
 
 Projeto proprietário — todos os direitos reservados. Uso, cópia ou distribuição não autorizados são proibidos.
+# CHANGELOG - Projeto MARIA
