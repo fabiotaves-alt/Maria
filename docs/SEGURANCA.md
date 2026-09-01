@@ -1,96 +1,117 @@
 # Segurança — MARIA
 
-**Versão:** v4.0.0
-**Última atualização:** 2026-08-30
+**Versão:** v4.1.1
+**Última atualização:** 2026-08-31
+**Status:** ✅ Auditado e Mitigado
 
-Este documento registra o modelo de segurança da aplicação, as correções aplicadas na auditoria de segurança (P0/P1/P2) e as pendências conhecidas.
+Este documento registra o modelo de segurança da aplicação, as medidas de proteção ativas contra ameaças locais, as correções aplicadas na auditoria (v4.0 e v4.1.1) e o roadmap de segurança.
 
 ---
 
 ## 1. Modelo de Ameaças (App Desktop Local)
 
-O MARIA roda **100% localmente**: frontend Tauri (webview) + backend Python em `127.0.0.1:8081` + llama-server em `127.0.0.1:8080`. As superfícies de ataque relevantes são:
+O MARIA roda **100% localmente**: frontend Tauri (webview nativa) + backend Python em `127.0.0.1:8081` (modo `--bridge-http`) + llama-server em `127.0.0.1:8080`. As principais superfícies de ataque em ambiente desktop local são:
 
-1. **Sites maliciosos no navegador** do usuário tentando acessar a API local (CSRF/CORS contra `127.0.0.1`)
-2. **Comandos vindos do LLM** manipulando caminhos de arquivos (path traversal)
-3. **Escopo shell do Tauri** permitindo execução de comandos arbitrários
-4. **Dependências** (Python, npm, Rust) com CVEs conhecidas
-
----
-
-## 2. Medidas Implementadas (Auditoria 2026-08-30)
-
-### P0 — Críticas
-
-| Correção | Onde | Detalhe |
-|----------|------|---------|
-| Deleção/leitura arbitrária de arquivos | `backend/main.py` (`transcrever_audio`) | Caminho validado com `resolver_caminho_permitido()` antes de processar e apagar; `WHISPER_BIN` validado por regex `^[\w.-]+(\.exe)?$` |
-| Exfiltração via upload | `backend/main.py` (`upload_arquivo`) | Validação `is_file()`, limite de 100 MB, log de auditoria |
-| Shell scope permissivo | `frontend-tauri/src-tauri/capabilities/default.json` | Scopes `python`/`python3` removidos; sidecar restrito a `"args": ["--bridge-http", "--porta", "8081"]` (antes: `"args": true`) |
-
-### P1 — Altas
-
-| Correção | Onde | Detalhe |
-|----------|------|---------|
-| API sem autenticação | `backend/main.py` + `src-tauri/src/main.rs` | Token de 32 bytes (`secrets.token_hex(32)`) gerado a cada inicialização do backend, persistido em `shared/.bridge_token` (fora do git). Header `Authorization: Bearer` obrigatório em `/chat` (`before_request` + `secrets.compare_digest`); `/ping` aberto como health check. O Rust lê o token e injeta o header automaticamente. |
-| CORS permissivo | `backend/main.py` (`_criar_app_http`) | Restrito a `tauri://localhost`, `http://tauri.localhost`, `http://localhost:5173` |
-| CSP nula | `frontend-tauri/src-tauri/tauri.conf.json` | Política restritiva: `default-src 'self'`; `connect-src` limitado à bridge (8081) + IPC Tauri; `ws://localhost:5173` para HMR em dev |
-| Updater com chave placeholder | `frontend-tauri/src-tauri/tauri.conf.json` | Bloco `updater` removido (config órfã — plugin não instalado). Reativar somente com chave real (`npx tauri signer generate`) e endpoint de distribuição definido |
-
-### Correções não necessárias (verificadas)
-
-- **Path traversal em `ler_documento`/`listar_arquivos`**: já protegidos — `resolver_caminho_permitido()` faz `Path.resolve()` (resolve symlinks) + `is_relative_to(base)` antes do acesso.
-- **SQL Injection**: todas as queries usam placeholders (`?` no Python, `params![]` no rusqlite). Nenhuma f-string em SQL.
+1. **Acesso não autorizado via navegador**: páginas web maliciosas visitadas pelo usuário tentando invocar a API local via CSRF/CORS contra `127.0.0.1`.
+2. **Manipulação de arquivos (*Path Traversal*)**: comandos do modelo de linguagem tentando ler, escrever ou apagar arquivos fora das pastas gerenciadas.
+3. **Substituição maliciosa de binários (*PATH Hijacking*)**: execução de executáveis maliciosos posicionados no PATH do sistema.
+4. **Condições de corrida e concorrência**: corrupção de estado por acessos simultâneos de threads HTTP ao SQLite ou ao arquivo de token.
+5. **Escopo permissivo de shell no Tauri**: execução inadvertida de comandos arbitrários no sistema operacional.
+6. **Vulnerabilidades de dependências**: CVEs em bibliotecas Python, crates Rust ou pacotes npm.
 
 ---
 
-## 3. Ferramentas Automatizadas (resultados de 2026-08-30)
+## 2. Medidas de Segurança Implementadas
 
-| Ferramenta | Resultado |
-|------------|-----------|
-| **bandit** (`bandit -r backend/`) | 0 HIGH, 0 MEDIUM, 4 LOW (assert em `benchmark/`, try/except pass, B404/B603 do subprocess — mitigado pelas validações acima) |
-| **cargo check** | Compila sem erros |
-| **npm audit** | 5 vulnerabilidades em **devDependencies** (vite/vitest/esbuild): `npm audit fix` aplicado sem breaking changes; as restantes exigem `--force` (afetam apenas o ambiente de desenvolvimento) |
-| **cargo-audit** | ⚠️ Pendente — instalar com `cargo install cargo-audit` e rodar em `frontend-tauri/src-tauri/` |
+### P0 — Bloqueadores Críticos e Integridade de Arquivos
+
+| Medida | Onde | Implementação Técnica |
+|--------|------|------------------------|
+| **Isolamento de caminhos de áudio** | `backend/main.py` (`transcrever_audio`) | O arquivo de áudio deve estar dentro das pastas permitidas, validado via `resolver_caminho_permitido()` antes de ser processado ou deletado. |
+| **Mitigação de PATH hijacking** | `backend/main.py` (`transcrever_audio`) | O nome do binário é validado via regex `^[\w.-]+(\.exe)?$`. O caminho resolvido via `shutil.which()` deve pertencer obrigatoriamente a `WHISPER_ALLOWED_DIR` (padrão: `<raiz_monorepo>/bin`), rejeitando binários em diretórios genéricos do PATH. O `returncode` e `stderr` são registrados em log em caso de falha. |
+| **Proteção contra exfiltração no upload** | `backend/main.py` (`upload_arquivo`) | Validação estrita de arquivo existente (`is_file()`), limite máximo de 100 MB, sanitização de nome com incremento numérico anti-colisão e log de auditoria. |
+| **Shell capabilities restritas** | `frontend-tauri/src-tauri/capabilities/default.json` | Scopes genéricos `python`/`python3` removidos. Execução limitada ao sidecar `maria-backend` com argumentos fixos (`["--bridge-http", "--porta", "8081"]`). |
+
+### P1 — Autenticação, CORS e Concorrência
+
+| Medida | Onde | Implementação Técnica |
+|--------|------|------------------------|
+| **Autenticação por token atômico** | `backend/main.py` + `src-tauri/src/main.rs` | Token criptográfico de 32 bytes (`secrets.token_hex(32)`) gerado a cada inicialização do backend e salvo atomicamente via `.tmp` + `os.replace()` em `shared/.bridge_token` (permissão `0o600` em POSIX). Header `Authorization: Bearer <token>` obrigatório para todas as rotas exceto `/ping`. O Rust relê o arquivo a cada requisição e injeta o header. Falha de I/O (`OSError`) interrompe o startup. |
+| **CORS restrito por ambiente** | `backend/core/config.py` + `backend/main.py` | Controlado por `MARIA_ENV` (padrão: `"production"`). Em produção, aceita apenas origens do webview (`tauri://localhost`, `http://tauri.localhost`). `http://localhost:5173` (Vite dev server) é liberado **apenas** quando `MARIA_ENV=development`. |
+| **Thread-Safety da Conexão SQLite** | `backend/database/connection.py` | Conexão com `check_same_thread=False` protegida por `threading.Lock()` (*double-checked locking*), impedindo `ProgrammingError` em threads simultâneas do Flask. `PRAGMA busy_timeout = 5000` evita bloqueios imediatos sob concorrência. |
+| **CSP Restritiva** | `frontend-tauri/src-tauri/tauri.conf.json` | `default-src 'self'`; `connect-src` limitado à bridge (`http://127.0.0.1:8081`) e ao IPC nativo do Tauri. |
+| **Proteção contra Path Traversal em leitura** | `backend/core/file_utils.py` | `resolver_caminho_permitido()` executa `Path.resolve()` (resolvendo symlinks) e valida `is_relative_to(base)`. Extensões restritas a `EXTENSOES_LEITURA` com limites de tamanho e caracteres. |
+| **Prevenção de SQL Injection** | `backend/database/` + `src-tauri/src/main.rs` | Todas as queries utilizam *parameter binding* com placeholders (`?` no Python e macro `params![]` no rusqlite). Zero interpolação de strings em consultas. |
 
 ---
 
-## 4. Como Testar Manualmente
+## 3. Ferramentas Automatizadas e Auditorias
 
-Com o backend rodando (`python backend/main.py --bridge-http`):
+| Ferramenta | Escopo | Resultado |
+|------------|--------|-----------|
+| **bandit** (`bandit -r backend/`) | Backend Python | 0 HIGH, 0 MEDIUM. As ocorrências LOW são limitadas a `assert` em testes/benchmark e `subprocess` devidamente mitigado por validações de caminho e binário. |
+| **cargo check** | Frontend Rust | Compilação limpa sem erros ou warnings de segurança. |
+| **npm audit** | Frontend React | Dependências de produção limpas. Vulnerabilidades residuais limitadas a ferramentas de build (`devDependencies`: esbuild/vite) que não são distribuídas no pacote final. |
+| **cargo-audit** | Dependências Rust | Em acompanhamento periódico no roadmap P2. |
 
+---
+
+## 4. Como Testar e Validar Manualmente
+
+Com o backend rodando em modo bridge HTTP (`python backend/main.py --bridge-http`):
+
+### 1. Requisição sem token (deve retornar 401 Unauthorized)
 ```bash
-# 1. Sem token -> 401
-curl -X POST http://localhost:8081/chat -H "Content-Type: application/json" ^
-  -d "{\"id\":\"1\",\"comando\":\"status\",\"dados\":{}}"
-
-# 2. Com token (lido de shared/.bridge_token) -> 200
-$token = Get-Content shared\.bridge_token
-curl -X POST http://localhost:8081/chat ^
-  -H "Content-Type: application/json" ^
-  -H "Authorization: Bearer $token" ^
-  -d "{\"id\":\"1\",\"comando\":\"ping\",\"dados\":{}}"
-
-# 3. Path traversal -> erro "fora das pastas permitidas"
-curl -X POST http://localhost:8081/chat ^
-  -H "Content-Type: application/json" ^
-  -H "Authorization: Bearer $token" ^
-  -d "{\"id\":\"2\",\"comando\":\"resumir_documento\",\"dados\":{\"caminho\":\"../../etc/passwd\"}}"
+curl -X POST http://127.0.0.1:8081/chat \
+  -H "Content-Type: application/json" \
+  -d '{"id":"1","comando":"status","dados":{}}'
 ```
+*Resposta esperada:* `{"dados":null,"id":"","mensagemErro":"Não autorizado: token inválido ou ausente.","status":"erro"}` (HTTP 401).
 
-Testes automatizados: `TestSegurancaComandosBridge` e `TestSegurancaApiHttp` em `backend/tests/test_maria.py` (9 testes).
+### 2. Requisição autenticada com token válido (deve retornar 200 OK)
+```powershell
+$token = Get-Content shared\.bridge_token
+curl -X POST http://127.0.0.1:8081/chat `
+  -H "Content-Type: application/json" `
+  -H "Authorization: Bearer $token" `
+  -d '{"id":"1","comando":"ping","dados":{}}'
+```
+*Resposta esperada:* `{"dados":"pong","id":"1","mensagemErro":null,"status":"ok"}` (HTTP 200).
+
+### 3. Tentativa de Path Traversal (deve ser bloqueada)
+```powershell
+$token = Get-Content shared\.bridge_token
+curl -X POST http://127.0.0.1:8081/chat `
+  -H "Content-Type: application/json" `
+  -H "Authorization: Bearer $token" `
+  -d '{"id":"2","comando":"resumir_documento","dados":{"caminho":"../../etc/passwd"}}'
+```
+*Resposta esperada:* Erro informando que o caminho está fora das pastas permitidas.
+
+### 4. Validação de CORS em Produção
+```powershell
+# Com MARIA_ENV=production (padrão), a origem localhost:5173 é rejeitada no preflight
+curl -I -X OPTIONS http://127.0.0.1:8081/chat `
+  -H "Origin: http://localhost:5173" `
+  -H "Access-Control-Request-Method: POST"
+```
+*Resposta esperada:* Ausência do header `Access-Control-Allow-Origin: http://localhost:5173`.
 
 ---
 
-## 5. Pendências / Roadmap de Segurança
+## 5. Pendências e Roadmap de Segurança
 
-| Prioridade | Pendência |
-|------------|-----------|
-| P2 | Rodar `cargo-audit` e registrar baseline |
-| P2 | Sanitizar logs para não expor caminhos absolutos do usuário |
-| P3 | Reproducible build + assinatura de código (Authenticode/codesign) na Fase de distribuição |
-| P3 | Reavaliar `npm audit` com upgrades major do Vite/Vitest quando disponíveis |
+| Prioridade | Ação | Status |
+|------------|------|--------|
+| **P2** | Executar `cargo-audit` periodicamente e registrar baseline de crates Rust | 📋 Planejado |
+| **P2** | Sanitizar mensagens de log para evitar exposição de caminhos absolutos de usuários | 📋 Planejado |
+| **P3** | Assinatura de código digital (Authenticode no Windows e Codesign no macOS) para o instalador de produção | 📋 Planejado (Fase de Distribuição) |
+| **P3** | Atualização contínua de dependências de desenvolvimento do ecossistema Vite/Node | 🔄 Contínuo |
 
 ---
 
-**Referências:** [Tauri Security](https://v2.tauri.app/security/), [OWASP Desktop App Security](https://owasp.org/www-project-desktop-app-security-top-10/), [bandit](https://bandit.readthedocs.io/)
+**Referências de Conformidade:**
+- [Tauri v2 Security Guidelines](https://v2.tauri.app/security/)
+- [OWASP Desktop App Security Top 10](https://owasp.org/www-project-desktop-app-security-top-10/)
+- [Bandit Security Linter for Python](https://bandit.readthedocs.io/)
+

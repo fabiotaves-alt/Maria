@@ -1,43 +1,53 @@
 # Decisões de Implementação — Banco de Dados (maria.db)
 
-**Status:** ✅ Unificado e Padronizado — v3.1.0  
-**Data Implementação:** 2026-08-28  
-**Local do Banco:** `shared/maria.db` (compartilhado backend/frontend)  
+**Versão:** v4.1.1  
+**Última atualização:** 2026-08-31  
+**Status:** ✅ Unificado e Padronizado (Python + Rust / SQLite FTS5)  
+**Local do Banco:** `shared/maria.db` (compartilhado entre backend Python e frontend Tauri)  
 **Schema Central:** `shared/schema.sql`
 
-## Resumo da Implementação
+---
 
-O banco de dados SQLite compartilhado segue um contrato unificado e idêntico em Python e Java:
+## 1. Resumo da Arquitetura de Dados
 
-### 1. Concorrência e Integridade
-- **Modo WAL (`PRAGMA journal_mode = WAL`)**: Ativado tanto em `connection.py` (Python) quanto em `DatabaseManager.java` (Java) para suportar leituras concorrentes sem bloqueio de escrita.
-- **Chaves Estrangeiras (`PRAGMA foreign_keys = ON`)**: Habilitado em ambos os lados, com `ON DELETE CASCADE` garantindo que a exclusão de conversas remova automaticamente as mensagens associadas.
-- **Nomenclatura**: Padronizada integralmente em português do Brasil (`conversas`, `mensagens`, `memoria`, `arquivos_indexados`, `automacoes`, `configuracoes`).
+O banco de dados SQLite compartilhado segue um contrato unificado e rigorosamente compartilhado entre o backend Python (`sqlite3`) e a camada nativa do frontend Tauri em Rust (`rusqlite`):
 
-### 2. Schema das 6 Tabelas Unificadas
+### 1.1. Concorrência e Integridade
+- **Modo WAL (`PRAGMA journal_mode = WAL`)**: Ativado tanto em `connection.py` (Python) quanto no `main.rs` (Rust), permitindo múltiplas leituras concorrentes simultâneas com operações de escrita.
+- **Chaves Estrangeiras (`PRAGMA foreign_keys = ON`)**: Habilitado em ambos os lados, com `ON DELETE CASCADE` garantindo que a exclusão de conversas remova atomicamente as mensagens associadas.
+- **Tolerância a Concorrência (`PRAGMA busy_timeout = 5000`)**: Configurado para que transações aguardem até 5 segundos em caso de contenção de escrita de threads simultâneas, evitando falhas de `sqlite3.OperationalError: database is locked`.
+- **Thread-Safety no Backend**: Em `backend/database/connection.py`, a conexão utiliza `check_same_thread=False` e é instanciada com proteção de `threading.Lock()` (*double-checked locking*), suportando com segurança o modelo multi-thread do servidor Flask (`threaded=True`).
+- **Nomenclatura Canônica**: Padronizada integralmente em português do Brasil no singular/plural semântico.
 
-| Tabela | Colunas | Propósito |
-|--------|---------|-----------|
-| `conversas` | `id`, `titulo`, `criado_em`, `atualizado_em` | Sessões de bate-papo |
-| `mensagens` | `id`, `conversa_id`, `role`, `conteudo`, `anexos`, `criado_em` | Mensagens trocadas (FK -> conversas ON DELETE CASCADE) |
-| `memoria` | `id`, `fato`, `categoria`, `relevancia`, `fonte`, `criado_em` | Fatos persistentes do usuário para RAG |
-| `arquivos_indexados` | `id`, `caminho`, `tipo`, `tamanho_bytes`, `hash_checksum`, `indexado_em`, `ultima_leitura` | Metadados de documentos e áudios |
-| `automacoes` | `id`, `nome`, `descricao`, `gatilho`, `acao`, `parametros`, `passos_json`, `ativo`, `execucoes_count`, `criado_em`, `ultima_execucao` | Fluxos de automação agendados ou disparados por eventos |
-| `configuracoes` | `chave`, `valor`, `descricao`, `atualizado_em` | Preferências de sistema, temas e modelos |
+---
 
-## Arquivos Centrais
+## 2. Schema das Tabelas Unificadas
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `shared/schema.sql` | DDL canônico de referência |
-| `backend/database/schema.py` | Inicializador DDL em Python |
-| `backend/database/connection.py` | Conexão SQLite Python com WAL e FKs |
-| `frontend-tauri/src-tauri/src/main.rs` | Conexão rusqlite no Tauri (Rust) com WAL e FKs; comandos CRUD compartilhando `shared/maria.db` |
+Definido no arquivo canônico [`shared/schema.sql`](../shared/schema.sql):
 
-> **Nota v4:** a camada DAO Java (`DatabaseManager.java`, `ConversaDAO.java`, etc.) da era JavaFX foi substituída pela persistência rusqlite no Tauri. Documento histórico: [`arquivo/IMPLEMENTACAO_DAO.md`](arquivo/IMPLEMENTACAO_DAO.md).
+| Tabela | Tipo | Colunas Principais | Propósito |
+|--------|------|--------------------|-----------|
+| `conversas` | Relacional | `id`, `titulo`, `criado_em`, `atualizado_em` | Sessões de chat do usuário |
+| `mensagens` | Relacional | `id`, `conversa_id`, `role`, `conteudo`, `anexos`, `criado_em` | Histórico de mensagens (FK -> `conversas` com `ON DELETE CASCADE`) |
+| `memoria` | Relacional | `id`, `fato`, `categoria`, `relevancia`, `fonte`, `criado_em` | Fatos persistentes aprendidos sobre o usuário (RAG pessoal) |
+| `arquivos_indexados` | Relacional | `id`, `caminho`, `tipo`, `tamanho_bytes`, `hash_checksum`, `indexado_em`, `ultima_leitura` | Metadados e integridade de documentos e áudios processados |
+| `automacoes` | Relacional | `id`, `nome`, `descricao`, `gatilho`, `acao`, `parametros`, `passos_json`, `ativo`, `execucoes_count`, `criado_em`, `ultima_execucao` | Rotinas de automação agendadas ou disparadas por gatilhos |
+| `configuracoes` | Relacional | `chave`, `valor`, `descricao`, `atualizado_em` | Preferências de sistema, temas, áudio e modelos |
+| `manual_redacao_fts` | Virtual (FTS5) | `tipo_documento` (unindexed), `secao`, `conteudo` | Tabela FTS5 para busca textual das normas do Manual de Redação da Presidência da República (tokenizer `unicode61 remove_diacritics 2`) |
 
-## Nota sobre Modelos LLM
+---
 
-- **Modelo padrão em produção:** `qwen2.5-omni-3b` via **llama-server** (`backend/core/llama_client.py`).
-- **Modelo legado/opcional:** `qwen3.5:4b` via **Ollama** (`backend/core/ollama_client.py`) — mantido apenas como caminho alternativo.
-- **Fonte da verdade:** `backend/core/config.py` — as constantes `LLAMA_MODEL` e `OLLAMA_MODEL` controlam o roteamento.
+## 3. Arquivos Centrais de Persistência
+
+| Arquivo | Tecnologia | Responsabilidade |
+|---------|------------|------------------|
+| `shared/schema.sql` | SQL (DDL) | Schema canônico de referência do monorepo |
+| `backend/database/connection.py` | Python (`sqlite3`) | Conexão singleton thread-safe compartilhada com PRAGMAs e locks |
+| `backend/database/schema.py` | Python | Inicializador DDL e gerenciamento de migrations/tabelas |
+| `backend/database/ingest_manual_redacao.py` | Python | Script idempotente de ingestão dos 255 trechos no FTS5 |
+| `frontend-tauri/src-tauri/src/main.rs` | Rust (`rusqlite`) | Conexão nativa e comandos IPC do Tauri compartilhando `shared/maria.db` |
+
+---
+
+> **Histórico:** A implementação original da era JavaFX (DAOs em Java com JDBC) foi arquivada em [`docs/arquivo/IMPLEMENTACAO_DAO.md`](arquivo/IMPLEMENTACAO_DAO.md).
+

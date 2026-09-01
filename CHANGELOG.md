@@ -1,30 +1,60 @@
-# CHANGELOG - Projeto MARIA
+# Changelog — Projeto MARIA
 
-Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
+Todas as alterações notáveis neste projeto são documentadas neste arquivo.
+O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
+e este projeto adere ao [Versionamento Semântico](https://semver.org/).
 
-## [4.1.0] — RAG do Manual de Redação da Presidência da República (FTS5) — 2026-08-30
+## [4.1.1] - 2026-08-31
 
-### ✨ Nova funcionalidade
+### Segurança
+- **Escrita atômica do token bridge** (`backend/main.py`): persistência do token via arquivo temporário `.tmp` e `os.replace()`, eliminando risco de leitura truncada concorrente. Em ambientes POSIX, aplica permissão estrita `0o600`. Falhas de I/O (`OSError`) propagam explicitamente para impedir inicialização sem token seguro.
+- **CORS restrito por ambiente** (`backend/core/config.py`, `backend/main.py`): introduzida variável `MARIA_ENV` (padrão: `"production"`). O Vite dev server (`http://localhost:5173`) só é liberado quando `MARIA_ENV=development`. Em produção, apenas `tauri://localhost` e `http://tauri.localhost` são permitidos.
+- **Mitigação de PATH hijacking no Whisper** (`backend/main.py`): resolução do binário via `shutil.which()` com validação obrigatória de pertencimento ao diretório configurado em `WHISPER_ALLOWED_DIR` (padrão: `<raiz_monorepo>/bin`). Adicionado log detalhado de `returncode` e `stderr` em caso de falha de execução.
+- **Thread-safety da conexão SQLite** (`backend/database/connection.py`): adicionado `check_same_thread=False`, proteção com `threading.Lock()` (padrão double-checked locking) em `get_connection()` e `close_connection()`, além de `PRAGMA busy_timeout = 5000` para tolerância a concorrência entre threads do Flask.
 
-- **RAG textual via SQLite FTS5**: Adicionada consulta ao **Manual de Redação da Presidência da República** (3ª edição) sem nenhuma dependência nova, reaproveitando `shared/maria.db`. Ferramenta de leitura `consultar_manual_redacao`, encadeada automaticamente antes de `criar_documento` quando o pedido é de um documento oficial (ofício, exposição de motivos, mensagem ou e-mail institucional).
-- **Chunker e ingestão**: `backend/database/ingest_manual_redacao.py` segmenta o `.md` por cabeçalhos Markdown, classifica cada trecho por `tipo_documento` (com base no número da seção) e popula a tabela virtual `manual_redacao_fts`. Idempotente (execuções repetidas não duplicam) e com JSON de depuração ignorado no Git. **255 trechos** ingeridos a partir de `backend/docs/manual_redacao_presidencia.md` (copiado de `docs/`).
-- **Consistência de domínio**: desde a 3ª edição do Manual, "aviso" e "memorando" foram unificados sob o termo **ofício** ("padrão ofício"). O enum de `tipo_documento` usa `oficio` para cobrir os três casos históricos; nenhuma categoria separada `aviso`/`memorando` foi criada. O parâmetro opcional `tipo_documento_oficial` em `criar_documento` orienta a formatação.
+### Modificado
+- **Cálculo de TTFT no cliente LLM** (`backend/core/llama_client.py`): início da medição de *Time To First Token* movido para antes da chamada HTTP `_make_request()`, capturando com precisão o tempo real de rede, inferência e streaming do primeiro token.
 
-### 🔧 Implementação técnica
+### Corrigido
+- **Tratamento de negação e ambiguidade no benchmark** (`backend/benchmark/runners/maria_runner.py`): cancelamento pelo usuário ou respostas ambíguas agora anulam `tool_call_final` e completam o ciclo de confirmação sem invocar a ferramenta indevidamente.
+- **Propagação de erros de execução no benchmark** (`backend/benchmark/runners/maria_runner.py`): exceções de runtime durante a execução de ferramentas passam a preencher `final_message` com a mensagem amigável de erro em vez de retornar string vazia.
 
-- **`shared/schema.sql`**: tabela virtual `manual_redacao_fts` com `tokenize = 'unicode61 remove_diacritics 2'` (busca tolerante a acentos).
-- **`backend/database/schema.py`**: criação da FTS5 em `init_db()` (com `try/except` para SQLite sem FTS5) e `DROP TABLE` em `limpar_tudo()`.
-- **`backend/core/manual_redacao.py`** (novo): `consultar_manual()` com query FTS5 segura (tokens escapados, AND implícito), ordenação `bm25` e truncamento por trecho (`MANUAL_REDACAO_MAX_CHARS_POR_TRECHO`, padrão 800) — evita estourar o contexto do modelo (padrão OLLAMA_NUM_CTX=2048 / LLAMA_NUM_CTX=8192).
-- **`backend/core/tools_schema.py`**: nova `FERRAMENTA_CONSULTAR_MANUAL_REDACAO`, registrada em `FERRAMENTAS_LEITURA` e `TOOLS_SCHEMA`; ramo em `executar_ferramenta_leitura`; `FERRAMENTA_CRIAR_DOCUMENTO` atualizada (removida menção a "memorandos", adicionada instrução de consulta prévia e campo `tipo_documento_oficial`).
-- **`backend/core/config.py`**: `MANUAL_REDACAO_TOP_K` (5) e `MANUAL_REDACAO_MAX_CHARS_POR_TRECHO` (800), com override via ENV.
-- **Reforço de prompt**: `chat_session.py` (regra 9 e linha de ferramenta), `ollama_client.py` e `llama_client.py` instruem o modelo a chamar `consultar_manual_redacao` antes de `criar_documento` para documentos oficiais.
-- **`.gitignore`**: `backend/database/manual_redacao_chunks.json` (artefato de depuração).
+### Documentação
+- **Reestruturação e padronização documental completa (v4.1.1)**:
+  - `README.md`: reescrita integral com foco na proposta de valor, apresentação de recursos para usuários e desenvolvedores, diagrama ASCII da arquitetura de 3 camadas, matriz de segurança e quickstart.
+  - `docs/GUIA_INSTALACAO.md`: criação de guia unificado e definitivo de instalação (Node, Rust, Python, llama-server e whisper.cpp com suporte a `WHISPER_ALLOWED_DIR`, autodiagnóstico no PowerShell e troubleshooting).
+  - `docs/ARQUITETURA_SISTEMA.md` e `docs/SEGURANCA.md`: revisados e atualizados para detalhar as proteções atômicas, modelo de concorrência e isolamento local da v4.1.1.
+  - `docs/DECISOES_BANCO_DADOS.md`: formalização da 7ª tabela (virtual FTS5 `manual_redacao_fts`), `PRAGMA busy_timeout = 5000` e thread-safety com `threading.Lock()`.
+  - `docs/GUIA_TESTES_EMPIRICOS.md`: atualização dos 5 níveis de teste com injeção do header de autorização Bearer nas chamadas à bridge HTTP e padronização em `pytest` (120 testes).
+  - `docs/PROGRESSO_DESENVOLVIMENTO.md`: consolidação da tabela de releases, percentual de conclusão do roadmap (~94%) e checklist de fases.
+  - `docs/MELHORIAS_RELATORIO.md`: reestruturado como Backlog Técnico de Engenharia & Arquitetura (v4.2+) com matriz de rastreabilidade de melhorias entregues vs. futuras e timeline de entregas.
 
-### 🧪 Testes
+### Limpeza & Organização
+- **Consolidação e remoção de duplicatas**:
+  - `docs/CHANGELOG.md`: unificado e eliminado em favor do `CHANGELOG.md` canônico na raiz.
+  - `docs/INSTALL_GUIDE.md` e `docs/INSTALACAO_WHISPER.md`: consolidados e substituídos pelo `docs/GUIA_INSTALACAO.md`.
+  - `docs/manual_redacao_presidencia.md`: cópia da raiz de docs eliminada (mantida a fonte de dados canônica consumida pelo ingestor em `backend/docs/`).
+  - `backend/READMEbackend.md`: arquivo fóssil do MVP Fase 2 removido.
+  - `docs/arquivo/`: arquivados `PLANO_MIGRACAO_TAURI_V4.md`, `RELATORIO_TESTES_v4.md` e `DIAGNOSTICO_MEMORIA.md` para manter a pasta `docs/` limpa apenas com documentação viva.
 
-- **Status**: 116/116 testes passaram (`python -m unittest discover -s backend/tests -v`), executados 2× para confirmar isolamento do `_DB_PATH` em `TestManualRedacaoConsulta`.
-- **3 novas classes**: `TestManualRedacaoIngestao` (chunker/classificador), `TestManualRedacaoConsulta` (consulta FTS5, truncamento, isolamento) e `TestFerramentaConsultarManualRedacao` (integração da ferramenta e consistência do domínio). Total: 11 testes novos.
-- **Cobertura de código**: adições concentradas em `schema.py`, `ingest_manual_redacao.py`, `manual_redacao.py`, `tools_schema.py` e reforços de prompt — sem cobertura formal nova mensurada (não executado `coverage`); validação via `py_compile` + suíte unitária completa.
+### Testes
+- **120 testes unitários**: validação da suíte completa de testes no backend, incluindo casos de concorrência, cálculo de métricas de inferência, isolamento SQLite e tratamento de exceções.
+
+---
+
+## [4.1.0] - 2026-08-30
+
+### Adicionado
+- **RAG do Manual de Redação da Presidência da República via SQLite FTS5**: ferramenta de leitura `consultar_manual_redacao` permitindo busca de normas e padrões de redação oficial diretamente em `shared/maria.db`, sem dependências externas.
+- **Chunker e pipeline de ingestão** (`backend/database/ingest_manual_redacao.py`): segmentação e classificação de 255 trechos estruturados a partir do documento do Manual de Redação com suporte idempotente.
+- **Tabela virtual FTS5** (`shared/schema.sql`): `manual_redacao_fts` configurada com tokenizer `unicode61 remove_diacritics 2` para busca textual com tolerância a acentuação.
+- **Configurações de RAG** (`backend/core/config.py`): variáveis `MANUAL_REDACAO_TOP_K` (5) e `MANUAL_REDACAO_MAX_CHARS_POR_TRECHO` (800) com suporte a override via ambiente.
+
+### Modificado
+- **Schema e prompts de ferramentas oficiais** (`backend/core/tools_schema.py`, `backend/core/chat_session.py`): `criar_documento` atualizada com suporte ao parâmetro `tipo_documento_oficial` e regras no system prompt orientando consulta prévia ao Manual de Redação.
+
+### Testes
+- Adicionados 11 novos testes unitários cobrindo ingestão, classificação, consultas FTS5, truncamento de contexto e integração de ferramentas.
 
 ---
 ## [4.0.2] — Documentação da v4.0 e Manutenção
@@ -66,7 +96,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ### 🚀 Nova Arquitetura (v4.0)
 
-**Status:** Em desenvolvimento ativo — Consulte [`docs/PLANO_MIGRACAO_TAURI_V4.md`](docs/PLANO_MIGRACAO_TAURI_V4.md) para roadmap completo.
+**Status:** Em desenvolvimento ativo — Consulte [`docs/arquivo/PLANO_MIGRACAO_TAURI_V4.md`](docs/arquivo/PLANO_MIGRACAO_TAURI_V4.md) para roadmap completo.
 
 #### Mudanças Estruturais
 
