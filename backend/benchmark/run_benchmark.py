@@ -19,6 +19,10 @@ if MARIA_ROOT not in sys.path:
 import re
 import requests
 
+# Alias no módulo: permite patch consistente via unittest.mock e evita
+# import local dentro de funções.
+_requests = requests
+
 from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, LLAMA_NUM_CTX
 from core.llama_client import LlamaClient as OllamaClient, LlamaClientError as OllamaClientError  # noqa: E402
 
@@ -150,8 +154,6 @@ def _obter_metadados_modelo() -> dict | None:
         id, id_exibicao, quantizacao, n_params, n_vocab, n_ctx, n_ctx_train,
         tamanho_bytes, rotulo_tamanho, tamanho_legivel
     """
-    import requests as _requests
-
     try:
         resp = _requests.get(f"{LLAMA_BASE_URL}/v1/models", timeout=5)
         if resp.status_code != 200:

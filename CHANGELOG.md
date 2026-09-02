@@ -2,6 +2,28 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.2] — Metadados do modelo no benchmark + fix da suíte de testes — 2026-09-02
+
+### ✨ Nova funcionalidade
+
+- **Nome real do modelo via `/v1/models`** (`backend/benchmark/run_benchmark.py`):
+  `_obter_metadados_modelo()` consulta o llama-server e extrae id, id_exibicao, quantização (mapeo ftype → nome GGML), n_params, n_vocab, n_ctx, n_ctx_train, tamanho_bytes e rótulo derivado. Quando o id é um blob/camino local (`C:\blob\sha256-...`), o reporte mostra o nome legible (`Qwen2.5 3B`) em vez do blob.
+- **Seção Modelo enriquecida em `report.md`** (`backend/benchmark/analysis/report.py`):
+  tabela com modelo configurado/cargado/derivado, quantização, parámetros, n_ctx (servidor/treino) e tamanho. Alerta `⚠️` de divergência só quando relevante (se o id NÃO é blob do mesmo modelo) e aviso `ℹ️` quando `LLAMA_NUM_CTX` > `n_ctx` real do servidor.
+- **`log.json` com bloco `meta`**: `run_benchmark.py` agora registra `modelo_configurado`, `modelo_carregado`, `metadados_modelo` e `llama_num_ctx_config`; `compare_runs.py` é retrocompatível com o formato antigo (lista plana) e novo (dict com `individual`).
+- **`MariaRunner.modelo_efetivo`** (`backend/benchmark/runners/maria_runner.py`): usa o modelo realmente cargado no llama-server quando disponível, com fallback ao `model` do cliente.
+- **README do benchmark** (`backend/benchmark/README_benchmark.md`): comandos corrigidos (`python -m backend.benchmark.run_benchmark ...`).
+
+### 🧪 Testes
+
+- **138/138 testes passaram** (`python -m pytest backend/tests/test_maria.py`).
+- **18 testes novos**: `TestObterMetadadosModelo` (3), `TestDerivarRotuloModelo` (5), `TestPareceCaminhoLocal` (5), `TestAlertaNaoDisparaParaBlob` (1), `TestAvisoNctx` (1) e `TestFtypeParaNome` (3).
+- **Fix da estrutura da suíte**: `test_maria.py` não compilava (`IndentationError` — classes intercaladas dentro do corpo de métodos); corpos órfãos reorganizados e `test_obter_metadados_status_500` movido à classe correta.
+- **Fix de testabilidade**: alias `_requests = requests` a nível de módulo en `run_benchmark.py` permite `patch("backend.benchmark.run_benchmark._requests.get")` (antes o `import` local dentro da função fazia o patch apuntar a um atributo inexistente).
+- **Cobertura**: validación via suíte completa + verificação end-to-end do reporte (todos os parámetros presentes, sem alerta espúria para blob do mesmo modelo); sem `coverage` formal mensurado.
+
+---
+
 ## [4.1.1] — Correções críticas de segurança — 2026-08-31
 
 ### 🔒 Segurança

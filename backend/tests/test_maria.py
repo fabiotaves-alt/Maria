@@ -2293,6 +2293,19 @@ class TestObterMetadadosModelo(unittest.TestCase):
     def test_obter_metadados_servidor_offline(self):
         import requests as req
         from backend.benchmark.run_benchmark import _obter_metadados_modelo
+
+        with patch("backend.benchmark.run_benchmark._requests.get",
+                   side_effect=req.exceptions.ConnectionError()):
+            self.assertIsNone(_obter_metadados_modelo())
+
+    def test_obter_metadados_status_500(self):
+        from backend.benchmark.run_benchmark import _obter_metadados_modelo
+
+        mock_response = MagicMock(status_code=500)
+        with patch("backend.benchmark.run_benchmark._requests.get", return_value=mock_response):
+            self.assertIsNone(_obter_metadados_modelo())
+
+
 class TestDerivarRotuloModelo(unittest.TestCase):
     """Testa a derivação de rótulo legível a partir de n_params e n_vocab."""
 
@@ -2337,6 +2350,11 @@ class TestPareceCaminhoLocal(unittest.TestCase):
         self.assertFalse(_parece_caminho_local("qwen2.5-omni-3b"))
 
     def test_vazio(self):
+        from backend.benchmark.run_benchmark import _parece_caminho_local
+        self.assertFalse(_parece_caminho_local(""))
+        self.assertFalse(_parece_caminho_local(None))
+
+
 class TestAlertaNaoDisparaParaBlob(unittest.TestCase):
     """Testa que o alerta de divergência NÃO dispara quando o id é blob
     do mesmo modelo configurado."""
@@ -2415,12 +2433,6 @@ class TestAvisoNctx(unittest.TestCase):
         self.assertIn("n_ctx", report)
 
 
-
-        from backend.benchmark.run_benchmark import _parece_caminho_local
-        self.assertFalse(_parece_caminho_local(""))
-        self.assertFalse(_parece_caminho_local(None))
-
-
 class TestFtypeParaNome(unittest.TestCase):
     """Testa a conversão de ftype (enum GGML) para nome legível."""
 
@@ -2435,20 +2447,6 @@ class TestFtypeParaNome(unittest.TestCase):
     def test_none(self):
         from backend.benchmark.run_benchmark import _ftype_para_nome
         self.assertEqual(_ftype_para_nome(None), "")
-
-
-
-        with patch("backend.benchmark.run_benchmark._requests.get",
-                   side_effect=req.exceptions.ConnectionError()):
-            self.assertIsNone(_obter_metadados_modelo())
-
-    def test_obter_metadados_status_500(self):
-        from backend.benchmark.run_benchmark import _obter_metadados_modelo
-        mock_response = MagicMock(status_code=500)
-        with patch("backend.benchmark.run_benchmark._requests.get", return_value=mock_response):
-            self.assertIsNone(_obter_metadados_modelo())
-
-
 
 
 if __name__ == "__main__":

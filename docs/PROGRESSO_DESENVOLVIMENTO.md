@@ -2,8 +2,8 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.1  
-**Última alteração:** 2026-08-31  
+**Versão Atual:** v4.1.2  
+**Última alteração:** 2026-09-02  
 
 ---
 
@@ -11,11 +11,11 @@
 
 | Área | Progresso | Observações |
 |------|-----------|-------------|
-| Backend Core & Ferramentas (Python) | 95% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark |
+| Backend Core & Ferramentas (Python) | 96% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo |
 | Segurança & Concorrência | 95% | Token atômico, CORS por ambiente, SQLite thread-safe, PATH hijacking |
 | Frontend (Tauri v2 + React) | 92% | Interface completa, temas, persistência rusqlite, sidecar |
 | Integração Bridge (HTTP/Sidecar) | 95% | 19 comandos bridge, autenticação Bearer, health check |
-| **Total do Projeto (v4.x)** | **~94%** | MVP v4 estável, pronto para empacotamento final |
+| **Total do Projeto (v4.x)** | **~95%** | MVP v4 estável, pronto para empacotamento final |
 
 ---
 
@@ -28,6 +28,7 @@
 | **4.0.2** | 2026-08-30 | Documentação da v4.0 e manutenção de configurações (.gitignore) | ✅ Concluída |
 | **4.1.0** | 2026-08-30 | RAG do Manual de Redação da Presidência da República (SQLite FTS5, 255 trechos) | ✅ Concluída |
 | **4.1.1** | 2026-08-31 | Correções críticas de segurança (token atômico, CORS, PATH hijacking, SQLite thread-safe) + TTFT + robustez MariaRunner | ✅ Concluída |
+| **4.1.2** | 2026-09-02 | Metadados do modelo no benchmark (nome real via /v1/models + parámetros) + fix da suíte de testes | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -63,15 +64,24 @@
 - [ ] Validação de instalação *one-click* em máquina limpa (sem dependência de Python instalado)
 
 ### Fase 5 — Qualidade, Testes & Benchmark
-- [x] Suíte de testes unitários do backend (120 testes passando via `pytest`)
+- [x] Suíte de testes unitários do backend (138 testes passando via `pytest`)
 - [x] Testes unitários do frontend TypeScript (Vitest) e da camada Rust (`cargo test`)
 - [x] Framework de benchmark de tool calling com relatório e log JSON
+- [x] Metadados do modelo no benchmark: nome real via `/v1/models` + parámetros (quantização, n_params, n_ctx, tamanho) em `log.json` e `report.md`
+- [x] Comparação de runs retrocompatible (`log.json` antigo e novo)
 - [x] Robustez no `MariaRunner`: tratamento correto de negação, ambiguidade e mensagens de erro
 - [ ] Cobertura formal de código (`pytest-cov`)
 
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.2 — Metadados do Modelo no Benchmark & Fix da Suíte (2026-09-02)
+- **Nome real do modelo**: `_obter_metadados_modelo()` consulta `GET {LLAMA_BASE_URL}/v1/models` e extrae id, quantização (mapeo ftype GGML), n_params, n_ctx, tamanho; blobs/caminhos locais são exibidos como rótulo legível (`Qwen2.5 3B`).
+- **Reporte enriquecido**: seção Modelo com configurado/cargado/derivado, quantização, parámetros, n_ctx e tamanho; aviso quando `LLAMA_NUM_CTX` excede o `n_ctx` do servidor.
+- **`log.json` com meta**: bloco `meta` opcional; `compare_runs.py` suporta formato antigo (lista) e novo (dict).
+- **Suíte de testes**: estrutura corrigida (file não compilaba) + 18 testes novos; 138/138 passando.
+- **Testes**: 138 testes passando na suíte completa do backend.
 
 ### 4.1.1 — Correções Críticas de Segurança & Robustez (2026-08-31)
 - **Token Atômico**: escrita atômica do `.bridge_token` via arquivo temporário e rename do SO (`os.replace`), prevenindo leituras parciais por clientes concorrentes.
