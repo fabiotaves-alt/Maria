@@ -14,6 +14,26 @@ except ImportError:
     # python-dotenv não instalado, usar apenas variáveis de ambiente do sistema
     pass
 
+# ------------------------------------------------------------------
+# System Prompt da MARIA (carregado de arquivo externo)
+# ------------------------------------------------------------------
+_SYSTEM_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "system_prompt.txt")
+
+
+def _carregar_system_prompt() -> str:
+    """Carrega o system prompt do arquivo. Falha explicitamente se não encontrar."""
+    try:
+        with open(_SYSTEM_PROMPT_PATH, encoding="utf-8") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        raise RuntimeError(
+            f"System prompt não encontrado: {_SYSTEM_PROMPT_PATH}\n"
+            "Crie o arquivo backend/core/system_prompt.txt com as instruções do sistema."
+        ) from None
+
+
+MARIA_SYSTEM_PROMPT = _carregar_system_prompt()
+
 # Configurações do Ollama (suportam override via ENV)
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3.5:4b")

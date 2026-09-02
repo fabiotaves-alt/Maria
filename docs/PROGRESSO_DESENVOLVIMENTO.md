@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.3  
+**Versão Atual:** v4.1.5  
 **Última alteração:** 2026-09-02  
 
 ---
@@ -11,11 +11,11 @@
 
 | Área | Progresso | Observações |
 |------|-----------|-------------|
-| Backend Core & Ferramentas (Python) | 96% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo e sampler configurável |
+| Backend Core & Ferramentas (Python) | 97% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo, sampler configurável e system prompt externo |
 | Segurança & Concorrência | 95% | Token atômico, CORS por ambiente, SQLite thread-safe, PATH hijacking |
 | Frontend (Tauri v2 + React) | 92% | Interface completa, temas, persistência rusqlite, sidecar |
 | Integração Bridge (HTTP/Sidecar) | 95% | 19 comandos bridge, autenticação Bearer, health check |
-| **Total do Projeto (v4.x)** | **~95%** | MVP v4 estável, pronto para empacotamento final |
+| **Total do Projeto (v4.x)** | **~96%** | MVP v4 estável, pronto para empacotamento final |
 
 ---
 
@@ -30,6 +30,8 @@
 | **4.1.1** | 2026-08-31 | Correções críticas de segurança (token atômico, CORS, PATH hijacking, SQLite thread-safe) + TTFT + robustez MariaRunner | ✅ Concluída |
 | **4.1.2** | 2026-09-02 | Metadados do modelo no benchmark (nome real via /v1/models + parámetros) + fix da suíte de testes | ✅ Concluída |
 | **4.1.3** | 2026-09-02 | Prompt, resposta bruta do modelo e parâmetros de sampler configuráveis no benchmark | ✅ Concluída |
+| **4.1.4** | 2026-09-02 | System prompt centralizado em arquivo externo (`backend/core/system_prompt.txt`) com remoção do reforço hardcoded do LlamaClient | ✅ Concluída |
+| **4.1.5** | 2026-09-02 | Normalização de chaves JSON de tool calls + validação flexível de argumentos e keywords no benchmark | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -42,6 +44,7 @@
 - [x] Tool calling com confirmação do usuário e encadeamento de ferramentas de leitura
 - [x] Bridge nos modos `--bridge` (stdin/stdout JSON-lines) e `--bridge-http` (porta 8081)
 - [x] Medição precisa de TTFT (*Time To First Token*) no streaming de resposta
+- [x] System prompt centralizado em arquivo externo (`backend/core/system_prompt.txt`) via `MARIA_SYSTEM_PROMPT` no config; normalização de chaves JSON nas tool calls do `LlamaClient`
 
 ### Fase 2 — Manipulação de Documentos & Segurança
 - [x] Criação de planilhas Excel (.xlsx) e documentos Word (.docx)
@@ -65,18 +68,31 @@
 - [ ] Validação de instalação *one-click* em máquina limpa (sem dependência de Python instalado)
 
 ### Fase 5 — Qualidade, Testes & Benchmark
-- [x] Suíte de testes unitários do backend (138 testes passando via `pytest`)
+- [x] Suíte de testes unitários do backend (145 testes passando via `pytest`)
 - [x] Testes unitários do frontend TypeScript (Vitest) e da camada Rust (`cargo test`)
 - [x] Framework de benchmark de tool calling com relatório e log JSON
 - [x] Metadados do modelo no benchmark: nome real via `/v1/models` + parámetros (quantização, n_params, n_ctx, tamanho) em `log.json` e `report.md`
 - [x] Prompt, resposta bruta do modelo e parâmetros de sampler (16 configuráveis via ENV) expostos por execução no benchmark
 - [x] Comparação de runs retrocompatible (`log.json` antigo e novo)
 - [x] Robustez no `MariaRunner`: tratamento correto de negação, ambiguidade e mensagens de erro
+- [x] Normalização no benchmark: chaves de argumentos em minúsculas, `nome_arquivo` com/sem extensão equivalente, listas como conjuntos e keyword match sem falsos negativos por acento
 - [ ] Cobertura formal de código (`pytest-cov`)
 
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.5 — Normalização de Chaves e Argumentos (2026-09-02)
+- **Tool calling tolerante à caixa**: `_extrair_tool_call_da_resposta()` e `_tentar_extrair_tool_call_textual()` (`backend/core/llama_client.py`) normalizam as chaves dos argumentos para minúsculas — o modelo às vezes gera `'Conteudo'`/`'Nome_arquivo'`, o que invalidava a execução da ferramenta e derrubava a tool accuracy do benchmark (criar_documentos: 33%).
+- **`MariaRunner` flexível**: `_argumentos_compativeis()` reescrita (chaves minúsculas, listas como conjuntos) + novos helpers `_normalizar_valor()` (remove extensão de `nome_arquivo`) e `_normalizar_texto()` (acentos removidos); keyword match do `run()` usa a normalização — `'não foi localizado'` casa com `'nao foi localizado'`.
+- **Tarefas 21-23** (`tasks_edges.py`): keywords expandidas para 5 sinônimos de inexistência e nomes de arquivo inequivocamente fictícios (`arquivo_que_nao_existe`, `planilha_inexistente`, `planilha_nao_existe`).
+- **Testes**: 145/145 passando + 7 verificações funcionais manuais.
+
+### 4.1.4 — System Prompt Externo (2026-09-02)
+- **Prompt fora do código**: `backend/core/system_prompt.txt` (~2,2 KB) carregado por `MARIA_SYSTEM_PROMPT` em `backend/core/config.py`, com `RuntimeError` explícito se ausente.
+- **Refatoração**: bloco `SYSTEM_PROMPT` hardcoded removido de `ChatSession` (mantido como alias) e reforço hardcoded de tool calling removido de `_montar_mensagens_com_reforco()` no `LlamaClient` (fallback para o config). Injeção dinâmica via `get_historico_com_system()` preservada (contrato de `main.py`, `contar_mensagens()` e testes).
+- **Divergência deliberada**: `ollama_client.py` mantém o reforço hardcoded original — alinhar em tarefa futura.
+- **Testes**: 145/145 passando (2 testes atualizados para strings do prompt externo).
 
 ### 4.1.3 — Prompt, Resposta Bruta e Sampler no Benchmark (2026-09-02)
 - **Sampler configurável**: 15 novas variáveis `LLAMA_*` em `backend/core/config.py` (repeat_penalty, top_k, top_p, min_p, dry_*, xtc_*, typical_p, top_n_sigma, etc.) com defaults idênticos aos do llama-server; `montar_sampler_params()` é a fonte única da verdade e `_montar_payload` envia os 16 parâmetros nas chamadas com tools.

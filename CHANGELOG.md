@@ -2,6 +2,49 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.5] — Normalização de chaves e argumentos (tool calling + benchmark) — 2026-09-02
+
+### 🔧 Correções
+
+- **Normalização de chaves JSON nas tool calls** (`backend/core/llama_client.py`):
+  `_extrair_tool_call_da_resposta()` converte todas as chaves do dict de argumentos para minúsculas após o `json.loads` (corrige falsos negativos quando o modelo gera `'Conteudo'`, `'Nome_arquivo'`, etc.). A mesma normalização foi aplicada ao fallback textual `_tentar_extrair_tool_call_textual()`. Beneficia também o `main.py` (produção), pois as ferramentas esperam chaves minúsculas (`conteudo`, `nome_arquivo`, `titulo`).
+- **Validação flexível de argumentos no benchmark** (`backend/benchmark/runners/maria_runner.py`):
+  `_argumentos_compativeis()` reescrita — chaves comparadas em minúsculas, listas (ex: `colunas`) comparadas como conjuntos (ordem irrelevante) e novo helper `_normalizar_valor()` remove extensões conhecidas (`.xlsx`, `.xls`, `.docx`, `.doc`) de `nome_arquivo` antes da comparação. `'gastos.xlsx'` agora equivale a `'gastos'`.
+- **Keyword match sem falsos negativos por acento** (`backend/benchmark/runners/maria_runner.py`):
+  novo helper `_normalizar_texto()` (lowercase + NFKD sem combining); o cálculo de `keyword_match` no `run()` normaliza texto e keywords — `'não encontrado'` agora casa com `'nao encontrado'`.
+- **Tarefas 21-23 do benchmark** (`backend/benchmark/tasks/tasks_edges.py`): keywords expandidas de `['exist']` para `['exist', 'encontrado', 'nao existe', 'ausente', 'nao foi localizado']` e nomes de arquivo tornados inequivocamente fictícios (`arquivo_que_nao_existe`, `planilha_inexistente`, `planilha_nao_existe`).
+
+### 🧪 Testes
+
+- **145/145 testes passaram** (`python -m pytest backend/tests/test_maria.py`), incluindo os 3 de `TestAcuraciaDeArgumentos`, que permanecem compatíveis com a nova lógica.
+- **7 verificações funcionais** executadas manualmente: normalização no fallback textual, normalização na extração estruturada, `esperados=None`, chaves maiúsculas + extensão + lista fora de ordem, detecção de divergência real, keywords com/sem acento e integridade das tarefas 21-23.
+
+---
+
+## [4.1.4] — System prompt centralizado em arquivo externo — 2026-09-02
+
+### ✨ Nova funcionalidade
+
+- **System prompt em arquivo externo** (`backend/core/system_prompt.txt`): o prompt do sistema da MARIA não vive mais hardcoded no código. Movido de `backend/system_prompt.txt` para `backend/core/system_prompt.txt` (~2,2 KB).
+- **`MARIA_SYSTEM_PROMPT` no config** (`backend/core/config.py`): carregado do arquivo na inicialização do módulo via `_carregar_system_prompt()`, com falha explícita (`RuntimeError`) se o arquivo não for encontrado.
+
+### 🔧 Refatoração
+
+- **`backend/core/chat_session.py`**: bloco `SYSTEM_PROMPT` hardcoded (~50 linhas) removido da classe `ChatSession`; substituído por alias `SYSTEM_PROMPT = MARIA_SYSTEM_PROMPT` para compatibilidade com código legado. A injeção dinâmica via `get_historico_com_system()` foi preservada — o `historico` interno continua contendo apenas mensagens `user`/`assistant` (contrato usado por `main.py`, `contar_mensagens()` e testes).
+- **`backend/core/llama_client.py`**: reforço hardcoded de tool calling (~31 linhas) removido de `_montar_mensagens_com_reforco()`; a função agora garante uma única mensagem `role="system"` no início, com fallback para `MARIA_SYSTEM_PROMPT` do config.
+- **`backend/tests/test_maria.py`**: 2 testes atualizados para strings do prompt externo (`test_system_prompt_exige_portugues`, `test_system_prompt_contem_excecao_para_arquivo_ficticio`).
+
+### ⚠️ Divergência conhecida
+
+- **`backend/core/ollama_client.py` não foi alterado** (decisão deliberada): mantém `_montar_mensagens_com_reforco()` com reforço hardcoded original. Comportamento diverge do `LlamaClient` até alinhamento futuro.
+
+### 🧪 Testes
+
+- **145/145 testes passaram** (`python -m pytest backend/tests/test_maria.py`) + 33 subtests.
+- Verificações manuais: carregamento de `MARIA_SYSTEM_PROMPT` (2186 caracteres), fallback do `llama_client`, injeção única do system em `get_historico_com_system()`.
+
+---
+
 ## [4.1.3] — Prompt, resposta bruta e parâmetros de sampler no benchmark — 2026-09-02
 
 ### ✨ Nova funcionalidade

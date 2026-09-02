@@ -87,6 +87,10 @@ def _tentar_extrair_tool_call_textual(conteudo: str) -> dict | None:
     if not isinstance(argumentos, dict):
         return None
 
+    # NORMALIZACAO DE CHAVES: garante minusculas para evitar
+    # falsos negativos quando o modelo gera 'Conteudo', 'Nome_arquivo', etc.
+    argumentos = {k.lower(): v for k, v in argumentos.items()}
+
     return {"name": nome, "arguments": argumentos}
 
 
@@ -104,31 +108,18 @@ def _sugere_composicao_de_documento(mensagem_usuario: str) -> bool:
 def _montar_mensagens_com_reforco(historico: list[dict] | None, mensagem_usuario: str) -> list[dict]:
     """
     Monta a lista de mensagens garantindo uma ÚNICA mensagem role="system".
-    Mescla o reforço de tool calling ao system prompt existente ou cria um novo.
     Não muta `historico` nem os dicts originais.
+    O system prompt é carregado do arquivo system_prompt.txt pelo ChatSession.
+    Esta função apenas garante que o system prompt esteja presente e adiciona a mensagem do usuário.
     """
-    reforco = """IMPORTANTE: Você DEVE usar as ferramentas disponíveis quando o usuário pedir para:
-- Criar planilhas: use SEMPRE a ferramenta "criar_planilha"
-- Criar documentos Word: use SEMPRE a ferramenta "criar_documento"  
-- Editar planilhas existentes: use SEMPRE a ferramenta "editar_planilha"
-
-Não responda apenas com texto - chame a ferramenta apropriada preenchendo TODOS os campos obrigatórios.
-
-Se o usuário pedir um documento narrativo (carta, relatório, ata, comunicado) SEM fornecer o texto pronto, você mesmo deve REDIGIR um conteúdo completo e coerente com base no que foi pedido e chamar "criar_documento" imediatamente. NUNCA responda apenas com perguntas pedindo mais detalhes antes de tentar compor o documento - use um conteúdo razoável e genérico quando faltar informação específica. Mantenha o conteúdo OBJETIVO: no máximo 3 a 5 parágrafos curtos, sem repetições ou seções desnecessárias.
-
-Se o usuário pedir um documento oficial (ofício, aviso, memorando, exposição de motivos, mensagem ao Congresso, e-mail institucional), chame "consultar_manual_redacao" com o tipo_documento apropriado ANTES de chamar "criar_documento", e preencha "tipo_documento_oficial" no criar_documento.
-
-Responda sempre em português do Brasil."""
-
     mensagens = list(historico or [])
 
-    if mensagens and mensagens[0].get("role") == "system":
-        mensagens[0] = {
-            "role": "system",
-            "content": mensagens[0]["content"].rstrip() + "\n\n" + reforco,
-        }
-    else:
-        mensagens.insert(0, {"role": "system", "content": reforco})
+    # Garante que há exatamente uma mensagem system no início
+    # (o ChatSession já deve ter carregado o prompt do arquivo)
+    if not mensagens or mensagens[0].get("role") != "system":
+        # Fallback: se o ChatSession não carregou, lemos do arquivo aqui
+        from backend.core.config import MARIA_SYSTEM_PROMPT
+        mensagens.insert(0, {"role": "system", "content": MARIA_SYSTEM_PROMPT})
 
     mensagens.append({"role": "user", "content": mensagem_usuario})
     return mensagens
@@ -332,6 +323,12 @@ class LlamaClient:
             except json.JSONDecodeError:
                 logger.warning("Falha ao parsear argumentos da tool call: %s", argumentos_raw)
                 argumentos = {}
+
+            # NORMALIZACAO DE CHAVES: garante minusculas para evitar
+            # falsos negativos quando o modelo gera 'Conteudo', 'Nome_arquivo', etc.
+            if isinstance(argumentos, dict):
+                argumentos = {k.lower(): v for k, v in argumentos.items()}
+
             logger.debug("Tool call detectada: %s(%s)", nome, argumentos)
             return {"name": nome, "arguments": argumentos}
 

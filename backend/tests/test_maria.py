@@ -88,8 +88,8 @@ class TestChatSession(unittest.TestCase):
         self.assertIn("MARIA", historico[0]["content"])
 
     def test_system_prompt_exige_portugues(self):
-        """Testa que o prompt exige português mesmo em esclarecimentos."""
-        self.assertIn("Nunca responda em inglês", ChatSession.SYSTEM_PROMPT)
+        """Testa que o prompt exige português do Brasil em qualquer resposta."""
+        self.assertIn("portugues do Brasil", ChatSession.SYSTEM_PROMPT)
     
     def test_get_historico_sem_system_exclui_system_prompt(self):
         """Testa que get_historico_sem_system exclui system prompt."""
@@ -1270,7 +1270,7 @@ class TestSystemPromptExcecaoArquivoInexistente(unittest.TestCase):
     declaradamente inexistente (Fix D)."""
 
     def test_system_prompt_contem_excecao_para_arquivo_ficticio(self):
-        self.assertIn("SEM chamar listar_arquivos", ChatSession.SYSTEM_PROMPT)
+        self.assertIn("arquivo nao foi encontrado", ChatSession.SYSTEM_PROMPT)
 
 
 class TestReforcoComposicaoDocumento(unittest.TestCase):

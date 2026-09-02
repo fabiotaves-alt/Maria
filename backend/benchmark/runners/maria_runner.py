@@ -4,6 +4,8 @@ import os
 import re
 import sys
 import time
+import unicodedata
+from typing import Any
 
 from openpyxl import Workbook
 
@@ -168,9 +170,10 @@ class MariaRunner:
         args_correct = self._argumentos_compativeis(
             (tool_call_final or {}).get("arguments", {}), task.expected_args_subset
         )
+        texto_norm = MariaRunner._normalizar_texto(resposta_textual)
         keyword_match = (
             not task.expected_keywords
-            or any(keyword.lower() in resposta_textual.lower() for keyword in task.expected_keywords)
+            or any(MariaRunner._normalizar_texto(kw) in texto_norm for kw in task.expected_keywords)
         )
         language_ok = resposta_em_portugues(resposta_textual)
 
@@ -199,20 +202,68 @@ class MariaRunner:
         )
 
     @staticmethod
+    def _normalizar_texto(texto: str) -> str:
+        """Remove acentos e converte para minúsculas.
+
+        Evita falsos negativos como 'não encontrado' vs 'nao encontrado'.
+        """
+        texto = texto.lower()
+        texto = unicodedata.normalize('NFKD', texto)
+        return ''.join(c for c in texto if not unicodedata.combining(c))
+
+    @staticmethod
+    def _normalizar_valor(chave: str, valor: Any) -> Any:
+        """Normaliza o valor de um argumento antes da comparação.
+
+        - nome_arquivo: remove extensões conhecidas (.xlsx, .xls, .docx, .doc)
+        - listas: preserva como lista (a comparação usa set)
+        - demais: retorna inalterado
+        """
+        if chave == 'nome_arquivo' and isinstance(valor, str):
+            for ext in ('.xlsx', '.xls', '.docx', '.doc'):
+                if valor.lower().endswith(ext):
+                    return valor[:-len(ext)]
+        return valor
+
+    @staticmethod
     def _argumentos_compativeis(obtidos: dict, esperados: dict | None) -> bool:
-        """Verifica se os argumentos obtidos contêm, com valores iguais,
-        todas as chaves declaradas em `esperados` (comparação de
-        subconjunto — campos extras nos argumentos obtidos, como
-        'descricao', não invalidam o resultado). Retorna True quando
-        `esperados` é None (tarefa não define critério de argumento)."""
+        """Verifica se os argumentos obtidos contêm, com valores equivalentes,
+        todas as chaves declaradas em `esperados`. Normalizações aplicadas:
+        - Chaves do dict são convertidas para minúsculas.
+        - nome_arquivo tem extensão removida.
+        - Listas (ex: colunas) são comparadas como conjuntos (ordem não importa).
+        Retorna True quando `esperados` é None (tarefa não define critério
+        de argumento)."""
         if esperados is None:
             return True
         if not isinstance(obtidos, dict):
             return False
-        return all(
-            chave in obtidos and obtidos[chave] == valor
-            for chave, valor in esperados.items()
-        )
+
+        # --- 1. Normaliza chaves para minusculas ---
+        obtidos_norm = {k.lower(): v for k, v in obtidos.items()}
+
+        # --- 2. Verifica subconjunto esperado ---
+        for chave, valor_esperado in esperados.items():
+            chave_lc = chave.lower()
+            if chave_lc not in obtidos_norm:
+                return False
+            valor_obtido = obtidos_norm[chave_lc]
+
+            # --- 3. Normaliza valores por campo ---
+            valor_obtido = MariaRunner._normalizar_valor(chave_lc, valor_obtido)
+            valor_esperado = MariaRunner._normalizar_valor(chave_lc, valor_esperado)
+
+            # --- 4. Compara listas como conjuntos (ordem nao importa) ---
+            if isinstance(valor_esperado, list) and isinstance(valor_obtido, list):
+                set_obtido = {str(x).strip() for x in valor_obtido}
+                set_esperado = {str(x).strip() for x in valor_esperado}
+                if set_obtido != set_esperado:
+                    return False
+            # --- 5. Comparacao direta para demais tipos ---
+            elif valor_obtido != valor_esperado:
+                return False
+
+        return True
 
     @staticmethod
     def _garantir_planilha_existente(task: MariaTask) -> None:
