@@ -73,6 +73,7 @@ class MariaRunner:
         tokens_por_segundo = 0.0
         ttft_ms = None
         confirmation_completed = not task.confirm_sequence
+        contexto_ok = True
 
         try:
             resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms, prompt_enviado = self._enviar_com_retry(sessao, task)
@@ -148,8 +149,22 @@ class MariaRunner:
             if not resposta_textual.strip():
                 resposta_textual = f"[ERRO] {error}"
         except OllamaClientError as error:
-            logger.error("Erro do Ollama na tarefa %s: %s", task.id, error)
-            errors.append({"kind": "OllamaClientError", "message": str(error)})
+            erro_str = str(error)
+            # Detecta estouro de contexto do llama-server (prompt > ctx_size).
+            marcas_contexto = (
+                "exceeds the available context size",
+                "exceeds the context size",
+                "context size",
+                "too many tokens",
+                "excede o contexto",
+                "contexto",
+            )
+            if any(marca in erro_str.lower() for marca in marcas_contexto):
+                contexto_ok = False
+                logger.error("ERRO DE CONTEXTO na tarefa %s: %s", task.id, error)
+            else:
+                logger.error("Erro do Ollama na tarefa %s: %s", task.id, error)
+            errors.append({"kind": "OllamaClientError", "message": erro_str})
         except Exception as error:
             logger.exception("Erro inesperado na tarefa %s", task.id)
             errors.append({"kind": "InternalError", "message": str(error)})
@@ -196,6 +211,7 @@ class MariaRunner:
             tokens_por_segundo=tokens_por_segundo,
             args_correct=args_correct,
             ttft_ms=ttft_ms,
+            contexto_ok=contexto_ok,
             prompt_enviado=prompt_enviado,
             resposta_bruta_modelo=resposta_bruta_modelo,
             sampler_params=self.sampler_params,

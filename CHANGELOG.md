@@ -2,6 +2,31 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.6] — Metadados reais do modelo, detecção de contexto e relatório enxuto — 2026-09-02
+
+### ✨ Nova funcionalidade
+
+- **Metadados do modelo enriquecidos** (`backend/benchmark/run_benchmark.py`):
+  novos helpers `_extrair_nome_exibicao()` (ID cru do GGUF → nome amigável, ex: `ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M` → `Qwen2.5 Omni 3B`) e `_extrair_quantizacao()` (extrai `Q4_K_M` do sufixo do ID, com fallback `'desconhecida'`). `_obter_metadados_modelo()` agora retorna também `nome_exibicao` e usa `_extrair_quantizacao` como fallback quando o `ftype` não estiver disponível — mantendo os metadados ricos já existentes (n_params, n_ctx, tamanho, ftype).
+- **`log.json` v2.0 com rastreabilidade completa** (`backend/benchmark/run_benchmark.py`):
+  bloco `meta` estendido com `modelo_id_real`, `modelo_nome_exibicao`, `modelo_quantizacao`, `data_execucao` (ISO 8601), `total_tarefas`, `repeticoes_por_tarefa`, `versao_benchmark: '2.0'`, `system_prompt_hash` (SHA-256 de 12 chars via novo helper `_hash_prompt()`) e `llama_base_url`. `compare_runs.py` permanece compatível (lê apenas `individual`).
+- **Métrica `contexto_ok_rate`** (`backend/benchmark/analysis/metrics.py`): novo campo em `MariaBenchmarkMetrics` (default `1.0`); `calculate_maria_metrics()` contabiliza a taxa de tarefas sem estouro de contexto.
+- **Campo `contexto_ok` no resultado** (`backend/benchmark/tasks/task_schema.py`): `MariaTaskResult` ganha `contexto_ok: bool = True` — `False` quando o prompt excede o `ctx_size` do servidor.
+- **Detecção de erro de contexto no runner** (`backend/benchmark/runners/maria_runner.py`): o `except OllamaClientError` do `run()` classifica o erro por marcadores específicos (`exceeds the available context size`, `context size`, `too many tokens`, etc. — evitando falsos positivos de um simples `context` na mensagem), loga `ERRO DE CONTEXTO` e propaga `contexto_ok=False` no resultado.
+
+### 🔧 Correções / Refatoração
+
+- **`_warmup_model()` aborta sem `/v1/models`** (`backend/benchmark/run_benchmark.py`): passa a retornar o dict de metadados e levanta `SystemExit` se o endpoint não responder — o relatório nunca exibe dados falsos (mudança de comportamento intencional: antes avisava e seguia com `LLAMA_MODEL`). Imprime `[INFO] Modelo detectado: <nome> (<quantização>) — ID: <id>`.
+- **Relatório enxuto com modelo real** (`backend/benchmark/analysis/report.py`): `generate_report()` perde os parâmetros `modelo_configurado`/`modelo_carregado` e recebe apenas `metadados_modelo`; a seção Modelo mostra somente dados reais de `/v1/models` (Nome, Quantização, ID real, Parâmetros, n_ctx, Tamanho) — sem coluna "Configurado" fake nem alerta de divergência; sem metadados exibe "Não detectado" + nota de erro. Linha `Contexto OK` adicionada às métricas gerais. **Escrita duplicada de `log.json` removida** (agora escrito apenas por `run_benchmark.py`). As seções "Parâmetros do sampler" e "Detalhes por execução" foram preservadas.
+
+### 🧪 Testes
+
+- **155/155 testes passaram** (`python -m pytest backend/tests/test_maria.py`), + 33 subtests.
+- **3 testes ajustados**: `test_warmup_sem_alerta_para_blob_do_mesmo_modelo` (desempacota o dict retornado) e 2 testes de relatório com `contexto_ok_rate=1.0` no mock.
+- **9 testes novos**: `TestExtrairNomeExibicao` (3), `TestExtrairQuantizacao` (2) e `TestContextoOk` (4 — default True, taxa nas métricas, runner detecta erro de contexto, runner mantém True em erro genérico).
+
+---
+
 ## [4.1.5] — Normalização de chaves e argumentos (tool calling + benchmark) — 2026-09-02
 
 ### 🔧 Correções

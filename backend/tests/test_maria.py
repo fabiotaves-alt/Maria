@@ -2378,7 +2378,7 @@ class TestAlertaNaoDisparaParaBlob(unittest.TestCase):
         with patch("backend.benchmark.run_benchmark._obter_metadados_modelo", return_value=metadados), \
              patch("backend.benchmark.run_benchmark.OllamaClient", return_value=FakeClient()):
             with redirect_stdout(buf):
-                modelo, meta = _warmup_model()
+                meta = _warmup_model()
 
         # "3b" está contido em "qwen2.5-omni-3b" -> NÃO deve gerar alerta
         self.assertNotIn("[AVISO]", buf.getvalue())
@@ -2420,10 +2420,9 @@ class TestAvisoNctx(unittest.TestCase):
                         avg_tokens_por_segundo=0.0, avg_ttft_ms=None,
                         p50_latency_ms=100.0, p90_latency_ms=100.0,
                         avg_latency_ms=100.0, error_distribution={}, by_category={},
+                        contexto_ok_rate=1.0,
                     ),
                     tmpdir,
-                    modelo_configurado="qwen2.5-omni-3b",
-                    modelo_carregado="modelo.gguf",
                     metadados_modelo=metadados,
                 )
                 with open(os.path.join(tmpdir, "report.md"), encoding="utf-8") as f:
@@ -2588,6 +2587,7 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
             avg_tokens_por_segundo=0.0, avg_ttft_ms=None,
             p50_latency_ms=100.0, p90_latency_ms=100.0,
             avg_latency_ms=100.0, error_distribution={}, by_category={},
+            contexto_ok_rate=1.0,
         )
         with tempfile.TemporaryDirectory() as tmpdir:
             generate_report(
@@ -2602,6 +2602,120 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
         self.assertIn("## Detalhes por execução", report)
         self.assertIn("Crie uma planilha de gastos", report)
         self.assertIn("Vou criar a planilha.", report)
+
+
+class TestExtrairNomeExibicao(unittest.TestCase):
+    """Testa a extração de nome amigável a partir do ID cru do modelo."""
+
+    def test_id_completo(self):
+        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        self.assertEqual(
+            _extrair_nome_exibicao("ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M"),
+            "Qwen2.5 Omni 3B",
+        )
+
+    def test_id_simples_com_hifens(self):
+        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        self.assertEqual(_extrair_nome_exibicao("qwen2.5-omni-3b"), "qwen2.5 omni 3b")
+
+    def test_id_com_underscores(self):
+        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        self.assertEqual(_extrair_nome_exibicao("Qwen2.5_Omni_3B"), "Qwen2.5 Omni 3B")
+
+    def test_id_vazio(self):
+        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        self.assertEqual(_extrair_nome_exibicao(""), "")
+
+
+class TestExtrairQuantizacao(unittest.TestCase):
+    """Testa a extração da quantização a partir do ID do modelo."""
+
+    def test_extrai_do_sufixo(self):
+        from backend.benchmark.run_benchmark import _extrair_quantizacao
+        self.assertEqual(
+            _extrair_quantizacao("ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M"), "Q4_K_M"
+        )
+
+    def test_sem_sufixo_retorna_desconhecida(self):
+        from backend.benchmark.run_benchmark import _extrair_quantizacao
+        self.assertEqual(_extrair_quantizacao("qwen2.5-omni-3b"), "desconhecida")
+
+
+class TestContextoOk(unittest.TestCase):
+    """Testa o campo contexto_ok no resultado e nas métricas do benchmark."""
+
+    def test_default_true_no_resultado(self):
+        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        result = MariaTaskResult(
+            task_id=1, task_name="T", category="conversa", model="m",
+            tool_detected=None, tool_correct=True, confirmation_completed=True,
+            keyword_match=True, runtime_ok=True, final_message="ok",
+            latency_ms=100.0, errors=[], raw_tool_args={},
+        )
+        self.assertTrue(result.contexto_ok)
+
+    def test_contexto_ok_rate_nas_metricas(self):
+        from backend.benchmark.analysis.metrics import calculate_maria_metrics
+        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        base = dict(
+            task_name="T", category="conversa", model="m",
+            tool_detected=None, tool_correct=True, confirmation_completed=True,
+            keyword_match=True, runtime_ok=True, final_message="ok",
+            latency_ms=100.0, errors=[], raw_tool_args={},
+        )
+        r_ok = MariaTaskResult(**base, task_id=1, contexto_ok=True)
+        r_falha = MariaTaskResult(**base, task_id=2, contexto_ok=False)
+        metrics = calculate_maria_metrics([r_ok, r_falha])
+        self.assertEqual(metrics.contexto_ok_rate, 0.5)
+
+    def test_runner_detecta_erro_de_contexto(self):
+        from unittest.mock import patch as _patch
+        from backend.benchmark.runners.maria_runner import MariaRunner, OllamaClientError
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteErroContexto:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                # Mesma classe que o runner captura (import de core.llama_client).
+                raise OllamaClientError(
+                    "Prompt token count 5000 exceeds the available context size 4096"
+                )
+
+        task = MariaTask(
+            9107, "Contexto", "desc", "Crie uma planilha grande.",
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+        )
+        with _patch("backend.benchmark.runners.maria_runner.time.sleep"):
+            resultado = MariaRunner(cliente=ClienteErroContexto()).run(task)
+
+        self.assertFalse(resultado.contexto_ok)
+        self.assertTrue(
+            any(e.get("kind") == "OllamaClientError" for e in resultado.errors)
+        )
+
+    def test_runner_erro_generico_mantem_contexto_ok(self):
+        from unittest.mock import patch as _patch
+        from backend.benchmark.runners.maria_runner import MariaRunner, OllamaClientError
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteErroRede:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                raise OllamaClientError("Falha de conexao com o llama-server")
+
+        task = MariaTask(
+            9108, "Erro rede", "desc", "Crie uma planilha.",
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+        )
+        with _patch("backend.benchmark.runners.maria_runner.time.sleep"):
+            resultado = MariaRunner(cliente=ClienteErroRede()).run(task)
+
+        self.assertTrue(resultado.contexto_ok)
+        self.assertTrue(
+            any(e.get("kind") == "OllamaClientError" for e in resultado.errors)
+        )
 
 
 if __name__ == "__main__":

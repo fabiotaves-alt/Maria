@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.5  
+**Versão Atual:** v4.1.6  
 **Última alteração:** 2026-09-02  
 
 ---
@@ -32,6 +32,7 @@
 | **4.1.3** | 2026-09-02 | Prompt, resposta bruta do modelo e parâmetros de sampler configuráveis no benchmark | ✅ Concluída |
 | **4.1.4** | 2026-09-02 | System prompt centralizado em arquivo externo (`backend/core/system_prompt.txt`) com remoção do reforço hardcoded do LlamaClient | ✅ Concluída |
 | **4.1.5** | 2026-09-02 | Normalização de chaves JSON de tool calls + validação flexível de argumentos e keywords no benchmark | ✅ Concluída |
+| **4.1.6** | 2026-09-02 | Metadados reais do modelo via /v1/models (aborta sem endpoint), log.json v2.0 com hash do system prompt, métrica contexto_ok e relatório enxuto sem coluna "Configurado" | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -68,7 +69,7 @@
 - [ ] Validação de instalação *one-click* em máquina limpa (sem dependência de Python instalado)
 
 ### Fase 5 — Qualidade, Testes & Benchmark
-- [x] Suíte de testes unitários do backend (145 testes passando via `pytest`)
+- [x] Suíte de testes unitários do backend (155 testes passando via `pytest`)
 - [x] Testes unitários do frontend TypeScript (Vitest) e da camada Rust (`cargo test`)
 - [x] Framework de benchmark de tool calling com relatório e log JSON
 - [x] Metadados do modelo no benchmark: nome real via `/v1/models` + parámetros (quantização, n_params, n_ctx, tamanho) em `log.json` e `report.md`
@@ -76,11 +77,19 @@
 - [x] Comparação de runs retrocompatible (`log.json` antigo e novo)
 - [x] Robustez no `MariaRunner`: tratamento correto de negação, ambiguidade e mensagens de erro
 - [x] Normalização no benchmark: chaves de argumentos em minúsculas, `nome_arquivo` com/sem extensão equivalente, listas como conjuntos e keyword match sem falsos negativos por acento
+- [x] Metadados do modelo como fonte única de verdade: warmup aborta sem `/v1/models`, relatório exibe apenas dados reais (sem coluna "Configurado"), `log.json` v2.0 com hash do system prompt e métrica `contexto_ok` para estouro de contexto
 - [ ] Cobertura formal de código (`pytest-cov`)
 
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.6 — Metadados Reais, Contexto e Relatório Enxuto (2026-09-02)
+- **Fonte única de verdade do modelo**: `_extrair_nome_exibicao()` e `_extrair_quantizacao()` derivam nome amigável e quantização do ID cru do GGUF; `_obter_metadados_modelo()` retorna dict com `nome_exibicao` e fallback de quantização; `_warmup_model()` **aborta com `SystemExit`** se `/v1/models` não responder — o relatório nunca exibe modelo falso (antes: aviso no console e seguia com `LLAMA_MODEL`).
+- **Relatório enxuto**: `generate_report()` recebe apenas `metadados_modelo`; seção Modelo mostra somente dados reais (Nome, Quantização, ID real, Parâmetros, n_ctx, Tamanho) — removidos a coluna "Configurado" e o alerta de divergência; escrita duplicada de `log.json` removida do report.
+- **`log.json` v2.0**: bloco `meta` com `modelo_id_real`, `modelo_nome_exibicao`, `modelo_quantizacao`, `data_execucao` (ISO), `total_tarefas`, `repeticoes_por_tarefa`, `versao_benchmark`, `system_prompt_hash` (SHA-256 de 12 chars), `llama_base_url`; `compare_runs.py` segue compatível.
+- **Métrica `contexto_ok`**: `MariaTaskResult.contexto_ok` (default True) + `MariaBenchmarkMetrics.contexto_ok_rate`; o `MariaRunner` classifica `OllamaClientError` por marcadores específicos de estouro de contexto (`exceeds the available context size`, `too many tokens`, etc.) e propaga `contexto_ok=False`; linha "Contexto OK" no `report.md`.
+- **Testes**: 155/155 passando (9 novos: `TestExtrairNomeExibicao`, `TestExtrairQuantizacao`, `TestContextoOk`) + 33 subtests.
 
 ### 4.1.5 — Normalização de Chaves e Argumentos (2026-09-02)
 - **Tool calling tolerante à caixa**: `_extrair_tool_call_da_resposta()` e `_tentar_extrair_tool_call_textual()` (`backend/core/llama_client.py`) normalizam as chaves dos argumentos para minúsculas — o modelo às vezes gera `'Conteudo'`/`'Nome_arquivo'`, o que invalidava a execução da ferramenta e derrubava a tool accuracy do benchmark (criar_documentos: 33%).

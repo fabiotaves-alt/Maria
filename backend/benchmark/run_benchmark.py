@@ -1,5 +1,7 @@
 """CLI para executar o benchmark live da MARIA."""
 import argparse
+import hashlib
+import json
 import os
 import sys
 import time
@@ -23,7 +25,7 @@ import requests
 # import local dentro de funções.
 _requests = requests
 
-from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, LLAMA_NUM_CTX
+from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, LLAMA_NUM_CTX, MARIA_SYSTEM_PROMPT
 from core.llama_client import (
     LlamaClient as OllamaClient,
     LlamaClientError as OllamaClientError,
@@ -150,6 +152,38 @@ def _formatar_tamanho(tamanho_bytes: int | None) -> str:
     return f"{tamanho_bytes / (1024 ** 2):.1f} MiB"
 
 
+def _extrair_nome_exibicao(model_id: str) -> str:
+    """Extrai um nome amigável do ID cru do modelo.
+
+    Ex: ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M -> Qwen2.5 Omni 3B
+    """
+    if not model_id:
+        return ""
+    # Remove prefixo de organização
+    nome = model_id.split('/')[-1] if '/' in model_id else model_id
+    # Remove a parte de quantizacao apos ':' e o sufixo -GGUF
+    nome = nome.split(':')[0]
+    nome = nome.replace('-GGUF', '')
+    # Converte hifen/traco baixo em espaco
+    nome = nome.replace('_', ' ').replace('-', ' ')
+    return nome.strip()
+
+
+def _extrair_quantizacao(model_id: str) -> str:
+    """Extrai a quantizacao do ID do modelo.
+
+    Ex: ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M -> Q4_K_M
+    """
+    if ':' in model_id:
+        return model_id.split(':')[-1]
+    return 'desconhecida'
+
+
+def _hash_prompt(prompt: str) -> str:
+    """Gera um hash curto (12 hex) do prompt para rastreabilidade nos logs."""
+    return hashlib.sha256(prompt.encode()).hexdigest()[:12]
+
+
 def _obter_metadados_modelo() -> dict | None:
     """Consulta GET {LLAMA_BASE_URL}/v1/models e retorna metadados do primeiro
     modelo carregado no llama-server, ou None se não for possível obter.
@@ -178,16 +212,19 @@ def _obter_metadados_modelo() -> dict | None:
     tamanho_bytes = meta.get("size")
     ftype_raw = meta.get("ftype")
 
-    quantizacao = _ftype_para_nome(ftype_raw)
+    quantizacao = _ftype_para_nome(ftype_raw) or _extrair_quantizacao(id_modelo)
     rotulo = _derivar_rotulo_modelo(n_params, n_vocab) if n_params else ""
     tamanho_legivel = _formatar_tamanho(tamanho_bytes)
 
     # Se o id é um caminho local/blob, usa o rótulo derivado como exibição
     id_exibicao = rotulo if (_parece_caminho_local(id_modelo) and rotulo) else id_modelo
+    # Nome amigável: id_exibicao derivado, ou extração direta do ID cru
+    nome_exibicao = id_exibicao or _extrair_nome_exibicao(id_modelo)
 
     return {
         "id": id_modelo,
         "id_exibicao": id_exibicao,
+        "nome_exibicao": nome_exibicao,
         "quantizacao": quantizacao,
         "n_params": n_params,
         "n_vocab": n_vocab,
@@ -199,23 +236,38 @@ def _obter_metadados_modelo() -> dict | None:
     }
 
 
-def _warmup_model() -> tuple[str | None, dict | None]:
-    """Aquece o modelo uma vez antes de iniciar as tarefas do benchmark.
+def _warmup_model() -> dict:
+    """Aquece o modelo e retorna os metadados do modelo carregado.
 
-    Retorna (nome_do_modelo_carregado, metadados_do_modelo).
-    Alerta no console quando o id reportado diverge de LLAMA_MODEL de forma
-    relevante (não apenas por ser caminho de blob do mesmo modelo).
+    Aborta com erro fatal se /v1/models não responder ou não retornar modelo
+    algum — o relatório do benchmark exibe apenas dados REAIS (nenhuma coluna
+    "configurado" fake).
     """
     print(f"Aquecendo o modelo (timeout de warmup: {BENCHMARK_WARMUP_TIMEOUT}s)...")
     inicio = time.monotonic()
 
+    # --- OBTEM METADADOS REAIS (fonte unica de verdade do modelo) ---
     metadados_modelo = _obter_metadados_modelo()
-    modelo_carregado = (metadados_modelo or {}).get("id")
-    id_exibicao = (metadados_modelo or {}).get("id_exibicao") or modelo_carregado
+    if metadados_modelo is None:
+        raise SystemExit(
+            "FALHA CRITICA: Nao foi possivel obter o modelo carregado "
+            f"via {LLAMA_BASE_URL}/v1/models. Verifique se o llama-server "
+            "esta rodando e acessivel."
+        )
+
+    modelo_carregado = metadados_modelo.get("id")
+    id_exibicao = metadados_modelo.get("id_exibicao") or modelo_carregado
+    nome_exibicao = metadados_modelo.get("nome_exibicao") or id_exibicao
+    quantizacao = metadados_modelo.get("quantizacao") or "desconhecida"
+
+    print(
+        f"[INFO] Modelo detectado: {nome_exibicao} ({quantizacao}) — "
+        f"ID: {modelo_carregado}"
+    )
 
     if modelo_carregado and modelo_carregado != LLAMA_MODEL:
         eh_local = _parece_caminho_local(modelo_carregado)
-        rotulo = (metadados_modelo or {}).get("rotulo_tamanho", "")
+        rotulo = metadados_modelo.get("rotulo_tamanho", "")
         if not eh_local or not rotulo:
             print(
                 f"[AVISO] LLAMA_MODEL configurado = '{LLAMA_MODEL}', mas o modelo "
@@ -229,6 +281,7 @@ def _warmup_model() -> tuple[str | None, dict | None]:
                 "As execuções podem não estar usando o modelo desejado."
             )
 
+    # --- WARMUP ---
     try:
         cliente_warmup = OllamaClient(timeout=BENCHMARK_WARMUP_TIMEOUT)
         resposta = cliente_warmup.enviar_mensagem(
@@ -248,7 +301,7 @@ def _warmup_model() -> tuple[str | None, dict | None]:
     print(f"Modelo aquecido em {duracao_s:.1f}s. Resposta de teste: {resposta.strip()!r}")
     print(f"Modelo carregado: {id_exibicao or 'N/D'}")
 
-    return modelo_carregado, metadados_modelo
+    return metadados_modelo
 
 
 def main() -> int:
@@ -257,7 +310,8 @@ def main() -> int:
     if not tasks:
         raise SystemExit("Nenhuma tarefa selecionada.")
 
-    modelo_carregado, metadados_modelo = _warmup_model()
+    metadados_modelo = _warmup_model()
+    modelo_carregado = (metadados_modelo or {}).get("id")
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = os.path.join(args.output_dir, f"run_{timestamp}")
@@ -299,12 +353,21 @@ def main() -> int:
             f"latência média={metricas_parciais.avg_latency_ms / 1000:.1f}s"
         )
 
-    # log.json final com estrutura individual + agregado_por_tarefa + meta
+    # log.json final com estrutura individual + agregado_por_tarefa + meta.
+    # Escrita feita SOMENTE aqui (fonte única), com metadados completos do
+    # modelo real e hash do system prompt para rastreabilidade.
+    system_prompt_hash = _hash_prompt(MARIA_SYSTEM_PROMPT)
     log_final = {
         "meta": {
-            "modelo_configurado": LLAMA_MODEL,
-            "modelo_carregado": modelo_carregado,
-            "metadados_modelo": metadados_modelo,
+            "modelo_id_real": (metadados_modelo or {}).get("id"),
+            "modelo_nome_exibicao": (metadados_modelo or {}).get("nome_exibicao"),
+            "modelo_quantizacao": (metadados_modelo or {}).get("quantizacao"),
+            "data_execucao": datetime.now().isoformat(),
+            "total_tarefas": len(tasks),
+            "repeticoes_por_tarefa": BENCHMARK_REPETICOES,
+            "versao_benchmark": "2.0",
+            "system_prompt_hash": system_prompt_hash,
+            "llama_base_url": LLAMA_BASE_URL,
             "llama_num_ctx_config": LLAMA_NUM_CTX,
             "sampler_params": montar_sampler_params(),
         },
@@ -313,14 +376,11 @@ def main() -> int:
     }
     log_path = os.path.join(run_dir, "log.json")
     with open(log_path, "w", encoding="utf-8") as log_file:
-        import json
         json.dump(log_final, log_file, ensure_ascii=False, indent=2)
 
     generate_report(resultados_individuais_todas_tarefas,
                     calculate_maria_metrics(resultados_individuais_todas_tarefas),
                     run_dir,
-                    modelo_configurado=LLAMA_MODEL,
-                    modelo_carregado=modelo_carregado,
                     metadados_modelo=metadados_modelo,
                     sampler_params=montar_sampler_params(),
                     log_final=log_final)

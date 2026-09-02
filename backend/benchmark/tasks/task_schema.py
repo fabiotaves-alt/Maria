@@ -57,6 +57,8 @@ class MariaTaskResult:
     resposta_bruta_modelo: str = ""
     # Snapshot dos parâmetros de sampler efetivos usados na execução.
     sampler_params: dict = field(default_factory=dict)
+    # False se houve erro de contexto (prompt > ctx_size do servidor).
+    contexto_ok: bool = True
 
 
 @dataclass

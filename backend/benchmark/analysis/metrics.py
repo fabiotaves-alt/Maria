@@ -22,6 +22,8 @@ class MariaBenchmarkMetrics:
     avg_ttft_ms: float | None = None
     p50_latency_ms: float = 0.0
     p90_latency_ms: float = 0.0
+    # Taxa de tarefas sem erro de contexto (prompt > ctx_size do servidor).
+    contexto_ok_rate: float = 1.0
 
 
 def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMetrics:
@@ -41,6 +43,7 @@ def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMet
     error_distribution = defaultdict(int)
     by_category = defaultdict(lambda: {"total": 0, "tool_correct": 0})
     language_ok_count = 0
+    contexto_ok_count = 0
     for result in results:
         for error in result.errors:
             error_distribution[error.get("kind", "Unknown")] += 1
@@ -48,6 +51,8 @@ def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMet
         by_category[result.category]["tool_correct"] += int(result.tool_correct)
         if result.language_ok:
             language_ok_count += 1
+        if result.contexto_ok:
+            contexto_ok_count += 1
 
     category_metrics = {
         category: {
@@ -84,6 +89,7 @@ def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMet
         avg_ttft_ms=avg_ttft_ms,
         p50_latency_ms=p50_latency_ms,
         p90_latency_ms=p90_latency_ms,
+        contexto_ok_rate=contexto_ok_count / total,
     )
 
 
