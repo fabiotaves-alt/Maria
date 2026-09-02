@@ -2368,6 +2368,7 @@ class TestAlertaNaoDisparaParaBlob(unittest.TestCase):
             "id": "C:\\blob\\sha256-2bada8a",
             "id_exibicao": "Qwen2.5 3B",
             "rotulo_tamanho": "Qwen2.5 3B",
+            "n_ctx": 2048,
         }
 
         class FakeClient:
@@ -2376,9 +2377,10 @@ class TestAlertaNaoDisparaParaBlob(unittest.TestCase):
 
         buf = io.StringIO()
         with patch("backend.benchmark.run_benchmark._obter_metadados_modelo", return_value=metadados), \
+             patch("backend.benchmark.run_benchmark._contar_tokens_exatos", return_value=820), \
              patch("backend.benchmark.run_benchmark.OllamaClient", return_value=FakeClient()):
             with redirect_stdout(buf):
-                modelo, meta = _warmup_model()
+                meta = _warmup_model()
 
         # "3b" está contido em "qwen2.5-omni-3b" -> NÃO deve gerar alerta
         self.assertNotIn("[AVISO]", buf.getvalue())
@@ -2420,10 +2422,9 @@ class TestAvisoNctx(unittest.TestCase):
                         avg_tokens_por_segundo=0.0, avg_ttft_ms=None,
                         p50_latency_ms=100.0, p90_latency_ms=100.0,
                         avg_latency_ms=100.0, error_distribution={}, by_category={},
+                        contexto_ok_rate=1.0,
                     ),
                     tmpdir,
-                    modelo_configurado="qwen2.5-omni-3b",
-                    modelo_carregado="modelo.gguf",
                     metadados_modelo=metadados,
                 )
                 with open(os.path.join(tmpdir, "report.md"), encoding="utf-8") as f:
@@ -2588,6 +2589,7 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
             avg_tokens_por_segundo=0.0, avg_ttft_ms=None,
             p50_latency_ms=100.0, p90_latency_ms=100.0,
             avg_latency_ms=100.0, error_distribution={}, by_category={},
+            contexto_ok_rate=1.0,
         )
         with tempfile.TemporaryDirectory() as tmpdir:
             generate_report(
@@ -2602,6 +2604,382 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
         self.assertIn("## Detalhes por execução", report)
         self.assertIn("Crie uma planilha de gastos", report)
         self.assertIn("Vou criar a planilha.", report)
+
+
+class TestExtrairNomeExibicao(unittest.TestCase):
+    """Testa a extração de nome amigável a partir do ID cru do modelo."""
+
+    def test_id_completo(self):
+        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        self.assertEqual(
+            _extrair_nome_exibicao("ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M"),
+            "Qwen2.5 Omni 3B",
+        )
+
+    def test_id_simples_com_hifens(self):
+        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        self.assertEqual(_extrair_nome_exibicao("qwen2.5-omni-3b"), "qwen2.5 omni 3b")
+
+    def test_id_com_underscores(self):
+        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        self.assertEqual(_extrair_nome_exibicao("Qwen2.5_Omni_3B"), "Qwen2.5 Omni 3B")
+
+    def test_id_vazio(self):
+        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        self.assertEqual(_extrair_nome_exibicao(""), "")
+
+
+class TestExtrairQuantizacao(unittest.TestCase):
+    """Testa a extração da quantização a partir do ID do modelo."""
+
+    def test_extrai_do_sufixo(self):
+        from backend.benchmark.run_benchmark import _extrair_quantizacao
+        self.assertEqual(
+            _extrair_quantizacao("ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M"), "Q4_K_M"
+        )
+
+    def test_sem_sufixo_retorna_desconhecida(self):
+        from backend.benchmark.run_benchmark import _extrair_quantizacao
+        self.assertEqual(_extrair_quantizacao("qwen2.5-omni-3b"), "desconhecida")
+
+
+class TestContextoOk(unittest.TestCase):
+    """Testa o campo contexto_ok no resultado e nas métricas do benchmark."""
+
+    def test_default_true_no_resultado(self):
+        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        result = MariaTaskResult(
+            task_id=1, task_name="T", category="conversa", model="m",
+            tool_detected=None, tool_correct=True, confirmation_completed=True,
+            keyword_match=True, runtime_ok=True, final_message="ok",
+            latency_ms=100.0, errors=[], raw_tool_args={},
+        )
+        self.assertTrue(result.contexto_ok)
+
+    def test_contexto_ok_rate_nas_metricas(self):
+        from backend.benchmark.analysis.metrics import calculate_maria_metrics
+        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        base = dict(
+            task_name="T", category="conversa", model="m",
+            tool_detected=None, tool_correct=True, confirmation_completed=True,
+            keyword_match=True, runtime_ok=True, final_message="ok",
+            latency_ms=100.0, errors=[], raw_tool_args={},
+        )
+        r_ok = MariaTaskResult(**base, task_id=1, contexto_ok=True)
+        r_falha = MariaTaskResult(**base, task_id=2, contexto_ok=False)
+        metrics = calculate_maria_metrics([r_ok, r_falha])
+        self.assertEqual(metrics.contexto_ok_rate, 0.5)
+
+    def test_runner_detecta_erro_de_contexto(self):
+        from unittest.mock import patch as _patch
+        from backend.benchmark.runners.maria_runner import MariaRunner, OllamaClientError
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteErroContexto:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                # Mesma classe que o runner captura (import de core.llama_client).
+                raise OllamaClientError(
+                    "Prompt token count 5000 exceeds the available context size 4096"
+                )
+
+        task = MariaTask(
+            9107, "Contexto", "desc", "Crie uma planilha grande.",
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+        )
+        with _patch("backend.benchmark.runners.maria_runner.time.sleep"):
+            resultado = MariaRunner(cliente=ClienteErroContexto()).run(task)
+
+        self.assertFalse(resultado.contexto_ok)
+        self.assertTrue(
+            any(e.get("kind") == "OllamaClientError" for e in resultado.errors)
+        )
+
+    def test_runner_erro_generico_mantem_contexto_ok(self):
+        from unittest.mock import patch as _patch
+        from backend.benchmark.runners.maria_runner import MariaRunner, OllamaClientError
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteErroRede:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                raise OllamaClientError("Falha de conexao com o llama-server")
+
+        task = MariaTask(
+            9108, "Erro rede", "desc", "Crie uma planilha.",
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+        )
+        with _patch("backend.benchmark.runners.maria_runner.time.sleep"):
+            resultado = MariaRunner(cliente=ClienteErroRede()).run(task)
+
+        self.assertTrue(resultado.contexto_ok)
+        self.assertTrue(
+            any(e.get("kind") == "OllamaClientError" for e in resultado.errors)
+        )
+
+
+class TestEstimarTokens(unittest.TestCase):
+    """Testa a estimativa rápida de tokens (~4 caracteres por token)."""
+
+    def test_texto_vazio_retorna_zero(self):
+        from backend.benchmark.utils import estimar_tokens
+        self.assertEqual(estimar_tokens(""), 0)
+
+    def test_400_caracteres_retorna_100(self):
+        from backend.benchmark.utils import estimar_tokens
+        self.assertEqual(estimar_tokens("a" * 400), 100)
+
+    def test_texto_curto_retorna_no_minimo_um(self):
+        from backend.benchmark.utils import estimar_tokens
+        self.assertEqual(estimar_tokens("ok"), 1)
+
+
+class TestCalibracaoDeTokens(unittest.TestCase):
+    """Testa o fator de calibração medido no warmup via /tokenize."""
+
+    def setUp(self):
+        # O warmup de outros testes define o fator global; cada teste parte de 1.0.
+        from backend.benchmark import utils
+        utils._fator_calibracao = 1.0
+
+    def tearDown(self):
+        from backend.benchmark import utils
+        utils._fator_calibracao = 1.0
+
+    def test_fator_medido_e_aplicado(self):
+        from backend.benchmark import utils
+        fator = utils.definir_fator_calibracao(800, "a" * 400)
+        self.assertEqual(fator, 8.0)
+        self.assertEqual(utils.estimar_tokens_calibrado("a" * 400), 800)
+
+    def test_sem_calibracao_estimativa_pura(self):
+        from backend.benchmark import utils
+        self.assertEqual(utils.obter_fator_calibracao(), 1.0)
+        self.assertEqual(utils.estimar_tokens_calibrado("a" * 400), 100)
+
+    def test_texto_vazio_retorna_zero_mesmo_com_fator(self):
+        from backend.benchmark import utils
+        utils.definir_fator_calibracao(800, "a" * 400)
+        self.assertEqual(utils.estimar_tokens_calibrado(""), 0)
+
+    def test_fator_ignorado_se_estimativa_zero(self):
+        from backend.benchmark import utils
+        utils.definir_fator_calibracao(800, "")
+        self.assertEqual(utils.obter_fator_calibracao(), 1.0)
+
+
+class TestWarmupCtxSize(unittest.TestCase):
+    """Testa a detecção de contexto real e a verificação do system prompt no warmup."""
+
+    def _executar_warmup(self, metadados, contar_tokens):
+        import io
+        from contextlib import redirect_stdout
+        from backend.benchmark import run_benchmark
+
+        class FakeClient:
+            def enviar_mensagem(self, *a, **kw):
+                return "ok"
+
+        buf = io.StringIO()
+        with patch("backend.benchmark.run_benchmark._obter_metadados_modelo", return_value=metadados), \
+             patch("backend.benchmark.run_benchmark._contar_tokens_exatos", side_effect=contar_tokens), \
+             patch("backend.benchmark.run_benchmark.OllamaClient", return_value=FakeClient()):
+            with redirect_stdout(buf):
+                meta = run_benchmark._warmup_model()
+        return meta, buf.getvalue()
+
+    def test_ctx_real_via_models(self):
+        metadados = {"id": "m", "id_exibicao": "m", "n_ctx": 2048}
+        meta, _ = self._executar_warmup(metadados, lambda *a: 820)
+        self.assertEqual(meta["ctx_size"], 2048)
+        self.assertEqual(meta["ctx_fonte"], "models")
+
+    def test_fallback_para_llama_num_ctx_com_aviso(self):
+        from backend.benchmark.run_benchmark import LLAMA_NUM_CTX
+        metadados = {"id": "m", "id_exibicao": "m"}  # sem n_ctx
+        meta, saida = self._executar_warmup(metadados, lambda *a: None)
+        self.assertEqual(meta["ctx_size"], LLAMA_NUM_CTX)
+        self.assertEqual(meta["ctx_fonte"], "fallback")
+        self.assertIn("[AVISO]", saida)
+
+    def test_system_prompt_tokens_contagem_exata(self):
+        metadados = {"id": "m", "id_exibicao": "m", "n_ctx": 2048}
+        meta, _ = self._executar_warmup(metadados, lambda *a: 820)
+        self.assertEqual(meta["system_prompt_tokens"], 820)
+
+    def test_aborta_quando_prompt_nao_cabe(self):
+        metadados = {"id": "m", "id_exibicao": "m", "n_ctx": 2048}
+        with self.assertRaises(SystemExit):
+            self._executar_warmup(metadados, lambda *a: 100000)
+
+    def tearDown(self):
+        # Evita vazar o fator de calibração global para outros testes.
+        from backend.benchmark import utils
+        utils._fator_calibracao = 1.0
+
+
+class TestNumCtxAdaptativo(unittest.TestCase):
+    """Testa a remoção adaptativa de num_ctx quando o servidor rejeita (HTTP 400)."""
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_400_remove_num_ctx_e_refaz_sem_o_campo(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        resp_models = MagicMock()
+        resp_models.status_code = 200
+        mock_session.get.return_value = resp_models
+
+        resp_400 = MagicMock()
+        resp_400.status_code = 400
+        resp_400.text = "erro: num_ctx invalido"
+        resp_200 = MagicMock()
+        resp_200.status_code = 200
+        # Captura o payload NO MOMENTO da chamada: _make_request muta o mesmo
+        # dict (pop de num_ctx), então call_args_list guardaria a versão final.
+        respostas = [resp_400, resp_200]
+        payloads_chamados = []
+
+        def capturar_post(*args, **kwargs):
+            payloads_chamados.append(dict(kwargs.get("json") or {}))
+            return respostas.pop(0)
+
+        mock_session.post.side_effect = capturar_post
+
+        cliente = LlamaClient()
+        payload = {"model": "m", "messages": [], "num_ctx": 8192}
+        response = cliente._make_request(payload)
+
+        self.assertIs(response, resp_200)
+        self.assertFalse(cliente._num_ctx_respeitado)
+        self.assertIn("num_ctx", payloads_chamados[0])
+        self.assertNotIn("num_ctx", payloads_chamados[1])
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_200_mantem_num_ctx(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        resp_models = MagicMock()
+        resp_models.status_code = 200
+        mock_session.get.return_value = resp_models
+
+        resp_200 = MagicMock()
+        resp_200.status_code = 200
+        mock_session.post.side_effect = [resp_200]
+
+        cliente = LlamaClient()
+        cliente._make_request({"num_ctx": 8192})
+
+        self.assertIsNone(cliente._num_ctx_respeitado)
+        payload_enviado = mock_session.post.call_args.kwargs["json"]
+        self.assertIn("num_ctx", payload_enviado)
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_flag_false_omite_num_ctx_da_proxima_chamada(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        resp_models = MagicMock()
+        resp_models.status_code = 200
+        mock_session.get.return_value = resp_models
+
+        resp_200 = MagicMock()
+        resp_200.status_code = 200
+        mock_session.post.side_effect = [resp_200]
+
+        cliente = LlamaClient()
+        cliente._num_ctx_respeitado = False
+        cliente._make_request({"num_ctx": 8192})
+
+        payload_enviado = mock_session.post.call_args.kwargs["json"]
+        self.assertNotIn("num_ctx", payload_enviado)
+        self.assertEqual(mock_session.post.call_count, 1)  # sem retry
+
+
+class TestPreCheckContexto(unittest.TestCase):
+    """Testa o pre-check de contexto e o timeout por chamada no MariaRunner."""
+
+    def _task(self, mensagem="Olá"):
+        from backend.benchmark.tasks.task_schema import MariaTask
+        return MariaTask(999, "PreCheck", "Teste", mensagem)
+
+    def test_prompt_gigante_bloqueado_sem_retry(self):
+        from backend.core.ollama_client import OllamaClient
+        from backend.benchmark.runners.maria_runner import MariaRunner
+
+        class ClienteConta(OllamaClient):
+            def __init__(self):
+                self.model = "m"
+                self.chamadas = 0
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                self.chamadas += 1
+                return ("ok", None, 1, 1.0, 0.1)
+
+        cliente = ClienteConta()
+        runner = MariaRunner(cliente=cliente, ctx_size=100)
+        resultado = runner.run(self._task("a" * 2000))
+
+        self.assertFalse(resultado.contexto_ok)
+        self.assertEqual(cliente.chamadas, 0)  # nunca chegou a enviar
+        self.assertTrue(
+            any(e.get("kind") == "OllamaClientError" for e in resultado.errors)
+        )
+
+    def test_prompt_normal_e_enviado(self):
+        from backend.core.ollama_client import OllamaClient
+        from backend.benchmark.runners.maria_runner import MariaRunner
+
+        class ClienteNormal(OllamaClient):
+            def __init__(self):
+                self.model = "m"
+                self.chamadas = 0
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                self.chamadas += 1
+                return ("Resposta em português.", None, 10, 5.0, 1.0)
+
+        cliente = ClienteNormal()
+        runner = MariaRunner(cliente=cliente)  # ctx default = LLAMA_NUM_CTX
+        resultado = runner.run(self._task())
+
+        self.assertTrue(resultado.contexto_ok)
+        self.assertEqual(cliente.chamadas, 1)
+
+    def test_callback_de_continuacao_usa_timeout_por_chamada(self):
+        from backend.core.ollama_client import OllamaClient
+        from backend.benchmark.runners import maria_runner as modulo
+        from backend.benchmark.runners.maria_runner import MariaRunner
+
+        class ClienteLeitura(OllamaClient):
+            def __init__(self):
+                self.model = "m"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return ("", {"name": "listar_arquivos", "arguments": {}}, 5, 2.0, 0.5)
+
+        capturado = {}
+
+        def fake_encadear(cliente, historico, tool_call, schema, apos_cada_chamada=None):
+            capturado["callback"] = apos_cada_chamada
+            yield ("conteudo", None)
+
+        runner = MariaRunner(cliente=ClienteLeitura())
+        with patch.object(modulo, "encadear_leitura_stream", fake_encadear):
+            runner.run(self._task())
+
+        callback = capturado["callback"]
+        limite = modulo.BENCHMARK_TIMEOUT_POR_CHAMADA
+        with self.assertRaises(TimeoutError):
+            callback(limite + 1, 5)
+        # Abaixo do limite: não levanta (soma tokens via nonlocal internamente).
+        callback(1, 7)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ if MARIA_ROOT not in sys.path:
     sys.path.insert(0, MARIA_ROOT)
 
 from core.chat_session import ChatSession, interpretar_confirmacao
+from core.config import LLAMA_NUM_CTX
 from core.llama_client import (
     LlamaClient as OllamaClient,
     LlamaClientError as OllamaClientError,
@@ -30,11 +31,31 @@ from ..benchmark_config import (
     BENCHMARK_MAX_RETRIES,
     BENCHMARK_RETRY_BACKOFF_SECONDS,
     BENCHMARK_TASK_TIMEOUT,
+    BENCHMARK_TIMEOUT_POR_CHAMADA,
 )
+from ..utils import MARGEM_RESERVA_RESPOSTA, estimar_tokens_calibrado
 from ..analysis.language_check import resposta_em_portugues
 from ..tasks.task_schema import MariaTask, MariaTaskResult
 
 logger = logging.getLogger(__name__)
+
+# Marcadores de estouro de contexto na mensagem de erro do llama-server.
+# 'contexto' sozinho cobre mensagens localizadas em português (ex: o pre-check
+# do próprio runner); os demais são os erros em inglês do llama.cpp.
+MARCAS_CONTEXTO = (
+    "exceeds the available context size",
+    "exceeds the context size",
+    "context size",
+    "too many tokens",
+    "excede o contexto",
+    "contexto",
+)
+
+
+def _eh_erro_de_contexto(mensagem: str) -> bool:
+    """True se a mensagem de erro indica estouro de contexto do servidor."""
+    texto = (mensagem or "").lower()
+    return any(marca in texto for marca in MARCAS_CONTEXTO)
 
 
 class MariaRunner:
@@ -45,11 +66,16 @@ class MariaRunner:
         cliente: OllamaClient | None = None,
         num_predict: int | None = None,
         modelo_carregado: str | None = None,
+        ctx_size: int | None = None,
     ):
         self.cliente = cliente or OllamaClient(num_predict=num_predict)
         # Usa o modelo efetivamente carregado no llama-server se disponível,
         # caso contrário fallback para o model do cliente ou LLAMA_MODEL.
         self.modelo_efetivo = modelo_carregado or getattr(cliente, "model", None)
+        # Contexto efetivo: valor real detectado no servidor (meta.n_ctx de
+        # /v1/models) quando repassado pelo run_benchmark; fallback para o
+        # valor configurado (LLAMA_NUM_CTX).
+        self.ctx_size = int(ctx_size) if ctx_size else LLAMA_NUM_CTX
         # Snapshot único dos parâmetros de sampler efetivos (config atual).
         self.sampler_params = montar_sampler_params()
 
@@ -73,6 +99,7 @@ class MariaRunner:
         tokens_por_segundo = 0.0
         ttft_ms = None
         confirmation_completed = not task.confirm_sequence
+        contexto_ok = True
 
         try:
             resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms, prompt_enviado = self._enviar_com_retry(sessao, task)
@@ -90,10 +117,11 @@ class MariaRunner:
                     continuação a tokens_gerados, que antes só refletia a
                     primeira chamada (mascarando o custo real da tarefa)."""
                     nonlocal tokens_gerados
-                    if duracao_chamada > BENCHMARK_TASK_TIMEOUT:
+                    if duracao_chamada > BENCHMARK_TIMEOUT_POR_CHAMADA:
                         raise TimeoutError(
                             f"Uma chamada de continuação (leitura) excedeu o "
-                            f"timeout de {BENCHMARK_TASK_TIMEOUT} segundos."
+                            f"timeout de {BENCHMARK_TIMEOUT_POR_CHAMADA} segundos "
+                            f"(limite por chamada, não acumulado)."
                         )
                     tokens_gerados += tokens_chamada
 
@@ -148,8 +176,14 @@ class MariaRunner:
             if not resposta_textual.strip():
                 resposta_textual = f"[ERRO] {error}"
         except OllamaClientError as error:
-            logger.error("Erro do Ollama na tarefa %s: %s", task.id, error)
-            errors.append({"kind": "OllamaClientError", "message": str(error)})
+            erro_str = str(error)
+            # Detecta estouro de contexto do llama-server (prompt > ctx_size).
+            if _eh_erro_de_contexto(erro_str):
+                contexto_ok = False
+                logger.error("ERRO DE CONTEXTO na tarefa %s: %s", task.id, error)
+            else:
+                logger.error("Erro do Ollama na tarefa %s: %s", task.id, error)
+            errors.append({"kind": "OllamaClientError", "message": erro_str})
         except Exception as error:
             logger.exception("Erro inesperado na tarefa %s", task.id)
             errors.append({"kind": "InternalError", "message": str(error)})
@@ -196,6 +230,7 @@ class MariaRunner:
             tokens_por_segundo=tokens_por_segundo,
             args_correct=args_correct,
             ttft_ms=ttft_ms,
+            contexto_ok=contexto_ok,
             prompt_enviado=prompt_enviado,
             resposta_bruta_modelo=resposta_bruta_modelo,
             sampler_params=self.sampler_params,
@@ -289,6 +324,40 @@ class MariaRunner:
         worksheet.cell(row=1, column=1, value="Fixture do benchmark")
         workbook.save(caminho)
 
+    @staticmethod
+    def _verificar_timeout_por_chamada(inicio_tentativa: float) -> None:
+        """Timeout POR CHAMADA individual ao modelo (não acumulado com retries).
+
+        Diferencia uma tarefa que falhou por UMA chamada lenta de uma que
+        estourou pelo acumulo de várias chamadas/continuações.
+        """
+        duracao_s = time.monotonic() - inicio_tentativa
+        if duracao_s > BENCHMARK_TIMEOUT_POR_CHAMADA:
+            raise TimeoutError(
+                f"Chamada ao modelo excedeu {BENCHMARK_TIMEOUT_POR_CHAMADA}s "
+                f"(timeout por chamada). Latência: {duracao_s:.1f}s"
+            )
+
+    def _verificar_contexto_disponivel(self, prompt_enviado: list[dict]) -> None:
+        """Aborta ANTES de enviar se o prompt estimado não couber no contexto.
+
+        Estimativa calibrada no warmup (fator medido via /tokenize) com margem
+        de MARGEM_RESERVA_RESPOSTA (30% do contexto) reservada à resposta do
+        modelo. Levanta OllamaClientError com marcador de contexto — o run()
+        classifica contexto_ok=False e o retry é pulado (estouro de contexto é
+        determinístico: tentar de novo não resolve).
+        """
+        prompt_texto = " ".join(str(m.get("content") or "") for m in prompt_enviado)
+        prompt_tokens = estimar_tokens_calibrado(prompt_texto)
+        limite = int(self.ctx_size * (1 - MARGEM_RESERVA_RESPOSTA))
+        if prompt_tokens > limite:
+            reserva = int(self.ctx_size * MARGEM_RESERVA_RESPOSTA)
+            raise OllamaClientError(
+                f"Prompt de ~{prompt_tokens} tokens excede o contexto disponivel "
+                f"de {self.ctx_size} tokens (margem de reserva: {reserva}). "
+                f"Reduza o system prompt ou aumente --ctx-size do servidor."
+            )
+
     def _enviar_com_retry(self, sessao: ChatSession, task: MariaTask):
         tentativas = 0
         while True:
@@ -297,6 +366,9 @@ class MariaRunner:
                 # Prompt EXATAMENTE como será enviado ao modelo (mesma montagem
                 # de chat_com_tools_stream_com_metricas via _montar_mensagens_com_reforco).
                 prompt_enviado = _montar_mensagens_com_reforco(historico, task.user_message)
+                # Pre-check: evita desperdiçar uma execução com prompt que não cabe.
+                self._verificar_contexto_disponivel(prompt_enviado)
+                inicio_tentativa = time.monotonic()
                 metodo_metricas = getattr(self.cliente, "chat_com_tools_stream_com_metricas", None)
                 if callable(metodo_metricas):
                     resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms = (
@@ -306,6 +378,7 @@ class MariaRunner:
                             tools=TOOLS_SCHEMA,
                         )
                     )
+                    self._verificar_timeout_por_chamada(inicio_tentativa)
                     return resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms, prompt_enviado
 
                 resposta_textual = ""
@@ -319,10 +392,14 @@ class MariaRunner:
                         resposta_textual += chunk
                     if tool_chunk is not None:
                         tool_call_final = tool_chunk
+                self._verificar_timeout_por_chamada(inicio_tentativa)
                 return resposta_textual, tool_call_final, 0, 0.0, None, prompt_enviado
             except OllamaTimeoutError:
                 raise
-            except OllamaClientError:
+            except OllamaClientError as error:
+                # Estouro de contexto é determinístico: retry não resolve.
+                if _eh_erro_de_contexto(str(error)):
+                    raise
                 tentativas += 1
                 if tentativas > BENCHMARK_MAX_RETRIES:
                     raise
