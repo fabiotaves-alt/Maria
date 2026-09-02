@@ -36,8 +36,16 @@ logger = logging.getLogger(__name__)
 class MariaRunner:
     """Executa tarefas MARIA sem passar pelo loop interativo da CLI."""
 
-    def __init__(self, cliente: OllamaClient | None = None, num_predict: int | None = None):
+    def __init__(
+        self,
+        cliente: OllamaClient | None = None,
+        num_predict: int | None = None,
+        modelo_carregado: str | None = None,
+    ):
         self.cliente = cliente or OllamaClient(num_predict=num_predict)
+        # Usa o modelo efetivamente carregado no llama-server se disponível,
+        # caso contrário fallback para o model do cliente ou LLAMA_MODEL.
+        self.modelo_efetivo = modelo_carregado or getattr(cliente, "model", None)
 
     def run(self, task: MariaTask) -> MariaTaskResult:
         original_pasta = os.environ.get("PASTA_ARQUIVOS_GERADOS")
@@ -161,7 +169,7 @@ class MariaRunner:
             task_id=task.id,
             task_name=task.name,
             category=task.category.value,
-            model=self.cliente.model,
+            model=self.modelo_efetivo or self.cliente.model,
             tool_detected=detected_name,
             tool_correct=tool_correct,
             confirmation_completed=confirmation_completed,

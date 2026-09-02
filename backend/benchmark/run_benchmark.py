@@ -16,9 +16,10 @@ MARIA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if MARIA_ROOT not in sys.path:
     sys.path.insert(0, MARIA_ROOT)
 
+import re
 import requests
 
-from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL
+from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, LLAMA_NUM_CTX
 from core.llama_client import LlamaClient as OllamaClient, LlamaClientError as OllamaClientError  # noqa: E402
 
 
@@ -51,35 +52,176 @@ def _select_tasks(tasks, args):
     return tasks
 
 
-def _consultar_modelo_carregado() -> str | None:
-    """Consulta GET {LLAMA_BASE_URL}/v1/models e retorna o id do primeiro
-    modelo carregado no llama-server, ou None se não for possível obter."""
+def _parece_caminho_local(id_modelo: str) -> bool:
+    """Retorna True quando o id do modelo parece um caminho de arquivo local
+    (blob do Ollama, caminho com separadores, ou extensão .gguf)."""
+    if not id_modelo:
+        return False
+    return (
+        os.sep in id_modelo
+        or "/" in id_modelo
+        or id_modelo.lower().endswith(".gguf")
+        or re.match(r"^[0-9a-f]{64}$", id_modelo) is not None
+        or id_modelo.startswith("sha256-")
+    )
+
+
+def _derivar_rotulo_modelo(n_params: int | float, n_vocab: int) -> str:
+    """Deriva um rótulo legível (ex.: 'Qwen2.5 3B') a partir da contagem de
+    parâmetros e do tamanho do vocabulário.
+
+    Mapeia n_params para o tamanho conhecido da família Qwen2.5 mais próximo
+    e usa n_vocab == 151936 como sinal de família Qwen2.5.
+    """
+    if not n_params:
+        return ""
+
+    # Tamanhos conhecidos da família Qwen2.5 (em bilhões)
+    tamanhos_qwen25 = (0.5, 1.5, 3, 7, 14, 32, 72)
+    bilhoes = n_params / 1e9
+    tamanho = min(tamanhos_qwen25, key=lambda t: abs(t - bilhoes))
+
+    if tamanho == int(tamanho):
+        rotulo = f"{int(tamanho)}B"
+    else:
+        rotulo = f"{tamanho}B"
+
+    if n_vocab in (151936, 152064, 152128):
+        return f"Qwen2.5 {rotulo}"
+    return rotulo
+
+
+_FTYPE_PARA_NOME: dict[int, str] = {
+    0: "F32",
+    1: "F16",
+    2: "Q4_0",
+    3: "Q4_1",
+    6: "Q5_0",
+    7: "Q5_1",
+    8: "Q8_0",
+    9: "Q2_K",
+    10: "Q3_K_S",
+    11: "Q3_K_M",
+    12: "Q3_K_L",
+    13: "Q4_K_S",
+    14: "Q4_K_M",
+    15: "Q5_K_S",
+    16: "Q5_K_M",
+    17: "Q6_K",
+    18: "Q8_K",
+    30: "IQ2_XXS",
+    31: "IQ2_XS",
+    32: "IQ2_S",
+    33: "IQ2_M",
+    34: "IQ1_S",
+    35: "IQ1_M",
+    36: "Q4_0_4_4",
+    37: "Q4_0_4_8",
+    38: "Q4_0_8_8",
+    39: "TQ1_0",
+    40: "TQ2_0",
+}
+
+
+def _ftype_para_nome(ftype: int | str | None) -> str:
+    """Converte o campo ftype (enum GGML ou string) para nome legível."""
+    if ftype is None:
+        return ""
+    if isinstance(ftype, str):
+        return ftype
+    return _FTYPE_PARA_NOME.get(ftype, f"tipo-{ftype}")
+
+
+def _formatar_tamanho(tamanho_bytes: int | None) -> str:
+    """Formata bytes como string legível (ex.: 2098976768 -> '1.95 GiB')."""
+    if not tamanho_bytes:
+        return ""
+    gib = tamanho_bytes / (1024 ** 3)
+    if gib >= 1:
+        return f"{gib:.2f} GiB"
+    return f"{tamanho_bytes / (1024 ** 2):.1f} MiB"
+
+
+def _obter_metadados_modelo() -> dict | None:
+    """Consulta GET {LLAMA_BASE_URL}/v1/models e retorna metadados do primeiro
+    modelo carregado no llama-server, ou None se não for possível obter.
+
+    O dicionário retornado contém:
+        id, id_exibicao, quantizacao, n_params, n_vocab, n_ctx, n_ctx_train,
+        tamanho_bytes, rotulo_tamanho, tamanho_legivel
+    """
+    import requests as _requests
+
     try:
-        resp = requests.get(f"{LLAMA_BASE_URL}/v1/models", timeout=5)
-        if resp.status_code == 200:
-            modelos = [m.get("id", "") for m in resp.json().get("data", [])]
-            return modelos[0] if modelos else None
-    except requests.exceptions.RequestException:
-        pass
-    return None
+        resp = _requests.get(f"{LLAMA_BASE_URL}/v1/models", timeout=5)
+        if resp.status_code != 200:
+            return None
+        modelos = resp.json().get("data", [])
+        if not modelos:
+            return None
+        primeiro = modelos[0]
+        meta = primeiro.get("meta", {}) or {}
+        id_modelo = primeiro.get("id", "") or ""
+    except (_requests.exceptions.RequestException, ValueError, KeyError):
+        return None
+
+    n_params = meta.get("n_params")
+    n_vocab = meta.get("n_vocab") or 0
+    n_ctx = meta.get("n_ctx")
+    n_ctx_train = meta.get("n_ctx_train")
+    tamanho_bytes = meta.get("size")
+    ftype_raw = meta.get("ftype")
+
+    quantizacao = _ftype_para_nome(ftype_raw)
+    rotulo = _derivar_rotulo_modelo(n_params, n_vocab) if n_params else ""
+    tamanho_legivel = _formatar_tamanho(tamanho_bytes)
+
+    # Se o id é um caminho local/blob, usa o rótulo derivado como exibição
+    id_exibicao = rotulo if (_parece_caminho_local(id_modelo) and rotulo) else id_modelo
+
+    return {
+        "id": id_modelo,
+        "id_exibicao": id_exibicao,
+        "quantizacao": quantizacao,
+        "n_params": n_params,
+        "n_vocab": n_vocab,
+        "n_ctx": n_ctx,
+        "n_ctx_train": n_ctx_train,
+        "tamanho_bytes": tamanho_bytes,
+        "rotulo_tamanho": rotulo,
+        "tamanho_legivel": tamanho_legivel,
+    }
 
 
-def _warmup_model() -> str | None:
+def _warmup_model() -> tuple[str | None, dict | None]:
     """Aquece o modelo uma vez antes de iniciar as tarefas do benchmark.
 
-    Retorna o nome do modelo efetivamente carregado (via /v1/models), ou None.
-    Também alerta no console quando o id reportado diverge de LLAMA_MODEL.
+    Retorna (nome_do_modelo_carregado, metadados_do_modelo).
+    Alerta no console quando o id reportado diverge de LLAMA_MODEL de forma
+    relevante (não apenas por ser caminho de blob do mesmo modelo).
     """
     print(f"Aquecendo o modelo (timeout de warmup: {BENCHMARK_WARMUP_TIMEOUT}s)...")
     inicio = time.monotonic()
 
-    modelo_carregado = _consultar_modelo_carregado()
+    metadados_modelo = _obter_metadados_modelo()
+    modelo_carregado = (metadados_modelo or {}).get("id")
+    id_exibicao = (metadados_modelo or {}).get("id_exibicao") or modelo_carregado
+
     if modelo_carregado and modelo_carregado != LLAMA_MODEL:
-        print(
-            f"[AVISO] LLAMA_MODEL configurado = '{LLAMA_MODEL}', mas o modelo "
-            f"carregado no llama-server (/v1/models) = '{modelo_carregado}'.\n"
-            "As execuções podem não estar usando o modelo desejado."
-        )
+        eh_local = _parece_caminho_local(modelo_carregado)
+        rotulo = (metadados_modelo or {}).get("rotulo_tamanho", "")
+        if not eh_local or not rotulo:
+            print(
+                f"[AVISO] LLAMA_MODEL configurado = '{LLAMA_MODEL}', mas o modelo "
+                f"carregado no llama-server (/v1/models) = '{id_exibicao}'.\n"
+                "As execuções podem não estar usando o modelo desejado."
+            )
+        elif rotulo and LLAMA_MODEL and rotulo.split()[-1].lower() not in LLAMA_MODEL.lower():
+            print(
+                f"[AVISO] LLAMA_MODEL configurado = '{LLAMA_MODEL}', mas o modelo "
+                f"carregado no llama-server parece ser '{rotulo}'.\n"
+                "As execuções podem não estar usando o modelo desejado."
+            )
 
     try:
         cliente_warmup = OllamaClient(timeout=BENCHMARK_WARMUP_TIMEOUT)
@@ -89,17 +231,18 @@ def _warmup_model() -> str | None:
             stream=False,
         )
     except OllamaClientError as error:
-                raise SystemExit(
+        raise SystemExit(
             "Falha no warmup do modelo: não foi possível obter resposta do llama-server.\n"
             f"Detalhes: {error}\n"
             "Verifique se o llama-server está rodando (`llama-server -m <modelo.gguf> --port 8080`) "
-            "e o modelo qwen2.5-omni-3b está carregado antes de rodar o benchmark."
+            f"e o modelo {LLAMA_MODEL} está carregado antes de rodar o benchmark."
         ) from error
 
     duracao_s = time.monotonic() - inicio
     print(f"Modelo aquecido em {duracao_s:.1f}s. Resposta de teste: {resposta.strip()!r}")
+    print(f"Modelo carregado: {id_exibicao or 'N/D'}")
 
-    return modelo_carregado
+    return modelo_carregado, metadados_modelo
 
 
 def main() -> int:
@@ -108,7 +251,7 @@ def main() -> int:
     if not tasks:
         raise SystemExit("Nenhuma tarefa selecionada.")
 
-    modelo_carregado = _warmup_model()
+    modelo_carregado, metadados_modelo = _warmup_model()
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = os.path.join(args.output_dir, f"run_{timestamp}")
@@ -116,7 +259,7 @@ def main() -> int:
     print(f"Executando {len(tasks)} tarefa(s) em sequência. Resultados: {run_dir}")
 
     # Um único runner reduz reconexões; a execução sequencial evita sobrecarga da GPU.
-    runner = MariaRunner(num_predict=args.num_predict)
+    runner = MariaRunner(num_predict=args.num_predict, modelo_carregado=modelo_carregado)
     resultados_individuais_todas_tarefas = []
     agregados_todas_tarefas = []
 
@@ -150,8 +293,14 @@ def main() -> int:
             f"latência média={metricas_parciais.avg_latency_ms / 1000:.1f}s"
         )
 
-    # log.json final com estrutura individual + agregado_por_tarefa
+    # log.json final com estrutura individual + agregado_por_tarefa + meta
     log_final = {
+        "meta": {
+            "modelo_configurado": LLAMA_MODEL,
+            "modelo_carregado": modelo_carregado,
+            "metadados_modelo": metadados_modelo,
+            "llama_num_ctx_config": LLAMA_NUM_CTX,
+        },
         "individual": [r.__dict__ for r in resultados_individuais_todas_tarefas],
         "agregado_por_tarefa": [a.__dict__ for a in agregados_todas_tarefas],
     }
@@ -164,7 +313,9 @@ def main() -> int:
                     calculate_maria_metrics(resultados_individuais_todas_tarefas),
                     run_dir,
                     modelo_configurado=LLAMA_MODEL,
-                    modelo_carregado=modelo_carregado)
+                    modelo_carregado=modelo_carregado,
+                    metadados_modelo=metadados_modelo,
+                    log_final=log_final)
 
     print("\nResumo")
     print(f"Tarefas: {calculate_maria_metrics(resultados_individuais_todas_tarefas).total_tasks}")

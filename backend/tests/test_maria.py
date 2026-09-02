@@ -2269,6 +2269,187 @@ class TestFerramentaConsultarManualRedacao(unittest.TestCase):
         with self.assertRaises(ValueError):
             executar_ferramenta_leitura("ferramenta_inexistente", {})
 
+class TestObterMetadadosModelo(unittest.TestCase):
+    """Testa a extração de metadados do llama-server via /v1/models (mock, sem servidor)."""
+
+    def test_obter_metadados_resposta_valida(self):
+        from backend.benchmark.run_benchmark import _obter_metadados_modelo
+        mock_response = MagicMock(status_code=200)
+        mock_response.json.return_value = {
+            "data": [{
+                "id": "C:\\blob\\sha256-2bada8a",
+                "meta": {"n_params": 3397103616, "n_vocab": 151936,
+                         "n_ctx": 8192, "n_ctx_train": 131072,
+                         "size": 2098976768, "ftype": 14},
+            }]
+        }
+        with patch("backend.benchmark.run_benchmark._requests.get", return_value=mock_response):
+            m = _obter_metadados_modelo()
+        self.assertIsNotNone(m)
+        self.assertEqual(m["quantizacao"], "Q4_K_M")
+        self.assertEqual(m["rotulo_tamanho"], "Qwen2.5 3B")
+        self.assertEqual(m["id_exibicao"], "Qwen2.5 3B")
+
+    def test_obter_metadados_servidor_offline(self):
+        import requests as req
+        from backend.benchmark.run_benchmark import _obter_metadados_modelo
+class TestDerivarRotuloModelo(unittest.TestCase):
+    """Testa a derivação de rótulo legível a partir de n_params e n_vocab."""
+
+    def test_qwen25_3b(self):
+        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        self.assertEqual(_derivar_rotulo_modelo(3397103616, 151936), "Qwen2.5 3B")
+
+    def test_qwen25_7b(self):
+        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        self.assertEqual(_derivar_rotulo_modelo(7615616512, 151936), "Qwen2.5 7B")
+
+    def test_qwen25_14b(self):
+        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        self.assertEqual(_derivar_rotulo_modelo(14771111936, 151936), "Qwen2.5 14B")
+
+    def test_vocab_desconhecido(self):
+        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        self.assertEqual(_derivar_rotulo_modelo(3397103616, 99999), "3B")
+
+    def test_sem_params(self):
+        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        self.assertEqual(_derivar_rotulo_modelo(0, 151936), "")
+
+
+class TestPareceCaminhoLocal(unittest.TestCase):
+    """Testa a detecção de caminhos locais/blobs."""
+
+    def test_blob_ollama(self):
+        from backend.benchmark.run_benchmark import _parece_caminho_local
+        self.assertTrue(_parece_caminho_local("C:\\blob\\sha256-2bada8a"))
+
+    def test_hash_puro(self):
+        from backend.benchmark.run_benchmark import _parece_caminho_local
+        self.assertTrue(_parece_caminho_local("2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730"))
+
+    def test_gguf(self):
+        from backend.benchmark.run_benchmark import _parece_caminho_local
+        self.assertTrue(_parece_caminho_local("models/qwen2.gguf"))
+
+    def test_nome_simples(self):
+        from backend.benchmark.run_benchmark import _parece_caminho_local
+        self.assertFalse(_parece_caminho_local("qwen2.5-omni-3b"))
+
+    def test_vazio(self):
+class TestAlertaNaoDisparaParaBlob(unittest.TestCase):
+    """Testa que o alerta de divergência NÃO dispara quando o id é blob
+    do mesmo modelo configurado."""
+
+    def test_sem_alerta_para_blob_mesmo_modelo(self):
+        import io
+        from contextlib import redirect_stdout
+        from backend.benchmark.run_benchmark import _warmup_model
+
+        metadados = {
+            "id": "C:\\blob\\sha256-2bada8a",
+            "id_exibicao": "Qwen2.5 3B",
+            "rotulo_tamanho": "Qwen2.5 3B",
+        }
+
+        class FakeClient:
+            def enviar_mensagem(self, *a, **kw):
+                return "ok"
+
+        buf = io.StringIO()
+        with patch("backend.benchmark.run_benchmark._obter_metadados_modelo", return_value=metadados), \
+             patch("backend.benchmark.run_benchmark.OllamaClient", return_value=FakeClient()):
+            with redirect_stdout(buf):
+                modelo, meta = _warmup_model()
+
+        # "3b" está contido em "qwen2.5-omni-3b" -> NÃO deve gerar alerta
+        self.assertNotIn("[AVISO]", buf.getvalue())
+
+
+class TestAvisoNctx(unittest.TestCase):
+    """Testa o aviso de n_ctx quando config > servidor."""
+
+    def test_relatorio_contem_aviso_nctx(self):
+        import tempfile
+        from unittest.mock import patch as _patch
+        from backend.benchmark.analysis.report import generate_report
+        from backend.benchmark.tasks.task_schema import MariaTaskResult
+
+        results = [
+            MariaTaskResult(
+                task_id=1, task_name="T1", category="conversa", model="m",
+                tool_detected=None, tool_correct=True, confirmation_completed=True,
+                keyword_match=True, runtime_ok=True, final_message="ok",
+                latency_ms=100.0, errors=[], raw_tool_args={},
+            ),
+        ]
+
+        metadados = {
+            "id": "modelo.gguf", "id_exibicao": "modelo.gguf",
+            "n_ctx": 4096, "n_ctx_train": 131072,
+            "quantizacao": "Q4_K_M", "n_params": 3397103616,
+            "tamanho_legivel": "1.95 GiB",
+        }
+
+        with _patch("backend.benchmark.analysis.report.LLAMA_NUM_CTX", 8192):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                generate_report(
+                    results,
+                    MagicMock(
+                        total_tasks=1, tool_accuracy=1.0, confirmation_success_rate=1.0,
+                        keyword_match_rate=1.0, runtime_success_rate=1.0,
+                        language_compliance_rate=1.0, args_accuracy=1.0,
+                        avg_tokens_por_segundo=0.0, avg_ttft_ms=None,
+                        p50_latency_ms=100.0, p90_latency_ms=100.0,
+                        avg_latency_ms=100.0, error_distribution={}, by_category={},
+                    ),
+                    tmpdir,
+                    modelo_configurado="qwen2.5-omni-3b",
+                    modelo_carregado="modelo.gguf",
+                    metadados_modelo=metadados,
+                )
+                with open(os.path.join(tmpdir, "report.md"), encoding="utf-8") as f:
+                    report = f.read()
+
+        self.assertIn("4096", report)
+        self.assertIn("n_ctx", report)
+
+
+
+        from backend.benchmark.run_benchmark import _parece_caminho_local
+        self.assertFalse(_parece_caminho_local(""))
+        self.assertFalse(_parece_caminho_local(None))
+
+
+class TestFtypeParaNome(unittest.TestCase):
+    """Testa a conversão de ftype (enum GGML) para nome legível."""
+
+    def test_q4_k_m(self):
+        from backend.benchmark.run_benchmark import _ftype_para_nome
+        self.assertEqual(_ftype_para_nome(14), "Q4_K_M")
+
+    def test_string_passa_direto(self):
+        from backend.benchmark.run_benchmark import _ftype_para_nome
+        self.assertEqual(_ftype_para_nome("Q8_0"), "Q8_0")
+
+    def test_none(self):
+        from backend.benchmark.run_benchmark import _ftype_para_nome
+        self.assertEqual(_ftype_para_nome(None), "")
+
+
+
+        with patch("backend.benchmark.run_benchmark._requests.get",
+                   side_effect=req.exceptions.ConnectionError()):
+            self.assertIsNone(_obter_metadados_modelo())
+
+    def test_obter_metadados_status_500(self):
+        from backend.benchmark.run_benchmark import _obter_metadados_modelo
+        mock_response = MagicMock(status_code=500)
+        with patch("backend.benchmark.run_benchmark._requests.get", return_value=mock_response):
+            self.assertIsNone(_obter_metadados_modelo())
+
+
+
 
 if __name__ == "__main__":
     unittest.main()

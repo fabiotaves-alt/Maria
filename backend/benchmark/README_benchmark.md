@@ -9,8 +9,8 @@ A partir da raiz `MARIA/`:
 ```bash
 llama-server -m <caminho/para/qwen2.5-omni-3b.gguf> --port 8080
 python -m backend.benchmark.run_benchmark --tasks 25
-python -m benchmark.run_benchmark --task-ids 1 2 3
-python -m benchmark.run_benchmark --category criar_planilha
+python -m backend.benchmark.run_benchmark --task-ids 1 2 3
+python -m backend.benchmark.run_benchmark --category criar_planilha
 ```
 
 Antes de qualquer tarefa, o CLI envia uma pergunta simples ao modelo, sem tools, para forçar o carregamento em memória e evitar que a primeira tarefa sofra timeout. O timeout desse warmup é de 300 segundos por padrão e pode ser configurado com `BENCHMARK_WARMUP_TIMEOUT`.

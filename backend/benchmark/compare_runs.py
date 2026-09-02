@@ -21,7 +21,13 @@ METRIC_LABELS = {
 
 def _load_metrics(run_dir: str):
     with open(os.path.join(run_dir, "log.json"), encoding="utf-8") as log_file:
-        results = [MariaTaskResult(**item) for item in json.load(log_file)]
+        dados = json.load(log_file)
+    # Suporta ambos os formatos: novo (dict com "individual") e antigo (lista plana)
+    if isinstance(dados, dict):
+        resultados_raw = dados.get("individual", [])
+    else:
+        resultados_raw = dados
+    results = [MariaTaskResult(**item) for item in resultados_raw]
     return calculate_maria_metrics(results)
 
 
