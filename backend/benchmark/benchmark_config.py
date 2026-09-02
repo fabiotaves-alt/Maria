@@ -15,3 +15,12 @@ BENCHMARK_RETRY_BACKOFF_SECONDS = float(
 )
 BENCHMARK_WARMUP_TIMEOUT = int(os.getenv("BENCHMARK_WARMUP_TIMEOUT", "300"))
 BENCHMARK_REPETICOES = int(os.getenv("BENCHMARK_REPETICOES", "3"))
+BENCHMARK_REPETICOES = int(os.getenv("BENCHMARK_REPETICOES", "3"))
+
+# Timeout POR CHAMADA individual ao modelo (s). O BENCHMARK_TASK_TIMEOUT (400s)
+# continua como timeout TOTAL da tarefa (incluindo retries e continuacoes); a
+# separacao permite identificar se uma tarefa estourou por uma chamada lenta
+# ou pelo acumulo de varias chamadas.
+BENCHMARK_TIMEOUT_POR_CHAMADA = int(
+    os.getenv("BENCHMARK_TIMEOUT_POR_CHAMADA", "120")
+)

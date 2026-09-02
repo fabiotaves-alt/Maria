@@ -212,6 +212,9 @@ class LlamaClient:
         self.num_predict = num_predict
         self._session = requests.Session()
         self._connection_checked = False
+        # None = nao testado; False = servidor rejeitou num_ctx (HTTP 400);
+        # True = servidor aceitou. Cacheado por instancia.
+        self._num_ctx_respeitado: bool | None = None
 
     def _check_connection(self) -> bool:
         """
@@ -274,6 +277,10 @@ class LlamaClient:
                 f"Verifique se o servidor está rodando em {self.base_url}.\n"
                 "Para iniciar: ./build/bin/llama-server -m <modelo.gguf> --port 8080"
             )
+        # Servidores que já rejeitaram 'num_ctx' (HTTP 400) recebem o payload
+        # sem o campo a partir da próxima chamada (flag cacheada por instância).
+        if self._num_ctx_respeitado is False:
+            payload.pop("num_ctx", None)
         try:
             response = self._session.post(
                 f"{self.base_url}/v1/chat/completions",
@@ -281,6 +288,25 @@ class LlamaClient:
                 timeout=self.timeout,
                 stream=stream,
             )
+            # Adaptativo: se o servidor rejeitar 'num_ctx' (HTTP 400), remove o
+            # campo e refaz a requisição uma única vez — evita erro 400 desnecessário
+            # sem custar uma requisição de sonda nas chamadas normais.
+            if (
+                response.status_code == 400
+                and "num_ctx" in payload
+                and self._num_ctx_respeitado is not False
+            ):
+                self._num_ctx_respeitado = False
+                payload.pop("num_ctx", None)
+                logger.warning(
+                    "llama-server rejeitou 'num_ctx' (HTTP 400); reenviando sem o campo."
+                )
+                response = self._session.post(
+                    f"{self.base_url}/v1/chat/completions",
+                    json=payload,
+                    timeout=self.timeout,
+                    stream=stream,
+                )
             if response.status_code != 200:
                 raise LlamaClientError(
                     f"Erro na API do llama-server: status {response.status_code}\n"
