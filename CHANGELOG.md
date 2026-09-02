@@ -2,6 +2,32 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.7] — Verificação de contexto, timeouts por chamada e num_ctx adaptativo — 2026-09-02
+
+### ✨ Nova funcionalidade
+
+- **Contexto real do servidor como fonte única** (`backend/benchmark/run_benchmark.py`):
+  `_warmup_model()` agora lê o `n_ctx` real do `meta` de `/v1/models` (comprovado nos runs: `2048` real vs `8192` configurado) e registra `ctx_size` + `ctx_fonte` (`models`/`fallback`) nos metadados. Sem `n_ctx`, faz fallback para `LLAMA_NUM_CTX` com `[AVISO]` sugerindo `--ctx-size` explícito. A sonda com payload `num_ctx` (do enunciado original) foi descartada: o endpoint OpenAI-compat do llama.cpp ignora campos desconhecidos, então responderia 200 mesmo com contexto menor — medição falsa.
+- **Contagem exata do system prompt + calibração** (`backend/benchmark/run_benchmark.py`, `backend/benchmark/utils.py`):
+  1 chamada `POST /tokenize` no warmup dá o número exato de tokens do system prompt e o **fator de calibração** (tokens reais ÷ estimativa chars/4 — captura a densidade dos JSONs de tool schema). O pre-check por tarefa usa `estimar_tokens_calibrado()` — erro cai de ~±50% para ~±10% **sem nenhuma chamada HTTP extra**. Fallback silencioso (`fator = 1.0`) se `/tokenize` indisponível.
+- **Warmup aborta se o prompt não couber** (`backend/benchmark/run_benchmark.py`):
+  `SystemExit` com as duas soluções (reduzir o system prompt / subir `--ctx-size`, com o valor sugerido calculado) quando `tokens > ctx - 512` (margem de segurança `MARGEM_SEGURANCA_SYSTEM`). No cenário real (546 tokens estimados vs 1536 de limite em ctx 2048) o warmup passa com `[OK]` e a margem exibida.
+- **Pre-check de contexto por tarefa** (`backend/benchmark/runners/maria_runner.py`):
+  `MariaRunner.__init__` ganha `ctx_size` (recebe o valor real do `run_benchmark`; fallback `LLAMA_NUM_CTX`). `_enviar_com_retry()` estima o prompt calibrado e **aborta antes de enviar** se exceder `ctx × 0.7` (`MARGEM_RESERVA_RESPOSTA`), com `OllamaClientError` portando marcador de contexto → `run()` classifica `contexto_ok=False` (PARTE 3.6) e **o retry é pulado** (estouro é determinístico).
+- **Timeout por chamada separado do total** (`backend/benchmark/benchmark_config.py`, `backend/benchmark/runners/maria_runner.py`):
+  novo `BENCHMARK_TIMEOUT_POR_CHAMADA` (120s, via ENV) — `BENCHMARK_TASK_TIMEOUT` (400s) permanece como timeout TOTAL. O callback de continuação usa o limite por chamada e cada tentativa do `_enviar_com_retry` é verificada pós-chamada (`_verificar_timeout_por_chamada`, medida por tentativa, não acumulada com retries) — diferencia tarefa falha por UMA chamada lenta de estouro por acumulação.
+- **`num_ctx` adaptativo no payload** (`backend/core/llama_client.py`):
+  flag `_num_ctx_respeitado` (cacheada por instância): em HTTP 400 com `num_ctx` no payload, remove o campo e refaz a requisição **uma única vez**; chamadas seguintes omitem o campo direto. Servidores que ignoram o campo (llama.cpp hoje) não mudam de comportamento — abordagem adaptativa escolhida em vez de sonda proativa, que custaria um POST extra e quebraria testes que inspecionam o primeiro payload. `ollama_client.py` intocado (divergência deliberada mantida).
+- **`log.json` v2.0 estendido**: `ctx_size_detectado`, `ctx_fonte`, `system_prompt_tokens`, `fator_calibracao_tokens`, `timeout_por_chamada_s` no bloco `meta`.
+
+### 🧪 Testes
+
+- **172/172 testes passaram** (`python -m pytest backend/tests/test_maria.py`), + 33 subtests.
+- **17 testes novos**: `TestEstimarTokens` (3), `TestCalibracaoDeTokens` (4), `TestWarmupCtxSize` (4 — ctx via models, fallback com aviso, contagem exata, aborto), `TestNumCtxAdaptativo` (3) e `TestPreCheckContexto` (3 — bloqueio sem retry, envio normal, callback com timeout por chamada).
+- **1 fixture ajustado**: `test_sem_alerta_para_blob_mesmo_modelo` ganhou `n_ctx` no metadado e patch de `_contar_tokens_exatos` (evita HTTP real e `[AVISO]` de fallback).
+
+---
+
 ## [4.1.6] — Metadados reais do modelo, detecção de contexto e relatório enxuto — 2026-09-02
 
 ### ✨ Nova funcionalidade

@@ -9,7 +9,19 @@ from datetime import datetime
 
 from .analysis.metrics import calculate_maria_metrics, aggregate_by_task
 from .analysis.report import generate_report
-from .benchmark_config import BENCHMARK_RESULTS_DIR, BENCHMARK_WARMUP_TIMEOUT, BENCHMARK_REPETICOES
+from .benchmark_config import (
+    BENCHMARK_RESULTS_DIR,
+    BENCHMARK_TIMEOUT_POR_CHAMADA,
+    BENCHMARK_WARMUP_TIMEOUT,
+    BENCHMARK_REPETICOES,
+)
+from .utils import (
+    MARGEM_SEGURANCA_SYSTEM,
+    definir_fator_calibracao,
+    estimar_tokens,
+    estimar_tokens_calibrado,
+    obter_fator_calibracao,
+)
 from .runners.maria_runner import MariaRunner
 from .tasks import load_all_maria_tasks
 
@@ -236,6 +248,26 @@ def _obter_metadados_modelo() -> dict | None:
     }
 
 
+def _contar_tokens_exatos(base_url: str, texto: str) -> int | None:
+    """Conta tokens exatos via POST {base_url}/tokenize do llama-server.
+
+    Custa 1 chamada por execução do benchmark (sem inferência, ~ms). Retorna
+    None se o endpoint não estiver disponível (versão antiga) ou falhar — o
+    chamador faz fallback para a estimativa por caracteres.
+    """
+    try:
+        resp = _requests.post(
+            f"{base_url.rstrip('/')}/tokenize",
+            json={"content": texto},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            return len(resp.json().get("tokens") or [])
+    except (_requests.exceptions.RequestException, ValueError):
+        pass
+    return None
+
+
 def _warmup_model() -> dict:
     """Aquece o modelo e retorna os metadados do modelo carregado.
 
@@ -281,6 +313,45 @@ def _warmup_model() -> dict:
                 "As execuções podem não estar usando o modelo desejado."
             )
 
+    # --- DETECTA O CONTEXTO REAL DO SERVIDOR (fonte unica: /v1/models) ---
+    ctx_size = metadados_modelo.get("n_ctx")
+    if ctx_size:
+        ctx_fonte = "models"
+        print(f"[INFO] Contexto real do servidor (via /v1/models): {ctx_size} tokens")
+    else:
+        ctx_size = LLAMA_NUM_CTX
+        ctx_fonte = "fallback"
+        print(
+            "[AVISO] Nao foi possivel detectar o contexto real do servidor; "
+            f"assumindo LLAMA_NUM_CTX={ctx_size}. Inicie o llama-server com "
+            "--ctx-size explicito para maior precisao."
+        )
+
+    # --- CONTA O SYSTEM PROMPT (1 chamada exata via /tokenize + calibracao) ---
+    prompt_tokens = _contar_tokens_exatos(LLAMA_BASE_URL, MARIA_SYSTEM_PROMPT)
+    if prompt_tokens is not None:
+        definir_fator_calibracao(prompt_tokens, MARIA_SYSTEM_PROMPT)
+        origem_tokens = "contagem exata via /tokenize"
+    else:
+        prompt_tokens = estimar_tokens(MARIA_SYSTEM_PROMPT)
+        origem_tokens = "estimativa (~4 chars/token; /tokenize indisponivel)"
+
+    # --- VERIFICA SE O SYSTEM PROMPT CABE NO CONTEXTO ---
+    limite_prompt = ctx_size - MARGEM_SEGURANCA_SYSTEM
+    if prompt_tokens > limite_prompt:
+        raise SystemExit(
+            f"FALHA CRITICA: O system prompt tem ~{prompt_tokens} tokens ({origem_tokens}), "
+            f"mas o servidor oferece apenas {ctx_size} tokens de contexto. Com margem de "
+            f"seguranca de {MARGEM_SEGURANCA_SYSTEM} tokens, o prompt nao cabe. SOLUCOES: "
+            "(1) Reduza o system prompt em backend/core/system_prompt.txt; "
+            f"(2) Inicie o llama-server com --ctx-size maior "
+            f"(ex: --ctx-size {prompt_tokens + MARGEM_SEGURANCA_SYSTEM + 1024})."
+        )
+    print(
+        f"[OK] System prompt ({prompt_tokens} tokens; {origem_tokens}) cabe no contexto "
+        f"de {ctx_size} tokens (margem: {limite_prompt - prompt_tokens})."
+    )
+
     # --- WARMUP ---
     try:
         cliente_warmup = OllamaClient(timeout=BENCHMARK_WARMUP_TIMEOUT)
@@ -301,6 +372,10 @@ def _warmup_model() -> dict:
     print(f"Modelo aquecido em {duracao_s:.1f}s. Resposta de teste: {resposta.strip()!r}")
     print(f"Modelo carregado: {id_exibicao or 'N/D'}")
 
+    # Metadados de contexto para o relatorio, log.json e pre-check do runner.
+    metadados_modelo["ctx_size"] = ctx_size
+    metadados_modelo["ctx_fonte"] = ctx_fonte
+    metadados_modelo["system_prompt_tokens"] = prompt_tokens
     return metadados_modelo
 
 
@@ -319,7 +394,11 @@ def main() -> int:
     print(f"Executando {len(tasks)} tarefa(s) em sequência. Resultados: {run_dir}")
 
     # Um único runner reduz reconexões; a execução sequencial evita sobrecarga da GPU.
-    runner = MariaRunner(num_predict=args.num_predict, modelo_carregado=modelo_carregado)
+    runner = MariaRunner(
+        num_predict=args.num_predict,
+        modelo_carregado=modelo_carregado,
+        ctx_size=(metadados_modelo or {}).get("ctx_size"),
+    )
     resultados_individuais_todas_tarefas = []
     agregados_todas_tarefas = []
 
@@ -369,6 +448,11 @@ def main() -> int:
             "system_prompt_hash": system_prompt_hash,
             "llama_base_url": LLAMA_BASE_URL,
             "llama_num_ctx_config": LLAMA_NUM_CTX,
+            "ctx_size_detectado": (metadados_modelo or {}).get("ctx_size"),
+            "ctx_fonte": (metadados_modelo or {}).get("ctx_fonte"),
+            "system_prompt_tokens": (metadados_modelo or {}).get("system_prompt_tokens"),
+            "fator_calibracao_tokens": obter_fator_calibracao(),
+            "timeout_por_chamada_s": BENCHMARK_TIMEOUT_POR_CHAMADA,
             "sampler_params": montar_sampler_params(),
         },
         "individual": [r.__dict__ for r in resultados_individuais_todas_tarefas],
