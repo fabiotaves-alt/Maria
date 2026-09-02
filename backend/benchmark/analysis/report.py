@@ -50,14 +50,66 @@ def _montar_secacao_sampler(sampler_params: dict | None) -> str:
     return "\n".join(linhas) + "\n"
 
 
+def _extrair_texto_system(mensagens: list[dict] | None) -> str | None:
+    """Retorna o content da primeira mensagem role='system' encontrada em
+    `mensagens`, ou None se não houver mensagem system ou a lista for vazia/None."""
+    if not mensagens:
+        return None
+    for mensagem in mensagens:
+        if mensagem.get("role") == "system":
+            return mensagem.get("content")
+    return None
+
+
+def _mascarar_system_prompt(mensagens: list[dict]) -> list[dict]:
+    """Retorna uma CÓPIA da lista de mensagens onde o content da mensagem
+    role='system' foi substituído pelo marcador 'prompt do system injetado'.
+    Não muta `mensagens` nem os dicts originais (necessário porque
+    result.prompt_enviado também é usado para gravação bruta em log.json)."""
+    if not mensagens:
+        return []
+    resultado = []
+    for mensagem in mensagens:
+        if mensagem.get("role") == "system":
+            nova = dict(mensagem)
+            nova["content"] = "prompt do system injetado"
+            resultado.append(nova)
+        else:
+            resultado.append(mensagem)
+    return resultado
+
+
 def _montar_detalhes_execucao(results: list[MariaTaskResult]) -> str:
-    """Renderiza, por execução, o prompt enviado e a resposta bruta do modelo."""
+    """Renderiza, por execução, o prompt enviado e a resposta bruta do modelo.
+
+    O texto do prompt de sistema é impresso UMA ÚNICA VEZ no topo desta seção
+    (extraído da primeira execução que o contiver). Em cada bloco de execução
+    individual, a mensagem role='system' é substituída pelo marcador
+    'prompt do system injetado' para evitar repetição do texto completo.
+    """
     if not results:
         return ""
     tem_conteudo = any(r.prompt_enviado or r.resposta_bruta_modelo for r in results)
     if not tem_conteudo:
         return ""
+
     linhas = ["## Detalhes por execução", ""]
+
+    system_prompt_texto = None
+    for result in results:
+        texto = _extrair_texto_system(result.prompt_enviado)
+        if texto:
+            system_prompt_texto = texto
+            break
+
+    if system_prompt_texto:
+        linhas.append("**Prompt do system (injetado em todas as execuções abaixo):**")
+        linhas.append("")
+        linhas.append("```text")
+        linhas.append(system_prompt_texto)
+        linhas.append("```")
+        linhas.append("")
+
     for idx, result in enumerate(results, start=1):
         linhas.append(
             f"### Execução {idx} — Tarefa {result.task_id}: {result.task_name} "
@@ -68,7 +120,11 @@ def _montar_detalhes_execucao(results: list[MariaTaskResult]) -> str:
             linhas.append("**Prompt enviado (mensagens):**")
             linhas.append("")
             linhas.append("```json")
-            linhas.append(json.dumps(result.prompt_enviado, ensure_ascii=False, indent=2))
+            linhas.append(json.dumps(
+                _mascarar_system_prompt(result.prompt_enviado),
+                ensure_ascii=False,
+                indent=2,
+            ))
             linhas.append("```")
         else:
             linhas.append("**Prompt enviado:** *(não capturado)*")
