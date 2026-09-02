@@ -57,6 +57,26 @@ LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL = os.getenv("LLAMA_USAR_FALLBACK_TEXTUAL_T
 LLAMA_NUM_PREDICT_DOCUMENTO = int(os.getenv("LLAMA_NUM_PREDICT_DOCUMENTO", "300"))
 LLAMA_NUM_PREDICT_CONTINUACAO = int(os.getenv("LLAMA_NUM_PREDICT_CONTINUACAO", "200"))
 
+# ---- Parâmetros de sampler do llama-server (llama.cpp) ----
+# Defaults idênticos aos do llama-server; enviá-los explicitamente no payload
+# permite configurar (via ENV) e auditar (benchmark) cada valor. O servidor
+# ignora campos desconhecidos com warning, então o payload permanece seguro.
+LLAMA_REPEAT_LAST_N = int(os.getenv("LLAMA_REPEAT_LAST_N", "64"))
+LLAMA_REPEAT_PENALTY = float(os.getenv("LLAMA_REPEAT_PENALTY", "1.0"))
+LLAMA_FREQUENCY_PENALTY = float(os.getenv("LLAMA_FREQUENCY_PENALTY", "0.0"))
+LLAMA_PRESENCE_PENALTY = float(os.getenv("LLAMA_PRESENCE_PENALTY", "0.0"))
+LLAMA_DRY_MULTIPLIER = float(os.getenv("LLAMA_DRY_MULTIPLIER", "0.0"))
+LLAMA_DRY_BASE = float(os.getenv("LLAMA_DRY_BASE", "1.75"))
+LLAMA_DRY_ALLOWED_LENGTH = int(os.getenv("LLAMA_DRY_ALLOWED_LENGTH", "2"))
+LLAMA_DRY_PENALTY_LAST_N = int(os.getenv("LLAMA_DRY_PENALTY_LAST_N", "64"))
+LLAMA_TOP_K = int(os.getenv("LLAMA_TOP_K", "40"))
+LLAMA_TOP_P = float(os.getenv("LLAMA_TOP_P", "0.95"))
+LLAMA_MIN_P = float(os.getenv("LLAMA_MIN_P", "0.05"))
+LLAMA_XTC_PROBABILITY = float(os.getenv("LLAMA_XTC_PROBABILITY", "0.0"))
+LLAMA_XTC_THRESHOLD = float(os.getenv("LLAMA_XTC_THRESHOLD", "0.1"))
+LLAMA_TYPICAL_P = float(os.getenv("LLAMA_TYPICAL_P", "1.0"))
+LLAMA_TOP_N_SIGMA = float(os.getenv("LLAMA_TOP_N_SIGMA", "-1.0"))
+
 # Configurações da sessão de chat
 MAX_MENSAGENS_HISTORICO = int(os.getenv("MAX_MENSAGENS_HISTORICO", "12"))
 

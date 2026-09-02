@@ -17,6 +17,8 @@ from core.llama_client import (
     LlamaClient as OllamaClient,
     LlamaClientError as OllamaClientError,
     LlamaTimeoutError as OllamaTimeoutError,
+    _montar_mensagens_com_reforco,
+    montar_sampler_params,
 )
 from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real, FERRAMENTAS_LEITURA
 from core.tool_chaining import encadear_leitura_stream
@@ -46,6 +48,8 @@ class MariaRunner:
         # Usa o modelo efetivamente carregado no llama-server se disponível,
         # caso contrário fallback para o model do cliente ou LLAMA_MODEL.
         self.modelo_efetivo = modelo_carregado or getattr(cliente, "model", None)
+        # Snapshot único dos parâmetros de sampler efetivos (config atual).
+        self.sampler_params = montar_sampler_params()
 
     def run(self, task: MariaTask) -> MariaTaskResult:
         original_pasta = os.environ.get("PASTA_ARQUIVOS_GERADOS")
@@ -61,13 +65,16 @@ class MariaRunner:
         errors: list[dict] = []
         tool_call_final = None
         resposta_textual = ""
+        prompt_enviado: list[dict] = []
+        resposta_bruta_modelo = ""
         tokens_gerados = 0
         tokens_por_segundo = 0.0
         ttft_ms = None
         confirmation_completed = not task.confirm_sequence
 
         try:
-            resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms = self._enviar_com_retry(sessao, task)
+            resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms, prompt_enviado = self._enviar_com_retry(sessao, task)
+            resposta_bruta_modelo = resposta_textual
             if time.monotonic() - inicio > BENCHMARK_TASK_TIMEOUT:
                 raise TimeoutError(
                     f"Tarefa excedeu o timeout de {BENCHMARK_TASK_TIMEOUT} segundos."
@@ -102,6 +109,8 @@ class MariaRunner:
                 tool_call_final = novo_tool_call_final
                 if resposta_continuacao.strip():
                     resposta_textual = resposta_continuacao
+                    # A resposta bruta do modelo inclui a continuação (leitura encadeada).
+                    resposta_bruta_modelo = (resposta_bruta_modelo + "\n" + resposta_continuacao).strip()
 
             if tool_call_final and task.confirm_sequence:
                 ambiguidades = 0
@@ -184,6 +193,9 @@ class MariaRunner:
             tokens_por_segundo=tokens_por_segundo,
             args_correct=args_correct,
             ttft_ms=ttft_ms,
+            prompt_enviado=prompt_enviado,
+            resposta_bruta_modelo=resposta_bruta_modelo,
+            sampler_params=self.sampler_params,
         )
 
     @staticmethod
@@ -231,6 +243,9 @@ class MariaRunner:
         while True:
             try:
                 historico = sessao.get_historico_com_system()
+                # Prompt EXATAMENTE como será enviado ao modelo (mesma montagem
+                # de chat_com_tools_stream_com_metricas via _montar_mensagens_com_reforco).
+                prompt_enviado = _montar_mensagens_com_reforco(historico, task.user_message)
                 metodo_metricas = getattr(self.cliente, "chat_com_tools_stream_com_metricas", None)
                 if callable(metodo_metricas):
                     resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms = (
@@ -240,7 +255,7 @@ class MariaRunner:
                             tools=TOOLS_SCHEMA,
                         )
                     )
-                    return resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms
+                    return resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms, prompt_enviado
 
                 resposta_textual = ""
                 tool_call_final = None
@@ -253,7 +268,7 @@ class MariaRunner:
                         resposta_textual += chunk
                     if tool_chunk is not None:
                         tool_call_final = tool_chunk
-                return resposta_textual, tool_call_final, 0, 0.0, None
+                return resposta_textual, tool_call_final, 0, 0.0, None, prompt_enviado
             except OllamaTimeoutError:
                 raise
             except OllamaClientError:

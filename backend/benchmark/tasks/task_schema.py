@@ -49,6 +49,14 @@ class MariaTaskResult:
     tokens_por_segundo: float = 0.0
     args_correct: bool = True
     ttft_ms: float | None = None
+    # Prompt enviado ao modelo nesta execução (mensagens completas: system
+    # reforçado + histórico + user). Vazio quando a execução falhou antes do envio.
+    prompt_enviado: list[dict] = field(default_factory=list)
+    # Resposta crua gerada pelo modelo, ANTES de qualquer sobrescrita por
+    # confirmação/ferramenta/continuação (final_message é a versão pós-processo).
+    resposta_bruta_modelo: str = ""
+    # Snapshot dos parâmetros de sampler efetivos usados na execução.
+    sampler_params: dict = field(default_factory=dict)
 
 
 @dataclass

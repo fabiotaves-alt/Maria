@@ -2,6 +2,22 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.3] — Prompt, resposta bruta e parâmetros de sampler no benchmark — 2026-09-02
+
+### ✨ Nova funcionalidade
+
+- **Parâmetros de sampler configuráveis via ENV** (`backend/core/config.py`): 15 novas variáveis `LLAMA_*` com defaults idênticos aos do llama-server — `LLAMA_REPEAT_LAST_N` (64), `LLAMA_REPEAT_PENALTY` (1.0), `LLAMA_FREQUENCY_PENALTY` (0.0), `LLAMA_PRESENCE_PENALTY` (0.0), `LLAMA_DRY_MULTIPLIER` (0.0), `LLAMA_DRY_BASE` (1.75), `LLAMA_DRY_ALLOWED_LENGTH` (2), `LLAMA_DRY_PENALTY_LAST_N` (64), `LLAMA_TOP_K` (40), `LLAMA_TOP_P` (0.95), `LLAMA_MIN_P` (0.05), `LLAMA_XTC_PROBABILITY` (0.0), `LLAMA_XTC_THRESHOLD` (0.1), `LLAMA_TYPICAL_P` (1.0) e `LLAMA_TOP_N_SIGMA` (-1.0).
+- **Envio explícito do sampler no payload** (`backend/core/llama_client.py`): `montar_sampler_params()` centraliza o snapshot dos parâmetros efetivos; `_montar_payload` agora envia os 16 parâmetros (incluindo `temperature`) nas chamadas com tools. O servidor ignora campos desconhecidos, então o payload permanece seguro.
+- **Prompt e resposta bruta do modelo no benchmark** (`backend/benchmark/`): `MariaTaskResult` ganhou `prompt_enviado` (mensagens completas enviadas ao modelo), `resposta_bruta_modelo` (resposta crua antes de sobrescrita por confirmação/ferramenta/continuação) e `sampler_params` (snapshot dos parâmetros efetivos). O `log.json` registra os campos por execução e `meta.sampler_params`; o `report.md` ganhou as seções **"Parâmetros do sampler"** e **"Detalhes por execução"** (prompt + resposta bruta + mensagem final por tarefa/repetição).
+- **`compare_runs.py` retrocompatível**: novos campos com defaults não quebram runs antigos.
+
+### 🧪 Testes
+
+- **145/145 testes passaram** (`python -m pytest backend/tests/test_maria.py`).
+- **7 testes novos**: `TestSamplerParamsBenchmark` — defaults da config, `montar_sampler_params`, payload com/sem tools, campos novos do `MariaTaskResult`, preenchimento no runner e renderização do relatório.
+
+---
+
 ## [4.1.2] — Metadados do modelo no benchmark + fix da suíte de testes — 2026-09-02
 
 ### ✨ Nova funcionalidade

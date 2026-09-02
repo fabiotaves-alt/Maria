@@ -40,3 +40,38 @@ Para caber no `BENCHMARK_TASK_TIMEOUT` (400s) deste hardware (CPU, sem GPU, ~1,1
 - `LLAMA_NUM_PREDICT` **padrão 400** — demais respostas.
 
 > ⚠️ Aumentar `LLAMA_NUM_PREDICT_DOCUMENTO` de volta para 600 não é recomendado neste hardware: o problema subjacente é o throughput (~1,2 tok/s), não um timeout configurável. O orçamento reduzido mantém as tarefas de documento dentro do limite enquanto o hardware for CPU-only.
+
+## Parâmetros de sampler
+
+Todos os parâmetros de sampler são enviados explicitamente no payload das chamadas com tools (mesmos defaults do llama-server) e podem ser ajustados via ENV. Os valores efetivos aparecem no `report.md` (seção **Parâmetros do sampler**) e no `meta.sampler_params` do `log.json`.
+
+| Variável | Default | Descrição |
+|---|---|---|
+| `LLAMA_REPEAT_LAST_N` | `64` | Quantos tokens recentes considerar na penalidade de repetição |
+| `LLAMA_REPEAT_PENALTY` | `1.0` | Penalidade de repetição de tokens |
+| `LLAMA_FREQUENCY_PENALTY` | `0.0` | Penalidade por frequência |
+| `LLAMA_PRESENCE_PENALTY` | `0.0` | Penalidade por presença |
+| `LLAMA_DRY_MULTIPLIER` | `0.0` | Multiplicador do sampler DRY |
+| `LLAMA_DRY_BASE` | `1.75` | Base exponencial do DRY |
+| `LLAMA_DRY_ALLOWED_LENGTH` | `2` | Comprimento de sequência permitido no DRY |
+| `LLAMA_DRY_PENALTY_LAST_N` | `64` | Janela do DRY |
+| `LLAMA_TOP_K` | `40` | Top-K sampling |
+| `LLAMA_TOP_P` | `0.95` | Top-P (nucleus) sampling |
+| `LLAMA_MIN_P` | `0.05` | Min-P sampling |
+| `LLAMA_XTC_PROBABILITY` | `0.0` | Probabilidade do sampler XTC |
+| `LLAMA_XTC_THRESHOLD` | `0.1` | Limiar do XTC |
+| `LLAMA_TYPICAL_P` | `1.0` | Typical-P sampling |
+| `LLAMA_TOP_N_SIGMA` | `-1.0` | Top-N-Sigma (desativado quando negativo) |
+| `LLAMA_TEMPERATURE_TOOLS` | `0.1` | Temperatura (tool calling) |
+
+Exemplo: `LLAMA_TOP_K=50 LLAMA_TEMPERATURE_TOOLS=0.4 python -m backend.benchmark.run_benchmark --tasks 25`
+
+## Prompt e resposta bruta por execução
+
+O `report.md` inclui a seção **Detalhes por execução**, que mostra para cada tarefa/repetição:
+
+- **Prompt enviado** — as mensagens completas (system reforçado + histórico + usuário) em JSON.
+- **Resposta bruta do modelo** — o texto cru gerado pelo modelo, antes de qualquer sobrescrita por confirmação/ferramenta/continuação.
+- **Mensagem final** — a mensagem pós-processamento (ex.: caminho do arquivo criado), quando diferente da resposta bruta.
+
+Os mesmos campos (`prompt_enviado`, `resposta_bruta_modelo`, `sampler_params`) são gravados por execução no `log.json`, permitindo comparar runs com o `compare_runs.py`.

@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.2  
+**Versão Atual:** v4.1.3  
 **Última alteração:** 2026-09-02  
 
 ---
@@ -11,7 +11,7 @@
 
 | Área | Progresso | Observações |
 |------|-----------|-------------|
-| Backend Core & Ferramentas (Python) | 96% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo |
+| Backend Core & Ferramentas (Python) | 96% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo e sampler configurável |
 | Segurança & Concorrência | 95% | Token atômico, CORS por ambiente, SQLite thread-safe, PATH hijacking |
 | Frontend (Tauri v2 + React) | 92% | Interface completa, temas, persistência rusqlite, sidecar |
 | Integração Bridge (HTTP/Sidecar) | 95% | 19 comandos bridge, autenticação Bearer, health check |
@@ -29,6 +29,7 @@
 | **4.1.0** | 2026-08-30 | RAG do Manual de Redação da Presidência da República (SQLite FTS5, 255 trechos) | ✅ Concluída |
 | **4.1.1** | 2026-08-31 | Correções críticas de segurança (token atômico, CORS, PATH hijacking, SQLite thread-safe) + TTFT + robustez MariaRunner | ✅ Concluída |
 | **4.1.2** | 2026-09-02 | Metadados do modelo no benchmark (nome real via /v1/models + parámetros) + fix da suíte de testes | ✅ Concluída |
+| **4.1.3** | 2026-09-02 | Prompt, resposta bruta do modelo e parâmetros de sampler configuráveis no benchmark | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -68,6 +69,7 @@
 - [x] Testes unitários do frontend TypeScript (Vitest) e da camada Rust (`cargo test`)
 - [x] Framework de benchmark de tool calling com relatório e log JSON
 - [x] Metadados do modelo no benchmark: nome real via `/v1/models` + parámetros (quantização, n_params, n_ctx, tamanho) em `log.json` e `report.md`
+- [x] Prompt, resposta bruta do modelo e parâmetros de sampler (16 configuráveis via ENV) expostos por execução no benchmark
 - [x] Comparação de runs retrocompatible (`log.json` antigo e novo)
 - [x] Robustez no `MariaRunner`: tratamento correto de negação, ambiguidade e mensagens de erro
 - [ ] Cobertura formal de código (`pytest-cov`)
@@ -75,6 +77,12 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.3 — Prompt, Resposta Bruta e Sampler no Benchmark (2026-09-02)
+- **Sampler configurável**: 15 novas variáveis `LLAMA_*` em `backend/core/config.py` (repeat_penalty, top_k, top_p, min_p, dry_*, xtc_*, typical_p, top_n_sigma, etc.) com defaults idênticos aos do llama-server; `montar_sampler_params()` é a fonte única da verdade e `_montar_payload` envia os 16 parâmetros nas chamadas com tools.
+- **Prompt e resposta bruta por execução**: `MariaTaskResult` agora expõe `prompt_enviado` (mensagens completas), `resposta_bruta_modelo` (texto cru antes de sobrescrita por confirmação/ferramenta/continuação) e `sampler_params`; `log.json` registra por execução + `meta.sampler_params`.
+- **Relatório enriquecido**: seções "Parâmetros do sampler" (tabela) e "Detalhes por execução" (prompt JSON + resposta bruta + mensagem final) no `report.md`.
+- **Testes**: 145/145 passando (7 novos em `TestSamplerParamsBenchmark`).
 
 ### 4.1.2 — Metadados do Modelo no Benchmark & Fix da Suíte (2026-09-02)
 - **Nome real do modelo**: `_obter_metadados_modelo()` consulta `GET {LLAMA_BASE_URL}/v1/models` e extrae id, quantização (mapeo ftype GGML), n_params, n_ctx, tamanho; blobs/caminhos locais são exibidos como rótulo legível (`Qwen2.5 3B`).

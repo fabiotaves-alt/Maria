@@ -10,6 +10,89 @@ from .metrics import MariaBenchmarkMetrics
 from ..tasks.task_schema import MariaTaskResult
 
 
+# Ordem de exibição dos parâmetros de sampler no relatório (mesma ordem da
+# documentação do llama.cpp / lista apresentada na especificação da tarefa).
+_ORDEM_SAMPLER = (
+    "repeat_last_n",
+    "repeat_penalty",
+    "frequency_penalty",
+    "presence_penalty",
+    "dry_multiplier",
+    "dry_base",
+    "dry_allowed_length",
+    "dry_penalty_last_n",
+    "top_k",
+    "top_p",
+    "min_p",
+    "xtc_probability",
+    "xtc_threshold",
+    "typical_p",
+    "top_n_sigma",
+    "temperature",
+)
+
+
+def _formatar_sampler_valor(valor) -> str:
+    """Formata valores de sampler: floats com 3 casas, demais como inteiro/str."""
+    if isinstance(valor, float):
+        return f"{valor:.3f}"
+    return str(valor)
+
+
+def _montar_secacao_sampler(sampler_params: dict | None) -> str:
+    """Renderiza a tabela de parâmetros de sampler usados no benchmark."""
+    if not sampler_params:
+        return ""
+    linhas = ["## Parâmetros do sampler", "", "| Parâmetro | Valor |", "|---|---:|"]
+    for chave in _ORDEM_SAMPLER:
+        valor = sampler_params.get(chave)
+        if valor is not None:
+            linhas.append(f"| {chave} | {_formatar_sampler_valor(valor)} |")
+    return "\n".join(linhas) + "\n"
+
+
+def _montar_detalhes_execucao(results: list[MariaTaskResult]) -> str:
+    """Renderiza, por execução, o prompt enviado e a resposta bruta do modelo."""
+    if not results:
+        return ""
+    tem_conteudo = any(r.prompt_enviado or r.resposta_bruta_modelo for r in results)
+    if not tem_conteudo:
+        return ""
+    linhas = ["## Detalhes por execução", ""]
+    for idx, result in enumerate(results, start=1):
+        linhas.append(
+            f"### Execução {idx} — Tarefa {result.task_id}: {result.task_name} "
+            f"({result.category})"
+        )
+        linhas.append("")
+        if result.prompt_enviado:
+            linhas.append("**Prompt enviado (mensagens):**")
+            linhas.append("")
+            linhas.append("```json")
+            linhas.append(json.dumps(result.prompt_enviado, ensure_ascii=False, indent=2))
+            linhas.append("```")
+        else:
+            linhas.append("**Prompt enviado:** *(não capturado)*")
+        linhas.append("")
+        if result.resposta_bruta_modelo:
+            linhas.append("**Resposta bruta do modelo:**")
+            linhas.append("")
+            linhas.append("```text")
+            linhas.append(result.resposta_bruta_modelo)
+            linhas.append("```")
+        else:
+            linhas.append("**Resposta bruta do modelo:** *(vazia)*")
+        linhas.append("")
+        if result.final_message and result.final_message != result.resposta_bruta_modelo:
+            linhas.append("**Mensagem final (pós-ferramenta/confirmação):**")
+            linhas.append("")
+            linhas.append("```text")
+            linhas.append(result.final_message)
+            linhas.append("```")
+            linhas.append("")
+    return "\n".join(linhas) + "\n"
+
+
 def _format_errors(errors: dict[str, int]) -> str:
     if not errors:
         return "| Nenhum erro | 0 |\n|---|---|"
@@ -46,6 +129,7 @@ def generate_report(
     modelo_configurado: str | None = None,
     modelo_carregado: str | None = None,
     metadados_modelo: dict | None = None,
+    sampler_params: dict | None = None,
     log_final: dict | None = None,
 ) -> str:
     os.makedirs(output_dir, exist_ok=True)
@@ -129,11 +213,15 @@ def generate_report(
 
     secao_modelo = "\n".join(linhas_modelo) + alerta_modelo + aviso_n_ctx
 
+    secao_sampler = _montar_secacao_sampler(sampler_params)
+    secao_detalhes = _montar_detalhes_execucao(results)
+
     report = f"""# Relatório do Benchmark MARIA
 
 Gerado em: {generated_at}
 
 {secao_modelo}
+{secao_sampler}
 ## Métricas gerais
 
 | Métrica | Resultado |
@@ -160,6 +248,8 @@ Gerado em: {generated_at}
         report += f"| {category} | {int(values['total'])} | {values['tool_accuracy'] * 100:.1f}% |\n"
 
     report += "\n## Distribuição de erros\n\n" + _format_errors(metrics.error_distribution)
+    if secao_detalhes:
+        report += "\n\n" + secao_detalhes
     report += "\n\n## Tarefas com falha\n\n"
     if failed:
         report += "| ID | Tarefa | Motivo da falha |\n|---:|---|---|\n"

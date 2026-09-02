@@ -24,7 +24,11 @@ import requests
 _requests = requests
 
 from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, LLAMA_NUM_CTX
-from core.llama_client import LlamaClient as OllamaClient, LlamaClientError as OllamaClientError  # noqa: E402
+from core.llama_client import (
+    LlamaClient as OllamaClient,
+    LlamaClientError as OllamaClientError,
+    montar_sampler_params,
+)  # noqa: E402
 
 
 def _parse_args() -> argparse.Namespace:
@@ -302,6 +306,7 @@ def main() -> int:
             "modelo_carregado": modelo_carregado,
             "metadados_modelo": metadados_modelo,
             "llama_num_ctx_config": LLAMA_NUM_CTX,
+            "sampler_params": montar_sampler_params(),
         },
         "individual": [r.__dict__ for r in resultados_individuais_todas_tarefas],
         "agregado_por_tarefa": [a.__dict__ for a in agregados_todas_tarefas],
@@ -317,6 +322,7 @@ def main() -> int:
                     modelo_configurado=LLAMA_MODEL,
                     modelo_carregado=modelo_carregado,
                     metadados_modelo=metadados_modelo,
+                    sampler_params=montar_sampler_params(),
                     log_final=log_final)
 
     print("\nResumo")

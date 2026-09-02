@@ -30,6 +30,21 @@ from backend.core.config import (
     LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL,
     LLAMA_NUM_PREDICT_DOCUMENTO,
     LLAMA_NUM_PREDICT_CONTINUACAO,
+    LLAMA_REPEAT_LAST_N,
+    LLAMA_REPEAT_PENALTY,
+    LLAMA_FREQUENCY_PENALTY,
+    LLAMA_PRESENCE_PENALTY,
+    LLAMA_DRY_MULTIPLIER,
+    LLAMA_DRY_BASE,
+    LLAMA_DRY_ALLOWED_LENGTH,
+    LLAMA_DRY_PENALTY_LAST_N,
+    LLAMA_TOP_K,
+    LLAMA_TOP_P,
+    LLAMA_MIN_P,
+    LLAMA_XTC_PROBABILITY,
+    LLAMA_XTC_THRESHOLD,
+    LLAMA_TYPICAL_P,
+    LLAMA_TOP_N_SIGMA,
 )
 
 logger = logging.getLogger(__name__)
@@ -157,6 +172,33 @@ def _montar_conteudo_multimodal(
     return partes
 
 
+def montar_sampler_params() -> dict:
+    """Snapshot dos parâmetros de sampler efetivos (config atual).
+
+    Fonte única da verdade: usada tanto para montar o payload enviado ao
+    llama-server quanto para registrar no log do benchmark quais parâmetros
+    foram usados em cada execução. Os defaults espelham os do llama-server.
+    """
+    return {
+        "temperature": LLAMA_TEMPERATURE_TOOLS,
+        "repeat_last_n": LLAMA_REPEAT_LAST_N,
+        "repeat_penalty": LLAMA_REPEAT_PENALTY,
+        "frequency_penalty": LLAMA_FREQUENCY_PENALTY,
+        "presence_penalty": LLAMA_PRESENCE_PENALTY,
+        "dry_multiplier": LLAMA_DRY_MULTIPLIER,
+        "dry_base": LLAMA_DRY_BASE,
+        "dry_allowed_length": LLAMA_DRY_ALLOWED_LENGTH,
+        "dry_penalty_last_n": LLAMA_DRY_PENALTY_LAST_N,
+        "top_k": LLAMA_TOP_K,
+        "top_p": LLAMA_TOP_P,
+        "min_p": LLAMA_MIN_P,
+        "xtc_probability": LLAMA_XTC_PROBABILITY,
+        "xtc_threshold": LLAMA_XTC_THRESHOLD,
+        "typical_p": LLAMA_TYPICAL_P,
+        "top_n_sigma": LLAMA_TOP_N_SIGMA,
+    }
+
+
 class LlamaClient:
     """
     Cliente para comunicação com o llama-server (llama.cpp) via API OpenAI-compatible.
@@ -218,7 +260,10 @@ class LlamaClient:
             "num_ctx": LLAMA_NUM_CTX,
         }
         if incluir_temperatura:
-            payload["temperature"] = LLAMA_TEMPERATURE_TOOLS
+            # Envia explicitamente TODOS os parâmetros de sampler (mesmos
+            # defaults do llama-server) para deixá-los configuráveis via ENV e
+            # auditáveis no benchmark. O servidor ignora campos desconhecidos.
+            payload.update(montar_sampler_params())
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"

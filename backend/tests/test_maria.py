@@ -2449,5 +2449,160 @@ class TestFtypeParaNome(unittest.TestCase):
         self.assertEqual(_ftype_para_nome(None), "")
 
 
+class TestSamplerParamsBenchmark(unittest.TestCase):
+    """Testa os parâmetros de sampler configuráveis e sua exposição no benchmark."""
+
+    def test_config_defaults_dos_sampler_params(self):
+        from backend.core.config import (
+            LLAMA_DRY_ALLOWED_LENGTH, LLAMA_DRY_BASE, LLAMA_DRY_MULTIPLIER,
+            LLAMA_DRY_PENALTY_LAST_N, LLAMA_FREQUENCY_PENALTY, LLAMA_MIN_P,
+            LLAMA_PRESENCE_PENALTY, LLAMA_REPEAT_LAST_N, LLAMA_REPEAT_PENALTY,
+            LLAMA_TOP_K, LLAMA_TOP_N_SIGMA, LLAMA_TOP_P, LLAMA_TYPICAL_P,
+            LLAMA_XTC_PROBABILITY, LLAMA_XTC_THRESHOLD,
+        )
+        self.assertEqual(LLAMA_REPEAT_LAST_N, 64)
+        self.assertEqual(LLAMA_REPEAT_PENALTY, 1.0)
+        self.assertEqual(LLAMA_FREQUENCY_PENALTY, 0.0)
+        self.assertEqual(LLAMA_PRESENCE_PENALTY, 0.0)
+        self.assertEqual(LLAMA_DRY_MULTIPLIER, 0.0)
+        self.assertEqual(LLAMA_DRY_BASE, 1.75)
+        self.assertEqual(LLAMA_DRY_ALLOWED_LENGTH, 2)
+        self.assertEqual(LLAMA_DRY_PENALTY_LAST_N, 64)
+        self.assertEqual(LLAMA_TOP_K, 40)
+        self.assertEqual(LLAMA_TOP_P, 0.95)
+        self.assertEqual(LLAMA_MIN_P, 0.05)
+        self.assertEqual(LLAMA_XTC_PROBABILITY, 0.0)
+        self.assertEqual(LLAMA_XTC_THRESHOLD, 0.1)
+        self.assertEqual(LLAMA_TYPICAL_P, 1.0)
+        self.assertEqual(LLAMA_TOP_N_SIGMA, -1.0)
+
+    def test_montar_sampler_params_contem_todos_os_campos(self):
+        from backend.core.llama_client import montar_sampler_params
+        params = montar_sampler_params()
+        esperados = {
+            "temperature", "repeat_last_n", "repeat_penalty",
+            "frequency_penalty", "presence_penalty", "dry_multiplier",
+            "dry_base", "dry_allowed_length", "dry_penalty_last_n",
+            "top_k", "top_p", "min_p", "xtc_probability",
+            "xtc_threshold", "typical_p", "top_n_sigma",
+        }
+        self.assertEqual(set(params), esperados)
+        self.assertEqual(params["top_k"], 40)
+        self.assertEqual(params["top_p"], 0.95)
+        self.assertEqual(params["temperature"], 0.1)
+
+    def test_montar_payload_inclui_sampler_params_com_tools(self):
+        from backend.core.llama_client import LlamaClient
+        cliente = LlamaClient(model="modelo-teste")
+        payload = cliente._montar_payload(
+            [{"role": "user", "content": "oi"}], tools=[{}], stream=False,
+            incluir_temperatura=True,
+        )
+        for chave in ("temperature", "top_k", "top_p", "min_p",
+                      "repeat_last_n", "repeat_penalty", "dry_base",
+                      "xtc_probability", "typical_p", "top_n_sigma"):
+            self.assertIn(chave, payload)
+        self.assertEqual(payload["top_k"], 40)
+        self.assertEqual(payload["temperature"], 0.1)
+
+    def test_montar_payload_omite_sampler_sem_tools(self):
+        from backend.core.llama_client import LlamaClient
+        cliente = LlamaClient(model="modelo-teste")
+        payload = cliente._montar_payload(
+            [{"role": "user", "content": "oi"}], tools=None, stream=False,
+        )
+        self.assertNotIn("top_k", payload)
+        self.assertNotIn("temperature", payload)
+
+    def test_maria_task_result_campos_novos_com_default(self):
+        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        result = MariaTaskResult(
+            task_id=1, task_name="T", category="conversa", model="m",
+            tool_detected=None, tool_correct=True, confirmation_completed=True,
+            keyword_match=True, runtime_ok=True, final_message="ok",
+            latency_ms=100.0, errors=[], raw_tool_args={},
+        )
+        self.assertEqual(result.prompt_enviado, [])
+        self.assertEqual(result.resposta_bruta_modelo, "")
+        self.assertEqual(result.sampler_params, {})
+
+    def test_runner_preenche_prompt_e_resposta_bruta(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteFalso:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return (
+                    "Vou criar a planilha.",
+                    {"name": "criar_planilha", "arguments": {
+                        "nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}},
+                    8, 5.0, 1.0,
+                )
+
+        task = MariaTask(
+            9101, "Prompt/resposta", "desc", "Crie uma planilha de gastos.",
+            expected_tool="criar_planilha", confirm_sequence=["sim"],
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+        )
+        runner = MariaRunner(cliente=ClienteFalso())
+        resultado = runner.run(task)
+
+        # Prompt enviado contém system (reforço) e a mensagem do usuário.
+        self.assertTrue(any(m["role"] == "system" for m in resultado.prompt_enviado))
+        self.assertEqual(resultado.prompt_enviado[-1]["role"], "user")
+        self.assertIn("Crie uma planilha de gastos.", resultado.prompt_enviado[-1]["content"])
+        # Resposta bruta preserva o que o modelo gerou ANTES da confirmação.
+        self.assertEqual(resultado.resposta_bruta_modelo, "Vou criar a planilha.")
+        self.assertNotEqual(resultado.final_message, resultado.resposta_bruta_modelo)
+        self.assertTrue(resultado.sampler_params)
+        self.assertIn("top_k", resultado.sampler_params)
+
+    def test_report_contem_parametros_e_detalhes_por_execucao(self):
+        import tempfile
+        from unittest.mock import MagicMock
+        from backend.benchmark.analysis.report import generate_report
+        from backend.core.llama_client import montar_sampler_params
+        from backend.benchmark.tasks.task_schema import MariaTaskResult
+
+        results = [
+            MariaTaskResult(
+                task_id=3, task_name="Planilha básica", category="criar_planilha",
+                model="m", tool_detected="criar_planilha", tool_correct=True,
+                confirmation_completed=True, keyword_match=True, runtime_ok=True,
+                final_message="Planilha criada com sucesso: ...",
+                latency_ms=100.0, errors=[], raw_tool_args={},
+                prompt_enviado=[
+                    {"role": "system", "content": "system"},
+                    {"role": "user", "content": "Crie uma planilha de gastos"},
+                ],
+                resposta_bruta_modelo="Vou criar a planilha.",
+                sampler_params=montar_sampler_params(),
+            ),
+        ]
+        metrics = MagicMock(
+            total_tasks=1, tool_accuracy=1.0, confirmation_success_rate=1.0,
+            keyword_match_rate=1.0, runtime_success_rate=1.0,
+            language_compliance_rate=1.0, args_accuracy=1.0,
+            avg_tokens_por_segundo=0.0, avg_ttft_ms=None,
+            p50_latency_ms=100.0, p90_latency_ms=100.0,
+            avg_latency_ms=100.0, error_distribution={}, by_category={},
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            generate_report(
+                results, metrics, tmpdir, sampler_params=montar_sampler_params(),
+            )
+            with open(os.path.join(tmpdir, "report.md"), encoding="utf-8") as f:
+                report = f.read()
+
+        self.assertIn("## Parâmetros do sampler", report)
+        self.assertIn("| top_k | 40 |", report)
+        self.assertIn("| temperature | 0.100 |", report)
+        self.assertIn("## Detalhes por execução", report)
+        self.assertIn("Crie uma planilha de gastos", report)
+        self.assertIn("Vou criar a planilha.", report)
+
+
 if __name__ == "__main__":
     unittest.main()
