@@ -13,7 +13,7 @@ from backend.core.llama_client import LlamaClient as OllamaClient
 from backend.core.chat_session import ChatSession, interpretar_confirmacao
 from backend.core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real
 from backend.core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
-from backend.core.tool_chaining import encadear_leitura_stream
+from backend.core.tool_chaining import encadear_leitura_stream, validar_e_corrigir_tool_call_stream
 
 logger = logging.getLogger(__name__)
 
@@ -155,9 +155,26 @@ class MariaController:
                 tool_call_atual = tool_chunk
 
         historico_continuacao = self.sessao.get_historico_com_system()
-        yield from encadear_leitura_stream(
+
+        for chunk, tool_chunk in encadear_leitura_stream(
             self.cliente, historico_continuacao, tool_call_atual, TOOLS_SCHEMA
-        )
+        ):
+            if chunk is not None:
+                yield chunk, None
+            if tool_chunk is not None:
+                tool_call_atual = tool_chunk
+
+        resultado_validacao = None
+        for chunk, resultado in validar_e_corrigir_tool_call_stream(
+            self.cliente, historico_continuacao, tool_call_atual, TOOLS_SCHEMA
+        ):
+            if chunk is not None:
+                yield chunk, None
+            if resultado is not None:
+                resultado_validacao = resultado
+
+        tool_call_final = resultado_validacao["tool_call"] if resultado_validacao else None
+        yield None, tool_call_final
 
     def processar_chunk(self, chunk, tool_chunk):
         """Acumula chunks durante o streaming."""

@@ -59,6 +59,10 @@ class MariaTaskResult:
     sampler_params: dict = field(default_factory=dict)
     # False se houve erro de contexto (prompt > ctx_size do servidor).
     contexto_ok: bool = True
+    # Número de tentativas de correção de tool call inválida (schema) usadas
+    # nesta execução. 0 quando a tool call já veio válida ou quando não havia
+    # ferramenta de escrita a validar.
+    correction_attempts: int = 0
 
 
 @dataclass

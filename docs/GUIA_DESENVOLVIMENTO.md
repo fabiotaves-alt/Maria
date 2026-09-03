@@ -1,7 +1,7 @@
 # Guia de Desenvolvimento — MARIA
 
 **Versão:** v4.1.1
-**Última atualização:** 2026-08-31
+**Última atualização:** 2026-09-03
 **Status:** ✅ Estável (Tauri v2 + React, Backend Python, SQLite FTS5)
 
 Este documento serve como guia prático para novos desenvolvedores e para o ciclo contínuo de desenvolvimento do projeto MARIA.
@@ -123,6 +123,8 @@ Para o detalhamento completo dos componentes e segurança, consulte [`docs/ARQUI
                                               └───────────────────┘
 ```
 
+**Organização do backend (`backend/`):** o `main.py` é um *entry point* fino (argparse + despacho dos modos CLI, `--bridge` e `--bridge-http`). O transporte e o protocolo do bridge vivem no pacote `bridge/` (`servidores.py` e `comandos.py`) e a lógica de negócio na classe `MariaController` (`core/maria_controller.py`). Detalhes na seção 2.2 de [`docs/ARQUITETURA_SISTEMA.md`](ARQUITETURA_SISTEMA.md).
+
 ---
 
 ## 3. Backlog e Próximas Entregas
@@ -163,14 +165,18 @@ maria/
 │   └── .bridge_token              ← token de sessão HTTP (gerado em runtime)
 │
 ├── backend/                       ← código do backend Python
-│   ├── main.py                    ← entry point CLI e bridge HTTP
+│   ├── main.py                    ← entry point fino (CLI / --bridge / --bridge-http)
+│   ├── bridge/                    ← transporte (servidores.py) e protocolo (comandos.py) do bridge
 │   ├── core/                      ← lógica de negócio, LLM clients, tools e RAG
 │   │   ├── config.py              ← fonte da verdade de configurações
+│   │   ├── maria_controller.py    ← controller: cliente LLM, sessão, ferramentas
 │   │   ├── llama_client.py        ← cliente llama-server
 │   │   ├── chat_session.py        ← gerenciamento de contexto
 │   │   ├── tools_schema.py        ← registro e validação de ferramentas
+│   │   ├── tool_call_textual_parser.py  ← parser de tool calls textuais
 │   │   ├── manual_redacao.py      ← RAG FTS5 do Manual de Redação
 │   │   └── file_utils.py          ← validação e segurança de caminhos
+│   ├── ui_terminal.py             ← interface CLI interativa
 │   ├── database/                  ← conexão SQLite e scripts de ingestão
 │   ├── tests/                     ← suíte pytest e smoke-tests
 │   └── benchmark/                 ← framework de avaliação de tool calling

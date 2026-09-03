@@ -311,6 +311,27 @@ def validar_argumentos_obrigatorios(nome_funcao: str, argumentos: dict) -> None:
             f"campo(s) obrigatório(s) ausente(s) ou vazio(s): {', '.join(faltando)}."
         )
 
+    # --- Validações adicionais de tipo e sanitização (somente schema;
+    # NÃO verifica existência de arquivo em disco) ---
+    problemas = []
+    if nome_funcao in ("criar_planilha", "editar_planilha"):
+        colunas = argumentos.get("colunas")
+        if colunas is not None and not isinstance(colunas, list):
+            problemas.append("'colunas' deve ser uma lista de strings, não uma string única.")
+
+    if nome_funcao in ("criar_planilha", "criar_documento", "editar_planilha"):
+        nome_arquivo = argumentos.get("nome_arquivo")
+        if isinstance(nome_arquivo, str) and nome_arquivo.strip():
+            try:
+                _sanitizar_nome_arquivo(nome_arquivo)
+            except ValueError as erro_sanitizacao:
+                problemas.append(str(erro_sanitizacao))
+
+    if problemas:
+        raise ValueError(
+            f"Não foi possível executar '{nome_funcao}': {' '.join(problemas)}"
+        )
+
 
 def simular_execucao_ferramenta(nome_funcao: str, argumentos: dict) -> str:
     """

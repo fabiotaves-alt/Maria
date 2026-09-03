@@ -36,10 +36,10 @@ O sistema é um monorepo com dois processos independentes que se comunicam via H
 ┌─────────────────────────────────────┐   HTTP JSON (porta 8081)   ┌──────────────────────────────────┐
 │  Frontend  —  Tauri v2 + React      │ ◄────────────────────────► │  Backend  —  Python 3.11+        │
 │                                     │                             │                                  │
-│  • React 18 + TypeScript + Vite     │    Authorization: Bearer    │  • main.py (CLI / bridge HTTP)   │
-│  • Tailwind CSS + Framer Motion     │    <token por sessão>       │  • LlamaClient (llama-server)    │
-│  • Zustand (estado global)          │                             │  • tools_schema.py (ferramentas) │
-│  • useMariaBridge (hook HTTP)       │                             │  • chat_session.py (contexto)    │
+│  • React 18 + TypeScript + Vite     │    Authorization: Bearer    │  • main.py (entry point fino)    │
+│  • Tailwind CSS + Framer Motion     │    <token por sessão>       │  • bridge/ (stdin/stdout + HTTP) │
+│  • Zustand (estado global)          │                             │  • core/maria_controller.py      │
+│  • useMariaBridge (hook HTTP)       │                             │  • core/ (LLM, tools, parser)    │
 │  • Rust: rusqlite, reqwest, sidecar │                             │  • database/ (SQLite)            │
 └──────────────────┬──────────────────┘                             └────────────────┬─────────────────┘
                    │ rusqlite (WAL)                                                  │ HTTP localhost:8080
@@ -302,16 +302,26 @@ maria/
 │   └── .bridge_token              ← token de sessão HTTP (gerado em runtime, fora do git)
 │
 ├── backend/                       ← backend Python
-│   ├── main.py                    ← entry point (CLI / --bridge / --bridge-http)
-│   ├── core/
+│   ├── main.py                    ← entry point fino (CLI / --bridge / --bridge-http)
+│   ├── bridge/                    ← camada de transporte do backend
+│   │   ├── comandos.py            ← protocolo de comandos (compartilhado entre os transportes)
+│   │   └── servidores.py          ← transporte stdin/stdout (sidecar) e HTTP Flask (dev)
+│   ├── core/                      ← lógica de negócio
 │   │   ├── config.py              ← fonte da verdade: modelos, URLs, parâmetros
+│   │   ├── maria_controller.py    ← controller: cliente LLM, sessão, ferramentas, persistência
 │   │   ├── llama_client.py        ← cliente llama-server (produção)
 │   │   ├── ollama_client.py       ← cliente Ollama (legado/opcional)
 │   │   ├── chat_session.py        ← histórico e prompt de sistema
+│   │   ├── session_storage.py     ← persistência de sessões
 │   │   ├── tools_schema.py        ← definição e execução das ferramentas
+│   │   ├── tool_call_textual_parser.py  ← parser de tool calls textuais (fallback posicional)
+│   │   ├── tool_chaining.py       ← encadeamento automático de ferramentas de leitura
+│   │   ├── router.py              ← roteamento MoE entre modelos (3B ↔ 8B)
+│   │   ├── word_handler.py        ← manipulação de documentos .docx
+│   │   ├── excel_handler.py       ← manipulação de planilhas .xlsx
 │   │   ├── file_utils.py          ← validação de caminhos e permissões
-│   │   ├── manual_redacao.py      ← RAG via FTS5 (Manual de Redação)
-│   │   └── tool_chaining.py       ← encadeamento automático de ferramentas de leitura
+│   │   └── manual_redacao.py      ← RAG via FTS5 (Manual de Redação)
+│   ├── ui_terminal.py             ← interface CLI interativa
 │   ├── database/
 │   │   ├── connection.py          ← conexão SQLite thread-safe (WAL + busy_timeout)
 │   │   ├── schema.py              ← criação de tabelas (init_db)

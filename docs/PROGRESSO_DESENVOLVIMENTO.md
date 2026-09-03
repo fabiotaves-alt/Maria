@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.10  
+**Versão Atual:** v4.1.11  
 **Última alteração:** 2026-09-03  
 
 ---
@@ -11,7 +11,7 @@
 
 | Área | Progresso | Observações |
 |------|-----------|-------------|
-| Backend Core & Ferramentas (Python) | 97% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo, sampler configurável e system prompt externo; lógica de negócio separada em `backend/core/maria_controller.py` |
+| Backend Core & Ferramentas (Python) | 98% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo, sampler configurável, system prompt externo, lógica de negócio em `backend/core/maria_controller.py` e **autocorreção de tool calls inválidas** |
 | Segurança & Concorrência | 95% | Token atômico, CORS por ambiente, SQLite thread-safe, PATH hijacking |
 | Frontend (Tauri v2 + React) | 92% | Interface completa, temas, persistência rusqlite, sidecar |
 | Integração Bridge (HTTP/Sidecar) | 95% | 19 comandos bridge, autenticação Bearer, health check; transporte e protocolo separados em `backend/bridge/` (`servidores.py` + `comandos.py`) |
@@ -35,6 +35,7 @@
 | **4.1.6** | 2026-09-02 | Metadados reais do modelo via /v1/models (aborta sem endpoint), log.json v2.0 com hash do system prompt, métrica contexto_ok e relatório enxuto sem coluna "Configurado" | ✅ Concluída |
 | **4.1.7** | 2026-09-02 | Verificação de contexto real (warmup + pre-check por tarefa), timeout por chamada (120s), contagem exata do system prompt via /tokenize com calibração e num_ctx adaptativo | ✅ Concluída |
 | **4.1.10** | 2026-09-03 | Divisão de `backend/main.py` em módulos especializados: lógica de negócio em `backend/core/maria_controller.py` e transporte/protocolo bridge em `backend/bridge/` — sem alteração de comportamento (re-exports mantêm compatibilidade com testes) | ✅ Concluída |
+| **4.1.11** | 2026-09-03 | Autocorreção de tool calls inválidas de escrita (schema: campos obrigatórios, tipo de `colunas`, sanitização de `nome_arquivo`) via `validar_e_corrigir_tool_call_stream` com retry + temperatura elevada (0.25); fix de 5 testes pré-existentes; **180 testes passando** | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -86,6 +87,13 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.11 — Autocorreção de tool calls inválidas (2026-09-03)
+- **Validação de schema ANTES da confirmação**: `validar_e_corrigir_tool_call_stream` (`backend/core/tool_chaining.py`) valida tool calls de escrita (`FERRAMENTAS_ESCRITA`) contra `validar_argumentos_obrigatorios` (estendida: `colunas` deve ser lista, `nome_arquivo` sanitizado) — **sem** verificar existência de arquivo em disco (não introduzir conflito com tarefas 21–23 do benchmark).
+- **Retry com temperatura elevada**: chamadas de correção usam `LLAMA_TEMPERATURE_TOOLS_RETRY` (0.25) via `temperatura_override` em `_montar_payload`/`continuar_com_resultado_ferramenta_stream`; default `LLAMA_TEMPERATURE_TOOLS` (0.1) preservado. Limite `MAX_TENTATIVAS_CORRECAO_FERRAMENTA` (2).
+- **Integração dual**: `maria_controller.py` (interativo) reescrito em 3 estágios (chat → leitura → correção); `maria_runner.py` (benchmark) ganhou bloco de correção com callback `_apos_chamada_de_correcao` (timeout por chamada + tokens) e expõe `correction_attempts` no `MariaTaskResult`.
+- **Fix de baseline**: 16 `@patch('core...')` → `backend.core...`, `OllamaClient(model="qwen3.5:4b")` em 3 testes de regressão, e 2 asserts de system prompt alinhados ao texto acentuado — eliminando dependência de ordem/sys.path no unittest.
+- **Testes**: 180/180 passando (7 novos da Fase B + baseline 173 agora verde).
 
 ### 4.1.10 — Divisão de `backend/main.py` em Módulos Especializados (2026-09-03)
 - **`backend/core/maria_controller.py`**: classe `MariaController` (lógica de negócio) movida integralmente de `backend/main.py` — 16 métodos inalterados; imports reduzidos (`LLAMA_MODEL` removido, pois só era usado no bridge).

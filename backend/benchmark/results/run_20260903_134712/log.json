@@ -1,0 +1,214 @@
+{
+  "meta": {
+    "modelo_id_real": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+    "modelo_nome_exibicao": "Qwen2.5 3B",
+    "modelo_quantizacao": "Q4_K - Medium",
+    "data_execucao": "2026-09-03T13:48:18.326944",
+    "total_tarefas": 1,
+    "repeticoes_por_tarefa": 3,
+    "versao_benchmark": "2.0",
+    "system_prompt_hash": "3ccf3089fd9f",
+    "system_prompt_completo": "Você é MARIA, assistente de escritório, você cria e edita planilhas Excel e documentos Word com ferramentas. SEMPRE responda em português do Brasil. Outros idiomas, somente para termos técnicos. Cumprimentos, apresentações ou uma pergunta geral do usuário, resposta em texto. Criação ou edição de arquivos SEMPRE CHAME A FERRAMENTA: Documentos CHAME \"criar_documento\": [\"nome_arquivo\", \"titulo\", \"conteudo\"]; Planilhas, chame \"criar_planilha\": [\"nome_arquivo\", \"colunas\"]; Edição de planilha chame \"editar_planilha\": [\"nome_arquivo\", \"colunas\"], ATENÇÃO: SEMPRE CHAME A FERRAMENTA, o sistema de confirmação será tratado automaticamente após a tool call. Para documentos SEMPRE chame \"criar_documento\". Se o usuário mencionar um arquivo que NÃO EXISTE e pedir para editá-lo, responda em texto dizendo que o arquivo não foi encontrado. Se o usuário pedir para editar uma PLANILHA que JÁ FOI CRIADA na conversa considere que ela EXISTE e CHAME \"editar_planilha\": [\"nome_arquivo\", \"colunas\"]. CHAME \"listar_arquivos\" antes de editar uma planilha que o usuário NÃO mencionou na conversa. Preencha todos os CAMPOS OBRIGATÓRIOS das FERRAMENTAS. Para \"criar_documento\", se o usuário não forneceu o conteúdo completo, seja breve, coerente e razoável com base no que foi pedido. Mantenha as respostas CURTAS e OBJETIVAS, EXCEÇÃO para documento narrativo.\n\nCAMPOS OBRIGATORIOS, SIGA EXATAMENTE ESSE FORMATO.\n    \"criar_planilha\": [\"nome_arquivo\", \"colunas\"],\n    \"criar_documento\": [\"nome_arquivo\", \"titulo\", \"conteúdo\"],\n    \"editar_planilha\": [\"nome_arquivo\", \"colunas\"],",
+    "llama_base_url": "http://localhost:8080",
+    "llama_num_ctx_config": 4096,
+    "ctx_size_detectado": 4096,
+    "ctx_fonte": "models",
+    "system_prompt_tokens": 445,
+    "fator_calibracao_tokens": 1.141025641025641,
+    "timeout_por_chamada_s": 120,
+    "sampler_params": {
+      "temperature": 0.1,
+      "repeat_last_n": 64,
+      "repeat_penalty": 1.0,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "dry_multiplier": 0.0,
+      "dry_base": 1.75,
+      "dry_allowed_length": 2,
+      "dry_penalty_last_n": 64,
+      "top_k": 40,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "xtc_probability": 0.0,
+      "xtc_threshold": 0.1,
+      "typical_p": 1.0,
+      "top_n_sigma": -1.0
+    }
+  },
+  "individual": [
+    {
+      "task_id": 10,
+      "task_name": "Documento comunicado",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\comunicado_horario.docx",
+      "latency_ms": 23893.948900018586,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "comunicado_horario",
+        "titulo": "Mudanca_horario",
+        "conteudo": "equipe"
+      },
+      "language_ok": true,
+      "tokens_gerados": 22,
+      "tokens_por_segundo": 0.9,
+      "args_correct": true,
+      "ttft_ms": 19365.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um comunicado formal informando a equipe sobre a mudança do horário de atendimento."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"comunicado_horario\", \"Mudanca_horario\", \"equipe\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 10,
+      "task_name": "Documento comunicado",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\comunicado_hora_atendimento.docx",
+      "latency_ms": 22026.072100008605,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "comunicado_hora_atendimento",
+        "titulo": "Mudanca_horario",
+        "conteudo": "A equipe de atendimento da nossa empresa está informando a todos que a mudança do horário de atendimento será efetivada a partir de [data_inicial] até [data_final]. A nova hora de atendimento será [novo_horario]. Agradecemos a compreensão e esperamos que a mudança seja benéfica para a eficiência do atendimento."
+      },
+      "language_ok": true,
+      "tokens_gerados": 104,
+      "tokens_por_segundo": 4.7,
+      "args_correct": true,
+      "ttft_ms": 2273.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um comunicado formal informando a equipe sobre a mudança do horário de atendimento."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"comunicado_hora_atendimento\", \"Mudanca_horario\", \"A equipe de atendimento da nossa empresa está informando a todos que a mudança do horário de atendimento será efetivada a partir de [data_inicial] até [data_final]. A nova hora de atendimento será [novo_horario]. Agradecemos a compreensão e esperamos que a mudança seja benéfica para a eficiência do atendimento.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 10,
+      "task_name": "Documento comunicado",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "criar_documento: [\"comunicado_hora_atendimento\", \"Mudanca_horario\", \"A equipe de atendimento da nossa empresa informa que haverá uma mudança no horário de atendimento. A partir de agora, os horários de atendimento serão alterados conforme a tabela abaixo. Agradecemos a compreensão e esperamos que a mudança seja benéfica para todos os envolvidos.\"];",
+      "latency_ms": 19502.7156000142,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 92,
+      "tokens_por_segundo": 4.7,
+      "args_correct": true,
+      "ttft_ms": 2279.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um comunicado formal informando a equipe sobre a mudança do horário de atendimento."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"comunicado_hora_atendimento\", \"Mudanca_horario\", \"A equipe de atendimento da nossa empresa informa que haverá uma mudança no horário de atendimento. A partir de agora, os horários de atendimento serão alterados conforme a tabela abaixo. Agradecemos a compreensão e esperamos que a mudança seja benéfica para todos os envolvidos.\"];",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    }
+  ],
+  "agregado_por_tarefa": [
+    {
+      "task_id": 10,
+      "task_name": "Documento comunicado",
+      "category": "criar_documento",
+      "execucoes": 3,
+      "tool_accuracy": 0.6666666666666666,
+      "confirmation_success_rate": 0.6666666666666666,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 21807.578866680462,
+      "stddev_latency_ms": 2203.755191377775,
+      "avg_tokens_por_segundo": 3.4333333333333336,
+      "avg_tokens_gerados": 72.66666666666667
+    }
+  ]
+}

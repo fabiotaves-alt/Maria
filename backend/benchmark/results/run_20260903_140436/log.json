@@ -1,0 +1,380 @@
+{
+  "meta": {
+    "modelo_id_real": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+    "modelo_nome_exibicao": "Qwen2.5 7B",
+    "modelo_quantizacao": "Q4_K - Medium",
+    "data_execucao": "2026-09-03T14:10:40.701751",
+    "total_tarefas": 2,
+    "repeticoes_por_tarefa": 3,
+    "versao_benchmark": "2.0",
+    "system_prompt_hash": "4382bd6e88ee",
+    "system_prompt_completo": "Você é MARIA, assistente de escritório, você cria e edita planilhas Excel e documentos Word com ferramentas. SEMPRE responda em português do Brasil. Outros idiomas, somente para termos técnicos. Cumprimentos, apresentações ou uma pergunta geral do usuário, resposta em texto. Criação ou edição de arquivos SEMPRE CHAME A FERRAMENTA: Documentos CHAME \"criar_documento\": [\"nome_arquivo\", \"titulo\", \"conteudo\"]; Planilhas, chame \"criar_planilha\": [\"nome_arquivo\", \"colunas\"]; Edição de planilha chame \"editar_planilha\": [\"nome_arquivo\", \"colunas\"], ATENÇÃO: SEMPRE CHAME A FERRAMENTA, o sistema de confirmação será tratado automaticamente após a tool call. Para documentos SEMPRE chame \"criar_documento\". Se o usuário mencionar um arquivo que NÃO EXISTE e pedir para editá-lo, responda em texto dizendo que o arquivo não foi encontrado. Se o usuário pedir para editar uma PLANILHA que JÁ FOI CRIADA na conversa considere que ela EXISTE e CHAME \"editar_planilha\": [\"nome_arquivo\", \"colunas\"]. CHAME \"listar_arquivos\" antes de editar uma planilha que o usuário NÃO mencionou na conversa. Preencha todos os CAMPOS OBRIGATÓRIOS das FERRAMENTAS. Para \"criar_documento\", se o usuário não forneceu o conteúdo completo, seja breve, coerente e razoável com base no que foi pedido. Mantenha as respostas CURTAS e OBJETIVAS, EXCEÇÃO para documento narrativo.",
+    "llama_base_url": "http://localhost:8080",
+    "llama_num_ctx_config": 4096,
+    "ctx_size_detectado": 4096,
+    "ctx_fonte": "models",
+    "system_prompt_tokens": 377,
+    "fator_calibracao_tokens": 1.1220238095238095,
+    "timeout_por_chamada_s": 120,
+    "sampler_params": {
+      "temperature": 0.1,
+      "repeat_last_n": 64,
+      "repeat_penalty": 1.0,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "dry_multiplier": 0.0,
+      "dry_base": 1.75,
+      "dry_allowed_length": 2,
+      "dry_penalty_last_n": 64,
+      "top_k": 40,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "xtc_probability": 0.0,
+      "xtc_threshold": 0.1,
+      "typical_p": 1.0,
+      "top_n_sigma": -1.0
+    }
+  },
+  "individual": [
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "criar_planilha: [\"gastos\", [\"Data\", \"Valor\"]];",
+      "latency_ms": 41148.3828999917,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 16,
+      "tokens_por_segundo": 0.4,
+      "args_correct": false,
+      "ttft_ms": 34538.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"gastos\", [\"Data\", \"Valor\"]];",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+      "latency_ms": 8499.152200005483,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "gastos",
+        "colunas": [
+          "Data",
+          "Valor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 15,
+      "tokens_por_segundo": 1.8,
+      "args_correct": true,
+      "ttft_ms": 2467.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"gastos\", [\"Data\", \"Valor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "criar_planilha: [\"gastos\", [\"Data\", \"Valor\"]];",
+      "latency_ms": 8879.198999988148,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 16,
+      "tokens_por_segundo": 1.8,
+      "args_correct": false,
+      "ttft_ms": 2466.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"gastos\", [\"Data\", \"Valor\"]];",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 15,
+      "task_name": "Confirmação de documento",
+      "category": "confirmacao",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": false,
+      "runtime_ok": false,
+      "final_message": "[ERRO] Chamada ao modelo excedeu 120s (timeout por chamada). Latência: 130.0s",
+      "latency_ms": 129985.64800000167,
+      "errors": [
+        {
+          "kind": "TimeoutError",
+          "message": "Chamada ao modelo excedeu 120s (timeout por chamada). Latência: 130.0s"
+        }
+      ],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 0,
+      "tokens_por_segundo": 0.0,
+      "args_correct": true,
+      "ttft_ms": null,
+      "prompt_enviado": null,
+      "resposta_bruta_modelo": "",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 15,
+      "task_name": "Confirmação de documento",
+      "category": "confirmacao",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\ata_reunião.docx",
+      "latency_ms": 93849.19649999938,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "ata_reunião",
+        "titulo": "Ata",
+        "conteudo": "Aqui está um exemplo de conteúdo para uma ata de reunião: \n\nData: [data da reunião]\nLocal: [local da reunião]\nParticipantes: [nomes dos participantes]\n\nPonto a ponto da reunião:\n\n1. [Tema do primeiro ponto]\n   - [Detalhes do primeiro ponto]\n2. [Tema do segundo ponto]\n   - [Detalhes do segundo ponto]\n3. [Tema do terceiro ponto]\n   - [Detalhes do terceiro ponto]\n\nDecisões tomadas:\n\n- [Decisão 1]\n- [Decisão 2]\n- [Decisão 3]\n\nObservações:\n\n- [Observação 1]\n- [Observação 2]\n- [Observação 3]\n\nAssinaturas: [Assinaturas dos participantes]"
+      },
+      "language_ok": true,
+      "tokens_gerados": 224,
+      "tokens_por_segundo": 2.4,
+      "args_correct": true,
+      "ttft_ms": 2480.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento de ata com título Ata e conteúdo completo sobre uma reunião."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"ata_reunião\", \"Ata\", \"Aqui está um exemplo de conteúdo para uma ata de reunião: \\n\\nData: [data da reunião]\\nLocal: [local da reunião]\\nParticipantes: [nomes dos participantes]\\n\\nPonto a ponto da reunião:\\n\\n1. [Tema do primeiro ponto]\\n   - [Detalhes do primeiro ponto]\\n2. [Tema do segundo ponto]\\n   - [Detalhes do segundo ponto]\\n3. [Tema do terceiro ponto]\\n   - [Detalhes do terceiro ponto]\\n\\nDecisões tomadas:\\n\\n- [Decisão 1]\\n- [Decisão 2]\\n- [Decisão 3]\\n\\nObservações:\\n\\n- [Observação 1]\\n- [Observação 2]\\n- [Observação 3]\\n\\nAssinaturas: [Assinaturas dos participantes]\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 15,
+      "task_name": "Confirmação de documento",
+      "category": "confirmacao",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\ata.docx",
+      "latency_ms": 81606.07019998133,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "ata",
+        "titulo": "Ata",
+        "conteudo": "Aqui está um exemplo de conteúdo para uma ata de reunião: \n\n\n\nData: [Insira a data da reunião]\nLocal: [Insira o local da reunião]\nParticipantes: [Insira os nomes dos participantes]\n\n\n\nPonto a ponto da reunião:\n\n\n\n1. Discussão sobre o projeto XYZ\n2. Análise de resultados do último mês\n3. Planejamento para o próximo trimestre\n4. Decisões tomadas\n5. Ações a serem tomadas\n6. Data da próxima reunião\n\n\n\nObservações:\n\n\n\n[Insira quaisquer observações adicionais]\n\n\n\nAssinatura dos participantes: [Insira as assinaturas dos participantes]"
+      },
+      "language_ok": true,
+      "tokens_gerados": 192,
+      "tokens_por_segundo": 2.4,
+      "args_correct": true,
+      "ttft_ms": 2485.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento de ata com título Ata e conteúdo completo sobre uma reunião."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"ata\", \"Ata\", \"Aqui está um exemplo de conteúdo para uma ata de reunião: \\n\\n\\n\\nData: [Insira a data da reunião]\\nLocal: [Insira o local da reunião]\\nParticipantes: [Insira os nomes dos participantes]\\n\\n\\n\\nPonto a ponto da reunião:\\n\\n\\n\\n1. Discussão sobre o projeto XYZ\\n2. Análise de resultados do último mês\\n3. Planejamento para o próximo trimestre\\n4. Decisões tomadas\\n5. Ações a serem tomadas\\n6. Data da próxima reunião\\n\\n\\n\\nObservações:\\n\\n\\n\\n[Insira quaisquer observações adicionais]\\n\\n\\n\\nAssinatura dos participantes: [Insira as assinaturas dos participantes]\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    }
+  ],
+  "agregado_por_tarefa": [
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.3333333333333333,
+      "confirmation_success_rate": 0.3333333333333333,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 19508.911366661778,
+      "stddev_latency_ms": 18741.29544812448,
+      "avg_tokens_por_segundo": 1.3333333333333333,
+      "avg_tokens_gerados": 15.666666666666666
+    },
+    {
+      "task_id": 15,
+      "task_name": "Confirmação de documento",
+      "category": "confirmacao",
+      "execucoes": 3,
+      "tool_accuracy": 0.6666666666666666,
+      "confirmation_success_rate": 0.6666666666666666,
+      "keyword_match_rate": 0.6666666666666666,
+      "runtime_success_rate": 0.6666666666666666,
+      "avg_latency_ms": 101813.63823332747,
+      "stddev_latency_ms": 25153.92884063519,
+      "avg_tokens_por_segundo": 2.4,
+      "avg_tokens_gerados": 138.66666666666666
+    }
+  ]
+}

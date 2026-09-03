@@ -247,6 +247,7 @@ class LlamaClient:
         stream: bool,
         incluir_temperatura: bool = False,
         num_predict_override: int | None = None,
+        temperatura_override: float | None = None,
     ) -> dict:
         """Monta o payload para POST /v1/chat/completions."""
         max_tokens = (
@@ -266,6 +267,8 @@ class LlamaClient:
             # defaults do llama-server) para deixá-los configuráveis via ENV e
             # auditáveis no benchmark. O servidor ignora campos desconhecidos.
             payload.update(montar_sampler_params())
+            if temperatura_override is not None:
+                payload["temperature"] = temperatura_override
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
@@ -407,6 +410,12 @@ class LlamaClient:
             if tool_call_textual:
                 logger.info("Tool call detectada via fallback textual%s: %s", contexto_log, tool_call_textual["name"])
                 return tool_call_textual
+
+        # Fallback 3: formato array posicional (Qwen2.5-Omni-3B)
+        tool_call_array = extrair_tool_call_textual(conteudo_acumulado)
+        if tool_call_array:
+            logger.info("Tool call extraída via parser array posicional%s: %s", contexto_log, tool_call_array["name"])
+            return tool_call_array
 
         return None
 
@@ -637,6 +646,7 @@ class LlamaClient:
         resultado: str,
         tools: list[dict] | None = None,
         metricas_saida: dict | None = None,
+        temperatura_override: float | None = None,
     ) -> Generator[tuple[str | None, dict | None], None, None]:
         """
         Reenvia o histórico (incluindo role="tool") ao llama-server e continua
@@ -670,6 +680,7 @@ class LlamaClient:
             mensagens, tools, stream=True,
             incluir_temperatura=bool(tools),
             num_predict_override=LLAMA_NUM_PREDICT_CONTINUACAO,
+            temperatura_override=temperatura_override,
         )
         inicio = time.monotonic()
         response = self._make_request(payload, stream=True)

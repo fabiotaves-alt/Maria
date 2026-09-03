@@ -89,7 +89,7 @@ class TestChatSession(unittest.TestCase):
 
     def test_system_prompt_exige_portugues(self):
         """Testa que o prompt exige português do Brasil em qualquer resposta."""
-        self.assertIn("portugues do Brasil", ChatSession.SYSTEM_PROMPT)
+        self.assertIn("português do Brasil", ChatSession.SYSTEM_PROMPT)
     
     def test_get_historico_sem_system_exclui_system_prompt(self):
         """Testa que get_historico_sem_system exclui system prompt."""
@@ -333,6 +333,23 @@ class TestBenchmarkMetrics(unittest.TestCase):
         metrics = calculate_maria_metrics(results)
         self.assertAlmostEqual(metrics.avg_tokens_por_segundo, 15.0)
 
+    def test_resolver_tool_call_final_aceita_array_posicional(self):
+        """O streaming do Qwen2.5-Omni-3B pode devolver tool calls em formato array posicional."""
+        from backend.core.llama_client import LlamaClient
+
+        cliente = LlamaClient()
+        tool_call = cliente._resolver_tool_call_final(
+            tc_detectada_via_delta=False,
+            tc_nome_acumulado="",
+            tc_args_acumulado="",
+            conteudo_acumulado='criar_planilha: ["gastos", ["Data", "Valor"]]',
+        )
+
+        self.assertIsNotNone(tool_call)
+        self.assertEqual(tool_call["name"], "criar_planilha")
+        self.assertEqual(tool_call["arguments"]["nome_arquivo"], "gastos")
+        self.assertEqual(tool_call["arguments"]["colunas"], ["Data", "Valor"])
+
     def test_chat_com_tools_stream_com_metricas_acumula_tokens(self):
         class FakeResponse:
             def __init__(self, payloads):
@@ -455,6 +472,33 @@ class TestValidacaoArgumentos(unittest.TestCase):
                 {"nome_arquivo": "x", "titulo": "   ", "conteudo": "y"}
             )
 
+    def test_validar_argumentos_obrigatorios_colunas_como_string_levanta_value_error(self):
+        """'colunas' como string única deve ser rejeitado pelo validador (tipo)."""
+        with self.assertRaisesRegex(ValueError, "lista de strings"):
+            validar_argumentos_obrigatorios(
+                "criar_planilha",
+                {"nome_arquivo": "gastos", "colunas": "Data, Valor"}
+            )
+
+    def test_validar_argumentos_obrigatorios_nome_arquivo_path_traversal_levanta_value_error(self):
+        """nome_arquivo com path traversal deve ser rejeitado pela sanitização."""
+        with self.assertRaisesRegex(ValueError, "path traversal"):
+            validar_argumentos_obrigatorios(
+                "criar_planilha",
+                {"nome_arquivo": "../../teste_seguro", "colunas": ["Data"]}
+            )
+
+    def test_validar_argumentos_obrigatorios_tool_call_valida_nao_levanta_excecao(self):
+        """Tool call de escrita válida não deve levantar exceção."""
+        validar_argumentos_obrigatorios(
+            "criar_planilha",
+            {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}
+        )
+        validar_argumentos_obrigatorios(
+            "criar_documento",
+            {"nome_arquivo": "relatorio", "titulo": "Relatório", "conteudo": "Texto"}
+        )
+
 
 class TestGerarNomeUnico(unittest.TestCase):
     """Testes para função gerar_nome_unico."""
@@ -537,7 +581,7 @@ class TestRegressao(unittest.TestCase):
         # A string deve conter aspas normais, não escaped
         self.assertIn("Relatório Mensal", resultado)
     
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_tool_calls_malformado(self, mock_session_class):
         """Testa que chat_com_tools não quebra com tool_calls malformado."""
         from backend.core.ollama_client import OllamaClient
@@ -560,7 +604,7 @@ class TestRegressao(unittest.TestCase):
             json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
         )
         
-        cliente = OllamaClient()
+        cliente = OllamaClient(model="qwen3.5:4b")
         conteudo, tool_call = cliente.chat_com_tools(
             mensagem_usuario="teste",
             historico=[{"role": "user", "content": "teste"}],
@@ -570,7 +614,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual(conteudo, "Resposta do modelo")
         self.assertIsNone(tool_call)
     
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_tool_calls_sem_function(self, mock_session_class):
         """Testa que chat_com_tools lida com tool_call sem 'function'."""
         from backend.core.ollama_client import OllamaClient
@@ -592,7 +636,7 @@ class TestRegressao(unittest.TestCase):
             json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
         )
         
-        cliente = OllamaClient()
+        cliente = OllamaClient(model="qwen3.5:4b")
         conteudo, tool_call = cliente.chat_com_tools(
             mensagem_usuario="teste",
             historico=[{"role": "user", "content": "teste"}],
@@ -602,7 +646,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual(conteudo, "Resposta do modelo")
         self.assertIsNone(tool_call)
     
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_tool_calls_sem_name(self, mock_session_class):
         """Testa que chat_com_tools lida com tool_call sem 'name'."""
         from backend.core.ollama_client import OllamaClient
@@ -624,7 +668,7 @@ class TestRegressao(unittest.TestCase):
             json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
         )
         
-        cliente = OllamaClient()
+        cliente = OllamaClient(model="qwen3.5:4b")
         conteudo, tool_call = cliente.chat_com_tools(
             mensagem_usuario="teste",
             historico=[{"role": "user", "content": "teste"}],
@@ -634,7 +678,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual(conteudo, "Resposta do modelo")
         self.assertIsNone(tool_call)
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_stream_tool_calls_vazio_nao_quebra(self, mock_session_class):
         """Testa streaming com tool_calls vazio."""
         from backend.core.ollama_client import OllamaClient
@@ -662,7 +706,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual("".join(chunk for chunk, _ in chunks if chunk), "Olá!")
         self.assertIsNone(chunks[-1][1])
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_stream_tool_call_vazada_como_texto(self, mock_session_class):
         """Testa que uma tool call vazada como texto no content é detectada via fallback."""
         from backend.core.ollama_client import OllamaClient
@@ -723,7 +767,7 @@ class TestRegressao(unittest.TestCase):
 
         self.assertEqual(cliente.chamadas, 1)
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_stream_recupera_tool_call_do_campo_thinking(self, mock_session_class):
         """Tool call presa em 'thinking' (bug do Qwen3.5) deve ser recuperada mesmo com content vazio."""
         from backend.core.ollama_client import OllamaClient
@@ -762,7 +806,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual(tool_call_final["name"], "criar_planilha")
         self.assertEqual(tool_call_final["arguments"]["nome_arquivo"], "gastos")
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_stream_com_metricas_recupera_tool_call_vazada_como_texto(self, mock_session_class):
         """chat_com_tools_stream_com_metricas hoje não tem fallback textual — este teste cobre o gap."""
         from backend.core.ollama_client import OllamaClient
@@ -800,7 +844,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual(tool_call["arguments"]["nome_arquivo"], "gastos")
         self.assertEqual(tokens_gerados, 40)
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_stream_com_metricas_recupera_tool_call_do_campo_thinking(self, mock_session_class):
         """Combina os dois gaps: campo 'thinking' + método de métricas do benchmark."""
         from backend.core.ollama_client import OllamaClient
@@ -837,7 +881,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual(tool_call["name"], "editar_planilha")
         self.assertEqual(tokens_gerados, 55)
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_continuar_com_resultado_ferramenta_stream_recupera_tool_call_do_campo_thinking(self, mock_session_class):
         """Mesma cobertura de 'thinking' para o método de continuação (após leitura de arquivo)."""
         from backend.core.ollama_client import OllamaClient
@@ -899,7 +943,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual(len(systems), 1)
         self.assertIn("IMPORTANTE: Você DEVE usar as ferramentas disponíveis", systems[0]["content"])
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_envia_uma_unica_mensagem_system(self, mock_session_class):
         from backend.core.ollama_client import OllamaClient
 
@@ -924,7 +968,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual(len(mensagens_system), 1)
         self.assertIn("PROMPT LONGO DA SESSAO", mensagens_system[0]["content"])
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_stream_envia_uma_unica_mensagem_system(self, mock_session_class):
         from backend.core.ollama_client import OllamaClient
 
@@ -952,7 +996,7 @@ class TestRegressao(unittest.TestCase):
         self.assertEqual(len(mensagens_system), 1)
         self.assertIn("PROMPT LONGO DA SESSAO", mensagens_system[0]["content"])
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_stream_com_metricas_envia_uma_unica_mensagem_system(self, mock_session_class):
         from backend.core.ollama_client import OllamaClient
 
@@ -1053,7 +1097,7 @@ class TestSessionStorage(unittest.TestCase):
 class TestOllamaClientErrorModeloNaoInstalado(unittest.TestCase):
     """Testes para erro claro quando modelo não está instalado."""
     
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_modelo_nao_instalado_levanta_erro_claro(self, mock_session_class):
         """Testa que OllamaClientError é levantado com mensagem clara quando modelo não existe."""
         from backend.core.ollama_client import OllamaClient, OllamaClientError
@@ -1270,7 +1314,7 @@ class TestSystemPromptExcecaoArquivoInexistente(unittest.TestCase):
     declaradamente inexistente (Fix D)."""
 
     def test_system_prompt_contem_excecao_para_arquivo_ficticio(self):
-        self.assertIn("arquivo nao foi encontrado", ChatSession.SYSTEM_PROMPT)
+        self.assertIn("arquivo não foi encontrado", ChatSession.SYSTEM_PROMPT)
 
 
 class TestReforcoComposicaoDocumento(unittest.TestCase):
@@ -1353,6 +1397,70 @@ class TestToolChaining(unittest.TestCase):
                 apos_cada_chamada=callback_que_estoura,
             ))
 
+    def test_validar_e_corrigir_leitura_passa_direto_sem_chamar_continuacao(self):
+        from backend.core.tool_chaining import validar_e_corrigir_tool_call_stream
+
+        class ClienteFalso:
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                raise AssertionError("não deveria ser chamado para leitura")
+
+        resultado = list(validar_e_corrigir_tool_call_stream(
+            ClienteFalso(),
+            historico_com_system=[{"role": "system", "content": "sistema"}],
+            tool_call_atual={"name": "listar_arquivos", "arguments": {}},
+            tools=[],
+        ))
+        ultimo = resultado[-1][1]
+        self.assertEqual(ultimo["tool_call"]["name"], "listar_arquivos")
+        self.assertEqual(ultimo["tentativas"], 0)
+
+    def test_validar_e_corrigir_escrita_invalida_corrigida_na_primeira_tentativa(self):
+        from backend.core.tool_chaining import validar_e_corrigir_tool_call_stream
+
+        class ClienteFalso:
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                yield None, {
+                    "name": "criar_planilha",
+                    "arguments": {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]},
+                }
+
+        resultado = list(validar_e_corrigir_tool_call_stream(
+            ClienteFalso(),
+            historico_com_system=[{"role": "system", "content": "sistema"}],
+            tool_call_atual={
+                "name": "criar_planilha",
+                "arguments": {"nome_arquivo": "gastos", "colunas": "Data,Valor"},
+            },
+            tools=[],
+        ))
+        ultimo = resultado[-1][1]
+        self.assertEqual(ultimo["tool_call"]["name"], "criar_planilha")
+        self.assertEqual(ultimo["tool_call"]["arguments"]["colunas"], ["Data", "Valor"])
+        self.assertEqual(ultimo["tentativas"], 1)
+
+    def test_validar_e_corrigir_escrita_esgota_limite_sem_correcao(self):
+        from backend.core.tool_chaining import validar_e_corrigir_tool_call_stream
+
+        class ClienteSempreInvalido:
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                yield None, {
+                    "name": "criar_planilha",
+                    "arguments": {"nome_arquivo": "gastos", "colunas": "Data,Valor"},
+                }
+
+        resultado = list(validar_e_corrigir_tool_call_stream(
+            ClienteSempreInvalido(),
+            historico_com_system=[{"role": "system", "content": "sistema"}],
+            tool_call_atual={
+                "name": "criar_planilha",
+                "arguments": {"nome_arquivo": "gastos", "colunas": "Data,Valor"},
+            },
+            tools=[],
+        ))
+        ultimo = resultado[-1][1]
+        self.assertIsNone(ultimo["tool_call"])
+        self.assertEqual(ultimo["tentativas"], 2)
+
 
 class TestMariaRunnerEncadeamento(unittest.TestCase):
     """Testa que o MariaRunner encadeia leitura -> escrita (Fix A)."""
@@ -1385,6 +1493,42 @@ class TestMariaRunnerEncadeamento(unittest.TestCase):
         self.assertEqual(resultado.tool_detected, "editar_planilha")
         self.assertTrue(resultado.tool_correct)
 
+    def test_runner_corrige_tool_call_escrita_invalida(self):
+        """Tarefa com tool call de escrita inválida (schema) deve registrar correction_attempts > 0."""
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteCorrige:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                # Primeira chamada: criar_planilha com 'colunas' como string (inválida).
+                return (
+                    "", 
+                    {"name": "criar_planilha", "arguments": {"nome_arquivo": "gastos", "colunas": "Data,Valor"}},
+                    10, 5.0, 1.0,
+                )
+
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                # Correção: produz uma tool call válida.
+                yield None, {
+                    "name": "criar_planilha",
+                    "arguments": {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]},
+                }
+
+        task = MariaTask(
+            9002, "Teste correção tool call", "desc", "crie a planilha gastos",
+            expected_tool="criar_planilha", confirm_sequence=[],
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+        )
+
+        runner = MariaRunner(cliente=ClienteCorrige())
+        resultado = runner.run(task)
+
+        self.assertEqual(resultado.tool_detected, "criar_planilha")
+        self.assertTrue(resultado.tool_correct)
+        self.assertGreater(resultado.correction_attempts, 0)
+
 
 class TestConfiguracaoDeModeloCentralizada(unittest.TestCase):
     """Testes para a centralização de configuração de modelo (Item 1)."""
@@ -1412,7 +1556,7 @@ class TestConfiguracaoDeModeloCentralizada(unittest.TestCase):
         self.assertNotIn("temperature", sem_temp["options"])
         self.assertIn("temperature", com_temp["options"])
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_mensagem_de_erro_de_conexao_usa_model_e_base_url_dinamicos(self, mock_session_class):
         import requests as requests_module
         from backend.core.ollama_client import OllamaClient, OllamaClientError
@@ -1469,7 +1613,7 @@ class TestOrcamentoDeTokensParaDocumento(unittest.TestCase):
         self.assertTrue(_sugere_composicao_de_documento("Escreva um relatório da reunião"))
         self.assertFalse(_sugere_composicao_de_documento("Crie uma planilha de gastos"))
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_chat_com_tools_usa_num_predict_documento_para_carta(self, mock_session_class):
         from backend.core.ollama_client import OllamaClient
         from backend.core.config import OLLAMA_NUM_PREDICT_DOCUMENTO
@@ -1498,7 +1642,7 @@ class TestInstrumentacaoDaContinuacao(unittest.TestCase):
     """Testa que a chamada de continuação usa orçamento reduzido de tokens
     e expõe tokens_gerados via metricas_saida (Item B)."""
 
-    @patch('core.ollama_client.requests.Session')
+    @patch('backend.core.ollama_client.requests.Session')
     def test_continuar_usa_num_predict_continuacao(self, mock_session_class):
         from backend.core.ollama_client import OllamaClient
         from backend.core.config import OLLAMA_NUM_PREDICT_CONTINUACAO
@@ -1624,6 +1768,16 @@ class TestMariaRunnerNegaEAmbiguidade(unittest.TestCase):
 
             def chat_com_tools_stream_com_metricas(self, **kwargs):
                 return ("", {"name": nome_tool, "arguments": {}}, 5, 2.0, 0.5)
+
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                # Correção da tool call inválida: devolve chamada válida na
+                # primeira tentativa (integração correção <-> cancelamento).
+                argumentos_validos = {
+                    "criar_planilha": {"nome_arquivo": "teste", "colunas": ["Data"]},
+                    "criar_documento": {"nome_arquivo": "teste", "titulo": "T", "conteudo": "C"},
+                    "editar_planilha": {"nome_arquivo": "teste", "colunas": ["Data"]},
+                }
+                yield None, {"name": nome_tool, "arguments": argumentos_validos[nome_tool]}
 
         return ClienteFalso()
 

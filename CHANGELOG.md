@@ -2,7 +2,43 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-## [4.1.10] — Divisão de `backend/main.py` em módulos especializados — 2026-09-03
+## [4.1.11] — Autocorreção de tool calls inválidas + fix de testes pré-existentes — 2026-09-03
+
+### 🛠️ Nova funcionalidade: autocorreção de tool calls de escrita
+
+- **`backend/core/config.py`**: adicionadas 2 constantes com override via ENV:
+  - `LLAMA_TEMPERATURE_TOOLS_RETRY` (default `0.25`) — temperatura elevada usada **somente** nas chamadas de correção de tool call inválida. O default `LLAMA_TEMPERATURE_TOOLS` (0.1) permanece intocado para todas as demais chamadas.
+  - `MAX_TENTATIVAS_CORRECAO_FERRAMENTA` (default `2`) — limite de tentativas de correção antes de prosseguir sem ferramenta.
+- **`backend/core/tools_schema.py`**: `validar_argumentos_obrigatorios` estendida — **após** a checagem de campos ausentes (comportamento/mensagem inalterados), valida **somente schema**: `colunas` deve ser lista (rejeita string única), e `nome_arquivo` passa pela `_sanitizar_nome_arquivo` (path traversal e caracteres inseguros). **NÃO** verifica existência de arquivo em disco (as tarefas 21–23 do benchmark exigem `editar_planilha` para arquivo fictício).
+- **`backend/core/llama_client.py`**: `_montar_payload` ganhou `temperatura_override` (aplica `payload["temperature"]` logo após `montar_sampler_params()`); `continuar_com_resultado_ferramenta_stream` ganhou `temperatura_override` e repassa ao payload. Nenhuma alteração em `ollama_client.py` (caminho legado).
+- **`backend/core/tool_chaining.py`**: novo conjunto `FERRAMENTAS_ESCRITA = {"criar_planilha", "criar_documento", "editar_planilha"}` e novo generator `validar_e_corrigir_tool_call_stream()` — valida a tool call de escrita contra o schema antes da confirmação do usuário; se inválida, reenvia o erro ao modelo via `continuar_com_resultado_ferramenta_stream` (mesmo padrão de `encadear_leitura_stream`) com `temperatura_override=LLAMA_TEMPERATURE_TOOLS_RETRY`, até `MAX_TENTATIVAS_CORRECAO_FERRAMENTA`. Último yield: `(None, {"tool_call": ..., "tentativas": ...})`.
+- **`backend/core/maria_controller.py`**: `_gerar_resposta_com_encadeamento` agora encadeia **3 estágios**: `chat_com_tools_stream` → `encadear_leitura_stream` (loop explícito, substituindo `yield from`) → `validar_e_corrigir_tool_call_stream`; o último yield é `(None, tool_call_final)`.
+- **`backend/benchmark/tasks/task_schema.py`**: `MariaTaskResult` ganhou o campo `correction_attempts: int = 0` (nº de tentativas de correção usadas; 0 quando a tool call já veio válida ou não havia escrita a validar).
+- **`backend/benchmark/runners/maria_runner.py`**: bloco de correção inserido após o tratamento de `FERRAMENTAS_LEITURA` e antes de `task.confirm_sequence` — usa `validar_e_corrigir_tool_call_stream` com callback `_apos_chamada_de_correcao` (timeout por chamada `BENCHMARK_TIMEOUT_POR_CHAMADA` + soma de tokens); quando a correção esgota e `tool_call_final` fica `None`, `confirmation_completed` é setado como `True` (nada a confirmar). `correction_attempts` exposto no resultado.
+- **`backend/core/system_prompt.txt`**: nova diretriz no parágrafo único — ao receber erro de tool call inválida, corrigir **só o campo apontado** e chamar a ferramenta novamente, sem desculpas/perguntas.
+
+### 🧪 Correção de testes pré-existentes (baseline)
+
+- **`backend/tests/test_maria.py`**:
+  - `@patch('core.ollama_client...')` → `@patch('backend.core.ollama_client...')` (16 ocorrências): remove dependência de `sys.path`/ordem de execução que causava `ModuleNotFoundError` quando rodados isoladamente.
+  - 3 testes de regressão usavam `OllamaClient()` sem `model=`, disparando auto-detecção contra mock → agora `OllamaClient(model="qwen3.5:4b")`.
+  - 2 asserts de system prompt não casavam com o texto acentuado real → `"português do Brasil"` e `"arquivo não foi encontrado"`.
+
+### 🧪 Novos testes (Fase B)
+
+- **`TestValidacaoArgumentos`**: `colunas` como string → `ValueError` "lista de strings"; `nome_arquivo` com path traversal → `ValueError`; tool call válida não levanta.
+- **`TestToolChaining`**: leitura passa direto sem chamar `continuar_com_resultado_ferramenta_stream` (`tentativas=0`); escrita inválida corrigida na 1ª tentativa → `tentativas=1`; esgotar limite → `tool_call=None`.
+- **`TestMariaRunnerEncadeamento.test_runner_corrige_tool_call_escrita_invalida`**: `correction_attempts > 0` no `MariaTaskResult`.
+- **`TestMariaRunnerNegaEAmbiguidade`**: fake client agora implementa `continuar_com_resultado_ferramenta_stream` devolvendo tool call **válida** na 1ª tentativa, preservando o fluxo de cancelamento.
+
+### ✅ Verificação
+
+- `python -m py_compile` sem erros em: `config.py`, `tools_schema.py`, `llama_client.py`, `tool_chaining.py`, `maria_controller.py`, `task_schema.py`, `maria_runner.py` e `test_maria.py`.
+- **180 testes passando** (`python -m unittest backend.tests.test_maria`): baseline 173 (agora todos verdes após fix pré-existente) + 7 novos da Fase B.
+- `backend/core/ollama_client.py` **intocado** (continua como caminho legado de produção).
+- Critérios de aceite: sem verificação de existência de arquivo no validador; temperatura default `LLAMA_TEMPERATURE_TOOLS` (0.1) preservada; fluxos de leitura (`encadear_leitura_stream`) e contexto/timeout (`_enviar_com_retry`, `_verificar_contexto_disponivel`) inalterados.
+
+---
 
 ### 🔧 Refatoração estrutural (sem alteração de comportamento)
 

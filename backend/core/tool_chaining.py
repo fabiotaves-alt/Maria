@@ -12,8 +12,16 @@ ferramenta de escrita (ou nenhuma ferramenta) ser retornada.
 import logging
 import time
 
-from backend.core.config import MAX_PASSOS_LEITURA
-from backend.core.tools_schema import FERRAMENTAS_LEITURA, executar_ferramenta_leitura
+from backend.core.config import (
+    MAX_PASSOS_LEITURA,
+    MAX_TENTATIVAS_CORRECAO_FERRAMENTA,
+    LLAMA_TEMPERATURE_TOOLS_RETRY,
+)
+from backend.core.tools_schema import (
+    FERRAMENTAS_LEITURA,
+    executar_ferramenta_leitura,
+    validar_argumentos_obrigatorios,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,3 +101,82 @@ def encadear_leitura_stream(cliente, historico_com_system, tool_call_inicial, to
         tool_call_atual = None
 
     yield None, tool_call_atual
+
+
+FERRAMENTAS_ESCRITA = {"criar_planilha", "criar_documento", "editar_planilha"}
+
+
+def validar_e_corrigir_tool_call_stream(cliente, historico_com_system, tool_call_atual, tools, apos_cada_chamada=None):
+    """
+    Generator que valida uma tool call de ESCRITA contra o schema (campos
+    obrigatórios, tipos, sanitização de nome_arquivo) ANTES da confirmação do
+    usuário. Ferramentas de leitura não são tratadas aqui (já resolvidas por
+    encadear_leitura_stream) e NÃO há verificação de existência de arquivo.
+
+    Se a validação falhar, o erro é reenviado ao modelo via
+    cliente.continuar_com_resultado_ferramenta_stream (mesmo padrão de
+    encadear_leitura_stream), com temperatura de correção
+    (LLAMA_TEMPERATURE_TOOLS_RETRY), até MAX_TENTATIVAS_CORRECAO_FERRAMENTA
+    vezes.
+
+    Args:
+        cliente: instância de OllamaClient/LlamaClient.
+        historico_com_system: histórico já incluindo o system prompt.
+        tool_call_atual: {"name": str, "arguments": dict} da última tool call
+            obtida, ou None.
+        tools: schema de ferramentas (TOOLS_SCHEMA).
+        apos_cada_chamada: callback opcional f(duracao_segundos, tokens_gerados),
+            chamado após CADA chamada de correção. Se levantar exceção (ex.:
+            TimeoutError), ela propaga e interrompe o processo nesse ponto.
+
+    Yields:
+        (chunk_texto | None, None) durante o streaming de correção.
+        Último item: (None, {"tool_call": dict | None, "tentativas": int}).
+    """
+    if not tool_call_atual or tool_call_atual.get("name") not in FERRAMENTAS_ESCRITA:
+        yield None, {"tool_call": tool_call_atual, "tentativas": 0}
+        return
+
+    tentativas = 0
+    while tentativas < MAX_TENTATIVAS_CORRECAO_FERRAMENTA:
+        try:
+            validar_argumentos_obrigatorios(
+                tool_call_atual["name"], tool_call_atual.get("arguments", {})
+            )
+            yield None, {"tool_call": tool_call_atual, "tentativas": tentativas}
+            return
+        except ValueError as erro:
+            tentativas += 1
+            feedback = f"Erro na chamada da ferramenta: {erro}"
+            logger.warning(
+                "Tool call inválida (tentativa %s/%s): %s",
+                tentativas, MAX_TENTATIVAS_CORRECAO_FERRAMENTA, feedback,
+            )
+
+            novo_tool_call = None
+            metricas_chamada: dict = {}
+            inicio_chamada = time.monotonic()
+
+            for chunk, tool_chunk in cliente.continuar_com_resultado_ferramenta_stream(
+                historico=historico_com_system,
+                tool_call=tool_call_atual,
+                resultado=feedback,
+                tools=tools,
+                metricas_saida=metricas_chamada,
+                temperatura_override=LLAMA_TEMPERATURE_TOOLS_RETRY,
+            ):
+                if chunk is not None:
+                    yield chunk, None
+                if tool_chunk is not None:
+                    novo_tool_call = tool_chunk
+
+            if apos_cada_chamada is not None:
+                apos_cada_chamada(time.monotonic() - inicio_chamada, metricas_chamada.get("tokens_gerados", 0))
+
+            tool_call_atual = novo_tool_call
+            if not tool_call_atual or tool_call_atual.get("name") not in FERRAMENTAS_ESCRITA:
+                yield None, {"tool_call": tool_call_atual, "tentativas": tentativas}
+                return
+
+    logger.warning("Limite de %s correções atingido sem tool call válida.", MAX_TENTATIVAS_CORRECAO_FERRAMENTA)
+    yield None, {"tool_call": None, "tentativas": tentativas}

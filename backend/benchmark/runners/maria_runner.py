@@ -25,7 +25,7 @@ from core.llama_client import (
     montar_sampler_params,
 )
 from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real, FERRAMENTAS_LEITURA
-from core.tool_chaining import encadear_leitura_stream
+from core.tool_chaining import encadear_leitura_stream, validar_e_corrigir_tool_call_stream, FERRAMENTAS_ESCRITA
 
 from ..benchmark_config import (
     BENCHMARK_ARQUIVOS_DIR,
@@ -101,6 +101,7 @@ class MariaRunner:
         ttft_ms = None
         confirmation_completed = not task.confirm_sequence
         contexto_ok = True
+        correction_attempts = 0
 
         try:
             resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms, prompt_enviado = self._enviar_com_retry(sessao, task)
@@ -142,6 +143,42 @@ class MariaRunner:
                     resposta_textual = resposta_continuacao
                     # A resposta bruta do modelo inclui a continuação (leitura encadeada).
                     resposta_bruta_modelo = (resposta_bruta_modelo + "\n" + resposta_continuacao).strip()
+
+            correction_attempts = 0
+            if tool_call_final and tool_call_final.get("name") in FERRAMENTAS_ESCRITA:
+                historico_validacao = sessao.get_historico_com_system()
+
+                def _apos_chamada_de_correcao(duracao_chamada: float, tokens_chamada: int) -> None:
+                    nonlocal tokens_gerados
+                    if duracao_chamada > BENCHMARK_TIMEOUT_POR_CHAMADA:
+                        raise TimeoutError(
+                            f"Uma chamada de correção de tool call excedeu o "
+                            f"timeout de {BENCHMARK_TIMEOUT_POR_CHAMADA} segundos "
+                            f"(limite por chamada, não acumulado)."
+                        )
+                    tokens_gerados += tokens_chamada
+
+                resposta_correcao = ""
+                resultado_validacao = None
+                for chunk, resultado in validar_e_corrigir_tool_call_stream(
+                    self.cliente, historico_validacao, tool_call_final, TOOLS_SCHEMA,
+                    apos_cada_chamada=_apos_chamada_de_correcao,
+                ):
+                    if chunk is not None:
+                        resposta_correcao += chunk
+                    if resultado is not None:
+                        resultado_validacao = resultado
+
+                if resultado_validacao is not None:
+                    tool_call_final = resultado_validacao["tool_call"]
+                    correction_attempts = resultado_validacao["tentativas"]
+                    if tool_call_final is None:
+                        # Sem tool call após as tentativas de correção: não há
+                        # nada a confirmar/executar; a tarefa segue sem ferramenta.
+                        confirmation_completed = True
+                if resposta_correcao.strip():
+                    resposta_textual = resposta_correcao
+                    resposta_bruta_modelo = (resposta_bruta_modelo + "\n" + resposta_correcao).strip()
 
             if tool_call_final and task.confirm_sequence:
                 ambiguidades = 0
@@ -232,6 +269,7 @@ class MariaRunner:
             args_correct=args_correct,
             ttft_ms=ttft_ms,
             contexto_ok=contexto_ok,
+            correction_attempts=correction_attempts,
             prompt_enviado=prompt_enviado,
             resposta_bruta_modelo=resposta_bruta_modelo,
             sampler_params=self.sampler_params,

@@ -1,7 +1,7 @@
 # Arquitetura do Sistema — MARIA
 
 **Versão:** v4.1.1
-**Última atualização:** 2026-08-31
+**Última atualização:** 2026-09-03
 **Status:** ✅ Estável (Frontend Tauri v2 + React, Backend Python bridge HTTP/Sidecar, SQLite FTS5)
 
 Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo o modelo LLM configurado (`qwen2.5-omni-3b` via llama-server como padrão em produção; `qwen3.5:4b` via Ollama mantido como caminho legado/opcional) e a estrutura implementada no monorepo. Consulte `backend/core/config.py` como fonte da verdade para configurações de modelo.
@@ -24,12 +24,12 @@ Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo 
 │  (React 18 + TS + Tailwind)         │    Authorization: Bearer   │  (llama-server + ferramentas)    │
 │  Rust: rusqlite, reqwest, sidecar   │    <token atômico>         │  Python 3.11+                    │
 │                                     │   em produção:             │                                  │
-│  • App.tsx (entry point e layout)   │   sidecar (stdin/stdout)   │  • main.py (--bridge-http/CLI)   │
-│  • components/ (TopBar, Sidebar,    │◄──────────────────────────►│  • llama_client.py (produção)    │
-│    CenterStage, ChatPanel)          │                            │  • ollama_client.py (legado)     │
-│  • hooks/ (useMariaBridge, useTheme)│                            │  • manual_redacao.py (RAG FTS5)  │
-│  • useMariaBridge → reqwest HTTP    │                            │  • tools_schema.py + handlers    │
-│  • rusqlite (persistência local)    │                            │  • connection.py (thread-safe)   │
+│  • App.tsx (entry point e layout)   │   sidecar (stdin/stdout)   │  • main.py (entry point fino)    │
+│  • components/ (TopBar, Sidebar,    │◄──────────────────────────►│  • bridge/ (stdin/stdout + HTTP) │
+│    CenterStage, ChatPanel)          │                            │  • core/maria_controller.py      │
+│  • hooks/ (useMariaBridge, useTheme)│                            │  • core/ (LLM, tools, parser)    │
+│  • useMariaBridge → reqwest HTTP    │                            │  • core/manual_redacao.py (RAG)  │
+│  • rusqlite (persistência local)    │                            │  • tools_schema.py + parser      │
 └──────────────────┬──────────────────┘                            └────────────────┬─────────────────┘
                    │                                                                │ HTTP localhost
                    │ rusqlite (WAL mode)                                            │ (porta 8080)
@@ -85,6 +85,34 @@ Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo 
 | Escuro (padrão) | Fundo `#0a0a12`, efeito aura e destaques rosa `#e05d8a` / `#f2a2bb` |
 | Claro | Fundo `#f7f3ec`, acento terracota `#c47b54` |
 
+### 2.2 Backend (Python 3.11+)
+
+**Tecnologias:** Python 3.11+, Flask + flask-cors (bridge HTTP), llama-server (HTTP), SQLite com FTS5
+
+**Estrutura:** `backend/` — organização modular resultante do refactor do `main.py`, que hoje é um *entry point* fino (argparse + despacho de modos).
+
+| Módulo | Responsabilidade |
+|--------|------------------|
+| `main.py` | Entry point: argparse (`-m/--modelo`, `--bridge`, `--bridge-http`, `--porta`), logging, verificação de dependências e despacho dos modos de execução. Mantém re-exports de `bridge.*` por compatibilidade com testes/patches |
+| `bridge/servidores.py` | Transporte do bridge: loop stdin/stdout JSON-lines (`_modo_bridge` — sidecar em produção) e servidor Flask HTTP autenticado (`_modo_bridge_http`/`_criar_app_http` — porta 8081 em dev); geração e carga atômica do token em `shared/.bridge_token` |
+| `bridge/comandos.py` | Protocolo de comandos compartilhado entre os dois transportes (`_despachar_comando`, `_responder_bridge`, `_get_system_status` — métricas de CPU/RAM/GPU) |
+| `core/maria_controller.py` | Lógica de negócio (`MariaController`): cliente LLM, sessão de chat, ferramentas e persistência de sessão |
+| `core/llama_client.py` | Cliente llama-server (produção) |
+| `core/ollama_client.py` | Cliente Ollama (legado/opcional) |
+| `core/chat_session.py` | Histórico de contexto e prompt de sistema |
+| `core/session_storage.py` | Persistência e retomada de sessões |
+| `core/tools_schema.py` | Definição e execução das ferramentas (tool calling) |
+| `core/tool_call_textual_parser.py` | Parser de tool calls textuais com fallback posicional |
+| `core/tool_chaining.py` | Encadeamento automático de ferramentas de leitura |
+| `core/router.py` | Roteamento MoE entre modelos (3B ↔ 8B) |
+| `core/manual_redacao.py` | RAG via FTS5 (Manual de Redação da Presidência) |
+| `core/word_handler.py` / `core/excel_handler.py` | Manipulação de documentos .docx e planilhas .xlsx |
+| `core/file_utils.py` | Validação de caminhos e proteção contra path traversal |
+| `ui_terminal.py` | Interface CLI interativa (modo standalone) |
+| `database/` | Conexão SQLite thread-safe (`connection.py`), criação de tabelas (`schema.py`) e ingestão do Manual de Redação (`ingest_manual_redacao.py`) |
+
+> **Nota de refactor:** as funções de `bridge/` e a classe `MariaController` foram movidas integralmente de `main.py` sem alterações de lógica; `main.py` re-exporta os símbolos originais (`_modo_bridge`, `_despachar_comando`, etc.) para que os testes que fazem `patch` nos caminhos antigos continuem funcionando.
+
 ---
 
 ## 3. Protocolo de Comunicação (Bridge)
@@ -139,6 +167,7 @@ Definido no arquivo [`shared/schema.sql`](../shared/schema.sql):
 | Backend CLI | ✅ Funcional | `main.py` interativo no terminal |
 | Backend Bridge stdin/stdout | ✅ 19 comandos | Utilizado pelo sidecar em produção |
 | Backend Bridge HTTP | ✅ Funcional | Porta 8081, autenticada por token, usada pelo frontend em dev |
+| Backend Organização Modular | ✅ Concluída | `main.py` é entry point fino; transporte/protocolo em `bridge/` e lógica de negócio em `core/maria_controller.py` |
 | Backend Database | ✅ Schema unificado | 6 tabelas relacionais + 1 tabela virtual FTS5 + WAL |
 | Frontend Tauri (Rust) | ✅ Funcional | App compila e inicia; comandos rusqlite e sidecar configurados |
 | Frontend React (UI) | ✅ Funcional | Interface com Glassmorphism, Aura rosa, TopBar, Sidebar e Chat |

@@ -77,6 +77,15 @@ LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL = os.getenv("LLAMA_USAR_FALLBACK_TEXTUAL_T
 LLAMA_NUM_PREDICT_DOCUMENTO = int(os.getenv("LLAMA_NUM_PREDICT_DOCUMENTO", "300"))
 LLAMA_NUM_PREDICT_CONTINUACAO = int(os.getenv("LLAMA_NUM_PREDICT_CONTINUACAO", "200"))
 
+# Temperatura usada SOMENTE nas chamadas de correção de tool call inválida
+# (ver core/tool_chaining.py: validar_e_corrigir_tool_call_stream). Mais alta
+# que LLAMA_TEMPERATURE_TOOLS para dar flexibilidade ao modelo na correção.
+LLAMA_TEMPERATURE_TOOLS_RETRY = float(os.getenv("LLAMA_TEMPERATURE_TOOLS_RETRY", "0.25"))
+
+# Número máximo de tentativas de correção de uma tool call de ESCRITA inválida
+# antes de desistir e prosseguir sem ferramenta (ver tool_chaining.py).
+MAX_TENTATIVAS_CORRECAO_FERRAMENTA = int(os.getenv("MAX_TENTATIVAS_CORRECAO_FERRAMENTA", "2"))
+
 # ---- Parâmetros de sampler do llama-server (llama.cpp) ----
 # Defaults idênticos aos do llama-server; enviá-los explicitamente no payload
 # permite configurar (via ENV) e auditar (benchmark) cada valor. O servidor
