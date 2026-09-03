@@ -50,6 +50,10 @@ from backend.core.config import (
 logger = logging.getLogger(__name__)
 
 
+# Importa parser para formato textual usado pelo Qwen2.5-Omni-3B
+from backend.core.tool_call_textual_parser import extrair_tool_call_textual
+
+
 class LlamaClientError(Exception):
     """Exceção personalizada para erros do cliente llama-server."""
     pass
@@ -67,6 +71,10 @@ def _tentar_extrair_tool_call_textual(conteudo: str) -> dict | None:
 
     Returns:
         {"name": str, "arguments": dict} se encontrado, None caso contrário.
+
+    NOTA: Este fallback cobre o formato JSON nativo no content.
+    Para o formato array posicional do Qwen2.5-Omni-3B
+    (ex: criar_planilha: ["gastos", "data", "valor"]), veja extrair_tool_call_textual.
     """
     if '"name"' not in conteudo or '"arguments"' not in conteudo:
         return None
@@ -363,6 +371,14 @@ class LlamaClient:
             if tool_call_textual:
                 logger.info("Tool call extraída via fallback textual: %s", tool_call_textual["name"])
                 return tool_call_textual
+
+        # --- Fallback 3: formato array posicional (Qwen2.5-Omni-3B) ---
+        # O modelo gera texto como: criar_planilha: ["gastos", "data", "valor"]
+        # ou criar_documento(["pauta", "Titulo", "conteudo"])
+        tool_call_array = extrair_tool_call_textual(content)
+        if tool_call_array:
+            logger.info("Tool call extraída via parser array posicional: %s", tool_call_array["name"])
+            return tool_call_array
 
         return None
 
