@@ -1,0 +1,419 @@
+"""Protocolo de comandos do bridge — compartilhado entre o loop stdin/stdout
+(`_modo_bridge`) e o servidor HTTP (`_criar_app_http`).
+
+Funções movidas integralmente de `backend/main.py` na divisão de módulos —
+sem alterações de lógica.
+"""
+
+import json
+import logging
+import os
+import platform
+import re
+from pathlib import Path
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
+from backend.core.config import LLAMA_MODEL
+from backend.database.connection import get_connection
+
+logger = logging.getLogger(__name__)
+
+_RAIZ_MONOREPO = str(Path(__file__).resolve().parent.parent.parent)
+
+
+def _responder_bridge(identificador: str, status: str, dados=None, mensagem_erro: str | None = None):
+    """Envia uma resposta JSON por linha no stdout."""
+    resposta = {
+        "id": identificador,
+        "status": status,
+        "dados": dados,
+        "mensagemErro": mensagem_erro,
+    }
+    print(json.dumps(resposta, ensure_ascii=False), flush=True)
+
+
+def _get_system_status():
+    """Obtém métricas reais de CPU, RAM e GPU do sistema."""
+    if psutil is None:
+        return {
+            "cpu": 0.0,
+            "ram": 0.0,
+            "gpu": 0.0,
+            "plataforma": platform.system(),
+            "aviso": "psutil não instalado"
+        }
+
+    try:
+        cpu_percent = psutil.cpu_percent(interval=0.5)
+        ram_percent = psutil.virtual_memory().percent
+    except Exception as e:
+        logger.warning(f"Erro ao obter recursos: {e}")
+        cpu_percent = 0.0
+        ram_percent = 0.0
+
+    # GPU é opcional — tentar via pynvml se disponível (NVIDIA)
+    gpu_percent = 0.0
+    try:
+        import pynvml
+        pynvml.nvmlInit()
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        gpu_percent = float(pynvml.nvmlDeviceGetUtilizationRates(handle).gpu)
+        pynvml.nvmlShutdown()
+    except Exception:
+        pass
+
+    return {
+        "cpu": round(cpu_percent, 1),
+        "ram": round(ram_percent, 1),
+        "gpu": round(gpu_percent, 1),
+        "plataforma": platform.system()
+    }
+
+
+def _despachar_comando(controller: "MariaController", comando: str, payload: dict) -> tuple[str, object, str | None]:
+    """
+    Executa um comando do protocolo bridge e retorna (status, dados, mensagem_erro).
+    Compartilhado entre o loop stdin/stdout (_modo_bridge) e o servidor HTTP (_criar_app_http).
+    O comando "encerrar" NÃO decide aqui se o processo deve parar — quem chama trata isso.
+    """
+    if comando == "ping":
+        return "ok", "pong", None
+
+    elif comando == "status":
+        dados_status = _get_system_status()
+        dados_status["modelo"] = controller.modelo or LLAMA_MODEL
+        return "ok", dados_status, None
+
+    elif comando == "analisar_arquivo":
+        caminho = payload.get("caminho", "")
+        if not caminho:
+            return "erro", None, "Campo 'caminho' vazio."
+        try:
+            from backend.core.file_utils import ler_documento
+            from backend.core.excel_handler import ler_planilha_resumo
+
+            caminho_lower = caminho.lower()
+            if caminho_lower.endswith(('.docx', '.txt', '.md', '.csv', '.log')):
+                doc = ler_documento(caminho)
+                resultado = f"Arquivo: {doc['nome']}\nConteúdo (parcial):\n{doc['texto'][:500]}"
+                if doc['truncado']:
+                    resultado += f"\n[Conteúdo truncado em {doc['total_chars']} caracteres]"
+            elif caminho_lower.endswith(('.xlsx', '.xls')):
+                resumo = ler_planilha_resumo(caminho)
+                resultado = f"Planilha: {caminho}\n{resumo}"
+            else:
+                resultado = f"Tipo de arquivo não suportado: {caminho}"
+            return "ok", resultado, None
+        except Exception as error:
+            logger.error(f"Erro ao analisar arquivo: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "analisar_dados":
+        caminho = payload.get("caminho", "")
+        if not caminho:
+            return "erro", None, "Campo 'caminho' vazio."
+        try:
+            from backend.core.excel_handler import ler_planilha_resumo
+            resumo = ler_planilha_resumo(caminho)
+            return "ok", resumo, None
+        except Exception as error:
+            logger.error(f"Erro ao analisar dados: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "upload_arquivo":
+        caminho = payload.get("caminho", "")
+        if not caminho:
+            return "erro", None, "Campo 'caminho' vazio."
+        try:
+            import shutil
+            from pathlib import Path
+            from backend.core.file_utils import garantir_pasta_arquivos
+
+            origem = Path(caminho)
+            if not origem.is_file():
+                raise ValueError(f"Arquivo não encontrado ou caminho inválido: {caminho}")
+
+            # Segurança: limite de tamanho para evitar cópias gigantes
+            TAMANHO_MAXIMO = 100 * 1024 * 1024  # 100 MB
+            if origem.stat().st_size > TAMANHO_MAXIMO:
+                raise ValueError("Arquivo excede o tamanho máximo de 100 MB.")
+
+            pasta_destino = Path(garantir_pasta_arquivos())
+            nome_destino = pasta_destino / origem.name
+            contador = 1
+            while nome_destino.exists():
+                nome_destino = pasta_destino / f"{origem.stem}_{contador}{origem.suffix}"
+                contador += 1
+
+            shutil.copy2(origem, nome_destino)
+            logger.info("upload_arquivo: '%s' -> '%s'", origem, nome_destino)
+            return "ok", f"Arquivo copiado para: {nome_destino}", None
+        except Exception as error:
+            logger.error(f"Erro ao fazer upload: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "transcrever_audio":
+        caminho = payload.get("caminho", "")
+        if not caminho:
+            return "erro", None, "Campo 'caminho' vazio."
+        try:
+            import shutil
+            import subprocess
+            from pathlib import Path
+            from backend.core.file_utils import (
+                garantir_pasta_arquivos,
+                resolver_caminho_permitido,
+            )
+
+            audio_path = Path(caminho)
+            if not audio_path.is_file():
+                raise ValueError(f"Arquivo de áudio não encontrado: {caminho}")
+
+            # Segurança: o áudio deve estar dentro das pastas permitidas.
+            audio_path = resolver_caminho_permitido(str(audio_path))
+
+            # Segurança: binário restrito a nome simples (sem caminho/argumentos).
+            whisper_bin_nome = os.getenv("WHISPER_BIN", "whisper-main")
+            if not re.fullmatch(r"[\w.-]+(\.exe)?", whisper_bin_nome):
+                raise ValueError(
+                    "WHISPER_BIN inválido: use apenas o nome do binário "
+                    "(sem caminho ou argumentos)."
+                )
+
+            # Segurança: resolve via PATH mas EXIGE que o caminho resolvido
+            # esteja dentro de um diretório explicitamente permitido,
+            # rejeitando binários encontrados em diretórios genéricos do
+            # PATH do usuário/sistema (mitiga PATH hijacking).
+            caminho_resolvido = shutil.which(whisper_bin_nome)
+            if not caminho_resolvido:
+                raise ValueError(
+                    f"Binário '{whisper_bin_nome}' não encontrado. "
+                    "Instale whisper.cpp ou configure WHISPER_BIN."
+                )
+
+            dir_permitido_whisper = os.getenv(
+                "WHISPER_ALLOWED_DIR",
+                str(Path(_RAIZ_MONOREPO) / "bin"),
+            )
+            caminho_resolvido_abs = Path(caminho_resolvido).resolve()
+            dir_permitido_abs = Path(dir_permitido_whisper).resolve()
+            if not (
+                caminho_resolvido_abs == dir_permitido_abs
+                or caminho_resolvido_abs.is_relative_to(dir_permitido_abs)
+            ):
+                raise ValueError(
+                    f"Binário resolvido fora do diretório permitido: "
+                    f"{caminho_resolvido_abs}. Configure WHISPER_ALLOWED_DIR "
+                    "ou instale o binário no diretório esperado do app."
+                )
+            whisper_bin = str(caminho_resolvido_abs)
+
+            # Arquivos temporários de saída na pasta gerenciada
+            saida_base = Path(garantir_pasta_arquivos()) / "temp_whisper"
+            try:
+                resultado = subprocess.run(
+                    [whisper_bin, "-f", str(audio_path), "-otxt", "-of", str(saida_base)],
+                    capture_output=True, text=True, timeout=60,
+                )
+                output_file = saida_base.with_suffix(".txt")
+                if output_file.exists():
+                    transcricao = output_file.read_text(encoding="utf-8")
+                    output_file.unlink()
+                else:
+                    logger.warning(
+                        "whisper.cpp não gerou saída (returncode=%s): %s",
+                        resultado.returncode, resultado.stderr.strip()[:500],
+                    )
+                    transcricao = "[Transcrição não gerada - verificar whisper.cpp]"
+                audio_path.unlink(missing_ok=True)
+            except FileNotFoundError:
+                transcricao = f"[Whisper.cpp não encontrado. Instale whisper.cpp ou use o áudio: {audio_path.name}]"
+                logger.warning(f"whisper.cpp não encontrado. Arquivo mantido: {audio_path}")
+            return "ok", transcricao, None
+        except subprocess.TimeoutExpired:
+            return "erro", None, "Tempo esgotado na transcrição"
+        except Exception as error:
+            logger.error(f"Erro ao transcrever áudio: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "chat":
+        mensagem = payload.get("mensagem", "")
+        if not mensagem:
+            return "erro", None, "Campo 'mensagem' vazio."
+        try:
+            stream = controller.enviar_mensagem(mensagem)
+            texto_final = ""
+            for chunk, tool_chunk in stream:
+                if chunk is not None:
+                    texto_final += chunk
+                controller.processar_chunk(chunk, tool_chunk)
+
+            tem_tool, info = controller.finalizar_mensagem()
+            if tem_tool:
+                texto_final += "\n\n" + controller.get_mensagem_confirmacao()
+            return "ok", texto_final, None
+        except Exception as error:
+            logger.error(f"Erro no comando chat: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "encerrar":
+        return "ok", "encerrando", None
+
+    elif comando == "limpar_conversa":
+        controller.sessao.limpar_historico()
+        return "ok", "conversa limpa", None
+
+    elif comando == "exportar_conversa":
+        formato = payload.get("formato", "txt")
+        from backend.core.session_storage import exportar_sessao
+        try:
+            arquivo_saida = exportar_sessao(controller.sessao, formato=formato)
+            return "ok", f"Exportado: {arquivo_saida}", None
+        except Exception as error:
+            logger.error(f"Erro ao exportar conversa: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "listar_sessoes":
+        from backend.core.session_storage import listar_sessoes_salvas
+        return "ok", listar_sessoes_salvas(), None
+
+    elif comando == "carregar_sessao":
+        nome = payload.get("nome", "")
+        from backend.core.session_storage import carregar_sessao
+        try:
+            sessao = carregar_sessao(nome)
+            mensagens = [{"role": m["role"], "conteudo": m["content"]} for m in sessao.historico]
+            return "ok", mensagens, None
+        except Exception as error:
+            logger.error(f"Erro ao carregar sessão: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "salvar_memoria":
+        fato = payload.get("fato", "")
+        categoria = payload.get("categoria", "geral")
+        relevancia = payload.get("relevancia", 1.0)
+        if not fato:
+            return "erro", None, "Campo 'fato' vazio."
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT OR IGNORE INTO memoria (fato, categoria, relevancia) VALUES (?, ?, ?)",
+                (fato, categoria, relevancia),
+            )
+            conn.commit()
+            return "ok", "memória salva", None
+        except Exception as error:
+            logger.error(f"Erro ao salvar memória: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "listar_memoria":
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT fato, categoria, relevancia FROM memoria ORDER BY criado_em DESC")
+            rows = cursor.fetchall()
+            memorias = [
+                {"fato": row["fato"], "categoria": row["categoria"], "relevancia": row["relevancia"]}
+                for row in rows
+            ]
+            return "ok", memorias, None
+        except Exception as error:
+            logger.error(f"Erro ao listar memória: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "deletar_memoria":
+        memoria_id = payload.get("id")
+        if memoria_id is None:
+            return "erro", None, "Campo 'id' vazio."
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM memoria WHERE id = ?", (memoria_id,))
+            conn.commit()
+            return "ok", "memória deletada", None
+        except Exception as error:
+            logger.error(f"Erro ao deletar memória: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "limpar_memorias":
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM memoria")
+            conn.commit()
+            return "ok", "memórias limpas", None
+        except Exception as error:
+            logger.error(f"Erro ao limpar memórias: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "criar_automacao":
+        nome = payload.get("nome", "")
+        descricao = payload.get("descricao", "")
+        passos = payload.get("passos", [])
+        gatilho = payload.get("gatilho", "")
+        if not nome:
+            return "erro", None, "Campo 'nome' vazio."
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT OR REPLACE INTO automacoes (nome, descricao, passos_json, gatilho) VALUES (?, ?, ?, ?)",
+                (nome, descricao, json.dumps(passos), gatilho),
+            )
+            conn.commit()
+            return "ok", "automação criada", None
+        except Exception as error:
+            logger.error(f"Erro ao criar automação: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "listar_automacoes":
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id, nome, descricao, passos_json, gatilho, ativa, criado_em FROM automacoes ORDER BY criado_em DESC"
+            )
+            colunas = ["id", "nome", "descricao", "passos", "gatilho", "ativa", "criado_em"]
+            automacoes = [dict(zip(colunas, linha)) for linha in cursor.fetchall()]
+            return "ok", automacoes, None
+        except Exception as error:
+            logger.error(f"Erro ao listar automações: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "deletar_automacao":
+        automacao_id = payload.get("id")
+        if automacao_id is None:
+            return "erro", None, "Campo 'id' vazio."
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM automacoes WHERE id = ?", (automacao_id,))
+            conn.commit()
+            return "ok", "automação deletada", None
+        except Exception as error:
+            logger.error(f"Erro ao deletar automação: {error}")
+            return "erro", None, str(error)
+
+    elif comando == "toggle_automacao":
+        automacao_id = payload.get("id")
+        if automacao_id is None:
+            return "erro", None, "Campo 'id' vazio."
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE automacoes SET ativa = NOT ativa WHERE id = ?", (automacao_id,))
+            conn.commit()
+            cursor.execute("SELECT ativa FROM automacoes WHERE id = ?", (automacao_id,))
+            resultado = cursor.fetchone()
+            return "ok", {"ativa": bool(resultado[0]) if resultado else False}, None
+        except Exception as error:
+            logger.error(f"Erro ao toggle automação: {error}")
+            return "erro", None, str(error)
+
+    else:
+        return "erro", None, f"Comando desconhecido: {comando}"

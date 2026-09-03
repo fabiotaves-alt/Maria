@@ -2,6 +2,28 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.10] — Divisão de `backend/main.py` em módulos especializados — 2026-09-03
+
+### 🔧 Refatoração estrutural (sem alteração de comportamento)
+
+- **Novo módulo `backend/core/maria_controller.py`**: a classe `MariaController` (lógica de negócio) foi movida integralmente de `backend/main.py` — todos os métodos (`inicializar`, `aquecer_modelo`, `finalizar`, `_gerar_nome_sessao`, `_salvar_silenciosamente`, `listar_sessoes`, `retomar_sessao`, `tem_acao_pendente`, `limpar_acao_pendente`, `limpar_historico`, `enviar_mensagem`, `_gerar_resposta_com_encadeamento`, `processar_chunk`, `finalizar_mensagem`, `get_mensagem_confirmacao`, `processar_confirmacao`) sem alterações de lógica.
+- **Novo pacote `backend/bridge/`**:
+  - `backend/bridge/comandos.py` — protocolo de comandos do bridge: `_responder_bridge`, `_get_system_status` e `_despachar_comando` (assinatura com anotação `controller: "MariaController"` como string, evitando import circular em runtime).
+  - `backend/bridge/servidores.py` — transporte: `_modo_bridge` (stdin/stdout), `_carregar_token_api`, `_criar_app_http` e `_modo_bridge_http` (porta 8081).
+  - `_RAIZ_MONOREPO` recalculado em cada módulo bridge (3 níveis acima) para `WHISPER_ALLOWED_DIR` e `frontend-tauri/shared/.bridge_token`.
+- **`backend/main.py` reduzido de 944 → ~98 linhas**: contém apenas o bloco `sys.path`, imports, `logger` e a função `main()` (entry point). Foram adicionados **re-exports explícitos** (`MariaController`, `_despachar_comando`, `_responder_bridge`, `_get_system_status`, `_carregar_token_api`, `_criar_app_http`) para compatibilidade retroativa com os imports e patches dos testes existentes.
+
+### 🧪 Verificação
+
+- **Sem alterações em `backend/tests/test_maria.py`** — todos os imports de `backend.main` continuam resolvendo via re-exports.
+- **173 testes executados** (`python -m unittest backend.tests.test_maria`): resultado idêntico ao baseline pré-divisão (**2 falhas + 3 erros pré-existentes** não relacionados à tarefa — encoding do `system_prompt.txt` e indisponibilidade do Ollama/llama-server no ambiente) — **zero regressão**.
+- `python -m py_compile` sem erros em `backend/main.py`, `backend/core/maria_controller.py`, `backend/bridge/__init__.py`, `backend/bridge/comandos.py` e `backend/bridge/servidores.py`.
+- Smoke tests funcionais: `--bridge-http` (servidor Flask na porta 8081/8099, `GET /ping` → HTTP 200 `{"dados":"pong","status":"ok"}`), bridge stdin/stdout (`ping` → `{"status":"ok","dados":"pong"}`) e modo CLI (`python backend/main.py` + `sair` → exit 0 com banner e warmup normais).
+- Comparação byte-a-byte entre o código movido e o `git HEAD:backend/main.py` confirmou **100% de fidelidade** (todas as 8 funções + classe IDÊNTICAS, sem mudança de lógica).
+- Cobertura formal de código (`pytest-cov`) segue não configurada neste ambiente — pendente no roadmap do projeto.
+
+---
+
 ## [4.1.9] — Hardening de tool calls e isolamento de benchmark — 2026-09-02
 
 ### 🔒 Segurança e robustez

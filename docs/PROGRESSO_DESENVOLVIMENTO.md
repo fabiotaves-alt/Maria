@@ -2,8 +2,8 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.8  
-**Última alteração:** 2026-09-02  
+**Versão Atual:** v4.1.10  
+**Última alteração:** 2026-09-03  
 
 ---
 
@@ -11,10 +11,10 @@
 
 | Área | Progresso | Observações |
 |------|-----------|-------------|
-| Backend Core & Ferramentas (Python) | 97% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo, sampler configurável e system prompt externo |
+| Backend Core & Ferramentas (Python) | 97% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo, sampler configurável e system prompt externo; lógica de negócio separada em `backend/core/maria_controller.py` |
 | Segurança & Concorrência | 95% | Token atômico, CORS por ambiente, SQLite thread-safe, PATH hijacking |
 | Frontend (Tauri v2 + React) | 92% | Interface completa, temas, persistência rusqlite, sidecar |
-| Integração Bridge (HTTP/Sidecar) | 95% | 19 comandos bridge, autenticação Bearer, health check |
+| Integração Bridge (HTTP/Sidecar) | 95% | 19 comandos bridge, autenticação Bearer, health check; transporte e protocolo separados em `backend/bridge/` (`servidores.py` + `comandos.py`) |
 | **Total do Projeto (v4.x)** | **~96%** | MVP v4 estável, pronto para empacotamento final |
 
 ---
@@ -34,6 +34,7 @@
 | **4.1.5** | 2026-09-02 | Normalização de chaves JSON de tool calls + validação flexível de argumentos e keywords no benchmark | ✅ Concluída |
 | **4.1.6** | 2026-09-02 | Metadados reais do modelo via /v1/models (aborta sem endpoint), log.json v2.0 com hash do system prompt, métrica contexto_ok e relatório enxuto sem coluna "Configurado" | ✅ Concluída |
 | **4.1.7** | 2026-09-02 | Verificação de contexto real (warmup + pre-check por tarefa), timeout por chamada (120s), contagem exata do system prompt via /tokenize com calibração e num_ctx adaptativo | ✅ Concluída |
+| **4.1.10** | 2026-09-03 | Divisão de `backend/main.py` em módulos especializados: lógica de negócio em `backend/core/maria_controller.py` e transporte/protocolo bridge em `backend/bridge/` — sem alteração de comportamento (re-exports mantêm compatibilidade com testes) | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -85,6 +86,13 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.10 — Divisão de `backend/main.py` em Módulos Especializados (2026-09-03)
+- **`backend/core/maria_controller.py`**: classe `MariaController` (lógica de negócio) movida integralmente de `backend/main.py` — 16 métodos inalterados; imports reduzidos (`LLAMA_MODEL` removido, pois só era usado no bridge).
+- **Pacote `backend/bridge/`**: `comandos.py` (`_responder_bridge`, `_get_system_status`, `_despachar_comando` — anotação `controller: "MariaController"` como string) e `servidores.py` (`_modo_bridge`, `_carregar_token_api`, `_criar_app_http`, `_modo_bridge_http`). `_RAIZ_MONOREPO` recalculado por módulo (3 níveis acima).
+- **`backend/main.py` (944 → ~98 linhas)**: apenas `sys.path`, imports, `logger` e `main()`; re-exports explícitos preservam os imports/patches dos testes.
+- **Verificação**: comparação byte-a-byte com o `git HEAD` (100% idêntico), 173 testes sem regressão vs. baseline, `py_compile` OK e smoke tests (`--bridge-http`, bridge stdin/stdout e modo CLI).
+- **Testes**: 173/173 executados (2 falhas + 3 erros pré-existentes no ambiente, não relacionados à tarefa).
 
 ### 4.1.7 — Contexto, Timeouts e num_ctx Adaptativo (2026-09-02)
 - **Contexto real em camadas**: warmup lê `meta.n_ctx` de `/v1/models` (fonte única — a sonda com payload `num_ctx` do enunciado original foi descartada porque o llama.cpp ignora campos desconhecidos e responderia 200 sempre); warmup aborta com `SystemExit` se o system prompt (contagem **exata** via 1 chamada `POST /tokenize`) não couber em `ctx − 512`; runner recebe `ctx_size` real e faz pre-check por tarefa (`ctx × 0.7`) **sem retry** para estouro (determinístico), classificando `contexto_ok=False`.
