@@ -366,6 +366,34 @@ class LlamaClient:
 
         return None
 
+    def _resolver_tool_call_final(
+        self,
+        tc_detectada_via_delta: bool,
+        tc_nome_acumulado: str,
+        tc_args_acumulado: str,
+        conteudo_acumulado: str,
+        contexto_log: str = "",
+    ) -> dict | None:
+        """Monta o dict final da tool call a partir dos acumuladores do streaming.
+
+        Elimina duplicação entre chat_stream e continuar_com_resultado_ferramenta_stream.
+        """
+        if tc_detectada_via_delta and tc_nome_acumulado:
+            try:
+                argumentos = json.loads(tc_args_acumulado) if tc_args_acumulado else {}
+            except json.JSONDecodeError:
+                argumentos = {}
+            logger.debug("Tool call via delta%s: %s(%s)", contexto_log, tc_nome_acumulado, argumentos)
+            return {"name": tc_nome_acumulado, "arguments": argumentos}
+
+        if LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL and conteudo_acumulado:
+            tool_call_textual = _tentar_extrair_tool_call_textual(conteudo_acumulado)
+            if tool_call_textual:
+                logger.info("Tool call detectada via fallback textual%s: %s", contexto_log, tool_call_textual["name"])
+                return tool_call_textual
+
+        return None
+
     # ------------------------------------------------------------------
     # Interface pública principal
     # ------------------------------------------------------------------
@@ -511,22 +539,13 @@ class LlamaClient:
                 "Tempo limite excedido durante o streaming da resposta."
             )
 
-        # Resolver tool call após streaming completo
-        if tc_detectada_via_delta and tc_nome_acumulado:
-            try:
-                argumentos = json.loads(tc_args_acumulado) if tc_args_acumulado else {}
-            except json.JSONDecodeError:
-                argumentos = {}
-            tool_call_final = {"name": tc_nome_acumulado, "arguments": argumentos}
-            logger.debug("Tool call via delta streaming: %s(%s)", tc_nome_acumulado, argumentos)
-        elif LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL and conteudo_acumulado and tool_call_final is None:
-            tool_call_textual = _tentar_extrair_tool_call_textual(conteudo_acumulado)
-            if tool_call_textual:
-                logger.warning(
-                    "Tool call detectada via fallback textual no streaming: %s",
-                    tool_call_textual["name"],
-                )
-                tool_call_final = tool_call_textual
+        tool_call_final = self._resolver_tool_call_final(
+            tc_detectada_via_delta,
+            tc_nome_acumulado,
+            tc_args_acumulado,
+            conteudo_acumulado,
+            contexto_log=" streaming",
+        )
 
         if metricas_saida is not None:
             duracao = time.monotonic() - inicio
@@ -698,21 +717,13 @@ class LlamaClient:
                 "Tempo limite excedido durante o streaming de continuação."
             )
 
-        if tc_detectada_via_delta and tc_nome_acumulado:
-            try:
-                argumentos = json.loads(tc_args_acumulado) if tc_args_acumulado else {}
-            except json.JSONDecodeError:
-                argumentos = {}
-            tool_call_final = {"name": tc_nome_acumulado, "arguments": argumentos}
-            logger.debug("Tool call via delta (continuação): %s(%s)", tc_nome_acumulado, argumentos)
-        elif LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL and conteudo_acumulado and tool_call_final is None:
-            tool_call_textual = _tentar_extrair_tool_call_textual(conteudo_acumulado)
-            if tool_call_textual:
-                logger.warning(
-                    "Tool call detectada via fallback textual na continuação: %s",
-                    tool_call_textual["name"],
-                )
-                tool_call_final = tool_call_textual
+        tool_call_final = self._resolver_tool_call_final(
+            tc_detectada_via_delta,
+            tc_nome_acumulado,
+            tc_args_acumulado,
+            conteudo_acumulado,
+            contexto_log=" (continuação)",
+        )
 
         if metricas_saida is not None:
             metricas_saida["tokens_gerados"] = eval_count

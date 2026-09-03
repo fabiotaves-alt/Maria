@@ -2,6 +2,7 @@
 import logging
 import os
 import re
+import shutil
 import sys
 import time
 import unicodedata
@@ -423,6 +424,18 @@ class MariaRunner:
         """
         resultados = []
         for indice in range(1, repeticoes + 1):
+            # Limpa arquivos gerados em execuções anteriores para garantir
+            # isolamento de estado entre repetições da mesma tarefa.
+            if os.path.isdir(BENCHMARK_ARQUIVOS_DIR):
+                for item in os.listdir(BENCHMARK_ARQUIVOS_DIR):
+                    item_path = os.path.join(BENCHMARK_ARQUIVOS_DIR, item)
+                    try:
+                        if os.path.isfile(item_path):
+                            os.unlink(item_path)
+                        elif os.path.isdir(item_path):
+                            shutil.rmtree(item_path)
+                    except OSError:
+                        pass
             resultado = self.run(task)
             resultados.append(resultado)
             if apos_cada_execucao is not None:

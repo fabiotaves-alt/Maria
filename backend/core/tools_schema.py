@@ -55,6 +55,7 @@ Notas
 """
 
 import logging
+import re
 
 # Configurar logger do módulo
 logger = logging.getLogger(__name__)
@@ -127,7 +128,7 @@ Exemplos de frases-gatilho:
 - "quero um documento com uma carta de apresentação"
 - "preciso de um relatório em formato de texto"
 NÃO use para dados estruturados em colunas ou tabelas.
-Se o documento for um ofício, exposição de motivos, mensagem oficial ou e-mail institucional (inclusive o que seria historicamente chamado de aviso ou memorando), chame consultar_manual_redacao ANTES desta ferramenta e preencha tipo_documento_oficial de acordo.""",
+Se o documento for um ofício, exposição de motivos, mensagem oficial ou e-mail institucional, chame consultar_manual_redacao ANTES desta ferramenta e siga o padrão exigido pelo Manual de Redação.""",
         "parameters": {
             "type": "object",
             "properties": {
@@ -142,11 +143,6 @@ Se o documento for um ofício, exposição de motivos, mensagem oficial ou e-mai
                 "conteudo": {
                     "type": "string",
                     "description": "Texto completo e coerente do documento, com parágrafos separados por uma linha em branco (\\n\\n)."
-                },
-                "tipo_documento_oficial": {
-                    "type": "string",
-                    "enum": ["oficio", "exposicao_motivos", "mensagem", "email", "nenhum"],
-                    "description": "Preencha quando o documento seguir um padrão oficial do Manual de Redação da Presidência da República (consultado previamente via consultar_manual_redacao). Use 'nenhum' para documentos narrativos comuns."
                 }
             },
             "required": ["nome_arquivo", "titulo", "conteudo"]
@@ -340,6 +336,30 @@ def simular_execucao_ferramenta(nome_funcao: str, argumentos: dict) -> str:
         return f"[SIMULAÇÃO] Função '{nome_funcao}' desconhecida."
 
 
+def _sanitizar_nome_arquivo(nome: str) -> str:
+    """Remove path traversal, caracteres inseguros e normaliza o nome.
+
+    Rejeita nomes que tentam sair do diretório permitido.
+    """
+    if not nome:
+        raise ValueError("nome_arquivo não pode ser vazio.")
+
+    nome = nome.strip()
+    if ".." in nome or nome.startswith("/") or nome.startswith("\\") or nome.startswith("."):
+        raise ValueError(f"nome_arquivo contém path traversal: {nome!r}")
+
+    # Remove caracteres de controle e path separators
+    nome = re.sub(r'[\\/:*?"<>|]', "", nome)
+    nome = nome.strip(".")
+
+    # Rejeita sequências de path traversal residual após a limpeza
+    if ".." in nome or nome.startswith("/") or nome.startswith("\\") or nome.startswith("."):
+        raise ValueError(f"nome_arquivo contém path traversal: {nome!r}")
+    if not nome:
+        raise ValueError("nome_arquivo inválido após sanitização.")
+    return nome
+
+
 def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
     """
     Executa realmente uma ferramenta de escrita, criando ou modificando arquivos.
@@ -356,11 +376,14 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
     """
     logger.info(f"Executando ferramenta real: {nome_funcao}({argumentos})")
     validar_argumentos_obrigatorios(nome_funcao, argumentos)
+    # Sanitiza nome_arquivo antes de qualquer operação de I/O
+    nome_raw = argumentos.get("nome_arquivo", "")
+    nome_seguro = _sanitizar_nome_arquivo(nome_raw)
 
     if nome_funcao == "criar_planilha":
         from backend.core.excel_handler import criar_planilha_real
         caminho = criar_planilha_real(
-            nome_arquivo=argumentos.get("nome_arquivo", "planilha"),
+            nome_arquivo=nome_seguro,
             colunas=argumentos.get("colunas", []),
             descricao=argumentos.get("descricao", "")
         )
@@ -369,7 +392,7 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
     elif nome_funcao == "criar_documento":
         from backend.core.word_handler import criar_documento_real
         caminho = criar_documento_real(
-            nome_arquivo=argumentos.get("nome_arquivo", "documento"),
+            nome_arquivo=nome_seguro,
             titulo=argumentos.get("titulo", "Sem título"),
             conteudo=argumentos.get("conteudo", "")
         )
@@ -378,7 +401,7 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
     elif nome_funcao == "editar_planilha":
         from backend.core.excel_handler import editar_planilha_real
         caminho = editar_planilha_real(
-            nome_arquivo=argumentos.get("nome_arquivo", ""),
+            nome_arquivo=nome_seguro,
             colunas=argumentos.get("colunas", []),
             linhas=argumentos.get("linhas"),
             descricao=argumentos.get("descricao", "")

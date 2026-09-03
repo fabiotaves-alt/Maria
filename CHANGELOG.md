@@ -2,6 +2,27 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.9] — Hardening de tool calls e isolamento de benchmark — 2026-09-02
+
+### 🔒 Segurança e robustez
+
+- **Sanitização de nomes de arquivo nas ferramentas de escrita** (`backend/core/tools_schema.py`):
+  `executar_ferramenta_real()` agora valida e sanitiza `nome_arquivo` antes de qualquer operação de I/O. Nomes com path traversal (`../`, `/`, `\`, `.` inicial) e caracteres inseguros são rejeitados antes de criar/editar planilhas ou documentos. O campo obsoleto `tipo_documento_oficial` foi removido do schema de `criar_documento`, alinhando a definição com o fluxo atual de `consultar_manual_redacao`.
+- **Refatoração da resolução final da tool call** (`backend/core/llama_client.py`):
+  a lógica duplicada para montar o `tool_call_final` em `chat_stream()` e `continuar_com_resultado_ferramenta_stream()` foi centralizada em `LlamaClient._resolver_tool_call_final()`, mantendo o fallback textual e o parsing via delta em um único ponto e reduzindo risco de divergência entre os dois fluxos.
+- **Isolamento de estado por repetição no benchmark** (`backend/benchmark/runners/maria_runner.py`):
+  `run_repeated()` agora limpa `BENCHMARK_ARQUIVOS_DIR` antes de cada execução, removendo arquivos e diretórios gerados em ciclos anteriores para evitar contaminação de estado entre repetições da mesma tarefa.
+
+### 🧪 Verificação
+
+- Validação funcional com smoke tests em Python para:
+  - nomes seguros (`relatorio_financeiro.xlsx`) → aceitos;
+  - nomes maliciosos (`../hacked`) → rejeitados;
+  - compilação do módulo `llama_client.py` e helper `_resolver_tool_call_final()`;
+  - compilação do runner do benchmark após a limpeza do diretório de artefatos.
+
+---
+
 ## [4.1.8] — Deduplicação do system prompt no relatório e log — 2026-09-02
 
 ### ✨ Nova funcionalidade
