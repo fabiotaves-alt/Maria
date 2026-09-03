@@ -1,0 +1,369 @@
+{
+  "meta": {
+    "modelo_id_real": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+    "modelo_nome_exibicao": "Qwen2.5 3B",
+    "modelo_quantizacao": "Q4_K - Medium",
+    "data_execucao": "2026-09-02T19:53:32.456279",
+    "total_tarefas": 2,
+    "repeticoes_por_tarefa": 3,
+    "versao_benchmark": "2.0",
+    "system_prompt_hash": "e3be0e9ca3f4",
+    "llama_base_url": "http://localhost:8080",
+    "llama_num_ctx_config": 8192,
+    "ctx_size_detectado": 4096,
+    "ctx_fonte": "models",
+    "system_prompt_tokens": 580,
+    "fator_calibracao_tokens": 1.0622710622710623,
+    "timeout_por_chamada_s": 120,
+    "sampler_params": {
+      "temperature": 0.1,
+      "repeat_last_n": 64,
+      "repeat_penalty": 1.0,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "dry_multiplier": 0.0,
+      "dry_base": 1.75,
+      "dry_allowed_length": 2,
+      "dry_penalty_last_n": 64,
+      "top_k": 40,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "xtc_probability": 0.0,
+      "xtc_threshold": 0.1,
+      "typical_p": 1.0,
+      "top_n_sigma": -1.0
+    }
+  },
+  "individual": [
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Para criar a planilha de gastos, vamos começar com a estrutura básica. Vou criar uma planilha simples com as colunas \"Data\" e \"Valor\". Vou usar o Excel para isso.\n\n```excel\n| Data | valor |\n|------|-------|\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |      ",
+      "latency_ms": 91848.15489999892,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 300,
+      "tokens_por_segundo": 3.3,
+      "args_correct": false,
+      "ttft_ms": 26494.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "Voce e MARIA, uma assistente de escritorio que ajuda usuarios a criar e editar planilhas Excel e documentos Word. Responda SEMPRE em portugues do Brasil. Nunca responda em outro idioma, nem mesmo para termos tecnicos — traduza ou adapte para o portugues quando necessario. Se o usuario cumprimentar ou fizer uma pergunta geral, responda normalmente em texto, sem chamar ferramentas. Se o usuario pedir para criar ou editar arquivos, voce DEVE usar a ferramenta apropriada imediatamente, sem pedir confirmacao antes de chamar a ferramenta. O sistema de confirmacao sera tratado automaticamente apos a tool call. Nao responda apenas com texto pedindo mais detalhes quando o usuario ja forneceu instrucoes claras para criar ou editar um arquivo — preencha os campos com valores razoaveis e chame a ferramenta. Para documentos narrativos (carta, relatorio, ata, comunicado), redija o conteudo completo com no maximo 5 paragrafos curtos e chame criar_documento imediatamente. Para documentos oficiais (oficio, memorando, exposicao de motivos, mensagem ao Congresso, e-mail institucional), consulte consultar_manual_redacao com o tipo_documento apropriado ANTES de chamar criar_documento, e preencha tipo_documento_oficial no criar_documento. Se o usuario mencionar um arquivo que NAO EXISTE e pedir para edita-lo, responda em texto dizendo que o arquivo nao foi encontrado. NAO chame nenhuma ferramenta nesse caso. Se o usuario pedir para editar uma planilha que JA FOI CRIADA na conversa (ex: gastos, estoque, contatos), considere que ela existe e chame editar_planilha imediatamente com as colunas fornecidas. NAO chame listar_arquivos antes de editar uma planilha que o usuario ja mencionou. Todas as chaves no JSON de argumentos das ferramentas DEVEM estar em MINUSCULAS. O campo nome_arquivo NAO deve incluir extensao (.xlsx, .docx). Nunca duplique a extensao (ex: planilha.xlsx.xlsx). Preencha todos os campos obrigatorios das ferramentas. Para criar_documento, se o usuario nao forneceu o conteudo completo, gere um conteudo coerente e razoavel com base no que foi pedido. Mantenha as respostas curtas e objetivas, exceto quando estiver redigindo o conteudo de um documento narrativo."
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "Para criar a planilha de gastos, vamos começar com a estrutura básica. Vou criar uma planilha simples com as colunas \"Data\" e \"Valor\". Vou usar o Excel para isso.\n\n```excel\n| Data | valor |\n|------|-------|\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |       |\n|      |      ",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Para criar a planilha de gastos com as colunas \"Data\" e \"Valor\", você pode usar a ferramenta \"criar_planilha_excel\" e preencher os campos conforme necessário. Aqui está um exemplo de como você pode configurar a planilha:\n\n```json\n{\n  \"nome_arquivo\": \"planilha_gastos.xlsx\",\n  \"colunas\": [\"Data\", \"Valor\"],\n  \"linhas\": [\n    [\"01/01/2023\", \"100\"],\n    [\"02/01/2023\", \"200\"],\n    [\"03/01/2023\", \"300\"]\n  ]\n}\n```\n\nEsta planilha inclui uma coluna \"Data\" e uma coluna \"Valor\", com algumas linhas de exemplo. Você pode adicionar mais linhas conforme necessário.",
+      "latency_ms": 43195.81960000505,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 185,
+      "tokens_por_segundo": 4.3,
+      "args_correct": false,
+      "ttft_ms": 2276.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "Voce e MARIA, uma assistente de escritorio que ajuda usuarios a criar e editar planilhas Excel e documentos Word. Responda SEMPRE em portugues do Brasil. Nunca responda em outro idioma, nem mesmo para termos tecnicos — traduza ou adapte para o portugues quando necessario. Se o usuario cumprimentar ou fizer uma pergunta geral, responda normalmente em texto, sem chamar ferramentas. Se o usuario pedir para criar ou editar arquivos, voce DEVE usar a ferramenta apropriada imediatamente, sem pedir confirmacao antes de chamar a ferramenta. O sistema de confirmacao sera tratado automaticamente apos a tool call. Nao responda apenas com texto pedindo mais detalhes quando o usuario ja forneceu instrucoes claras para criar ou editar um arquivo — preencha os campos com valores razoaveis e chame a ferramenta. Para documentos narrativos (carta, relatorio, ata, comunicado), redija o conteudo completo com no maximo 5 paragrafos curtos e chame criar_documento imediatamente. Para documentos oficiais (oficio, memorando, exposicao de motivos, mensagem ao Congresso, e-mail institucional), consulte consultar_manual_redacao com o tipo_documento apropriado ANTES de chamar criar_documento, e preencha tipo_documento_oficial no criar_documento. Se o usuario mencionar um arquivo que NAO EXISTE e pedir para edita-lo, responda em texto dizendo que o arquivo nao foi encontrado. NAO chame nenhuma ferramenta nesse caso. Se o usuario pedir para editar uma planilha que JA FOI CRIADA na conversa (ex: gastos, estoque, contatos), considere que ela existe e chame editar_planilha imediatamente com as colunas fornecidas. NAO chame listar_arquivos antes de editar uma planilha que o usuario ja mencionou. Todas as chaves no JSON de argumentos das ferramentas DEVEM estar em MINUSCULAS. O campo nome_arquivo NAO deve incluir extensao (.xlsx, .docx). Nunca duplique a extensao (ex: planilha.xlsx.xlsx). Preencha todos os campos obrigatorios das ferramentas. Para criar_documento, se o usuario nao forneceu o conteudo completo, gere um conteudo coerente e razoavel com base no que foi pedido. Mantenha as respostas curtas e objetivas, exceto quando estiver redigindo o conteudo de um documento narrativo."
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "Para criar a planilha de gastos com as colunas \"Data\" e \"Valor\", você pode usar a ferramenta \"criar_planilha_excel\" e preencher os campos conforme necessário. Aqui está um exemplo de como você pode configurar a planilha:\n\n```json\n{\n  \"nome_arquivo\": \"planilha_gastos.xlsx\",\n  \"colunas\": [\"Data\", \"Valor\"],\n  \"linhas\": [\n    [\"01/01/2023\", \"100\"],\n    [\"02/01/2023\", \"200\"],\n    [\"03/01/2023\", \"300\"]\n  ]\n}\n```\n\nEsta planilha inclui uma coluna \"Data\" e uma coluna \"Valor\", com algumas linhas de exemplo. Você pode adicionar mais linhas conforme necessário.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Para criar a planilha de gastos com as colunas \"Data\" e \"Valor\", você pode usar o Excel. Vou criar uma planilha simples para você.\n\n```excel\n| Data       | valor   |\n|------------|---------|\n| 01/01/2023| R$ 100 |\n| 02/01/2023| r$ 200 |\n| 03/01/2023| r$ 300 |\n| 04/01/2023| r$ 400 |\n| 05/01/2023| r$ 500 |\n```\n\nSe você precisar de mais alguma coisa, por favor, me informe!",
+      "latency_ms": 38378.34319999092,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 169,
+      "tokens_por_segundo": 4.4,
+      "args_correct": false,
+      "ttft_ms": 2248.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "Voce e MARIA, uma assistente de escritorio que ajuda usuarios a criar e editar planilhas Excel e documentos Word. Responda SEMPRE em portugues do Brasil. Nunca responda em outro idioma, nem mesmo para termos tecnicos — traduza ou adapte para o portugues quando necessario. Se o usuario cumprimentar ou fizer uma pergunta geral, responda normalmente em texto, sem chamar ferramentas. Se o usuario pedir para criar ou editar arquivos, voce DEVE usar a ferramenta apropriada imediatamente, sem pedir confirmacao antes de chamar a ferramenta. O sistema de confirmacao sera tratado automaticamente apos a tool call. Nao responda apenas com texto pedindo mais detalhes quando o usuario ja forneceu instrucoes claras para criar ou editar um arquivo — preencha os campos com valores razoaveis e chame a ferramenta. Para documentos narrativos (carta, relatorio, ata, comunicado), redija o conteudo completo com no maximo 5 paragrafos curtos e chame criar_documento imediatamente. Para documentos oficiais (oficio, memorando, exposicao de motivos, mensagem ao Congresso, e-mail institucional), consulte consultar_manual_redacao com o tipo_documento apropriado ANTES de chamar criar_documento, e preencha tipo_documento_oficial no criar_documento. Se o usuario mencionar um arquivo que NAO EXISTE e pedir para edita-lo, responda em texto dizendo que o arquivo nao foi encontrado. NAO chame nenhuma ferramenta nesse caso. Se o usuario pedir para editar uma planilha que JA FOI CRIADA na conversa (ex: gastos, estoque, contatos), considere que ela existe e chame editar_planilha imediatamente com as colunas fornecidas. NAO chame listar_arquivos antes de editar uma planilha que o usuario ja mencionou. Todas as chaves no JSON de argumentos das ferramentas DEVEM estar em MINUSCULAS. O campo nome_arquivo NAO deve incluir extensao (.xlsx, .docx). Nunca duplique a extensao (ex: planilha.xlsx.xlsx). Preencha todos os campos obrigatorios das ferramentas. Para criar_documento, se o usuario nao forneceu o conteudo completo, gere um conteudo coerente e razoavel com base no que foi pedido. Mantenha as respostas curtas e objetivas, exceto quando estiver redigindo o conteudo de um documento narrativo."
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "Para criar a planilha de gastos com as colunas \"Data\" e \"Valor\", você pode usar o Excel. Vou criar uma planilha simples para você.\n\n```excel\n| Data       | valor   |\n|------------|---------|\n| 01/01/2023| R$ 100 |\n| 02/01/2023| r$ 200 |\n| 03/01/2023| r$ 300 |\n| 04/01/2023| r$ 400 |\n| 05/01/2023| r$ 500 |\n```\n\nSe você precisar de mais alguma coisa, por favor, me informe!",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "```json\n{\n  \"nome_arquivo\": \"pauta_reuniao\",\n  \"tipo_documento\": \"documento_narrativo\",\n  \"conteudo\": \"reunião às 10 horas e revisão das tarefas.\"\n}\n```",
+      "latency_ms": 15551.026100001764,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 53,
+      "tokens_por_segundo": 3.4,
+      "args_correct": false,
+      "ttft_ms": 4080.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "Voce e MARIA, uma assistente de escritorio que ajuda usuarios a criar e editar planilhas Excel e documentos Word. Responda SEMPRE em portugues do Brasil. Nunca responda em outro idioma, nem mesmo para termos tecnicos — traduza ou adapte para o portugues quando necessario. Se o usuario cumprimentar ou fizer uma pergunta geral, responda normalmente em texto, sem chamar ferramentas. Se o usuario pedir para criar ou editar arquivos, voce DEVE usar a ferramenta apropriada imediatamente, sem pedir confirmacao antes de chamar a ferramenta. O sistema de confirmacao sera tratado automaticamente apos a tool call. Nao responda apenas com texto pedindo mais detalhes quando o usuario ja forneceu instrucoes claras para criar ou editar um arquivo — preencha os campos com valores razoaveis e chame a ferramenta. Para documentos narrativos (carta, relatorio, ata, comunicado), redija o conteudo completo com no maximo 5 paragrafos curtos e chame criar_documento imediatamente. Para documentos oficiais (oficio, memorando, exposicao de motivos, mensagem ao Congresso, e-mail institucional), consulte consultar_manual_redacao com o tipo_documento apropriado ANTES de chamar criar_documento, e preencha tipo_documento_oficial no criar_documento. Se o usuario mencionar um arquivo que NAO EXISTE e pedir para edita-lo, responda em texto dizendo que o arquivo nao foi encontrado. NAO chame nenhuma ferramenta nesse caso. Se o usuario pedir para editar uma planilha que JA FOI CRIADA na conversa (ex: gastos, estoque, contatos), considere que ela existe e chame editar_planilha imediatamente com as colunas fornecidas. NAO chame listar_arquivos antes de editar uma planilha que o usuario ja mencionou. Todas as chaves no JSON de argumentos das ferramentas DEVEM estar em MINUSCULAS. O campo nome_arquivo NAO deve incluir extensao (.xlsx, .docx). Nunca duplique a extensao (ex: planilha.xlsx.xlsx). Preencha todos os campos obrigatorios das ferramentas. Para criar_documento, se o usuario nao forneceu o conteudo completo, gere um conteudo coerente e razoavel com base no que foi pedido. Mantenha as respostas curtas e objetivas, exceto quando estiver redigindo o conteudo de um documento narrativo."
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "```json\n{\n  \"nome_arquivo\": \"pauta_reuniao\",\n  \"tipo_documento\": \"documento_narrativo\",\n  \"conteudo\": \"reunião às 10 horas e revisão das tarefas.\"\n}\n```",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "```json\n{\n  \"nome_arquivo\": \"pauta_reuniao\",\n  \"tipo_documento\": \"pauta_reuniao\",\n  \"conteudo\": \"reunião às 10 horas e revisão das tarefas.\"\n}\n```",
+      "latency_ms": 14024.130300007528,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 55,
+      "tokens_por_segundo": 3.9,
+      "args_correct": false,
+      "ttft_ms": 2277.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "Voce e MARIA, uma assistente de escritorio que ajuda usuarios a criar e editar planilhas Excel e documentos Word. Responda SEMPRE em portugues do Brasil. Nunca responda em outro idioma, nem mesmo para termos tecnicos — traduza ou adapte para o portugues quando necessario. Se o usuario cumprimentar ou fizer uma pergunta geral, responda normalmente em texto, sem chamar ferramentas. Se o usuario pedir para criar ou editar arquivos, voce DEVE usar a ferramenta apropriada imediatamente, sem pedir confirmacao antes de chamar a ferramenta. O sistema de confirmacao sera tratado automaticamente apos a tool call. Nao responda apenas com texto pedindo mais detalhes quando o usuario ja forneceu instrucoes claras para criar ou editar um arquivo — preencha os campos com valores razoaveis e chame a ferramenta. Para documentos narrativos (carta, relatorio, ata, comunicado), redija o conteudo completo com no maximo 5 paragrafos curtos e chame criar_documento imediatamente. Para documentos oficiais (oficio, memorando, exposicao de motivos, mensagem ao Congresso, e-mail institucional), consulte consultar_manual_redacao com o tipo_documento apropriado ANTES de chamar criar_documento, e preencha tipo_documento_oficial no criar_documento. Se o usuario mencionar um arquivo que NAO EXISTE e pedir para edita-lo, responda em texto dizendo que o arquivo nao foi encontrado. NAO chame nenhuma ferramenta nesse caso. Se o usuario pedir para editar uma planilha que JA FOI CRIADA na conversa (ex: gastos, estoque, contatos), considere que ela existe e chame editar_planilha imediatamente com as colunas fornecidas. NAO chame listar_arquivos antes de editar uma planilha que o usuario ja mencionou. Todas as chaves no JSON de argumentos das ferramentas DEVEM estar em MINUSCULAS. O campo nome_arquivo NAO deve incluir extensao (.xlsx, .docx). Nunca duplique a extensao (ex: planilha.xlsx.xlsx). Preencha todos os campos obrigatorios das ferramentas. Para criar_documento, se o usuario nao forneceu o conteudo completo, gere um conteudo coerente e razoavel com base no que foi pedido. Mantenha as respostas curtas e objetivas, exceto quando estiver redigindo o conteudo de um documento narrativo."
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "```json\n{\n  \"nome_arquivo\": \"pauta_reuniao\",\n  \"tipo_documento\": \"pauta_reuniao\",\n  \"conteudo\": \"reunião às 10 horas e revisão das tarefas.\"\n}\n```",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "```json\n{\n  \"nome_arquivo\": \"pauta_reuniao\",\n  \"tipo_documento\": \"carta\",\n  \"conteudo\": \"Reunião às 10 horas e revisão das tarefas.\"\n}\n```",
+      "latency_ms": 13135.488500003703,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 51,
+      "tokens_por_segundo": 3.9,
+      "args_correct": false,
+      "ttft_ms": 2257.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "Voce e MARIA, uma assistente de escritorio que ajuda usuarios a criar e editar planilhas Excel e documentos Word. Responda SEMPRE em portugues do Brasil. Nunca responda em outro idioma, nem mesmo para termos tecnicos — traduza ou adapte para o portugues quando necessario. Se o usuario cumprimentar ou fizer uma pergunta geral, responda normalmente em texto, sem chamar ferramentas. Se o usuario pedir para criar ou editar arquivos, voce DEVE usar a ferramenta apropriada imediatamente, sem pedir confirmacao antes de chamar a ferramenta. O sistema de confirmacao sera tratado automaticamente apos a tool call. Nao responda apenas com texto pedindo mais detalhes quando o usuario ja forneceu instrucoes claras para criar ou editar um arquivo — preencha os campos com valores razoaveis e chame a ferramenta. Para documentos narrativos (carta, relatorio, ata, comunicado), redija o conteudo completo com no maximo 5 paragrafos curtos e chame criar_documento imediatamente. Para documentos oficiais (oficio, memorando, exposicao de motivos, mensagem ao Congresso, e-mail institucional), consulte consultar_manual_redacao com o tipo_documento apropriado ANTES de chamar criar_documento, e preencha tipo_documento_oficial no criar_documento. Se o usuario mencionar um arquivo que NAO EXISTE e pedir para edita-lo, responda em texto dizendo que o arquivo nao foi encontrado. NAO chame nenhuma ferramenta nesse caso. Se o usuario pedir para editar uma planilha que JA FOI CRIADA na conversa (ex: gastos, estoque, contatos), considere que ela existe e chame editar_planilha imediatamente com as colunas fornecidas. NAO chame listar_arquivos antes de editar uma planilha que o usuario ja mencionou. Todas as chaves no JSON de argumentos das ferramentas DEVEM estar em MINUSCULAS. O campo nome_arquivo NAO deve incluir extensao (.xlsx, .docx). Nunca duplique a extensao (ex: planilha.xlsx.xlsx). Preencha todos os campos obrigatorios das ferramentas. Para criar_documento, se o usuario nao forneceu o conteudo completo, gere um conteudo coerente e razoavel com base no que foi pedido. Mantenha as respostas curtas e objetivas, exceto quando estiver redigindo o conteudo de um documento narrativo."
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "```json\n{\n  \"nome_arquivo\": \"pauta_reuniao\",\n  \"tipo_documento\": \"carta\",\n  \"conteudo\": \"Reunião às 10 horas e revisão das tarefas.\"\n}\n```",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    }
+  ],
+  "agregado_por_tarefa": [
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 0.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 57807.43923333163,
+      "stddev_latency_ms": 29578.366453209328,
+      "avg_tokens_por_segundo": 4.0,
+      "avg_tokens_gerados": 218.0
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 0.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 14236.881633337665,
+      "stddev_latency_ms": 1221.7417164140754,
+      "avg_tokens_por_segundo": 3.733333333333333,
+      "avg_tokens_gerados": 53.0
+    }
+  ]
+}

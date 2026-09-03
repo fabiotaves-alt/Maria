@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 
 from .analysis.metrics import calculate_maria_metrics, aggregate_by_task
-from .analysis.report import generate_report
+from .analysis.report import generate_report, extrair_texto_system, mascarar_system_prompt
 from .benchmark_config import (
     BENCHMARK_RESULTS_DIR,
     BENCHMARK_TIMEOUT_POR_CHAMADA,
@@ -436,6 +436,15 @@ def main() -> int:
     # Escrita feita SOMENTE aqui (fonte única), com metadados completos do
     # modelo real e hash do system prompt para rastreabilidade.
     system_prompt_hash = _hash_prompt(MARIA_SYSTEM_PROMPT)
+
+    # Extrair o texto do system prompt uma única vez para incluir no meta
+    system_prompt_texto = None
+    for resultado in resultados_individuais_todas_tarefas:
+        texto = extrair_texto_system(resultado.prompt_enviado)
+        if texto:
+            system_prompt_texto = texto
+            break
+
     log_final = {
         "meta": {
             "modelo_id_real": (metadados_modelo or {}).get("id"),
@@ -446,6 +455,7 @@ def main() -> int:
             "repeticoes_por_tarefa": BENCHMARK_REPETICOES,
             "versao_benchmark": "2.0",
             "system_prompt_hash": system_prompt_hash,
+            "system_prompt_completo": system_prompt_texto,
             "llama_base_url": LLAMA_BASE_URL,
             "llama_num_ctx_config": LLAMA_NUM_CTX,
             "ctx_size_detectado": (metadados_modelo or {}).get("ctx_size"),
@@ -455,7 +465,13 @@ def main() -> int:
             "timeout_por_chamada_s": BENCHMARK_TIMEOUT_POR_CHAMADA,
             "sampler_params": montar_sampler_params(),
         },
-        "individual": [r.__dict__ for r in resultados_individuais_todas_tarefas],
+        "individual": [
+            {
+                **r.__dict__,
+                "prompt_enviado": mascarar_system_prompt(r.prompt_enviado) if r.prompt_enviado else None,
+            }
+            for r in resultados_individuais_todas_tarefas
+        ],
         "agregado_por_tarefa": [a.__dict__ for a in agregados_todas_tarefas],
     }
     log_path = os.path.join(run_dir, "log.json")

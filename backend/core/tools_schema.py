@@ -1,9 +1,57 @@
 """
-Módulo que define o esquema das ferramentas (function calling) para a MARIA.
-Estas ferramentas serão usadas pelo modelo Qwen2.5-3B via Ollama para identificar
-intenções do usuário relacionadas a planilhas e documentos.
+Módulo de definição de ferramentas (function calling) para o assistente MARIA.
 
-As ferramentas são executadas após confirmação explícita do usuário.
+Descrição unificada
+====================
+Este módulo concentra a especificação das ferramentas que o modelo de linguagem
+(Qwen2.5-3B via Ollama) pode solicitar por meio de *function calling*. As ferramentas
+estão divididas em duas categorias:
+
+1. **Ferramentas de escrita** (modificam o sistema de arquivos, exigem confirmação):
+   - ``criar_planilha``: cria um novo arquivo Excel com colunas definidas.
+   - ``criar_documento``: cria um novo documento Word com conteúdo narrativo.
+   - ``editar_planilha``: sobrescreve uma planilha existente com nova estrutura.
+
+2. **Ferramentas de leitura** (somente leitura, executadas sem confirmação):
+   - ``listar_arquivos``: lista arquivos em uma pasta permitida.
+   - ``resumir_documento``: lê um documento e disponibiliza o conteúdo para resumo/análise.
+   - ``consultar_manual_redacao``: consulta o Manual de Redação da Presidência da República.
+
+Fluxo de utilização
+-------------------
+O modelo recebe as definições das ferramentas (``TOOLS_SCHEMA``) e, ao detectar uma
+intenção compatível, retorna uma *tool call* com o nome da função e os argumentos.
+O backend então executa a ferramenta correspondente através das funções
+``executar_ferramenta_real`` (para escrita) ou ``executar_ferramenta_leitura`` (para leitura).
+Antes da execução, os argumentos obrigatórios são validados pela função
+``validar_argumentos_obrigatorios``.
+
+Campos obrigatórios
+-------------------
+A tabela a seguir resume os campos exigidos para cada ferramenta:
+
++---------------------------+--------------------------------------+
+| Ferramenta                | Campos obrigatórios                  |
++===========================+======================================+
+| criar_planilha            | nome_arquivo, colunas                |
++---------------------------+--------------------------------------+
+| criar_documento           | nome_arquivo, titulo, conteudo       |
++---------------------------+--------------------------------------+
+| editar_planilha           | nome_arquivo, colunas                |
++---------------------------+--------------------------------------+
+| listar_arquivos           | (nenhum)                             |
++---------------------------+--------------------------------------+
+| resumir_documento         | nome_arquivo                         |
++---------------------------+--------------------------------------+
+| consultar_manual_redacao  | tipo_documento                       |
++---------------------------+--------------------------------------+
+
+Notas
+-----
+- As constantes ``FERRAMENTA_*`` seguem o formato exigido pela API do Ollama
+  (``type: function`` e ``function`` com ``name``, ``description`` e ``parameters``).
+- A lista ``TOOLS_SCHEMA`` agrega todas as definições para envio ao modelo.
+- O conjunto ``FERRAMENTAS_LEITURA`` identifica as funções que não exigem confirmação.
 """
 
 import logging
@@ -11,13 +59,23 @@ import logging
 # Configurar logger do módulo
 logger = logging.getLogger(__name__)
 
+# -----------------------------------------------------------------------------
+# Campos obrigatórios por ferramenta (usados na validação antes da execução)
+# -----------------------------------------------------------------------------
 CAMPOS_OBRIGATORIOS = {
+    # Escrita
     "criar_planilha": ["nome_arquivo", "colunas"],
     "criar_documento": ["nome_arquivo", "titulo", "conteudo"],
     "editar_planilha": ["nome_arquivo", "colunas"],
+    # Leitura
+    "listar_arquivos": [],  # nenhum campo obrigatório
+    "resumir_documento": ["nome_arquivo"],
+    "consultar_manual_redacao": ["tipo_documento"],
 }
 
-# Esquema JSON para a ferramenta de criação de planilha
+# -----------------------------------------------------------------------------
+# Definições das ferramentas (schemas para function calling)
+# -----------------------------------------------------------------------------
 FERRAMENTA_CRIAR_PLANILHA = {
     "type": "function",
     "function": {
@@ -57,14 +115,13 @@ Exemplo INCORRETO: {"nome_arquivo": "gastos", "conteudo": "Data,Valor"} - NÃO u
     }
 }
 
-# Esquema JSON para a ferramenta de criação de documento
 FERRAMENTA_CRIAR_DOCUMENTO = {
     "type": "function",
     "function": {
         "name": "criar_documento",
         "description": """Cria um novo documento de texto (Word) com conteúdo narrativo completo, gerado pelo próprio modelo.
 Use PARA: textos corridos, cartas, relatórios narrativos, comunicados, mensagens formais.
-    O campo 'conteudo' deve conter o texto completo e coerente do documento, com parágrafos separados por uma linha em branco (\\n\\n).
+O campo 'conteudo' deve conter o texto completo e coerente do documento, com parágrafos separados por uma linha em branco (\\n\\n).
 Exemplos de frases-gatilho:
 - "crie um texto sobre reunião"
 - "quero um documento com uma carta de apresentação"
@@ -210,10 +267,12 @@ NÃO use para documentos narrativos comuns (cartas informais, relatórios intern
     }
 }
 
-# Ferramentas de leitura: executadas sem confirmação (não modificam nada)
+# -----------------------------------------------------------------------------
+# Conjunto de ferramentas de leitura (executadas sem confirmação)
+# -----------------------------------------------------------------------------
 FERRAMENTAS_LEITURA = {"listar_arquivos", "resumir_documento", "consultar_manual_redacao"}
 
-# Lista de todas as ferramentas disponíveis
+# Lista de todas as ferramentas disponíveis para envio ao modelo
 TOOLS_SCHEMA = [
     FERRAMENTA_CRIAR_PLANILHA,
     FERRAMENTA_CRIAR_DOCUMENTO,
@@ -224,10 +283,17 @@ TOOLS_SCHEMA = [
 ]
 
 
+# -----------------------------------------------------------------------------
+# Funções auxiliares
+# -----------------------------------------------------------------------------
 def validar_argumentos_obrigatorios(nome_funcao: str, argumentos: dict) -> None:
     """
     Valida se todos os campos obrigatórios da ferramenta estão presentes
     e não vazios em `argumentos`.
+
+    Args:
+        nome_funcao: Nome da função (deve existir em ``CAMPOS_OBRIGATORIOS``).
+        argumentos: Dicionário com os argumentos recebidos na tool call.
 
     Raises:
         ValueError: se algum campo obrigatório estiver ausente, None,
@@ -253,42 +319,44 @@ def validar_argumentos_obrigatorios(nome_funcao: str, argumentos: dict) -> None:
 def simular_execucao_ferramenta(nome_funcao: str, argumentos: dict) -> str:
     """
     Simula a execução de uma ferramenta (utilitário de debug/teste).
-    Não faz parte do fluxo principal, que usa executar_ferramenta_real.
-    
+    Não faz parte do fluxo principal, que usa ``executar_ferramenta_real``.
+
     Args:
-        nome_funcao: Nome da função a ser executada
-        argumentos: Dicionário com os argumentos da chamada
-        
+        nome_funcao: Nome da função a ser executada.
+        argumentos: Dicionário com os argumentos da chamada.
+
     Returns:
-        String descrevendo a simulação da execução
+        String descrevendo a simulação da execução.
     """
     logger.debug(f"Chamada de ferramenta detectada: {nome_funcao}({argumentos})")
-    
+
     if nome_funcao == "criar_planilha":
-        return f"[SIMULAÇÃO] Planilha '{argumentos.get('nome_arquivo', 'desconhecido')}' seria criada com {len(argumentos.get('colunas', []))} colunas."
+        return (f"[SIMULAÇÃO] Planilha '{argumentos.get('nome_arquivo', 'desconhecido')}' "
+                f"seria criada com {len(argumentos.get('colunas', []))} colunas.")
     elif nome_funcao == "criar_documento":
-        return f"[SIMULAÇÃO] Documento '{argumentos.get('nome_arquivo', 'desconhecido')}' seria criado com o título '{argumentos.get('titulo', 'Sem título')}'."
+        return (f"[SIMULAÇÃO] Documento '{argumentos.get('nome_arquivo', 'desconhecido')}' "
+                f"seria criado com o título '{argumentos.get('titulo', 'Sem título')}'.")
     else:
         return f"[SIMULAÇÃO] Função '{nome_funcao}' desconhecida."
 
 
 def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
     """
-    Executa realmente uma ferramenta, criando o arquivo correspondente.
-    
+    Executa realmente uma ferramenta de escrita, criando ou modificando arquivos.
+
     Args:
-        nome_funcao: Nome da função a ser executada
-        argumentos: Dicionário com os argumentos da chamada
-        
+        nome_funcao: Nome da função a ser executada (deve ser uma ferramenta de escrita).
+        argumentos: Dicionário com os argumentos da chamada.
+
     Returns:
-        Caminho absoluto do arquivo criado ou mensagem de erro
-        
+        Caminho absoluto do arquivo criado/modificado ou mensagem de erro.
+
     Raises:
-        ValueError: Se a função não for reconhecida
+        ValueError: se a função não for reconhecida ou se argumentos obrigatórios faltarem.
     """
     logger.info(f"Executando ferramenta real: {nome_funcao}({argumentos})")
     validar_argumentos_obrigatorios(nome_funcao, argumentos)
-    
+
     if nome_funcao == "criar_planilha":
         from backend.core.excel_handler import criar_planilha_real
         caminho = criar_planilha_real(
@@ -297,7 +365,7 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
             descricao=argumentos.get("descricao", "")
         )
         return f"Planilha criada com sucesso: {caminho}"
-        
+
     elif nome_funcao == "criar_documento":
         from backend.core.word_handler import criar_documento_real
         caminho = criar_documento_real(
@@ -316,17 +384,9 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
             descricao=argumentos.get("descricao", "")
         )
         return f"Planilha atualizada com sucesso: {caminho}"
-    
-    elif nome_funcao == "listar_arquivos":
-        from backend.core.file_utils import listar_arquivos
-        itens = listar_arquivos(argumentos.get("pasta", ""))
-        if not itens:
-            return "A pasta está vazia (nenhum arquivo encontrado)."
-        linhas = "\n".join(f"- {i['nome']} ({i['tamanho_kb']} KB)" for i in itens)
-        return f"Arquivos encontrados:\n{linhas}"
-        
+
     else:
-        raise ValueError(f"Ferramenta desconhecida: {nome_funcao}")
+        raise ValueError(f"Ferramenta de escrita desconhecida: {nome_funcao}")
 
 
 def executar_ferramenta_leitura(nome_funcao: str, argumentos: dict) -> str:
@@ -335,17 +395,18 @@ def executar_ferramenta_leitura(nome_funcao: str, argumentos: dict) -> str:
     resultado como texto, pronto para ser devolvido ao modelo.
 
     Args:
-        nome_funcao: "listar_arquivos" ou "resumir_documento"
-        argumentos: argumentos da tool call
+        nome_funcao: Nome da função (listar_arquivos, resumir_documento, consultar_manual_redacao).
+        argumentos: Argumentos da tool call.
 
     Returns:
         Texto com o resultado da leitura.
 
     Raises:
-        ValueError: se a ferramenta não for reconhecida (propaga ValueError/
-            PermissionError/OSError vindos de core.file_utils para os demais casos).
+        ValueError: se a ferramenta não for reconhecida ou se argumentos obrigatórios faltarem.
     """
     logger.info(f"Executando ferramenta de leitura: {nome_funcao}({argumentos})")
+    # Valida argumentos obrigatórios também para ferramentas de leitura
+    validar_argumentos_obrigatorios(nome_funcao, argumentos)
 
     if nome_funcao == "listar_arquivos":
         from backend.core.file_utils import listar_arquivos

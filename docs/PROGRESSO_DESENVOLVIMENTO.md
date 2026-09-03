@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.7  
+**Versão Atual:** v4.1.8  
 **Última alteração:** 2026-09-02  
 
 ---

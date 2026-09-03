@@ -1,0 +1,370 @@
+{
+  "meta": {
+    "modelo_id_real": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+    "modelo_nome_exibicao": "Qwen2.5 3B",
+    "modelo_quantizacao": "Q4_K - Medium",
+    "data_execucao": "2026-09-02T20:54:25.250694",
+    "total_tarefas": 2,
+    "repeticoes_por_tarefa": 3,
+    "versao_benchmark": "2.0",
+    "system_prompt_hash": "ff8a55de6ca5",
+    "system_prompt_completo": "Você e MARIA, assistente de escritório, você cria e edita planilhas Excel e documentos Word com ferramentas. SEMPRE responda em português do Brasil. Outro idiomas, somente para termos técnicos. Comprimentos, apresentações ou uma pergunta geral do usuário, resposta em texto. Criação ou edição de arquivos SEMPRE CHAMAR FERRAMENTA: Documentos CHAME \"criar documento\": [\"nome_arquivo\", \"colunas\"]; Planilhas, chame \"criar_planilha\":[\"nome_arquivo\", \"titulo\", \"conteudo\"]; Edição de planilha chame \"editar_planilha\": [\"nome_arquivo\", \"colunas\"], ATENÇÂO: SEMPRE CHAME A FERRAMENTA, o sistema de confirmação será tratado automaticamente após a tool call. Instruções claras para criar ou editar um arquivo devem sem imediatamente atendidas, preencha os campos com valores razoáveis e chame a ferramenta. Para documentos SEMPRE chame \"criar documento\". Se o usuário mencionar um arquivo que NAO EXISTE e pedir para edita-lo, responda em texto dizendo que o arquivo não foi encontrado. Se o usuário pedir para editar uma planilha que JA FOI CRIADA na conversa (ex: gastos, estoque, contatos), considere que ela existe e chame \"editar_planilha\":[\"nome_arquivo\", \"colunas\"] IMEDIATAMENTE com as informações fornecidas. CHAME \"listar_arquivos\" antes de editar uma planilhas que o usuário NÂO mencionou na conversa. Preencha todos os CAMPOS OBRIGATÓRIOS das FERRAMENTAS. Para \"criar_documento\", se o usuário não forneceu o conteúdo completo, seja breve, coerente e razoável com base no que foi pedido. Mantenha as respostas CURTAS e OBJETIVAS, EXEÇÂO para documento narrativo.\n\nCAMPOS_OBRIGATORIOS = {\n    \"criar_planilha\": [\"nome_arquivo\", \"colunas\"],\n    \"criar_documento\": [\"nome_arquivo\", \"titulo\", \"conteudo\"],\n    \"editar_planilha\": [\"nome_arquivo\", \"colunas\"],",
+    "llama_base_url": "http://localhost:8080",
+    "llama_num_ctx_config": 4096,
+    "ctx_size_detectado": 4096,
+    "ctx_fonte": "models",
+    "system_prompt_tokens": 500,
+    "fator_calibracao_tokens": 1.1389521640091116,
+    "timeout_por_chamada_s": 120,
+    "sampler_params": {
+      "temperature": 0.1,
+      "repeat_last_n": 64,
+      "repeat_penalty": 1.0,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "dry_multiplier": 0.0,
+      "dry_base": 1.75,
+      "dry_allowed_length": 2,
+      "dry_penalty_last_n": 64,
+      "top_k": 40,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "xtc_probability": 0.0,
+      "xtc_threshold": 0.1,
+      "typical_p": 1.0,
+      "top_n_sigma": -1.0
+    }
+  },
+  "individual": [
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "criar_planilha: [\"gastos\", \"data\", \"valor\"]",
+      "latency_ms": 25158.759300000384,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 15,
+      "tokens_por_segundo": 0.6,
+      "args_correct": false,
+      "ttft_ms": 22055.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"gastos\", \"data\", \"valor\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "criar_planilha: [\"gastos\", \"data\", \"valor\"]",
+      "latency_ms": 5253.914300003089,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 15,
+      "tokens_por_segundo": 2.9,
+      "args_correct": false,
+      "ttft_ms": 2251.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"gastos\", \"data\", \"valor\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "criar_planilha: [\"gastos\", \"data\", \"valor\"]",
+      "latency_ms": 5329.061800002819,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 15,
+      "tokens_por_segundo": 2.8,
+      "args_correct": false,
+      "ttft_ms": 2317.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"gastos\", \"data\", \"valor\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "criar_documento([\"pauta_reuniao\", \"Pauta\", \"reunião às 10 horas e revisão das tarefas\"])",
+      "latency_ms": 10807.50419999822,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 33,
+      "tokens_por_segundo": 3.1,
+      "args_correct": false,
+      "ttft_ms": 3912.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento([\"pauta_reuniao\", \"Pauta\", \"reunião às 10 horas e revisão das tarefas\"])",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "criar_documento: [\"pauta_reuniao\", \"Pauta\", \"reunião às 10 horas e revisão das tarefas\"]",
+      "latency_ms": 9050.148399997852,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 34,
+      "tokens_por_segundo": 3.8,
+      "args_correct": false,
+      "ttft_ms": 2269.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"pauta_reuniao\", \"Pauta\", \"reunião às 10 horas e revisão das tarefas\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "criar_documento: [\"pauta_reuniao\", \"Pauta\", \"reunião às 10 horas e revisão das tarefas\"]",
+      "latency_ms": 9236.480899999151,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 34,
+      "tokens_por_segundo": 3.7,
+      "args_correct": false,
+      "ttft_ms": 2252.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"pauta_reuniao\", \"Pauta\", \"reunião às 10 horas e revisão das tarefas\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true
+    }
+  ],
+  "agregado_por_tarefa": [
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 0.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 11913.911800002097,
+      "stddev_latency_ms": 11470.43594465124,
+      "avg_tokens_por_segundo": 2.1,
+      "avg_tokens_gerados": 15.0
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 0.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 9698.044499998408,
+      "stddev_latency_ms": 965.3266647005765,
+      "avg_tokens_por_segundo": 3.533333333333333,
+      "avg_tokens_gerados": 33.666666666666664
+    }
+  ]
+}

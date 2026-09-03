@@ -50,7 +50,7 @@ def _montar_secacao_sampler(sampler_params: dict | None) -> str:
     return "\n".join(linhas) + "\n"
 
 
-def _extrair_texto_system(mensagens: list[dict] | None) -> str | None:
+def extrair_texto_system(mensagens: list[dict] | None) -> str | None:
     """Retorna o content da primeira mensagem role='system' encontrada em
     `mensagens`, ou None se não houver mensagem system ou a lista for vazia/None."""
     if not mensagens:
@@ -61,7 +61,7 @@ def _extrair_texto_system(mensagens: list[dict] | None) -> str | None:
     return None
 
 
-def _mascarar_system_prompt(mensagens: list[dict]) -> list[dict]:
+def mascarar_system_prompt(mensagens: list[dict]) -> list[dict]:
     """Retorna uma CÓPIA da lista de mensagens onde o content da mensagem
     role='system' foi substituído pelo marcador 'prompt do system injetado'.
     Não muta `mensagens` nem os dicts originais (necessário porque
@@ -97,7 +97,7 @@ def _montar_detalhes_execucao(results: list[MariaTaskResult]) -> str:
 
     system_prompt_texto = None
     for result in results:
-        texto = _extrair_texto_system(result.prompt_enviado)
+        texto = extrair_texto_system(result.prompt_enviado)
         if texto:
             system_prompt_texto = texto
             break
@@ -121,7 +121,7 @@ def _montar_detalhes_execucao(results: list[MariaTaskResult]) -> str:
             linhas.append("")
             linhas.append("```json")
             linhas.append(json.dumps(
-                _mascarar_system_prompt(result.prompt_enviado),
+                mascarar_system_prompt(result.prompt_enviado),
                 ensure_ascii=False,
                 indent=2,
             ))

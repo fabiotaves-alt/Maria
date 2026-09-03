@@ -2,6 +2,35 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.8] — Deduplicação do system prompt no relatório e log — 2026-09-02
+
+### ✨ Nova funcionalidade
+
+- **Funções auxiliares públicas para dedução de prompts** (`backend/benchmark/analysis/report.py`):
+  `extrair_texto_system()` e `mascarar_system_prompt()` (antes privadas com prefixo `_`) agora são públicas para reutilização em múltiplos módulos. Permitindo compartilhamento da lógica de dedução entre relatório e log.
+- **System prompt deduzido no `report.md`** (`backend/benchmark/analysis/report.py`):
+  A função `_montar_detalhes_execucao()` agora imprime o texto completo do prompt de sistema **uma única vez** no topo da seção `## Detalhes por execução`, extraído da primeira execução que contiver a mensagem system. Em cada bloco de execução individual, a mensagem `role="system"` é substituída pelo marcador `"prompt do system injetado"` — evitando repetição dezenas de vezes do texto completo (economia: ~40–50 KB por relatório típico).
+- **System prompt deduzido no `log.json`** (`backend/benchmark/run_benchmark.py`):
+  O prompt completo é extraído uma única vez e armazenado em `meta.system_prompt_completo`. No bloco `"individual"`, cada resultado tem `prompt_enviado` com a mensagem system mascarada (marcador `"prompt do system injetado"`), mantendo as mensagens `user`/`assistant`/`tool` intactas. Ganho de compactação: ~40–50 KB por log típico com 75 execuções.
+
+### 🔧 Refatoração
+
+- **Importação de funções públicas** (`backend/benchmark/run_benchmark.py`): agora importa `extrair_texto_system` e `mascarar_system_prompt` de `.analysis.report`.
+- **Serialização sem mutação** (`backend/benchmark/run_benchmark.py`): bloco `"individual"` é montado com spread operator (`{**r.__dict__, ...}`), preservando `resultados_individuais_todas_tarefas` inalterados — `generate_report()` continua recebendo dados íntegros.
+
+### 📊 Impacto
+
+- **Redução de tamanho**: logs e relatórios típicos (75 execuções, system prompt ~2,2 KB) diminuem ~50 KB (~20% em relatórios com muitas tarefas).
+- **Legibilidade**: relatórios mais concisos, com o context completo do system prompt centralizado no topo da seção de detalhes.
+- **Compatibilidade**: formato de `log.json` v2.0 estendido (novo campo `meta.system_prompt_completo`); `compare_runs.py` segue compatível (lê apenas `individual` para agregação).
+
+### 🧪 Testes
+
+- **172/172 testes passaram** (`python -m pytest backend/tests/test_maria.py`).
+- Testes relacionados a `_montar_detalhes_execucao` continuam validando a estrutura esperada (verificam presença do marcador nos blocos e texto completo no topo).
+
+---
+
 ## [4.1.7] — Verificação de contexto, timeouts por chamada e num_ctx adaptativo — 2026-09-02
 
 ### ✨ Nova funcionalidade
