@@ -13,7 +13,7 @@ import json
 import time
 from unittest.mock import patch, MagicMock
 from backend.core.chat_session import ChatSession, interpretar_confirmacao
-from backend.core.ollama_client import _montar_mensagens_com_reforco
+from backend.core.llama_client import _montar_mensagens_com_reforco
 from backend.core.tools_schema import (
     simular_execucao_ferramenta,
     executar_ferramenta_real,
@@ -36,7 +36,6 @@ from backend.core.session_storage import salvar_sessao, listar_sessoes_salvas, c
 from backend.benchmark.analysis.language_check import resposta_em_portugues
 from backend.benchmark.analysis.metrics import calculate_maria_metrics
 from backend.benchmark.tasks.task_schema import MariaTaskResult
-from backend.core.ollama_client import OllamaClient
 
 
 class TestChatSession(unittest.TestCase):
@@ -350,63 +349,6 @@ class TestBenchmarkMetrics(unittest.TestCase):
         self.assertEqual(tool_call["arguments"]["nome_arquivo"], "gastos")
         self.assertEqual(tool_call["arguments"]["colunas"], ["Data", "Valor"])
 
-    def test_chat_com_tools_stream_com_metricas_acumula_tokens(self):
-        class FakeResponse:
-            def __init__(self, payloads):
-                self.payloads = payloads
-
-            def iter_lines(self):
-                for payload in self.payloads:
-                    time.sleep(0.03)
-                    yield payload
-
-        client = OllamaClient(timeout=10)
-        client._make_request = lambda payload, stream=False: FakeResponse([
-            json.dumps({"message": {"content": "Olá "}}).encode("utf-8"),
-            json.dumps({"message": {"content": "mundo"}, "done": True, "eval_count": 15}).encode("utf-8"),
-        ])
-
-        texto, tool_call, tokens_gerados, tokens_por_segundo, ttft_ms = client.chat_com_tools_stream_com_metricas(
-            "teste",
-            historico=None,
-            tools=None,
-        )
-
-        self.assertEqual(texto, "Olá mundo")
-        self.assertEqual(tokens_gerados, 15)
-        self.assertGreater(tokens_por_segundo, 0)
-        self.assertIsNotNone(ttft_ms)
-        self.assertGreaterEqual(ttft_ms, 0)
-        self.assertIsNone(tool_call)
-
-    def test_chat_com_tools_stream_com_metricas_guarda_contra_duracao_irreal(self):
-        """Reproduz o padrão observado em produção (eval_count alto, duração
-        quase nula) e garante que tokens_por_segundo não retorna um valor
-        fisicamente implausível."""
-        class FakeResponse:
-            def __init__(self, payloads):
-                self.payloads = payloads
-
-            def iter_lines(self):
-                yield from self.payloads
-
-        client = OllamaClient(timeout=10)
-        client._make_request = lambda payload, stream=False: FakeResponse([
-            json.dumps({
-                "message": {"content": "resposta completa em um único chunk"},
-                "done": True,
-                "eval_count": 400,
-            }).encode("utf-8"),
-        ])
-
-        _, _, tokens_gerados, tokens_por_segundo, ttft_ms = client.chat_com_tools_stream_com_metricas(
-            "teste", historico=None, tools=None,
-        )
-
-        self.assertEqual(tokens_gerados, 400)
-        self.assertEqual(tokens_por_segundo, 0.0)
-        self.assertIsNotNone(ttft_ms)
-
     def test_diagnostico_falha_sem_erro_detecta_tool_incorreto(self):
         result = MariaTaskResult(
             task_id=3,
@@ -581,343 +523,34 @@ class TestRegressao(unittest.TestCase):
         # A string deve conter aspas normais, não escaped
         self.assertIn("Relatório Mensal", resultado)
     
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_tool_calls_malformado(self, mock_session_class):
-        """Testa que chat_com_tools não quebra com tool_calls malformado."""
-        from backend.core.ollama_client import OllamaClient
-        
-        # Mock da sessão e response
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "message": {
-                "content": "Resposta do modelo",
-                "tool_calls": []  # Lista vazia
-            }
-        }
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-        
-        cliente = OllamaClient(model="qwen3.5:4b")
-        conteudo, tool_call = cliente.chat_com_tools(
-            mensagem_usuario="teste",
-            historico=[{"role": "user", "content": "teste"}],
-            tools=[FERRAMENTA_CRIAR_PLANILHA]
-        )
-        
-        self.assertEqual(conteudo, "Resposta do modelo")
-        self.assertIsNone(tool_call)
-    
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_tool_calls_sem_function(self, mock_session_class):
-        """Testa que chat_com_tools lida com tool_call sem 'function'."""
-        from backend.core.ollama_client import OllamaClient
-        
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "message": {
-                "content": "Resposta do modelo",
-                "tool_calls": [{"id": "123"}]  # Sem 'function'
-            }
-        }
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-        
-        cliente = OllamaClient(model="qwen3.5:4b")
-        conteudo, tool_call = cliente.chat_com_tools(
-            mensagem_usuario="teste",
-            historico=[{"role": "user", "content": "teste"}],
-            tools=[FERRAMENTA_CRIAR_PLANILHA]
-        )
-        
-        self.assertEqual(conteudo, "Resposta do modelo")
-        self.assertIsNone(tool_call)
-    
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_tool_calls_sem_name(self, mock_session_class):
-        """Testa que chat_com_tools lida com tool_call sem 'name'."""
-        from backend.core.ollama_client import OllamaClient
-        
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "message": {
-                "content": "Resposta do modelo",
-                "tool_calls": [{"function": {"arguments": "{}"}}]  # Sem 'name'
-            }
-        }
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-        
-        cliente = OllamaClient(model="qwen3.5:4b")
-        conteudo, tool_call = cliente.chat_com_tools(
-            mensagem_usuario="teste",
-            historico=[{"role": "user", "content": "teste"}],
-            tools=[FERRAMENTA_CRIAR_PLANILHA]
-        )
-        
-        self.assertEqual(conteudo, "Resposta do modelo")
-        self.assertIsNone(tool_call)
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_stream_tool_calls_vazio_nao_quebra(self, mock_session_class):
-        """Testa streaming com tool_calls vazio."""
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        linhas_stream = [
-            json.dumps({"message": {"content": "Olá", "tool_calls": []}}).encode("utf-8"),
-            json.dumps({"message": {"content": "!", "tool_calls": []}, "done": True}).encode("utf-8"),
-        ]
-        mock_response = MagicMock(status_code=200)
-        mock_response.iter_lines.return_value = iter(linhas_stream)
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-
-        chunks = list(OllamaClient(model="qwen3.5:4b").chat_com_tools_stream(
-            mensagem_usuario="oi",
-            historico=[],
-            tools=[FERRAMENTA_CRIAR_PLANILHA]
-        ))
-
-        self.assertEqual("".join(chunk for chunk, _ in chunks if chunk), "Olá!")
-        self.assertIsNone(chunks[-1][1])
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_stream_tool_call_vazada_como_texto(self, mock_session_class):
-        """Testa que uma tool call vazada como texto no content é detectada via fallback."""
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        conteudo_vazado = (
-            'brtc\n{"name": "editar_planilha", "arguments": '
-            '{"nome_arquivo": "estoque", "colunas": ["Produto", "Quantidade"]}}\n</tool_call>'
-        )
-        linhas_stream = [
-            json.dumps({"message": {"content": conteudo_vazado, "tool_calls": []}, "done": True}).encode("utf-8"),
-        ]
-        mock_response = MagicMock(status_code=200)
-        mock_response.iter_lines.return_value = iter(linhas_stream)
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-
-        chunks = list(OllamaClient(model="qwen3.5:4b").chat_com_tools_stream(
-            mensagem_usuario="edite a planilha",
-            historico=[],
-            tools=[FERRAMENTA_EDITAR_PLANILHA]
-        ))
-
-        tool_call_final = chunks[-1][1]
-        self.assertIsNotNone(tool_call_final)
-        self.assertEqual(tool_call_final["name"], "editar_planilha")
-        self.assertEqual(tool_call_final["arguments"]["nome_arquivo"], "estoque")
-
     def test_timeout_de_streaming_nao_faz_retry(self):
         """Testa que timeout de geração é propagado sem nova tentativa."""
         from backend.benchmark.runners.maria_runner import MariaRunner
         from backend.benchmark.tasks.task_schema import MariaTask
-        from backend.core.ollama_client import OllamaClient, OllamaTimeoutError
+        from backend.core.llama_client import LlamaTimeoutError
 
-        class ClienteComTimeout(OllamaClient):
+        class ClienteComTimeout:
             def __init__(self):
                 self.model = "qwen3.5:4b"
                 self.chamadas = 0
 
             def chat_com_tools_stream(self, **kwargs):
                 self.chamadas += 1
-                raise OllamaTimeoutError("timeout de teste")
+                raise LlamaTimeoutError("timeout de teste")
 
             def chat_com_tools_stream_com_metricas(self, **kwargs):
                 self.chamadas += 1
-                raise OllamaTimeoutError("timeout de teste")
+                raise LlamaTimeoutError("timeout de teste")
 
         cliente = ClienteComTimeout()
         runner = MariaRunner(cliente=cliente)
         task = MariaTask(999, "Timeout", "Teste", "Olá")
 
-        with self.assertRaises(OllamaTimeoutError):
+        with self.assertRaises(LlamaTimeoutError):
             runner._enviar_com_retry(ChatSession(), task)
 
         self.assertEqual(cliente.chamadas, 1)
 
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_stream_recupera_tool_call_do_campo_thinking(self, mock_session_class):
-        """Tool call presa em 'thinking' (bug do Qwen3.5) deve ser recuperada mesmo com content vazio."""
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        thinking_com_tool_call = (
-            'Vou criar a planilha.\n<tool_call>\n'
-            '{"name": "criar_planilha", "arguments": '
-            '{"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}}\n'
-            '</tool_call>'
-        )
-        linhas_stream = [
-            json.dumps({
-                "message": {"content": "", "thinking": thinking_com_tool_call, "tool_calls": []},
-                "done": True,
-            }).encode("utf-8"),
-        ]
-        mock_response = MagicMock(status_code=200)
-        mock_response.iter_lines.return_value = iter(linhas_stream)
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-
-        cliente = OllamaClient(model="qwen3.5:4b")
-        chunks = list(cliente.chat_com_tools_stream(
-            mensagem_usuario="crie uma planilha de gastos",
-            historico=[],
-            tools=[FERRAMENTA_CRIAR_PLANILHA],
-        ))
-
-        tool_call_final = chunks[-1][1]
-        self.assertIsNotNone(tool_call_final)
-        self.assertEqual(tool_call_final["name"], "criar_planilha")
-        self.assertEqual(tool_call_final["arguments"]["nome_arquivo"], "gastos")
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_stream_com_metricas_recupera_tool_call_vazada_como_texto(self, mock_session_class):
-        """chat_com_tools_stream_com_metricas hoje não tem fallback textual — este teste cobre o gap."""
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        conteudo_vazado = (
-            '{"name": "criar_planilha", "arguments": '
-            '{"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}}'
-        )
-        linhas_stream = [
-            json.dumps({
-                "message": {"content": conteudo_vazado, "tool_calls": []},
-                "done": True,
-                "eval_count": 40,
-            }).encode("utf-8"),
-        ]
-        mock_response = MagicMock(status_code=200)
-        mock_response.iter_lines.return_value = iter(linhas_stream)
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-
-        cliente = OllamaClient(model="qwen3.5:4b")
-        texto, tool_call, tokens_gerados, tokens_por_segundo, ttft_ms = cliente.chat_com_tools_stream_com_metricas(
-            "crie uma planilha de gastos",
-            historico=[],
-            tools=[FERRAMENTA_CRIAR_PLANILHA],
-        )
-
-        self.assertIsNotNone(tool_call)
-        self.assertEqual(tool_call["name"], "criar_planilha")
-        self.assertEqual(tool_call["arguments"]["nome_arquivo"], "gastos")
-        self.assertEqual(tokens_gerados, 40)
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_stream_com_metricas_recupera_tool_call_do_campo_thinking(self, mock_session_class):
-        """Combina os dois gaps: campo 'thinking' + método de métricas do benchmark."""
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        thinking_com_tool_call = (
-            '<tool_call>\n{"name": "editar_planilha", "arguments": '
-            '{"nome_arquivo": "estoque", "colunas": ["Produto", "Quantidade"]}}\n</tool_call>'
-        )
-        linhas_stream = [
-            json.dumps({
-                "message": {"content": "", "thinking": thinking_com_tool_call, "tool_calls": []},
-                "done": True,
-                "eval_count": 55,
-            }).encode("utf-8"),
-        ]
-        mock_response = MagicMock(status_code=200)
-        mock_response.iter_lines.return_value = iter(linhas_stream)
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-
-        cliente = OllamaClient(model="qwen3.5:4b")
-        texto, tool_call, tokens_gerados, tokens_por_segundo, ttft_ms = cliente.chat_com_tools_stream_com_metricas(
-            "atualize a planilha estoque",
-            historico=[],
-            tools=[FERRAMENTA_EDITAR_PLANILHA],
-        )
-
-        self.assertIsNotNone(tool_call)
-        self.assertEqual(tool_call["name"], "editar_planilha")
-        self.assertEqual(tokens_gerados, 55)
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_continuar_com_resultado_ferramenta_stream_recupera_tool_call_do_campo_thinking(self, mock_session_class):
-        """Mesma cobertura de 'thinking' para o método de continuação (após leitura de arquivo)."""
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        thinking_com_tool_call = (
-            '<tool_call>\n{"name": "criar_planilha", "arguments": '
-            '{"nome_arquivo": "novo", "colunas": ["A", "B"]}}\n</tool_call>'
-        )
-        linhas_stream = [
-            json.dumps({
-                "message": {"content": "", "thinking": thinking_com_tool_call, "tool_calls": []},
-                "done": True,
-            }).encode("utf-8"),
-        ]
-        mock_response = MagicMock(status_code=200)
-        mock_response.iter_lines.return_value = iter(linhas_stream)
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-
-        cliente = OllamaClient(model="qwen3.5:4b")
-        chunks = list(cliente.continuar_com_resultado_ferramenta_stream(
-            historico=[{"role": "system", "content": "sistema"}],
-            tool_call={"name": "listar_arquivos", "arguments": {}},
-            resultado="A pasta está vazia.",
-            tools=[FERRAMENTA_CRIAR_PLANILHA],
-        ))
-
-        tool_call_final = chunks[-1][1]
-        self.assertIsNotNone(tool_call_final)
-        self.assertEqual(tool_call_final["name"], "criar_planilha")
-    
     def test_montar_mensagens_com_reforco_mescla_system_existente(self):
 
 
@@ -931,103 +564,15 @@ class TestRegressao(unittest.TestCase):
         systems = [m for m in mensagens if m["role"] == "system"]
         self.assertEqual(len(systems), 1)
         self.assertIn("PROMPT LONGO ORIGINAL", systems[0]["content"])
-        self.assertIn("IMPORTANTE: Você DEVE usar as ferramentas disponíveis", systems[0]["content"])
         self.assertEqual(mensagens[-1], {"role": "user", "content": "nova mensagem"})
         self.assertEqual(historico[0]["content"], "PROMPT LONGO ORIGINAL")  # historico não mutado
 
     def test_montar_mensagens_com_reforco_sem_system_previo(self):
-        from backend.core.ollama_client import _montar_mensagens_com_reforco
         mensagens = _montar_mensagens_com_reforco(None, "mensagem")
 
         systems = [m for m in mensagens if m["role"] == "system"]
         self.assertEqual(len(systems), 1)
-        self.assertIn("IMPORTANTE: Você DEVE usar as ferramentas disponíveis", systems[0]["content"])
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_envia_uma_unica_mensagem_system(self, mock_session_class):
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        mock_response = MagicMock(status_code=200)
-        mock_response.json.return_value = {"message": {"content": "ok", "tool_calls": []}}
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-
-        cliente = OllamaClient(model="qwen3.5:4b")
-        historico = [{"role": "system", "content": "PROMPT LONGO DA SESSAO"}]
-        cliente.chat_com_tools(
-            mensagem_usuario="crie uma planilha", historico=historico, tools=[FERRAMENTA_CRIAR_PLANILHA],
-        )
-
-        payload_enviado = mock_session.post.call_args.kwargs["json"]
-        mensagens_system = [m for m in payload_enviado["messages"] if m["role"] == "system"]
-        self.assertEqual(len(mensagens_system), 1)
-        self.assertIn("PROMPT LONGO DA SESSAO", mensagens_system[0]["content"])
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_stream_envia_uma_unica_mensagem_system(self, mock_session_class):
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        linhas_stream = [
-            json.dumps({"message": {"content": "ok", "tool_calls": []}, "done": True}).encode("utf-8"),
-        ]
-        mock_response = MagicMock(status_code=200)
-        mock_response.iter_lines.return_value = iter(linhas_stream)
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-
-        cliente = OllamaClient(model="qwen3.5:4b")
-        historico = [{"role": "system", "content": "PROMPT LONGO DA SESSAO"}]
-        list(cliente.chat_com_tools_stream(
-            mensagem_usuario="crie uma planilha", historico=historico, tools=[FERRAMENTA_CRIAR_PLANILHA],
-        ))
-
-        payload_enviado = mock_session.post.call_args.kwargs["json"]
-        mensagens_system = [m for m in payload_enviado["messages"] if m["role"] == "system"]
-        self.assertEqual(len(mensagens_system), 1)
-        self.assertIn("PROMPT LONGO DA SESSAO", mensagens_system[0]["content"])
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_stream_com_metricas_envia_uma_unica_mensagem_system(self, mock_session_class):
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        linhas_stream = [
-            json.dumps({"message": {"content": "ok"}, "done": True, "eval_count": 1}).encode("utf-8"),
-        ]
-        mock_response = MagicMock(status_code=200)
-        mock_response.iter_lines.return_value = iter(linhas_stream)
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "qwen3.5:4b"}]}
-        )
-
-        cliente = OllamaClient(model="qwen3.5:4b")
-        historico = [{"role": "system", "content": "PROMPT LONGO DA SESSAO"}]
-        cliente.chat_com_tools_stream_com_metricas(
-            "crie uma planilha", historico=historico, tools=[FERRAMENTA_CRIAR_PLANILHA],
-        )
-
-        payload_enviado = mock_session.post.call_args.kwargs["json"]
-        mensagens_system = [m for m in payload_enviado["messages"] if m["role"] == "system"]
-        self.assertEqual(len(mensagens_system), 1)
-        self.assertIn("PROMPT LONGO DA SESSAO", mensagens_system[0]["content"])
-
-
-
-
-
+        self.assertIn("Você é MARIA", systems[0]["content"])
 
 class TestSessionStorage(unittest.TestCase):
     """Testes para persistência de sessões em disco."""
@@ -1092,40 +637,6 @@ class TestSessionStorage(unittest.TestCase):
         """Testa que carregar uma sessão inexistente levanta ValueError."""
         with self.assertRaises(ValueError):
             carregar_sessao(os.path.join(os.environ["PASTA_SESSOES"], "nao_existe.json"))
-
-
-class TestOllamaClientErrorModeloNaoInstalado(unittest.TestCase):
-    """Testes para erro claro quando modelo não está instalado."""
-    
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_modelo_nao_instalado_levanta_erro_claro(self, mock_session_class):
-        """Testa que OllamaClientError é levantado com mensagem clara quando modelo não existe."""
-        from backend.core.ollama_client import OllamaClient, OllamaClientError
-        
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        
-        # Mock de /api/tags retornando lista sem o modelo esperado
-        mock_tags_response = MagicMock()
-        mock_tags_response.status_code = 200
-        mock_tags_response.json.return_value = {
-            "models": [
-                {"name": "llama2"},
-                {"name": "mistral"}
-            ]
-        }
-        mock_session.get.return_value = mock_tags_response
-        
-        cliente = OllamaClient(model="qwen3.5:4b")
-        
-        with self.assertRaises(OllamaClientError) as context:
-            cliente._check_connection()
-        
-        # Verificar mensagem de erro clara
-        erro_msg = str(context.exception)
-        self.assertIn("não está instalado", erro_msg)
-        self.assertIn("qwen3.5:4b", erro_msg)
-        self.assertIn("ollama pull", erro_msg)
 
 
 class TestAcessoLeitura(unittest.TestCase):
@@ -1281,10 +792,10 @@ class TestAquecimentoModelo(unittest.TestCase):
 
     def test_aquecer_modelo_nao_propaga_excecao(self):
         from backend.main import MariaController
-        from backend.core.ollama_client import OllamaClientError
+        from backend.core.llama_client import LlamaClientError
         controller = MariaController()
         controller.inicializar()
-        controller.cliente.enviar_mensagem = MagicMock(side_effect=OllamaClientError("falha"))
+        controller.cliente.enviar_mensagem = MagicMock(side_effect=LlamaClientError("falha"))
 
         controller.aquecer_modelo()  # não deve levantar exceção
 
@@ -1315,16 +826,6 @@ class TestSystemPromptExcecaoArquivoInexistente(unittest.TestCase):
 
     def test_system_prompt_contem_excecao_para_arquivo_ficticio(self):
         self.assertIn("arquivo não foi encontrado", ChatSession.SYSTEM_PROMPT)
-
-
-class TestReforcoComposicaoDocumento(unittest.TestCase):
-    """Testa que o reforço instrui a redigir documentos sem pedir mais
-    detalhes ao usuário (Fix B)."""
-
-    def test_reforco_instrui_composicao_de_documento_sem_conteudo_literal(self):
-        mensagens = _montar_mensagens_com_reforco(None, "mensagem")
-        texto_system = mensagens[0]["content"]
-        self.assertIn("REDIGIR um conteúdo completo", texto_system)
 
 
 class TestToolChaining(unittest.TestCase):
@@ -1530,150 +1031,15 @@ class TestMariaRunnerEncadeamento(unittest.TestCase):
         self.assertGreater(resultado.correction_attempts, 0)
 
 
-class TestConfiguracaoDeModeloCentralizada(unittest.TestCase):
-    """Testes para a centralização de configuração de modelo (Item 1)."""
-
-    def test_montar_payload_inclui_think_quando_habilitado(self):
-        from backend.core.ollama_client import OllamaClient
-        cliente = OllamaClient(model="modelo-teste")
-        payload = cliente._montar_payload([{"role": "user", "content": "oi"}], tools=None, stream=False)
-        self.assertIn("think", payload)
-
-    @patch('backend.core.ollama_client.OLLAMA_ENVIAR_THINK_PARAM', False)
-    def test_montar_payload_omite_think_quando_desabilitado(self):
-        from backend.core.ollama_client import OllamaClient
-        cliente = OllamaClient(model="modelo-teste")
-        payload = cliente._montar_payload([{"role": "user", "content": "oi"}], tools=None, stream=False)
-        self.assertNotIn("think", payload)
-
-    def test_montar_payload_inclui_temperatura_apenas_quando_solicitado(self):
-        from backend.core.ollama_client import OllamaClient
-        cliente = OllamaClient(model="modelo-teste")
-        sem_temp = cliente._montar_payload([{"role": "user", "content": "oi"}], tools=None, stream=False)
-        com_temp = cliente._montar_payload(
-            [{"role": "user", "content": "oi"}], tools=None, stream=False, incluir_temperatura=True
-        )
-        self.assertNotIn("temperature", sem_temp["options"])
-        self.assertIn("temperature", com_temp["options"])
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_mensagem_de_erro_de_conexao_usa_model_e_base_url_dinamicos(self, mock_session_class):
-        import requests as requests_module
-        from backend.core.ollama_client import OllamaClient, OllamaClientError
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        mock_session.get.side_effect = requests_module.exceptions.ConnectionError()
-
-        cliente = OllamaClient(model="outro-modelo", base_url="http://exemplo:9999")
-
-        with self.assertRaises(OllamaClientError) as contexto:
-            cliente._make_request({"model": "outro-modelo", "messages": []})
-
-        mensagem = str(contexto.exception)
-        self.assertIn("outro-modelo", mensagem)
-        self.assertIn("http://exemplo:9999", mensagem)
-
-
-class TestFallbackTextualDesativavel(unittest.TestCase):
-    """Testa que o fallback de tool call vazada como texto respeita
-    OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL (Item 3)."""
-
-    @patch('backend.core.ollama_client.OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL', False)
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_fallback_desativado_nao_extrai_tool_call(self, mock_session_class):
-        from backend.core.ollama_client import OllamaClient
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        conteudo_vazado = '{"name": "criar_planilha", "arguments": {"nome_arquivo": "x", "colunas": ["A"]}}'
-        mock_response = MagicMock(status_code=200)
-        mock_response.json.return_value = {"message": {"content": conteudo_vazado, "tool_calls": []}}
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "modelo-teste"}]}
-        )
-
-        cliente = OllamaClient(model="modelo-teste")
-        _, tool_call = cliente.chat_com_tools(
-            mensagem_usuario="crie uma planilha", historico=[], tools=[FERRAMENTA_CRIAR_PLANILHA]
-        )
-
-        self.assertIsNone(tool_call)
-
-
 class TestOrcamentoDeTokensParaDocumento(unittest.TestCase):
     """Testa a heurística de orçamento maior de tokens para composição de
     documentos narrativos (Item A)."""
 
     def test_sugere_composicao_de_documento_detecta_palavras_chave(self):
-        from backend.core.ollama_client import _sugere_composicao_de_documento
+        from backend.core.llama_client import _sugere_composicao_de_documento
         self.assertTrue(_sugere_composicao_de_documento("Crie uma carta de apresentação formal"))
         self.assertTrue(_sugere_composicao_de_documento("Escreva um relatório da reunião"))
         self.assertFalse(_sugere_composicao_de_documento("Crie uma planilha de gastos"))
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_chat_com_tools_usa_num_predict_documento_para_carta(self, mock_session_class):
-        from backend.core.ollama_client import OllamaClient
-        from backend.core.config import OLLAMA_NUM_PREDICT_DOCUMENTO
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        mock_response = MagicMock(status_code=200)
-        mock_response.json.return_value = {"message": {"content": "ok", "tool_calls": []}}
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "modelo-teste"}]}
-        )
-
-        cliente = OllamaClient(model="modelo-teste")
-        cliente.chat_com_tools(
-            mensagem_usuario="Crie uma carta de demissão formal",
-            historico=[], tools=[FERRAMENTA_CRIAR_DOCUMENTO],
-        )
-
-        payload_enviado = mock_session.post.call_args.kwargs["json"]
-        self.assertEqual(payload_enviado["options"]["num_predict"], OLLAMA_NUM_PREDICT_DOCUMENTO)
-
-
-class TestInstrumentacaoDaContinuacao(unittest.TestCase):
-    """Testa que a chamada de continuação usa orçamento reduzido de tokens
-    e expõe tokens_gerados via metricas_saida (Item B)."""
-
-    @patch('backend.core.ollama_client.requests.Session')
-    def test_continuar_usa_num_predict_continuacao(self, mock_session_class):
-        from backend.core.ollama_client import OllamaClient
-        from backend.core.config import OLLAMA_NUM_PREDICT_CONTINUACAO
-
-        mock_session = MagicMock()
-        mock_session_class.return_value = mock_session
-        linhas_stream = [
-            json.dumps({"message": {"content": "ok"}, "done": True, "eval_count": 12}).encode("utf-8"),
-        ]
-        mock_response = MagicMock(status_code=200)
-        mock_response.iter_lines.return_value = iter(linhas_stream)
-        mock_session.post.return_value = mock_response
-        mock_session.get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {"models": [{"name": "modelo-teste"}]}
-        )
-
-        cliente = OllamaClient(model="modelo-teste")
-        metricas = {}
-        list(cliente.continuar_com_resultado_ferramenta_stream(
-            historico=[{"role": "system", "content": "sistema"}],
-            tool_call={"name": "listar_arquivos", "arguments": {}},
-            resultado="A pasta está vazia.",
-            tools=[FERRAMENTA_EDITAR_PLANILHA],
-            metricas_saida=metricas,
-        ))
-
-        payload_enviado = mock_session.post.call_args.kwargs["json"]
-        self.assertEqual(payload_enviado["options"]["num_predict"], OLLAMA_NUM_PREDICT_CONTINUACAO)
-        self.assertEqual(metricas["tokens_gerados"], 12)
-
 
 class TestEncadeamentoPropagaTokens(unittest.TestCase):
     """Testa que core/tool_chaining.py repassa tokens_gerados da chamada de
@@ -2081,7 +1447,7 @@ class TestLlamaClientErros(unittest.TestCase):
 
 
 class TestLlamaClientCompatibilidade(unittest.TestCase):
-    """Testa métodos de compatibilidade com OllamaClient."""
+    """Testa métodos de compatibilidade da interface do cliente."""
 
     @patch('backend.core.llama_client.requests.Session')
     def test_chat_com_tools_stream_compativel(self, mock_session_class):
@@ -3064,10 +2430,9 @@ class TestPreCheckContexto(unittest.TestCase):
         return MariaTask(999, "PreCheck", "Teste", mensagem)
 
     def test_prompt_gigante_bloqueado_sem_retry(self):
-        from backend.core.ollama_client import OllamaClient
         from backend.benchmark.runners.maria_runner import MariaRunner
 
-        class ClienteConta(OllamaClient):
+        class ClienteConta:
             def __init__(self):
                 self.model = "m"
                 self.chamadas = 0
@@ -3087,10 +2452,9 @@ class TestPreCheckContexto(unittest.TestCase):
         )
 
     def test_prompt_normal_e_enviado(self):
-        from backend.core.ollama_client import OllamaClient
         from backend.benchmark.runners.maria_runner import MariaRunner
 
-        class ClienteNormal(OllamaClient):
+        class ClienteNormal:
             def __init__(self):
                 self.model = "m"
                 self.chamadas = 0
@@ -3107,11 +2471,10 @@ class TestPreCheckContexto(unittest.TestCase):
         self.assertEqual(cliente.chamadas, 1)
 
     def test_callback_de_continuacao_usa_timeout_por_chamada(self):
-        from backend.core.ollama_client import OllamaClient
         from backend.benchmark.runners import maria_runner as modulo
         from backend.benchmark.runners.maria_runner import MariaRunner
 
-        class ClienteLeitura(OllamaClient):
+        class ClienteLeitura:
             def __init__(self):
                 self.model = "m"
 
