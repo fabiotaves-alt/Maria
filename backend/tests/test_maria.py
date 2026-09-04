@@ -278,7 +278,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
                 runtime_ok=False,
                 final_message="Houve um problema.",
                 latency_ms=200.0,
-                errors=[{"kind": "OllamaClientError", "message": "Falha"}],
+                errors=[{"kind": "LlamaClientError", "message": "Falha"}],
                 raw_tool_args={},
                 language_ok=False,
             ),
@@ -288,7 +288,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
 
         self.assertEqual(metrics.total_tasks, 2)
         self.assertAlmostEqual(metrics.language_compliance_rate, 0.5)
-        self.assertEqual(metrics.error_distribution.get("OllamaClientError"), 1)
+        self.assertEqual(metrics.error_distribution.get("LlamaClientError"), 1)
 
     def test_calculate_maria_metrics_includes_avg_tokens_per_second(self):
         results = [
@@ -322,7 +322,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
                 runtime_ok=False,
                 final_message="Erro.",
                 latency_ms=200.0,
-                errors=[{"kind": "OllamaClientError", "message": "Falha"}],
+                errors=[{"kind": "LlamaClientError", "message": "Falha"}],
                 raw_tool_args={},
                 language_ok=False,
                 tokens_gerados=80,
@@ -2532,7 +2532,7 @@ class TestAlertaNaoDisparaParaBlob(unittest.TestCase):
         buf = io.StringIO()
         with patch("backend.benchmark.run_benchmark._obter_metadados_modelo", return_value=metadados), \
              patch("backend.benchmark.run_benchmark._contar_tokens_exatos", return_value=820), \
-             patch("backend.benchmark.run_benchmark.OllamaClient", return_value=FakeClient()):
+             patch("backend.benchmark.run_benchmark.LlamaClient", return_value=FakeClient()):
             with redirect_stdout(buf):
                 meta = _warmup_model()
 
@@ -2826,7 +2826,7 @@ class TestContextoOk(unittest.TestCase):
 
     def test_runner_detecta_erro_de_contexto(self):
         from unittest.mock import patch as _patch
-        from backend.benchmark.runners.maria_runner import MariaRunner, OllamaClientError
+        from backend.benchmark.runners.maria_runner import MariaRunner, LlamaClientError
         from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteErroContexto:
@@ -2834,7 +2834,7 @@ class TestContextoOk(unittest.TestCase):
 
             def chat_com_tools_stream_com_metricas(self, **kwargs):
                 # Mesma classe que o runner captura (import de core.llama_client).
-                raise OllamaClientError(
+                raise LlamaClientError(
                     "Prompt token count 5000 exceeds the available context size 4096"
                 )
 
@@ -2847,19 +2847,19 @@ class TestContextoOk(unittest.TestCase):
 
         self.assertFalse(resultado.contexto_ok)
         self.assertTrue(
-            any(e.get("kind") == "OllamaClientError" for e in resultado.errors)
+            any(e.get("kind") == "LlamaClientError" for e in resultado.errors)
         )
 
     def test_runner_erro_generico_mantem_contexto_ok(self):
         from unittest.mock import patch as _patch
-        from backend.benchmark.runners.maria_runner import MariaRunner, OllamaClientError
+        from backend.benchmark.runners.maria_runner import MariaRunner, LlamaClientError
         from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteErroRede:
             model = "modelo-teste"
 
             def chat_com_tools_stream_com_metricas(self, **kwargs):
-                raise OllamaClientError("Falha de conexao com o llama-server")
+                raise LlamaClientError("Falha de conexao com o llama-server")
 
         task = MariaTask(
             9108, "Erro rede", "desc", "Crie uma planilha.",
@@ -2870,7 +2870,7 @@ class TestContextoOk(unittest.TestCase):
 
         self.assertTrue(resultado.contexto_ok)
         self.assertTrue(
-            any(e.get("kind") == "OllamaClientError" for e in resultado.errors)
+            any(e.get("kind") == "LlamaClientError" for e in resultado.errors)
         )
 
 
@@ -2939,7 +2939,7 @@ class TestWarmupCtxSize(unittest.TestCase):
         buf = io.StringIO()
         with patch("backend.benchmark.run_benchmark._obter_metadados_modelo", return_value=metadados), \
              patch("backend.benchmark.run_benchmark._contar_tokens_exatos", side_effect=contar_tokens), \
-             patch("backend.benchmark.run_benchmark.OllamaClient", return_value=FakeClient()):
+             patch("backend.benchmark.run_benchmark.LlamaClient", return_value=FakeClient()):
             with redirect_stdout(buf):
                 meta = run_benchmark._warmup_model()
         return meta, buf.getvalue()
@@ -3083,7 +3083,7 @@ class TestPreCheckContexto(unittest.TestCase):
         self.assertFalse(resultado.contexto_ok)
         self.assertEqual(cliente.chamadas, 0)  # nunca chegou a enviar
         self.assertTrue(
-            any(e.get("kind") == "OllamaClientError" for e in resultado.errors)
+            any(e.get("kind") == "LlamaClientError" for e in resultado.errors)
         )
 
     def test_prompt_normal_e_enviado(self):

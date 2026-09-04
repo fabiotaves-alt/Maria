@@ -19,8 +19,8 @@ from core.chat_session import ChatSession, interpretar_confirmacao
 from core.config import LLAMA_NUM_CTX
 from core.llama_client import (
     LlamaClient,
-    LlamaClientError as OllamaClientError,
-    LlamaTimeoutError as OllamaTimeoutError,
+    LlamaClientError,
+    LlamaTimeoutError,
     _montar_mensagens_com_reforco,
     montar_sampler_params,
 )
@@ -213,15 +213,15 @@ class MariaRunner:
             errors.append({"kind": type(error).__name__, "message": str(error)})
             if not resposta_textual.strip():
                 resposta_textual = f"[ERRO] {error}"
-        except OllamaClientError as error:
+        except LlamaClientError as error:
             erro_str = str(error)
             # Detecta estouro de contexto do llama-server (prompt > ctx_size).
             if _eh_erro_de_contexto(erro_str):
                 contexto_ok = False
                 logger.error("ERRO DE CONTEXTO na tarefa %s: %s", task.id, error)
             else:
-                logger.error("Erro do Ollama na tarefa %s: %s", task.id, error)
-            errors.append({"kind": "OllamaClientError", "message": erro_str})
+                logger.error("Erro do Llama na tarefa %s: %s", task.id, error)
+            errors.append({"kind": "LlamaClientError", "message": erro_str})
         except Exception as error:
             logger.exception("Erro inesperado na tarefa %s", task.id)
             errors.append({"kind": "InternalError", "message": str(error)})
@@ -382,7 +382,7 @@ class MariaRunner:
 
         Estimativa calibrada no warmup (fator medido via /tokenize) com margem
         de MARGEM_RESERVA_RESPOSTA (30% do contexto) reservada à resposta do
-        modelo. Levanta OllamaClientError com marcador de contexto — o run()
+        modelo. Levanta LlamaClientError com marcador de contexto — o run()
         classifica contexto_ok=False e o retry é pulado (estouro de contexto é
         determinístico: tentar de novo não resolve).
         """
@@ -391,7 +391,7 @@ class MariaRunner:
         limite = int(self.ctx_size * (1 - MARGEM_RESERVA_RESPOSTA))
         if prompt_tokens > limite:
             reserva = int(self.ctx_size * MARGEM_RESERVA_RESPOSTA)
-            raise OllamaClientError(
+            raise LlamaClientError(
                 f"Prompt de ~{prompt_tokens} tokens excede o contexto disponivel "
                 f"de {self.ctx_size} tokens (margem de reserva: {reserva}). "
                 f"Reduza o system prompt ou aumente --ctx-size do servidor."
@@ -433,9 +433,9 @@ class MariaRunner:
                         tool_call_final = tool_chunk
                 self._verificar_timeout_por_chamada(inicio_tentativa)
                 return resposta_textual, tool_call_final, 0, 0.0, None, prompt_enviado
-            except OllamaTimeoutError:
+            except LlamaTimeoutError:
                 raise
-            except OllamaClientError as error:
+            except LlamaClientError as error:
                 # Estouro de contexto é determinístico: retry não resolve.
                 if _eh_erro_de_contexto(str(error)):
                     raise

@@ -39,8 +39,8 @@ _requests = requests
 
 from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, LLAMA_NUM_CTX, MARIA_SYSTEM_PROMPT
 from core.llama_client import (
-    LlamaClient as OllamaClient,
-    LlamaClientError as OllamaClientError,
+    LlamaClient,
+    LlamaClientError,
     montar_sampler_params,
 )  # noqa: E402
 
@@ -354,13 +354,13 @@ def _warmup_model() -> dict:
 
     # --- WARMUP ---
     try:
-        cliente_warmup = OllamaClient(timeout=BENCHMARK_WARMUP_TIMEOUT)
+        cliente_warmup = LlamaClient(timeout=BENCHMARK_WARMUP_TIMEOUT)
         resposta = cliente_warmup.enviar_mensagem(
             mensagens=[{"role": "user", "content": "Responda apenas com a palavra ok."}],
             tools=None,
             stream=False,
         )
-    except OllamaClientError as error:
+    except LlamaClientError as error:
         raise SystemExit(
             "Falha no warmup do modelo: não foi possível obter resposta do llama-server.\n"
             f"Detalhes: {error}\n"
