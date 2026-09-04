@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.12  
+**Versão Atual:** v4.1.13  
 **Última alteração:** 2026-09-03  
 
 ---
@@ -37,6 +37,7 @@
 | **4.1.10** | 2026-09-03 | Divisão de `backend/main.py` em módulos especializados: lógica de negócio em `backend/core/maria_controller.py` e transporte/protocolo bridge em `backend/bridge/` — sem alteração de comportamento (re-exports mantêm compatibilidade com testes) | ✅ Concluída |
 | **4.1.11** | 2026-09-03 | Autocorreção de tool calls inválidas de escrita (schema: campos obrigatórios, tipo de `colunas`, sanitização de `nome_arquivo`) via `validar_e_corrigir_tool_call_stream` com retry + temperatura elevada (0.25); fix de 5 testes pré-existentes; **180 testes passando** | ✅ Concluída |
 | **4.1.12** | 2026-09-03 | Benchmark: relatório/log com ID do modelo (sem "Nome") e linha de resumo `rep X/Y` por execução, com descrição de erro em falhas | ✅ Concluída |
+| **4.1.13** | 2026-09-03 | Análise e correção de 7 bugs no backend (bridge, session_storage, excel_handler, config); documentação do router para integração futura; relatório `docs/analise_backend.md` | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -89,6 +90,11 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.13 — Análise e correção de 7 bugs no backend + doc do router (2026-09-03)
+- **7 bugs corrigidos** na camada bridge e utilitários: `carregar_sessao` (dict acessado como objeto), `criar_automacao` (NOT NULL violado), `listar_automacoes`/`toggle_automacao` (coluna errada `ativa`×`ativo`), `exportar_conversa` (função inexistente — agora implementada em `session_storage.py`), `ler_planilha_resumo` (`\n` literal), `OLLAMA_MODEL` (espaço inválido), `listar_memoria` (sem `id`).
+- **Documentação**: `core/router.py` com seção `STATUS ATUAL / INTEGRAÇÃO FUTURA` (passos para ativação quando o roteamento multi-modelo for integrado). Novo relatório `docs/analise_backend.md` com análise completa (bugs, riscos, oportunidades, segurança).
+- **Testes**: 180/180 passando + 33 subtests; sem regressões.
 
 ### 4.1.12 — Benchmark: ID do modelo no relatório/log + resumo por execução (2026-09-03)
 - **Relatório sem "Nome"**: seção Modelo do `report.md` passa a exibir apenas **ID modelo** (antiga "ID real") e Quantização — a linha "Nome" foi removida; fallback sem `/v1/models` exibe "ID modelo | Não detectado".

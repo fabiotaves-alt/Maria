@@ -210,7 +210,7 @@ def ler_planilha_resumo(caminho: str) -> str:
             for i, linha in enumerate(amostra_dados, 1):
                 resumo.append(f"  Linha {i}: {linha}")
         
-        return "\\n".join(resumo)
+        return "\n".join(resumo)
         
     except FileNotFoundError:
         raise

@@ -283,10 +283,24 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
 
     elif comando == "carregar_sessao":
         nome = payload.get("nome", "")
-        from backend.core.session_storage import carregar_sessao
+        if not nome:
+            return "erro", None, "Campo 'nome' vazio."
+        from backend.core.session_storage import carregar_sessao, listar_sessoes_salvas
         try:
-            sessao = carregar_sessao(nome)
-            mensagens = [{"role": m["role"], "conteudo": m["content"]} for m in sessao.historico]
+            # Aceita nome_arquivo (ex.: 'sessao_....json') ou caminho completo.
+            caminho = nome
+            if not os.path.isabs(caminho) and not Path(caminho).exists():
+                for info in listar_sessoes_salvas():
+                    if info["nome_arquivo"] == nome:
+                        caminho = info["caminho"]
+                        break
+
+            dados = carregar_sessao(caminho)
+            historico = dados.get("historico", []) if isinstance(dados, dict) else []
+            mensagens = [
+                {"role": m.get("role"), "conteudo": m.get("content", m.get("conteudo", ""))}
+                for m in historico
+            ]
             return "ok", mensagens, None
         except Exception as error:
             logger.error(f"Erro ao carregar sessão: {error}")
@@ -315,10 +329,10 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT fato, categoria, relevancia FROM memoria ORDER BY criado_em DESC")
+            cursor.execute("SELECT id, fato, categoria, relevancia FROM memoria ORDER BY criado_em DESC")
             rows = cursor.fetchall()
             memorias = [
-                {"fato": row["fato"], "categoria": row["categoria"], "relevancia": row["relevancia"]}
+                {"id": row["id"], "fato": row["fato"], "categoria": row["categoria"], "relevancia": row["relevancia"]}
                 for row in rows
             ]
             return "ok", memorias, None
@@ -356,14 +370,15 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
         descricao = payload.get("descricao", "")
         passos = payload.get("passos", [])
         gatilho = payload.get("gatilho", "")
+        acao = payload.get("acao", "")  # schema exige NOT NULL; pode evoluir para derivar de 'passos'
         if not nome:
             return "erro", None, "Campo 'nome' vazio."
         try:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT OR REPLACE INTO automacoes (nome, descricao, passos_json, gatilho) VALUES (?, ?, ?, ?)",
-                (nome, descricao, json.dumps(passos), gatilho),
+                "INSERT OR REPLACE INTO automacoes (nome, descricao, gatilho, acao, passos_json) VALUES (?, ?, ?, ?, ?)",
+                (nome, descricao, gatilho, acao, json.dumps(passos)),
             )
             conn.commit()
             return "ok", "automação criada", None
@@ -376,7 +391,7 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT id, nome, descricao, passos_json, gatilho, ativa, criado_em FROM automacoes ORDER BY criado_em DESC"
+                "SELECT id, nome, descricao, passos_json, gatilho, ativo, criado_em FROM automacoes ORDER BY criado_em DESC"
             )
             colunas = ["id", "nome", "descricao", "passos", "gatilho", "ativa", "criado_em"]
             automacoes = [dict(zip(colunas, linha)) for linha in cursor.fetchall()]
@@ -406,9 +421,9 @@ def _despachar_comando(controller: "MariaController", comando: str, payload: dic
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE automacoes SET ativa = NOT ativa WHERE id = ?", (automacao_id,))
+            cursor.execute("UPDATE automacoes SET ativo = NOT ativo WHERE id = ?", (automacao_id,))
             conn.commit()
-            cursor.execute("SELECT ativa FROM automacoes WHERE id = ?", (automacao_id,))
+            cursor.execute("SELECT ativo FROM automacoes WHERE id = ?", (automacao_id,))
             resultado = cursor.fetchone()
             return "ok", {"ativa": bool(resultado[0]) if resultado else False}, None
         except Exception as error:

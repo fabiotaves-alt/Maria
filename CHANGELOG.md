@@ -2,6 +2,31 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.13] — Análise e correção de 7 bugs no backend + doc do router — 2026-09-03
+
+### 🐛 Bugs corrigidos no bridge e utilitários
+
+- **`backend/bridge/comandos.py`**:
+  - `carregar_sessao`: resolvia nome via `listar_sessoes_salvas()` + acesso a `dados["historico"]` (antes: dict acessado como objeto → `AttributeError`, e filename em vez de caminho).
+  - `criar_automacao`: INSERT agora inclui coluna `acao` (NOT NULL no schema); era omitida → `IntegrityError`.
+  - `listar_automacoes` / `toggle_automacao`: SQL corrigido para coluna `ativo` (antes: `ativa`, inexistente no schema → `OperationalError`).
+  - `listar_memoria`: retorna `id` no SELECT/resposta (antes: `deletar_memoria` exigia `id`, mas `listar_memoria` não devolvia).
+- **`backend/core/session_storage.py`**: implementada `exportar_sessao()` (exporta `.txt`/`.json`); comando `exportar_conversa` usava função inexistente → `ImportError`.
+- **`backend/core/excel_handler.py`**: `ler_planilha_resumo` corrigido: `"\\n".join()` → `"\n".join()` (antes unia com `\n` literal).
+- **`backend/core/config.py`**: `OLLAMA_MODEL` padrão corrigido: `"qwen2.5:3b omni"` → `"qwen2.5:3b"` (espaço inválido em tag de modelo Ollama).
+
+### 📋 Documentação
+
+- **`backend/core/router.py`**: docstring ampliada com seção `STATUS ATUAL / INTEGRAÇÃO FUTURA` (módulo mantido, não integrado; passos para ativação documentados).
+- **`docs/analise_backend.md`**: novo relatório com análise completa (7 bugs, riscos, oportunidades, segurança).
+
+### ✅ Verificação
+
+- **180 testes passando** (`pytest backend/tests/test_maria.py -q`) + 33 subtests; sem regressões.
+- `py_compile` sem erros em todos os arquivos alterados.
+
+---
+
 ## [4.1.12] — Benchmark: ID do modelo no relatório/log + linha de resumo por execução — 2026-09-03
 
 ### 🛠️ Alterações no benchmark

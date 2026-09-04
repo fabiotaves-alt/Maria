@@ -181,4 +181,9 @@ htmlcov/
 # ============== 15. Segurança ============== 
 # Token da API bridge HTTP (regenerado a cada inicialização do backend) 
 shared/.bridge_token
+frontend-tauri/shared/.bridge_token
+
+# ============== 16. Benchmark & Artefatos Gerados ==============
+backend/benchmark/results/arquivos_gerados_benchmark/
+backend/benchmark/results/run_*/arquivos_gerados/
 

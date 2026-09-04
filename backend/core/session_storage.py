@@ -8,6 +8,7 @@ import os
 import json
 import glob
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -117,3 +118,43 @@ def carregar_sessao(caminho: str) -> dict:
             return json.load(arquivo)
     except json.JSONDecodeError as error:
         raise ValueError(f"Sessão corrompida ou em formato inválido: '{caminho}'.") from error
+
+
+def exportar_sessao(sessao, formato: str = "txt") -> str:
+    """
+    Exporta o conteúdo de uma sessão (ChatSession ou dict) para um arquivo
+    .txt (legível) ou .json (estruturado) na pasta de sessões salvas.
+
+    Args:
+        sessao: instância de ChatSession (ou dict resultado de to_dict()).
+        formato: "txt" (padrão) ou "json".
+
+    Returns:
+        Caminho absoluto do arquivo exportado.
+    """
+    dados = sessao.to_dict() if hasattr(sessao, "to_dict") else sessao
+    historico = dados.get("historico", []) if isinstance(dados, dict) else []
+
+    pasta = garantir_pasta_sessoes()
+    carimbo = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    if formato == "json":
+        caminho = os.path.join(pasta, f"export_{carimbo}.json")
+        with open(caminho, "w", encoding="utf-8") as arquivo:
+            json.dump(dados, arquivo, ensure_ascii=False, indent=2)
+        return caminho
+
+    # txt (padrão)
+    rotulos = {"user": "Usuário", "assistant": "MARIA", "system": "Sistema"}
+    linhas = []
+    for msg in historico:
+        if not isinstance(msg, dict):
+            continue
+        role = msg.get("role", "?")
+        content = msg.get("content", msg.get("conteudo", ""))
+        linhas.append(f"[{rotulos.get(role, role)}]\n{content}\n")
+
+    caminho = os.path.join(pasta, f"export_{carimbo}.txt")
+    with open(caminho, "w", encoding="utf-8") as arquivo:
+        arquivo.write("\n".join(linhas))
+    return caminho

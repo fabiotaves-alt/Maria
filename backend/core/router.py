@@ -5,6 +5,33 @@ Implementa arquitetura MoE (Mixture of Experts) local:
 - Tarefas simples (conversa, resumo curto) → Qwen 2.5 Omni 3B (rápido)
 - Tarefas complexas (relatórios, análise profunda, código) → Llama 3.2 8B (potente)
 - Visão/áudio → Qwen 2.5 Omni 3B (multimodal)
+
+STATUS ATUAL / INTEGRAÇÃO FUTURA
+================================
+Este módulo está preservado intencionalmente, porém ainda NÃO está integrado
+ao fluxo de execução do backend. Nenhum módulo importa ``ModelRouter``,
+``get_router`` ou ``route_message`` atualmente.
+
+Como integrar (quando o roteamento multi-modelo for ativado):
+
+1. Resolver a inconsistência de nomenclatura com ``core/config.py``. Os rótulos
+   atuais ("Llama 3.2 8B" / "Qwen 2.5 Omni 3B") não correspondem às chaves de
+   configuração (``LLAMA_MODEL`` / ``OLLAMA_MODEL``). Sugere-se mapear os
+   literais ``'qwen3b'`` / ``'llama8b'`` para os nomes reais configurados.
+
+2. Instanciar o router em ``MariaController.inicializar()`` e usar
+   ``route_message()`` para escolher o cliente/modelo antes de chamar
+   ``LlamaClient`` ou ``OllamaClient`` (hoje o controller usa apenas
+   ``LlamaClient``).
+
+3. Decidir como o frontend expõe o modelo escolhido (ex.: campo
+   ``modelo_usado`` na resposta do bridge), alinhando com
+   ``ModelRouter.get_model_info()``.
+
+4. Adicionar testes unitários para ``_calculate_complexity_score`` e ``route``.
+
+Enquanto não integrado, manter este arquivo em sincronia com qualquer mudança
+nos nomes/tags de modelo em ``core/config.py`` para evitar rotas incorretas.
 """
 
 import re
