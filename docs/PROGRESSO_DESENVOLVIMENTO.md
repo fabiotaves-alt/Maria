@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.11  
+**Versão Atual:** v4.1.12  
 **Última alteração:** 2026-09-03  
 
 ---
@@ -36,6 +36,7 @@
 | **4.1.7** | 2026-09-02 | Verificação de contexto real (warmup + pre-check por tarefa), timeout por chamada (120s), contagem exata do system prompt via /tokenize com calibração e num_ctx adaptativo | ✅ Concluída |
 | **4.1.10** | 2026-09-03 | Divisão de `backend/main.py` em módulos especializados: lógica de negócio em `backend/core/maria_controller.py` e transporte/protocolo bridge em `backend/bridge/` — sem alteração de comportamento (re-exports mantêm compatibilidade com testes) | ✅ Concluída |
 | **4.1.11** | 2026-09-03 | Autocorreção de tool calls inválidas de escrita (schema: campos obrigatórios, tipo de `colunas`, sanitização de `nome_arquivo`) via `validar_e_corrigir_tool_call_stream` com retry + temperatura elevada (0.25); fix de 5 testes pré-existentes; **180 testes passando** | ✅ Concluída |
+| **4.1.12** | 2026-09-03 | Benchmark: relatório/log com ID do modelo (sem "Nome") e linha de resumo `rep X/Y` por execução, com descrição de erro em falhas | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -82,11 +83,18 @@
 - [x] Normalização no benchmark: chaves de argumentos em minúsculas, `nome_arquivo` com/sem extensão equivalente, listas como conjuntos e keyword match sem falsos negativos por acento
 - [x] Metadados do modelo como fonte única de verdade: warmup aborta sem `/v1/models`, relatório exibe apenas dados reais (sem coluna "Configurado"), `log.json` v2.0 com hash do system prompt e métrica `contexto_ok` para estouro de contexto
 - [x] Verificação de contexto em camadas: warmup valida ctx real + system prompt (contagem exata via `/tokenize` com calibração), runner faz pre-check por tarefa sem retry inútil, timeout por chamada (120s) separado do timeout total (400s) e `num_ctx` adaptativo no `LlamaClient`
+- [x] Benchmark: relatório/log com "ID modelo" (sem "Nome") e linha de resumo `rep X/Y` por execução (com descrição de erro)
 - [ ] Cobertura formal de código (`pytest-cov`)
 
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.12 — Benchmark: ID do modelo no relatório/log + resumo por execução (2026-09-03)
+- **Relatório sem "Nome"**: seção Modelo do `report.md` passa a exibir apenas **ID modelo** (antiga "ID real") e Quantização — a linha "Nome" foi removida; fallback sem `/v1/models` exibe "ID modelo | Não detectado".
+- **`log.json`**: `meta` remove `modelo_nome_exibicao` e renomeia `modelo_id_real` → `id_modelo`.
+- **Detalhes por execução**: cada bloco ganha a linha `rep X/Y: ✓/✗ tool=... args=OK|DIVERGENTE latência=...s tokens=...` (X/Y = repetição/total da tarefa), com ` — erro: ...` (via `_diagnosticar_falha`) quando a execução falha.
+- **Testes**: 175/175 passando (`pytest -k "not TestSegurancaApiHttp"`) + 33 subtests; sem regressões.
 
 ### 4.1.11 — Autocorreção de tool calls inválidas (2026-09-03)
 - **Validação de schema ANTES da confirmação**: `validar_e_corrigir_tool_call_stream` (`backend/core/tool_chaining.py`) valida tool calls de escrita (`FERRAMENTAS_ESCRITA`) contra `validar_argumentos_obrigatorios` (estendida: `colunas` deve ser lista, `nome_arquivo` sanitizado) — **sem** verificar existência de arquivo em disco (não introduzir conflito com tarefas 21–23 do benchmark).
@@ -154,4 +162,4 @@
 ### 4.1.0 — RAG do Manual de Redação da Presidência (2026-08-30)
 - Ferramenta `consultar_manual_redacao` via SQLite **FTS5** (255 trechos ingeridos).
 - Unificação de aviso/memorando sob o padrão **ofício** no domínio.
-- Encadeamento automático antes da criação de documentos oficiais.
+- Encadeamento automático antes da criação de documentos oficiais.

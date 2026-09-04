@@ -447,8 +447,7 @@ def main() -> int:
 
     log_final = {
         "meta": {
-            "modelo_id_real": (metadados_modelo or {}).get("id"),
-            "modelo_nome_exibicao": (metadados_modelo or {}).get("nome_exibicao"),
+            "id_modelo": (metadados_modelo or {}).get("id"),
             "modelo_quantizacao": (metadados_modelo or {}).get("quantizacao"),
             "data_execucao": datetime.now().isoformat(),
             "total_tarefas": len(tasks),

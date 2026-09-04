@@ -2,6 +2,25 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.12] — Benchmark: ID do modelo no relatório/log + linha de resumo por execução — 2026-09-03
+
+### 🛠️ Alterações no benchmark
+
+- **`backend/benchmark/analysis/report.py`**:
+  - Seção **Modelo** enxuta: removida a linha "Nome"; a identificação passou a ser apenas **ID modelo** (antiga "ID real"). Quantização e demais dados reais (Parâmetros, n_ctx, Tamanho) preservados. Fallback sem `/v1/models` também exibe "ID modelo | Não detectado".
+  - Novos helpers `_execucao_falhou()` (mesmo critério do bloco "Tarefas com falha") e `_formatar_linha_resumo()`.
+  - Seção **Detalhes por execução**: cada bloco agora exibe, logo após o título, a linha `rep X/Y: ✓/✗ tool=... args=OK|DIVERGENTE latência=...s tokens=...`; quando a execução falha, anexa ` — erro: <descrição>` via `_diagnosticar_falha`.
+- **`backend/benchmark/run_benchmark.py`**:
+  - `log.json` → `meta`: removido `modelo_nome_exibicao`; `modelo_id_real` renomeado para `id_modelo`.
+
+### ✅ Verificação
+
+- `python -m py_compile` sem erros em `report.py` e `run_benchmark.py`.
+- **175 testes passando** (`pytest backend/tests/test_maria.py -k "not TestSegurancaApiHttp"`) + 33 subtests; sem regressões nas asserções de relatório existentes.
+- Geração manual do `report.md` confirmou `| ID modelo | ... |`, `rep 1/2: ✓ tool=— args=OK latência=56.0s tokens=35` e erro descrito em execuções com falha.
+
+---
+
 ## [4.1.11] — Autocorreção de tool calls inválidas + fix de testes pré-existentes — 2026-09-03
 
 ### 🛠️ Nova funcionalidade: autocorreção de tool calls de escrita
