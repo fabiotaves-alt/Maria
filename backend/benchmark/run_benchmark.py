@@ -77,7 +77,7 @@ def _select_tasks(tasks, args):
 
 def _parece_caminho_local(id_modelo: str) -> bool:
     """Retorna True quando o id do modelo parece um caminho de arquivo local
-    (blob do Ollama, caminho com separadores, ou extensão .gguf)."""
+    (blob do modelo, caminho com separadores, ou extensão .gguf)."""
     if not id_modelo:
         return False
     return (

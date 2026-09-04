@@ -1853,7 +1853,7 @@ class TestDerivarRotuloModelo(unittest.TestCase):
 class TestPareceCaminhoLocal(unittest.TestCase):
     """Testa a detecção de caminhos locais/blobs."""
 
-    def test_blob_ollama(self):
+    def test_blob_local(self):
         from backend.benchmark.run_benchmark import _parece_caminho_local
         self.assertTrue(_parece_caminho_local("C:\\blob\\sha256-2bada8a"))
 

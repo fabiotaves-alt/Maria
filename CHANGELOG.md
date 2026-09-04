@@ -2,6 +2,25 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.17] — Benchmark: contrato de cliente (Liskov), fixtures e limpeza de Ollama — 2026-09-03
+
+### 🏗️ Design e refatoração
+
+- **`backend/core/client_protocol.py` (novo)**: `LLMClientProtocol` (typing.Protocol) define o contrato estrutural do cliente LLM; `MariaRunner` e `tool_chaining` passam a tipar `cliente` contra ele (princípio de Liskov, sem herança).
+- **`MariaTask.fixtures` (novo)**: campo estruturado que substitui o regex de `_garantir_planilha_existente`; as tarefas de edição passam a declarar `fixtures=[...]` (mantendo `context` para o modelo).
+- **`run_benchmark.py`**: `dataclasses.asdict` no lugar de `__dict__`; `calculate_maria_metrics` computada uma única vez (antes ~6 chamadas).
+
+### 🧹 Limpeza final de Ollama
+
+- Docstring de `_parece_caminho_local` atualizada ("blob do Ollama" → "blob do modelo"); teste `test_blob_ollama` renomeado para `test_blob_local`.
+- `docs/ARQUITETURA_SISTEMA.md` e `README.md` atualizados: removidas as referências ao módulo `ollama_client.py` (tabela, diagrama e seção de modelo). Ollama permanece citado apenas como histórico em `CHANGELOG.md`/`PROGRESSO_DESENVOLVIMENTO.md`.
+
+### ✅ Verificação
+
+- **157 testes passando** + 33 subtests; `py_compile` sem erros; zero referências ativas a "Ollama".
+
+---
+
 ## [4.1.16] — Benchmark: correção do compare_runs e dedup de config — 2026-09-03
 
 ### 🐛 Correções

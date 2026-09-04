@@ -310,7 +310,6 @@ maria/
 │   │   ├── config.py              ← fonte da verdade: modelos, URLs, parâmetros
 │   │   ├── maria_controller.py    ← controller: cliente LLM, sessão, ferramentas, persistência
 │   │   ├── llama_client.py        ← cliente llama-server (produção)
-│   │   ├── ollama_client.py       ← cliente Ollama (legado/opcional)
 │   │   ├── chat_session.py        ← histórico e prompt de sistema
 │   │   ├── session_storage.py     ← persistência de sessões
 │   │   ├── tools_schema.py        ← definição e execução das ferramentas

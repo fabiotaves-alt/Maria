@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.16  
+**Versão Atual:** v4.1.17  
 **Última alteração:** 2026-09-03  
 
 ---
@@ -41,6 +41,7 @@
 | **4.1.14** | 2026-09-03 | Refatoração estrutural: CommandRegistry no bridge, confirmação extraída (`confirmacao.py`), paths centralizados (`paths.py`), alias corrigido e documentação de modelos (3b/7b; Ollama legado) | ✅ Concluída |
 | **4.1.15** | 2026-09-03 | Remoção do cliente legado Ollama (`ollama_client.py`), constantes `OLLAMA_*` e aliases; test doubles migrados para fakes; `kind` do log.json → `LlamaClientError` | ✅ Concluída |
 | **4.1.16** | 2026-09-03 | Benchmark: correção do `compare_runs` (p50/p90 em ms + 4 métricas novas) e remoção de linha duplicada em `benchmark_config` | ✅ Concluída |
+| **4.1.17** | 2026-09-03 | Benchmark: contrato de cliente (Protocol/Liskov), fixtures estruturadas, `asdict`/métricas 1× e limpeza final de Ollama nos docs | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -93,6 +94,12 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.17 — Benchmark: contrato de cliente, fixtures e limpeza de Ollama (2026-09-03)
+- **Protocol de cliente**: `client_protocol.py` (`LLMClientProtocol`) tipa `MariaRunner`/`tool_chaining` (Liskov).
+- **Fixtures estruturadas**: `MariaTask.fixtures` substitui o regex de fixture; `asdict` + métricas 1× em `run_benchmark.py`.
+- **Ollama removido dos docs ativos**: `ARQUITETURA_SISTEMA.md` e `README.md` sem `ollama_client.py` (mantido só no histórico).
+- **Testes**: 157/157 + 33 subtests.
 
 ### 4.1.16 — Benchmark: correção do compare_runs e dedup de config (2026-09-03)
 - **compare_runs**: p50/p90 agora exibidos em ms (antes ×100/"pp"); formatação por tipo de métrica com tratamento de `None`.

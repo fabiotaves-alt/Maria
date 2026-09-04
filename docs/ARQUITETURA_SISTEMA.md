@@ -4,7 +4,7 @@
 **Última atualização:** 2026-09-03
 **Status:** ✅ Estável (Frontend Tauri v2 + React, Backend Python bridge HTTP/Sidecar, SQLite FTS5)
 
-Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo o modelo LLM configurado (`qwen2.5-omni-3b` via llama-server como padrão em produção; `qwen3.5:4b` via Ollama mantido como caminho legado/opcional) e a estrutura implementada no monorepo. Consulte `backend/core/config.py` como fonte da verdade para configurações de modelo.
+Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo o modelo LLM configurado (`qwen2.5-omni-3b` via llama-server como padrão em produção) e a estrutura implementada no monorepo. Consulte `backend/core/config.py` como fonte da verdade para configurações de modelo.
 
 ---
 
@@ -39,10 +39,10 @@ Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo 
 │  - conversas                        │           Shared Database            │  Qwen2.5-Omni   │
 │  - mensagens (ON DELETE CASCADE)    │             (WAL mode)               │  3B — Q4_K_M    │
 │  - memoria (fatos RAG)              │                                      └─────────────────┘
-│  - arquivos_indexados               │                                      ┌─────────────────┐
-│  - automacoes                       │                                      │ Ollama (legado) │
-│  - configuracoes                    │                                      │ qwen3.5:4b      │
-│  - manual_redacao_fts (FTS5)        │                                      └─────────────────┘
+│  - arquivos_indexados               │
+│  - automacoes                       │
+│  - configuracoes                    │
+│  - manual_redacao_fts (FTS5)        │
 └─────────────────────────────────────┘
 ```
 
@@ -98,7 +98,6 @@ Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo 
 | `bridge/comandos.py` | Protocolo de comandos compartilhado entre os dois transportes (`_despachar_comando`, `_responder_bridge`, `_get_system_status` — métricas de CPU/RAM/GPU) |
 | `core/maria_controller.py` | Lógica de negócio (`MariaController`): cliente LLM, sessão de chat, ferramentas e persistência de sessão |
 | `core/llama_client.py` | Cliente llama-server (produção) |
-| `core/ollama_client.py` | Cliente Ollama (legado/opcional) |
 | `core/chat_session.py` | Histórico de contexto e prompt de sistema |
 | `core/session_storage.py` | Persistência e retomada de sessões |
 | `core/tools_schema.py` | Definição e execução das ferramentas (tool calling) |
@@ -182,6 +181,5 @@ Definido no arquivo [`shared/schema.sql`](../shared/schema.sql):
 ## Nota sobre Modelos LLM
 
 - **Modelo padrão em produção:** `qwen2.5-omni-3b` via **llama-server** (`backend/core/llama_client.py`).
-- **Modelo legado/opcional:** `qwen3.5:4b` via **Ollama** (`backend/core/ollama_client.py`) — mantido como caminho alternativo.
-- **Fonte da verdade:** `backend/core/config.py` — as constantes `LLAMA_MODEL` e `OLLAMA_MODEL` controlam a configuração.
+- **Fonte da verdade:** `backend/core/config.py` — a constante `LLAMA_MODEL` controla a configuração.
 
