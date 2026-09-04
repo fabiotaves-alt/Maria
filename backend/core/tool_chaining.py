@@ -148,6 +148,16 @@ def validar_e_corrigir_tool_call_stream(cliente: LLMClientProtocol, historico_co
             return
         except ValueError as erro:
             tentativas += 1
+            erro_str = str(erro)
+            # Auto-sanitização silenciosa de path traversal: em vez de devolver
+            # o erro ao modelo (que responde com texto em vez de corrigir),
+            # corrige o nome_arquivo e retenta a validação imediatamente.
+            if "path traversal" in erro_str.lower() and "nome_arquivo" in tool_call_atual.get("arguments", {}):
+                from backend.core.tools_schema import _sanitizar_nome_seguro
+                tool_call_atual["arguments"]["nome_arquivo"] = _sanitizar_nome_seguro(
+                    tool_call_atual["arguments"]["nome_arquivo"]
+                )
+                continue
             feedback = f"Erro na chamada da ferramenta: {erro}"
             logger.warning(
                 "Tool call inválida (tentativa %s/%s): %s",
