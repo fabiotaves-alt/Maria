@@ -24,6 +24,7 @@ class MariaTask:
     confirm_sequence: list[str] = field(default_factory=list)
     expected_final_message: str | None = None
     context: list[dict] = field(default_factory=list)
+    fixtures: list[str] = field(default_factory=list)
     category: MariaTaskCategory = MariaTaskCategory.CONVERSA
     tools_aceitos: list[str | None] | None = None
     expected_args_subset: dict | None = None

@@ -1,7 +1,6 @@
 """Runner que executa uma MariaTask usando o código real da MARIA."""
 import logging
 import os
-import re
 import shutil
 import sys
 import time
@@ -342,27 +341,20 @@ class MariaRunner:
 
     @staticmethod
     def _garantir_planilha_existente(task: MariaTask) -> None:
-        """Cria fixtures declaradas pelo contexto da tarefa, se necessário."""
-        match = re.search(r"planilha\s+([^\s]+)\.xlsx\s+já foi criada", " ".join(
-            message["content"] for message in task.context
-        ), re.IGNORECASE)
-        if not match:
-            return
+        """Cria as fixtures declaradas em `task.fixtures`, se necessário."""
+        for nome_arquivo in task.fixtures:
+            if nome_arquivo.endswith(".xlsx"):
+                nome_arquivo = nome_arquivo[:-5]
 
-        # Extrair nome do arquivo sem extensão para evitar duplicação
-        nome_arquivo = match.group(1)
-        if nome_arquivo.endswith('.xlsx'):
-            nome_arquivo = nome_arquivo[:-5]
-        
-        caminho = os.path.join(BENCHMARK_ARQUIVOS_DIR, nome_arquivo + ".xlsx")
-        if os.path.exists(caminho):
-            return
+            caminho = os.path.join(BENCHMARK_ARQUIVOS_DIR, nome_arquivo + ".xlsx")
+            if os.path.exists(caminho):
+                continue
 
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = "Dados"
-        worksheet.cell(row=1, column=1, value="Fixture do benchmark")
-        workbook.save(caminho)
+            workbook = Workbook()
+            worksheet = workbook.active
+            worksheet.title = "Dados"
+            worksheet.cell(row=1, column=1, value="Fixture do benchmark")
+            workbook.save(caminho)
 
     @staticmethod
     def _verificar_timeout_por_chamada(inicio_tentativa: float) -> None:

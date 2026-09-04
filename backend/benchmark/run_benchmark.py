@@ -6,6 +6,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from dataclasses import asdict
 
 from .analysis.metrics import calculate_maria_metrics, aggregate_by_task
 from .analysis.report import generate_report, extrair_texto_system, mascarar_system_prompt
@@ -466,30 +467,32 @@ def main() -> int:
         },
         "individual": [
             {
-                **r.__dict__,
+                **asdict(r),
                 "prompt_enviado": mascarar_system_prompt(r.prompt_enviado) if r.prompt_enviado else None,
             }
             for r in resultados_individuais_todas_tarefas
         ],
-        "agregado_por_tarefa": [a.__dict__ for a in agregados_todas_tarefas],
+        "agregado_por_tarefa": [asdict(a) for a in agregados_todas_tarefas],
     }
     log_path = os.path.join(run_dir, "log.json")
     with open(log_path, "w", encoding="utf-8") as log_file:
         json.dump(log_final, log_file, ensure_ascii=False, indent=2)
 
+    metricas_finais = calculate_maria_metrics(resultados_individuais_todas_tarefas)
+
     generate_report(resultados_individuais_todas_tarefas,
-                    calculate_maria_metrics(resultados_individuais_todas_tarefas),
+                    metricas_finais,
                     run_dir,
                     metadados_modelo=metadados_modelo,
                     sampler_params=montar_sampler_params(),
                     log_final=log_final)
 
     print("\nResumo")
-    print(f"Tarefas: {calculate_maria_metrics(resultados_individuais_todas_tarefas).total_tasks}")
-    print(f"Tool accuracy: {calculate_maria_metrics(resultados_individuais_todas_tarefas).tool_accuracy * 100:.1f}%")
-    print(f"Confirmação: {calculate_maria_metrics(resultados_individuais_todas_tarefas).confirmation_success_rate * 100:.1f}%")
-    print(f"Runtime: {calculate_maria_metrics(resultados_individuais_todas_tarefas).runtime_success_rate * 100:.1f}%")
-    print(f"Latência média: {calculate_maria_metrics(resultados_individuais_todas_tarefas).avg_latency_ms:.1f} ms")
+    print(f"Tarefas: {metricas_finais.total_tasks}")
+    print(f"Tool accuracy: {metricas_finais.tool_accuracy * 100:.1f}%")
+    print(f"Confirmação: {metricas_finais.confirmation_success_rate * 100:.1f}%")
+    print(f"Runtime: {metricas_finais.runtime_success_rate * 100:.1f}%")
+    print(f"Latência média: {metricas_finais.avg_latency_ms:.1f} ms")
     print(f"Relatório: {os.path.join(run_dir, 'report.md')}")
     return 0
 
