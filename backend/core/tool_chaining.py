@@ -22,11 +22,12 @@ from backend.core.tools_schema import (
     executar_ferramenta_leitura,
     validar_argumentos_obrigatorios,
 )
+from backend.core.client_protocol import LLMClientProtocol
 
 logger = logging.getLogger(__name__)
 
 
-def encadear_leitura_stream(cliente, historico_com_system, tool_call_inicial, tools, apos_cada_chamada=None):
+def encadear_leitura_stream(cliente: LLMClientProtocol, historico_com_system, tool_call_inicial, tools, apos_cada_chamada=None):
     """
     Generator que encadeia ferramentas de leitura a partir de uma tool call
     já obtida (`tool_call_inicial`), reenviando o resultado ao modelo via
@@ -106,7 +107,7 @@ def encadear_leitura_stream(cliente, historico_com_system, tool_call_inicial, to
 FERRAMENTAS_ESCRITA = {"criar_planilha", "criar_documento", "editar_planilha"}
 
 
-def validar_e_corrigir_tool_call_stream(cliente, historico_com_system, tool_call_atual, tools, apos_cada_chamada=None):
+def validar_e_corrigir_tool_call_stream(cliente: LLMClientProtocol, historico_com_system, tool_call_atual, tools, apos_cada_chamada=None):
     """
     Generator que valida uma tool call de ESCRITA contra o schema (campos
     obrigatórios, tipos, sanitização de nome_arquivo) ANTES da confirmação do

@@ -24,6 +24,7 @@ from core.llama_client import (
     _montar_mensagens_com_reforco,
     montar_sampler_params,
 )
+from core.client_protocol import LLMClientProtocol
 from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real, FERRAMENTAS_LEITURA
 from core.tool_chaining import encadear_leitura_stream, validar_e_corrigir_tool_call_stream, FERRAMENTAS_ESCRITA
 
@@ -64,7 +65,7 @@ class MariaRunner:
 
     def __init__(
         self,
-        cliente: LlamaClient | None = None,
+        cliente: LLMClientProtocol | None = None,
         num_predict: int | None = None,
         modelo_carregado: str | None = None,
         ctx_size: int | None = None,
