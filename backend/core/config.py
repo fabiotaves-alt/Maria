@@ -64,7 +64,12 @@ MAX_TENTATIVAS_CORRECAO_FERRAMENTA = int(os.getenv("MAX_TENTATIVAS_CORRECAO_FERR
 # permite configurar (via ENV) e auditar (benchmark) cada valor. O servidor
 # ignora campos desconhecidos com warning, então o payload permanece seguro.
 LLAMA_REPEAT_LAST_N = int(os.getenv("LLAMA_REPEAT_LAST_N", "64"))
-LLAMA_REPEAT_PENALTY = float(os.getenv("LLAMA_REPEAT_PENALTY", "1.0"))
+# Penalidade de repetição de tokens. 1.1 (antes 1.0 = desativada): com 1.0,
+# temperature 0.1 e sem DRY, modelos pequenos entravam em loop degenerado de
+# "\n" (run_20260904_131134, task 15: 600 tokens de "\n", finish_reason=length,
+# 250s desperdiçados). 1.1 é o default clássico do llama.cpp para chat.
+# Reversível via ENV se afetar tool calls: LLAMA_REPEAT_PENALTY=1.0.
+LLAMA_REPEAT_PENALTY = float(os.getenv("LLAMA_REPEAT_PENALTY", "1.1"))
 LLAMA_FREQUENCY_PENALTY = float(os.getenv("LLAMA_FREQUENCY_PENALTY", "0.0"))
 LLAMA_PRESENCE_PENALTY = float(os.getenv("LLAMA_PRESENCE_PENALTY", "0.0"))
 LLAMA_DRY_MULTIPLIER = float(os.getenv("LLAMA_DRY_MULTIPLIER", "0.0"))

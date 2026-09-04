@@ -104,6 +104,7 @@ class MariaRunner:
         contexto_ok = True
         correction_attempts = 0
         finish_reason: str | None = None
+        degeneracao_detectada = False
 
         try:
             (
@@ -111,6 +112,7 @@ class MariaRunner:
                 tokens_por_segundo, ttft_ms, prompt_enviado, extras,
             ) = self._enviar_com_retry(sessao, task)
             finish_reason = (extras or {}).get("finish_reason")
+            degeneracao_detectada = bool((extras or {}).get("degeneracao_detectada"))
             resposta_bruta_modelo = resposta_textual
             if time.monotonic() - inicio > BENCHMARK_TASK_TIMEOUT:
                 raise TimeoutError(
@@ -264,6 +266,18 @@ class MariaRunner:
             nomes = "|".join(re.escape(nome) for nome in POSITIONAL_MAP)
             if re.search(rf"\b({nomes})\s*[:(]", resposta_bruta_modelo):
                 parse_suspeito = True
+
+        # Motivo de falha por geração degenerada (loop de repetição): aparece
+        # na seção "Tarefas com falha" do relatório em vez de erro genérico.
+        if degeneracao_detectada:
+            errors.append({
+                "kind": "DegenerateGeneration",
+                "message": (
+                    "Geração degenerada detectada: repetição excessiva de um "
+                    "mesmo caractere; stream interrompido para evitar desperdício "
+                    "de tokens."
+                ),
+            })
 
         return MariaTaskResult(
             task_id=task.id,

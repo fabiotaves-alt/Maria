@@ -113,6 +113,20 @@ def _sugere_composicao_de_documento(mensagem_usuario: str) -> bool:
     return any(palavra in texto for palavra in _PALAVRAS_COMPOSICAO_DOCUMENTO)
 
 
+def _detectar_degeneracao(texto: str, minimo: int = 100) -> bool:
+    """
+    Detecta loop de geração degenerado: texto terminando com `minimo` ou mais
+    repetições idênticas do mesmo caractere (ex.: '\\n' x 600 na task 15 do
+    run_20260904_131134). Modelos pequenos com temperature baixa e sem
+    penalidade de repetição podem entrar nesse loop e consumir todo o
+    orçamento de tokens sem gerar conteúdo útil.
+    """
+    if len(texto) < minimo:
+        return False
+    ultimo = texto[-1]
+    return texto[-minimo:] == ultimo * minimo
+
+
 def _montar_mensagens_com_reforco(historico: list[dict] | None, mensagem_usuario: str) -> list[dict]:
     """
     Monta a lista de mensagens garantindo uma ÚNICA mensagem role="system".
@@ -506,6 +520,8 @@ class LlamaClient:
         tool_call_final: dict | None = None
         eval_count = 0
         t_primeiro_token: float | None = None
+        degeneracao_detectada = False
+        finish_reason_final: str | None = None
 
         # Acumuladores para tool call em streaming (delta)
         tc_nome_acumulado = ""
@@ -547,6 +563,14 @@ class LlamaClient:
                         t_primeiro_token = time.monotonic() - inicio
                     conteudo_acumulado += chunk
                     eval_count += 1
+                    if _detectar_degeneracao(conteudo_acumulado):
+                        logger.warning(
+                            "Geração degenerada detectada (repetição de %r): stream interrompido.",
+                            conteudo_acumulado[-1],
+                        )
+                        degeneracao_detectada = True
+                        finish_reason_final = "degenerate"
+                        break
                     yield chunk, None
 
                 # Métricas via usage (último chunk)
@@ -566,13 +590,17 @@ class LlamaClient:
                 "Tempo limite excedido durante o streaming da resposta."
             )
 
-        tool_call_final = self._resolver_tool_call_final(
-            tc_detectada_via_delta,
-            tc_nome_acumulado,
-            tc_args_acumulado,
-            conteudo_acumulado,
-            contexto_log=" streaming",
-        )
+        if degeneracao_detectada:
+            # Saída degenerada (ex.: "\\n" x 600): não extrair tool call do lixo.
+            tool_call_final = None
+        else:
+            tool_call_final = self._resolver_tool_call_final(
+                tc_detectada_via_delta,
+                tc_nome_acumulado,
+                tc_args_acumulado,
+                conteudo_acumulado,
+                contexto_log=" streaming",
+            )
 
         if metricas_saida is not None:
             duracao = time.monotonic() - inicio
@@ -580,6 +608,7 @@ class LlamaClient:
             metricas_saida["ttft"] = round(t_primeiro_token, 3) if t_primeiro_token is not None else None
             metricas_saida["tokens_por_segundo"] = round(eval_count / duracao, 1) if duracao > 0 else 0.0
             metricas_saida["finish_reason"] = finish_reason_final
+            metricas_saida["degeneracao_detectada"] = degeneracao_detectada
 
         yield None, tool_call_final
 
@@ -647,6 +676,7 @@ class LlamaClient:
 
         if extras_saida is not None:
             extras_saida["finish_reason"] = metricas.get("finish_reason")
+            extras_saida["degeneracao_detectada"] = metricas.get("degeneracao_detectada", False)
 
         return texto_final, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms
 

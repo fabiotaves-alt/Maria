@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.18  
+**Versão Atual:** v4.1.19  
 **Última alteração:** 2026-09-04  
 
 ---
@@ -43,6 +43,7 @@
 | **4.1.16** | 2026-09-03 | Benchmark: correção do `compare_runs` (p50/p90 em ms + 4 métricas novas) e remoção de linha duplicada em `benchmark_config` | ✅ Concluída |
 | **4.1.17** | 2026-09-03 | Benchmark: contrato de cliente (Protocol/Liskov), fixtures estruturadas, `asdict`/métricas 1× e limpeza final de Ollama nos docs | ✅ Concluída |
 | **4.1.18** | 2026-09-04 | Benchmark: parser textual robusto (scan balanceado, whitelist, reparo de truncamento), métricas honestas (confirmação elegível + parse_suspeito + finish_reason), timeouts/tokens ajustados (300s/600), system prompt determinístico (~375 tokens) e relatório `docs/RELATORIO_BENCHMARK_DIAGNOSTICO.md`; **169 testes passando** | ✅ Concluída |
+| **4.1.19** | 2026-09-04 | Auto-sanitização de path traversal (tasks 21-25 destravadas) + proteção contra geração degenerada (`repeat_penalty` 1.1, abort precoce em stream, supressão de tool call degenerada com motivo de falha visível no relatório); **178 testes passando** | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---

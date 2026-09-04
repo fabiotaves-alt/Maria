@@ -48,7 +48,7 @@ Todos os parâmetros de sampler são enviados explicitamente no payload das cham
 | Variável | Default | Descrição |
 |---|---|---|
 | `LLAMA_REPEAT_LAST_N` | `64` | Quantos tokens recentes considerar na penalidade de repetição |
-| `LLAMA_REPEAT_PENALTY` | `1.0` | Penalidade de repetição de tokens |
+| `LLAMA_REPEAT_PENALTY` | `1.1` | Penalidade de repetição de tokens (1.0 desativa; 1.1 evita loops degenerados, ex.: `\n` × 600) |
 | `LLAMA_FREQUENCY_PENALTY` | `0.0` | Penalidade por frequência |
 | `LLAMA_PRESENCE_PENALTY` | `0.0` | Penalidade por presença |
 | `LLAMA_DRY_MULTIPLIER` | `0.0` | Multiplicador do sampler DRY |

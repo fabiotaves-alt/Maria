@@ -2,6 +2,28 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.19] — Benchmark: auto-sanitização de path traversal e proteção contra geração degenerada — 2026-09-04
+
+### 🐛 Correções (tasks 21–25 e task 15)
+
+- **Auto-sanitização de path traversal** (`tools_schema.py`, `tool_chaining.py`): nova função `_sanitizar_nome_seguro` (limpa caracteres inseguros silenciosamente, sem exceção). Em `executar_ferramenta_real` o nome é corrigido ANTES da validação, e em `validar_e_corrigir_tool_call_stream` um `ValueError` de path traversal corrige `nome_arquivo` e retenta imediatamente em vez de devolver o erro ao modelo (que respondia com texto em vez de corrigir). Nomes como `../../teste_seguro` viram `teste_seguro` — destrava tasks 21–25. O validador isolado continua rejeitando (teste de segurança preservado). Tasks 24/25: 0/3 → **3/3**.
+- **System prompt**: reforço na regra "Quando NÃO chamar ferramenta" — sem certeza absoluta de que o arquivo existe (mencionado antes na conversa), responder em texto. Destrava task 21 (0/3 → 3/3).
+
+### 🛡️ Proteção contra geração degenerada (task 15: 600 tokens de `\n`)
+
+Diagnóstico do run `run_20260904_131134` (task 15, reps 2-3): modelo entrou em loop de `\n`, consumiu os 600 tokens do orçamento (`finish_reason=length`), 250s por execução — porque `repeat_penalty=1.0` (desativada), `dry_multiplier=0.0` e `temperature=0.1`.
+
+- **`core/config.py`**: `LLAMA_REPEAT_PENALTY` default 1.0 → **1.1** (causa raiz; default clássico do llama.cpp; reversível via ENV).
+- **`core/llama_client.py`**: `_detectar_degeneracao` (≥100 caracteres idênticos no fim do texto) + abort precoce em `chat_stream` — corta o stream em ~45s em vez de ~250s e **suprime a tool call** (não extrai tool call de saída degenerada, evita documento lixo). Flag `degeneracao_detectada` exposta em `metricas_saida`/`extras_saida`. Bug latente corrigido: `finish_reason_final` não era inicializado em `chat_stream`.
+- **`benchmark/runners/maria_runner.py`**: degeneração vira erro descritivo `DegenerateGeneration` em `errors[]` — o **motivo da falha aparece** na seção "Tarefas com falha" do relatório (falha honesta, sem documento lixo contado como sucesso).
+
+### ✅ Verificação
+
+- **178 testes passando** (169 + 9 novos: detecção de degeneração, abort em stream, runner→erro descritivo, sanitização silenciosa) + 33 subtests.
+- Resultados empíricos: task 21 0/3→3/3, tasks 24/25 0/3→3/3; 7B tool accuracy 65,3% (baseline) → 84,0% (095749) → 92,0% (131134).
+
+---
+
 ## [4.1.18] — Benchmark: parser textual robusto, métricas honestas e system prompt determinístico — 2026-09-04
 
 ### 🐛 Correções (o problema não era o modelo)

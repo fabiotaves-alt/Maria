@@ -1504,6 +1504,90 @@ class TestLlamaClientErros(unittest.TestCase):
         with self.assertRaises(LlamaTimeoutError):
             cliente.chat([{"role": "user", "content": "oi"}])
 
+class TestDeteccaoDegeneracao(unittest.TestCase):
+    """Testa a detecção de loop degenerado de geração (ex.: '\\n' x 600)."""
+
+    def test_repeticao_de_newlines_detectada(self):
+        from backend.core.llama_client import _detectar_degeneracao
+        self.assertTrue(_detectar_degeneracao("texto: " + "\n" * 100))
+
+    def test_texto_normal_nao_detectado(self):
+        from backend.core.llama_client import _detectar_degeneracao
+        self.assertFalse(_detectar_degeneracao('criar_planilha: ["gastos", ["Data", "Valor"]]'))
+
+    def test_texto_abaixo_do_limiar_nao_detectado(self):
+        from backend.core.llama_client import _detectar_degeneracao
+        self.assertFalse(_detectar_degeneracao("\n" * 99))
+
+
+class TestChatStreamDegeneracao(unittest.TestCase):
+    """Testa o abort precoce de geração degenerada em chat_stream."""
+
+    @patch('backend.core.llama_client.requests.Session')
+    def test_chat_stream_interrompe_em_degeneracao(self, mock_session_class):
+        from backend.core.llama_client import LlamaClient
+
+        mock_session = MagicMock()
+        mock_session_class.return_value = mock_session
+        mock_session.get.return_value = MagicMock(status_code=200)
+
+        # Reproduz a task 15 (run_20260904_131134): prefixo válido seguido de
+        # newlines infinitos — o stream nunca envia finish_reason do servidor.
+        linhas = [
+            b'data: ' + json.dumps({"choices": [{"delta": {"content": 'criar_documento: ["ata", "Ata", "exemplo: '}, "finish_reason": None}]}).encode(),
+        ]
+        for _ in range(5):
+            linhas.append(b'data: ' + json.dumps({"choices": [{"delta": {"content": "\n" * 50}, "finish_reason": None}]}).encode())
+
+        mock_response = MagicMock(status_code=200)
+        mock_response.iter_lines.return_value = iter(linhas)
+        mock_session.post.return_value = mock_response
+
+        cliente = LlamaClient()
+        metricas = {}
+        chunks = list(cliente.chat_stream([{"role": "user", "content": "oi"}], metricas_saida=metricas))
+
+        # Abortou cedo: não consumiu os 250 newlines disponíveis
+        textos = "".join(c for c, _ in chunks if c is not None)
+        self.assertLess(textos.count("\n"), 100)
+
+        # Sem tool call extraída do lixo; último yield é (None, None)
+        ultimo_chunk, ultimo_tool = chunks[-1]
+        self.assertIsNone(ultimo_chunk)
+        self.assertIsNone(ultimo_tool)
+
+        # Diagnóstico disponível nas métricas
+        self.assertTrue(metricas["degeneracao_detectada"])
+        self.assertEqual(metricas["finish_reason"], "degenerate")
+
+
+class TestMariaRunnerDegeneracao(unittest.TestCase):
+    """Testa que geração degenerada vira erro descritivo no resultado."""
+
+    def test_degeneracao_gera_erro_descritivo(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmark.tasks.task_schema import MariaTask
+
+        class ClienteDegenerado:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                extras = kwargs.get("extras_saida")
+                if extras is not None:
+                    extras["finish_reason"] = "degenerate"
+                    extras["degeneracao_detectada"] = True
+                return ("\n" * 120, None, 120, 2.0, 1.0)
+
+        runner = MariaRunner(cliente=ClienteDegenerado())
+        task = MariaTask(1, "Teste degeneração", "desc", "Crie um documento de ata com título Ata e conteúdo completo sobre uma reunião.")
+        resultado = runner.run(task)
+
+        kinds = [e["kind"] for e in resultado.errors]
+        self.assertIn("DegenerateGeneration", kinds)
+        self.assertFalse(resultado.runtime_ok)
+        self.assertEqual(resultado.finish_reason, "degenerate")
+
+
 class TestToolCallTextualParser(unittest.TestCase):
     """Testa o parser de tool call textual (formato posicional do Qwen).
 
@@ -2153,7 +2237,7 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
             LLAMA_XTC_PROBABILITY, LLAMA_XTC_THRESHOLD,
         )
         self.assertEqual(LLAMA_REPEAT_LAST_N, 64)
-        self.assertEqual(LLAMA_REPEAT_PENALTY, 1.0)
+        self.assertEqual(LLAMA_REPEAT_PENALTY, 1.1)  # era 1.0: desativada (ver config.py)
         self.assertEqual(LLAMA_FREQUENCY_PENALTY, 0.0)
         self.assertEqual(LLAMA_PRESENCE_PENALTY, 0.0)
         self.assertEqual(LLAMA_DRY_MULTIPLIER, 0.0)
