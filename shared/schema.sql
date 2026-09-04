@@ -82,10 +82,11 @@ CREATE TABLE IF NOT EXISTS configuracoes (
 );
 
 -- Configurações padrão iniciais
+-- Modelos em teste: qwen2.5-omni-3b (leve) e qwen2.5-omni-7b (pesado).
 INSERT OR IGNORE INTO configuracoes (chave, valor, descricao)
 VALUES 
     ('tema_escuro', 'true', 'Usar tema escuro na interface'),
-    ('modelo_ollama', 'qwen3.5:4b', 'Modelo padrão do Ollama'),
+    ('modelo_llama', 'qwen2.5-omni-3b', 'Modelo padrão do llama-server'),
     ('idioma', 'pt-BR', 'Idioma da interface'),
     ('notificacoes_som', 'true', 'Emitir sons de notificação');
 

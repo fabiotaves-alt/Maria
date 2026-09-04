@@ -13,11 +13,10 @@ from pathlib import Path
 
 from backend.core.config import MARIA_ENV
 from backend.core.maria_controller import MariaController
+from backend.core.paths import RAIZ_MONOREPO
 from backend.bridge.comandos import _despachar_comando, _responder_bridge
 
 logger = logging.getLogger(__name__)
-
-_RAIZ_MONOREPO = str(Path(__file__).resolve().parent.parent.parent)
 
 
 def _modo_bridge(modelo: str | None = None):
@@ -81,7 +80,7 @@ def _carregar_token_api() -> str:
     chamada (ver `call_python_backend` em main.rs), portanto não é
     necessário nenhum mecanismo adicional de sincronização.
     """
-    caminho = Path(_RAIZ_MONOREPO) / "frontend-tauri" / "shared" / ".bridge_token"
+    caminho = Path(RAIZ_MONOREPO) / "frontend-tauri" / "shared" / ".bridge_token"
     token = secrets.token_hex(32)
     caminho.parent.mkdir(parents=True, exist_ok=True)
 

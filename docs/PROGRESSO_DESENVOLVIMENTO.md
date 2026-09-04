@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.13  
+**Versão Atual:** v4.1.14  
 **Última alteração:** 2026-09-03  
 
 ---
@@ -38,6 +38,7 @@
 | **4.1.11** | 2026-09-03 | Autocorreção de tool calls inválidas de escrita (schema: campos obrigatórios, tipo de `colunas`, sanitização de `nome_arquivo`) via `validar_e_corrigir_tool_call_stream` com retry + temperatura elevada (0.25); fix de 5 testes pré-existentes; **180 testes passando** | ✅ Concluída |
 | **4.1.12** | 2026-09-03 | Benchmark: relatório/log com ID do modelo (sem "Nome") e linha de resumo `rep X/Y` por execução, com descrição de erro em falhas | ✅ Concluída |
 | **4.1.13** | 2026-09-03 | Análise e correção de 7 bugs no backend (bridge, session_storage, excel_handler, config); documentação do router para integração futura; relatório `docs/analise_backend.md` | ✅ Concluída |
+| **4.1.14** | 2026-09-03 | Refatoração estrutural: CommandRegistry no bridge, confirmação extraída (`confirmacao.py`), paths centralizados (`paths.py`), alias corrigido e documentação de modelos (3b/7b; Ollama legado) | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -90,6 +91,14 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.14 — Refatoração estrutural do backend (2026-09-03)
+- **CommandRegistry**: `_despachar_comando` virou registro (`_COMANDOS`) com um handler `_cmd_*` por comando.
+- **Confirmação extraída**: `core/confirmacao.py` (`ConfirmacaoAcao` + `interpretar_confirmacao`); `ChatSession` delega mantendo compatibilidade.
+- **Caminhos centralizados**: `core/paths.py` (`RAIZ_MONOREPO`).
+- **Alias corrigido**: `LlamaClient as OllamaClient` → `LlamaClient` (controller e runner).
+- **Documentação de modelos**: Ollama = legado; modelos ativos `qwen2.5-omni-3b`/`qwen2.5-omni-7b`; schema `configuracoes` unificado (drift corrigido).
+- **Testes**: 180/180 + 33 subtests; smoke test do bridge OK.
 
 ### 4.1.13 — Análise e correção de 7 bugs no backend + doc do router (2026-09-03)
 - **7 bugs corrigidos** na camada bridge e utilitários: `carregar_sessao` (dict acessado como objeto), `criar_automacao` (NOT NULL violado), `listar_automacoes`/`toggle_automacao` (coluna errada `ativa`×`ativo`), `exportar_conversa` (função inexistente — agora implementada em `session_storage.py`), `ler_planilha_resumo` (`\n` literal), `OLLAMA_MODEL` (espaço inválido), `listar_memoria` (sem `id`).

@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 
 from backend.core.config import MAX_MENSAGENS_HISTORICO
-from backend.core.llama_client import LlamaClient as OllamaClient
+from backend.core.llama_client import LlamaClient
 from backend.core.chat_session import ChatSession, interpretar_confirmacao
 from backend.core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real
 from backend.core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
@@ -25,7 +25,7 @@ class MariaController:
     """
 
     def __init__(self, modelo: str | None = None):
-        self.cliente: OllamaClient | None = None  # type: ignore[valid-type]
+        self.cliente: LlamaClient | None = None
         self.sessao: ChatSession | None = None
         self.nome_sessao: str = ""
         self._tool_call_final = None
@@ -36,7 +36,7 @@ class MariaController:
 
     def inicializar(self):
         """Cria cliente, sessão e define nome do arquivo de persistência."""
-        self.cliente = OllamaClient(model=self.modelo) if self.modelo else OllamaClient()  # LlamaClient
+        self.cliente = LlamaClient(model=self.modelo) if self.modelo else LlamaClient()
         self.sessao = ChatSession(max_mensagens=MAX_MENSAGENS_HISTORICO)
         self.nome_sessao = self._gerar_nome_sessao()
         self._tool_call_final = None

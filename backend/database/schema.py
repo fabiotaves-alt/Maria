@@ -115,7 +115,8 @@ def init_db():
         )
     """)
     
-    # Inserir configurações padrão
+    # Inserir configurações padrão (manter em sincronia com shared/schema.sql;
+    # modelos em teste: qwen2.5-omni-3b leve / qwen2.5-omni-7b pesado).
     cursor.execute("""
         INSERT OR IGNORE INTO configuracoes (chave, valor, descricao)
         VALUES 

@@ -4,77 +4,8 @@ Responsável por manter o histórico da conversa e limitar o número de mensagen
 para evitar degradação de performance.
 """
 
-import unicodedata
-
 from backend.core.config import MARIA_SYSTEM_PROMPT
-
-
-def interpretar_confirmacao(texto: str) -> bool | None:
-    """
-    Interpreta a resposta do usuário a um pedido de confirmação.
-
-    Args:
-        texto: Texto da resposta do usuário
-
-    Returns:
-        True se afirmativa (ex: "sim", "pode", "confirmo", "ok", "vai", "isso")
-        False se negativa (ex: "não", "nao", "cancela", "para", "esquece")
-        None se ambígua/não reconhecida
-    """
-    # Normalizar texto: lowercase, remover acentos e pontuação
-    texto_normalizado = texto.lower().strip()
-    
-    # Remover acentos
-    texto_normalizado = unicodedata.normalize('NFD', texto_normalizado)
-    texto_normalizado = ''.join(c for c in texto_normalizado if unicodedata.category(c) != 'Mn')
-    
-    # Remover pontuação
-    texto_normalizado = ''.join(c for c in texto_normalizado if c.isalnum() or c.isspace())
-    
-    # Frases completas que devem ser verificadas primeiro (antes de palavras soltas)
-    frases_afirmativas = {"com certeza", "pois nao", "pode ser"}
-    frases_negativas = {"de jeito nenhum", "nem pensar"}
-    
-    # Verificar frases completas primeiro
-    if texto_normalizado in frases_afirmativas:
-        return True
-    if texto_normalizado in frases_negativas:
-        return False
-    
-    # Palavras-chave afirmativas (palavras únicas)
-    afirmativas = {"sim", "pode", "confirmo", "ok", "vale", "bora", "vai", "isso", 
-                   "claro", "certeza", "pois", "ser"}
-    
-    # Palavras-chave negativas (palavras únicas)
-    negativas = {"nao", "cancela", "para", "esquece", "jamais", "aborta", "desiste"}
-    
-    # Dividir em palavras
-    palavras = texto_normalizado.split()
-    
-    # Para frases com múltiplas palavras que não são frases conhecidas,
-    # verificar se contém palavras-chave fortes
-    if len(palavras) > 1:
-        # Verificar se é uma frase ambígua comum
-        if "acho" in palavras or "quero" in palavras or "ver" in palavras or "depois" in palavras:
-            return None
-        # Verificar se contém "sim" ou "nao/não" como palavra forte
-        if "sim" in palavras:
-            return True
-        if "nao" in palavras:
-            return False
-        # Caso contrário, é ambíguo
-        return None
-    
-    # Para palavras únicas, verificar diretamente
-    if len(palavras) == 1:
-        palavra = palavras[0]
-        if palavra in afirmativas:
-            return True
-        if palavra in negativas:
-            return False
-    
-    # Ambíguo/não reconhecido
-    return None
+from backend.core.confirmacao import ConfirmacaoAcao, interpretar_confirmacao
 
 
 class ChatSession:
@@ -104,9 +35,22 @@ class ChatSession:
         from backend.core.config import MAX_MENSAGENS_HISTORICO
         self.max_mensagens = max_mensagens if max_mensagens is not None else MAX_MENSAGENS_HISTORICO
         self.historico: list[dict[str, str]] = []
-        self.acao_pendente: dict | None = None
-        self.tentativas_confirmacao_ambigua: int = 0
+        self._confirmacao = ConfirmacaoAcao()
     
+    @property
+    def acao_pendente(self) -> dict | None:
+        """Ação pendente aguardando confirmação (compatibilidade)."""
+        return self._confirmacao.tool_call
+
+    @property
+    def tentativas_confirmacao_ambigua(self) -> int:
+        """Contador de respostas ambíguas consecutivas (compatibilidade)."""
+        return self._confirmacao.tentativas_ambiguas
+
+    @tentativas_confirmacao_ambigua.setter
+    def tentativas_confirmacao_ambigua(self, valor: int) -> None:
+        self._confirmacao.tentativas_ambiguas = valor
+
     def definir_acao_pendente(self, tool_call: dict) -> None:
         """
         Armazena uma ação pendente aguardando confirmação do usuário.
@@ -114,16 +58,11 @@ class ChatSession:
         Args:
             tool_call: Dicionário com 'name' e 'arguments' da tool call
         """
-        self.acao_pendente = {
-            "name": tool_call.get("name"),
-            "arguments": tool_call.get("arguments", {})
-        }
-        self.tentativas_confirmacao_ambigua = 0
+        self._confirmacao.definir(tool_call)
     
     def limpar_acao_pendente(self) -> None:
         """Limpa a ação pendente e zera o contador de ambiguidade."""
-        self.acao_pendente = None
-        self.tentativas_confirmacao_ambigua = 0
+        self._confirmacao.limpar()
     
     def tem_acao_pendente(self) -> bool:
         """
@@ -132,7 +71,7 @@ class ChatSession:
         Returns:
             True se houver ação pendente, False caso contrário
         """
-        return self.acao_pendente is not None
+        return self._confirmacao.tem()
     
     def adicionar_mensagem(self, role: str, content: str) -> None:
         """

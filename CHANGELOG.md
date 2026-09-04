@@ -2,6 +2,29 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.14] — Refatoração estrutural do backend — 2026-09-03
+
+### 🏗️ Estrutura e organização
+
+- **`backend/bridge/comandos.py`**: `_despachar_comando` convertido de um `if/elif` gigante para um **registro de comandos** (`_COMANDOS`), cada comando em seu próprio handler `_cmd_*`. Comportamento externo inalterado.
+- **`backend/core/confirmacao.py`** (novo): `ConfirmacaoAcao` (estado da ação pendente) + `interpretar_confirmacao` movido de `chat_session.py`; `ChatSession` delega e mantém `acao_pendente`/`tentativas_confirmacao_ambigua` como propriedades de compatibilidade.
+- **`backend/core/paths.py`** (novo): `RAIZ_MONOREPO` centralizado (antes recalculado em `servidores.py`/`comandos.py`).
+- **`backend/core/maria_controller.py` / `backend/benchmark/runners/maria_runner.py`**: removido alias enganoso `LlamaClient as OllamaClient` → `LlamaClient`.
+
+### 📋 Documentação de modelos
+
+- Ollama marcado como **legado** em `backend/core/config.py` (caminho não utilizado em produção).
+- Modelos em teste documentados: **`qwen2.5-omni-3b` (leve)** e **`qwen2.5-omni-7b` (pesado)** em `config.py`, `router.py` e `shared/schema.sql` / `database/schema.py`.
+- Corrigido drift de schema: seed de `configuracoes` unificado (`modelo_llama`/`qwen2.5-omni-3b`), removendo `modelo_ollama`/`qwen3.5:4b`.
+
+### ✅ Verificação
+
+- **180 testes passando** (`pytest backend/tests/test_maria.py -q`) + 33 subtests; sem regressões.
+- Smoke test do bridge (15 comandos: ping, status, memória, automações, sessões) OK.
+- `py_compile` sem erros em todos os arquivos alterados.
+
+---
+
 ## [4.1.13] — Análise e correção de 7 bugs no backend + doc do router — 2026-09-03
 
 ### 🐛 Bugs corrigidos no bridge e utilitários

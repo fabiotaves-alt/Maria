@@ -2,9 +2,9 @@
 Router para seleção dinâmica de modelos LLM baseado na complexidade da tarefa.
 
 Implementa arquitetura MoE (Mixture of Experts) local:
-- Tarefas simples (conversa, resumo curto) → Qwen 2.5 Omni 3B (rápido)
-- Tarefas complexas (relatórios, análise profunda, código) → Llama 3.2 8B (potente)
-- Visão/áudio → Qwen 2.5 Omni 3B (multimodal)
+- Tarefas simples (conversa, resumo curto) → qwen2.5-omni-3b (rápido)
+- Tarefas complexas (relatórios, análise profunda, código) → qwen2.5-omni-7b (potente)
+- Visão/áudio → qwen2.5-omni-3b (multimodal)
 
 STATUS ATUAL / INTEGRAÇÃO FUTURA
 ================================
@@ -15,9 +15,9 @@ ao fluxo de execução do backend. Nenhum módulo importa ``ModelRouter``,
 Como integrar (quando o roteamento multi-modelo for ativado):
 
 1. Resolver a inconsistência de nomenclatura com ``core/config.py``. Os rótulos
-   atuais ("Llama 3.2 8B" / "Qwen 2.5 Omni 3B") não correspondem às chaves de
-   configuração (``LLAMA_MODEL`` / ``OLLAMA_MODEL``). Sugere-se mapear os
-   literais ``'qwen3b'`` / ``'llama8b'`` para os nomes reais configurados.
+   atuais correspondem aos modelos reais ``qwen2.5-omni-3b`` (leve) e
+   ``qwen2.5-omni-7b`` (pesado); os literais internos ``'qwen3b'`` / ``'qwen7b'``
+   precisam ser mapeados para as tags reais de ``LLAMA_MODEL``.
 
 2. Instanciar o router em ``MariaController.inicializar()`` e usar
    ``route_message()`` para escolher o cliente/modelo antes de chamar
@@ -73,7 +73,7 @@ class ModelRouter:
     ]
 
     def __init__(self):
-        self.default_model: Literal['qwen3b', 'llama8b'] = 'qwen3b'
+        self.default_model: Literal['qwen3b', 'qwen7b'] = 'qwen3b'
 
     def _calculate_complexity_score(self, message: str) -> float:
         """
@@ -117,7 +117,7 @@ class ModelRouter:
         message: str,
         has_image: bool = False,
         has_audio: bool = False
-    ) -> Literal['qwen3b', 'llama8b']:
+    ) -> Literal['qwen3b', 'qwen7b']:
         """
         Decide qual modelo usar baseado na mensagem.
 
@@ -127,7 +127,7 @@ class ModelRouter:
             has_audio: True se a mensagem inclui áudio
 
         Returns:
-            'qwen3b' para tarefas leves, 'llama8b' para tarefas complexas
+            'qwen3b' para tarefas leves, 'qwen7b' para tarefas complexas
         """
         # Visão e áudio sempre usam Qwen (único multimodal)
         if has_image or has_audio:
@@ -138,21 +138,21 @@ class ModelRouter:
 
         # Threshold: acima de 0.4 usa modelo pesado
         if complexity > 0.4:
-            return 'llama8b'
+            return 'qwen7b'
 
         return 'qwen3b'
 
-    def get_model_info(self, model: Literal['qwen3b', 'llama8b']) -> dict:
+    def get_model_info(self, model: Literal['qwen3b', 'qwen7b']) -> dict:
         """Retorna informações sobre o modelo."""
         models = {
             'qwen3b': {
-                'name': 'Qwen 2.5 Omni 3B',
+                'name': 'qwen2.5-omni-3b',
                 'description': 'Modelo leve e rápido para tarefas cotidianas',
                 'use_cases': ['Conversa', 'Resumos curtos', 'Visão', 'Áudio', 'Tradução'],
                 'avg_response_time': '1-3s',
             },
-            'llama8b': {
-                'name': 'Llama 3.2 8B',
+            'qwen7b': {
+                'name': 'qwen2.5-omni-7b',
                 'description': 'Modelo potente para raciocínio complexo',
                 'use_cases': ['Relatórios', 'Análise profunda', 'Código', 'Jurídico'],
                 'avg_response_time': '5-15s',
@@ -173,13 +173,13 @@ def get_router() -> ModelRouter:
     return _router_instance
 
 
-def route_message(message: str, has_image: bool = False, has_audio: bool = False) -> Literal['qwen3b', 'llama8b']:
+def route_message(message: str, has_image: bool = False, has_audio: bool = False) -> Literal['qwen3b', 'qwen7b']:
     """
     Função utilitária para roteamento rápido.
 
     Exemplo:
         model = route_message("Preciso de um relatório jurídico detalhado")
-        # Retorna: 'llama8b'
+        # Retorna: 'qwen7b'
     """
     return get_router().route(message, has_image, has_audio)
 
@@ -191,10 +191,10 @@ if __name__ == '__main__':
     test_cases = [
         ("Oi, tudo bem?", 'qwen3b'),
         ("Preciso analisar este documento financeiro", 'qwen3b'),
-        ("Gere um relatório jurídico completo de 10 páginas com análise detalhada de todas as cláusulas contratuais", 'llama8b'),
-        ("Crie um script Python para automatizar planilhas Excel", 'llama8b'),
+        ("Gere um relatório jurídico completo de 10 páginas com análise detalhada de todas as cláusulas contratuais", 'qwen7b'),
+        ("Crie um script Python para automatizar planilhas Excel", 'qwen7b'),
         ("Traduza este texto para inglês", 'qwen3b'),
-        ("Compare os prós e contras de diferentes abordagens técnicas para implementação de sistema distribuído", 'llama8b'),
+        ("Compare os prós e contras de diferentes abordagens técnicas para implementação de sistema distribuído", 'qwen7b'),
     ]
 
     print("Testes do ModelRouter:")

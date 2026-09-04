@@ -34,7 +34,7 @@ def _carregar_system_prompt() -> str:
 
 MARIA_SYSTEM_PROMPT = _carregar_system_prompt()
 
-# Configurações do Ollama (suportam override via ENV)
+# Configurações do Ollama (LEGADO — caminho não utilizado em produção; mantido por compatibilidade)
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "240"))
@@ -66,9 +66,10 @@ OLLAMA_NUM_PREDICT_DOCUMENTO = int(os.getenv("OLLAMA_NUM_PREDICT_DOCUMENTO", "60
 # nesse ponto o modelo só precisa decidir a próxima ferramenta.
 OLLAMA_NUM_PREDICT_CONTINUACAO = int(os.getenv("OLLAMA_NUM_PREDICT_CONTINUACAO", "200"))
 
-# Configurações do llama-server / Qwen2.5-Omni (suportam override via ENV)
+# Configurações do llama-server (suportam override via ENV).
+# Modelos em teste: qwen2.5-omni-3b (leve) e qwen2.5-omni-7b (pesado).
 LLAMA_BASE_URL = os.getenv("LLAMA_BASE_URL", "http://localhost:8080")
-LLAMA_MODEL = os.getenv("LLAMA_MODEL", "qwen2.5-omni-3b")
+LLAMA_MODEL = os.getenv("LLAMA_MODEL", "qwen2.5-omni-3b")  # use "qwen2.5-omni-7b" p/ modelo pesado
 LLAMA_TIMEOUT = int(os.getenv("LLAMA_TIMEOUT", "240"))
 LLAMA_NUM_CTX = int(os.getenv("LLAMA_NUM_CTX", "4096"))
 LLAMA_NUM_PREDICT = int(os.getenv("LLAMA_NUM_PREDICT", "400"))

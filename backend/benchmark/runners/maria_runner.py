@@ -18,7 +18,7 @@ if MARIA_ROOT not in sys.path:
 from core.chat_session import ChatSession, interpretar_confirmacao
 from core.config import LLAMA_NUM_CTX
 from core.llama_client import (
-    LlamaClient as OllamaClient,
+    LlamaClient,
     LlamaClientError as OllamaClientError,
     LlamaTimeoutError as OllamaTimeoutError,
     _montar_mensagens_com_reforco,
@@ -64,12 +64,12 @@ class MariaRunner:
 
     def __init__(
         self,
-        cliente: OllamaClient | None = None,
+        cliente: LlamaClient | None = None,
         num_predict: int | None = None,
         modelo_carregado: str | None = None,
         ctx_size: int | None = None,
     ):
-        self.cliente = cliente or OllamaClient(num_predict=num_predict)
+        self.cliente = cliente or LlamaClient(num_predict=num_predict)
         # Usa o modelo efetivamente carregado no llama-server se disponível,
         # caso contrário fallback para o model do cliente ou LLAMA_MODEL.
         self.modelo_efetivo = modelo_carregado or getattr(cliente, "model", None)
