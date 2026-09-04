@@ -2,6 +2,21 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.16] — Benchmark: correção do compare_runs e dedup de config — 2026-09-03
+
+### 🐛 Correções
+
+- **`backend/benchmark/compare_runs.py`**: corrigida a formatação das métricas de latência p50/p90 (estavam sendo multiplicadas por 100 e rotuladas como "pp" em vez de "ms"). A formatação passou a ser por tipo de métrica (`*_ms` → ms, `*_rate`/`*_accuracy` → pp, `avg_tokens_por_segundo` → tok/s) e trata `None` (ex.: `avg_ttft_ms`).
+- **Métricas ausentes adicionadas** ao relatório de comparação: `language_compliance_rate`, `contexto_ok_rate`, `avg_tokens_por_segundo`, `avg_ttft_ms`.
+- **`backend/benchmark/benchmark_config.py`**: removida linha duplicada de `BENCHMARK_REPETICOES`.
+
+### ✅ Verificação
+
+- **157 testes passando** + 33 subtests; `py_compile` sem erros.
+- `generate_comparison` validado end-to-end com dois runs reais (métricas ms/pp/tok/s corretas).
+
+---
+
 ## [4.1.15] — Remoção do cliente legado Ollama — 2026-09-03
 
 ### 🧹 Remoção do legado

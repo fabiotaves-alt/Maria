@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.15  
+**Versão Atual:** v4.1.16  
 **Última alteração:** 2026-09-03  
 
 ---
@@ -40,6 +40,7 @@
 | **4.1.13** | 2026-09-03 | Análise e correção de 7 bugs no backend (bridge, session_storage, excel_handler, config); documentação do router para integração futura; relatório `docs/analise_backend.md` | ✅ Concluída |
 | **4.1.14** | 2026-09-03 | Refatoração estrutural: CommandRegistry no bridge, confirmação extraída (`confirmacao.py`), paths centralizados (`paths.py`), alias corrigido e documentação de modelos (3b/7b; Ollama legado) | ✅ Concluída |
 | **4.1.15** | 2026-09-03 | Remoção do cliente legado Ollama (`ollama_client.py`), constantes `OLLAMA_*` e aliases; test doubles migrados para fakes; `kind` do log.json → `LlamaClientError` | ✅ Concluída |
+| **4.1.16** | 2026-09-03 | Benchmark: correção do `compare_runs` (p50/p90 em ms + 4 métricas novas) e remoção de linha duplicada em `benchmark_config` | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -92,6 +93,12 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.16 — Benchmark: correção do compare_runs e dedup de config (2026-09-03)
+- **compare_runs**: p50/p90 agora exibidos em ms (antes ×100/"pp"); formatação por tipo de métrica com tratamento de `None`.
+- **Métricas adicionadas** ao `comparison.md`: language compliance, contexto ok, tokens/s, TTFT médio.
+- **benchmark_config**: linha duplicada de `BENCHMARK_REPETICOES` removida.
+- **Testes**: 157/157 + 33 subtests.
 
 ### 4.1.15 — Remoção do cliente legado Ollama (2026-09-03)
 - **`ollama_client.py` removido**; `LlamaClient` é o único cliente (fim da duplicação de ~800 linhas).
