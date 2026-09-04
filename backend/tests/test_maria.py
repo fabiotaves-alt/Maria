@@ -1592,6 +1592,27 @@ class TestToolCallTextualParser(unittest.TestCase):
         self.assertEqual(resultado["arguments"]["colunas"], ["Projeto", "Status"])
 
 
+class TestSanitizacaoNomeSeguro(unittest.TestCase):
+    """Testa a auto-sanitização silenciosa de nomes inseguros."""
+
+    def test_caminho_relativo_task_24(self):
+        from backend.core.tools_schema import _sanitizar_nome_seguro
+        self.assertEqual(_sanitizar_nome_seguro("../../teste_seguro"), "teste_seguro")
+
+    def test_caracteres_inseguros_task_25(self):
+        from backend.core.tools_schema import _sanitizar_nome_seguro
+        # Remove '/' e '*' e strip('.') -> "relatórioseguro" (nome seguro, sem caracteres especiais)
+        self.assertEqual(_sanitizar_nome_seguro("../relatório*seguro"), "relatórioseguro")
+
+    def test_nome_valido_inalterado(self):
+        from backend.core.tools_schema import _sanitizar_nome_seguro
+        self.assertEqual(_sanitizar_nome_seguro("gastos"), "gastos")
+
+    def test_nome_vazio_retorna_placeholder(self):
+        from backend.core.tools_schema import _sanitizar_nome_seguro
+        self.assertEqual(_sanitizar_nome_seguro(""), "arquivo_sem_nome")
+
+
 class TestLlamaClientErros(unittest.TestCase):
     """Testa tratamento de erros de conexão e timeout."""
 

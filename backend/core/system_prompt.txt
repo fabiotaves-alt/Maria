@@ -13,6 +13,7 @@ Regras: "colunas" é SEMPRE lista de strings; NÃO adicione explicações à cha
 - Editar planilha JÁ CRIADA na conversa: ela EXISTE, chame "editar_planilha".
 - Editar planilha NÃO mencionada antes: chame "listar_arquivos" primeiro.
 - Arquivo mencionado que NÃO EXISTE: responda em texto dizendo que o arquivo não foi encontrado.
+- Se o usuário pedir para editar/criar um arquivo e você NÃO tiver certeza absoluta de que ele existe (foi mencionado antes na conversa), NÃO chame a ferramenta — responda em texto que o arquivo não foi encontrado.
 
 ## Conteúdo de documento
 Em "criar_documento", se o usuário não deu o conteúdo completo, seja breve, coerente e razoável. Documento narrativo pode ser mais longo; demais respostas, CURTAS.

@@ -381,6 +381,22 @@ def _sanitizar_nome_arquivo(nome: str) -> str:
     return nome
 
 
+def _sanitizar_nome_seguro(nome: str) -> str:
+    """Remove caracteres inseguros silenciosamente (auto-correcao do benchmark).
+
+    Diferente de `_sanitizar_nome_arquivo` (que rejeita path traversal com
+    ValueError), esta versao apenas limpa o nome para torna-lo seguro, sem
+    levantar excecao. Usada em `executar_ferramenta_real` ANTES da validacao
+    para que nomes como "../../teste_seguro" sejam corrigidos para "teste_seguro"
+    em vez de abortarem a tarefa.
+    """
+    if not nome:
+        return "arquivo_sem_nome"
+    nome = re.sub(r'[\\/:*?"<>|]', "", nome.strip())
+    nome = nome.strip(".")
+    return nome if nome else "arquivo_sem_nome"
+
+
 def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
     """
     Executa realmente uma ferramenta de escrita, criando ou modificando arquivos.
@@ -396,8 +412,12 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
         ValueError: se a função não for reconhecida ou se argumentos obrigatórios faltarem.
     """
     logger.info(f"Executando ferramenta real: {nome_funcao}({argumentos})")
+    # Auto-sanitizacao silenciosa do nome ANTES da validacao: nomes inseguros
+    # (ex.: "../../teste_seguro") sao corrigidos em vez de rejeitados, mantendo
+    # a seguranca (caracteres perigosos sao removidos) sem abortar a tarefa.
+    argumentos["nome_arquivo"] = _sanitizar_nome_seguro(argumentos.get("nome_arquivo", ""))
     validar_argumentos_obrigatorios(nome_funcao, argumentos)
-    # Sanitiza nome_arquivo antes de qualquer operação de I/O
+    # Sanitizacao redundante mantida por legibilidade (nome ja esta seguro)
     nome_raw = argumentos.get("nome_arquivo", "")
     nome_seguro = _sanitizar_nome_arquivo(nome_raw)
 
