@@ -79,6 +79,37 @@ def mascarar_system_prompt(mensagens: list[dict]) -> list[dict]:
     return resultado
 
 
+def _execucao_falhou(result: MariaTaskResult) -> bool:
+    """True se a execução deve ser considerada falha no relatório.
+
+    Usa o mesmo critério da lista `failed` de `generate_report`.
+    """
+    return (
+        not result.tool_correct
+        or not result.runtime_ok
+        or not result.confirmation_completed
+        or not result.language_ok
+        or not result.keyword_match
+    )
+
+
+def _formatar_linha_resumo(result: MariaTaskResult, indice_rep: int, total_rep: int) -> str:
+    """Formata a linha de resumo `rep X/Y: ...` exibida em cada execução.
+
+    Se a execução falhou, anexa a descrição do erro.
+    """
+    status = "✓" if result.tool_correct else "✗"
+    linha = (
+        f"rep {indice_rep}/{total_rep}: {status} "
+        f"tool={result.tool_detected or '—'} "
+        f"args={'OK' if result.args_correct else 'DIVERGENTE'} "
+        f"latência={result.latency_ms / 1000:.1f}s tokens={result.tokens_gerados}"
+    )
+    if _execucao_falhou(result):
+        linha += f" — erro: {_diagnosticar_falha(result)}"
+    return linha
+
+
 def _montar_detalhes_execucao(results: list[MariaTaskResult]) -> str:
     """Renderiza, por execução, o prompt enviado e a resposta bruta do modelo.
 
@@ -86,6 +117,10 @@ def _montar_detalhes_execucao(results: list[MariaTaskResult]) -> str:
     (extraído da primeira execução que o contiver). Em cada bloco de execução
     individual, a mensagem role='system' é substituída pelo marcador
     'prompt do system injetado' para evitar repetição do texto completo.
+
+    Cada execução também recebe uma linha de resumo com o status da repetição
+    (rep X/Y), ferramenta detectada, validação dos argumentos, latência,
+    tokens gerados e, quando aplicável, a descrição do erro.
     """
     if not results:
         return ""
@@ -110,12 +145,29 @@ def _montar_detalhes_execucao(results: list[MariaTaskResult]) -> str:
         linhas.append("```")
         linhas.append("")
 
+    # Calcula o total de repetições por task_id para formatar "rep X/Y".
+    total_por_tarefa: dict[int, int] = {}
+    for r in results:
+        total_por_tarefa[r.task_id] = total_por_tarefa.get(r.task_id, 0) + 1
+
+    indice_por_tarefa: dict[int, int] = {}
     for idx, result in enumerate(results, start=1):
         linhas.append(
             f"### Execução {idx} — Tarefa {result.task_id}: {result.task_name} "
             f"({result.category})"
         )
         linhas.append("")
+
+        indice_por_tarefa[result.task_id] = indice_por_tarefa.get(result.task_id, 0) + 1
+        linhas.append(
+            _formatar_linha_resumo(
+                result,
+                indice_por_tarefa[result.task_id],
+                total_por_tarefa[result.task_id],
+            )
+        )
+        linhas.append("")
+
         if result.prompt_enviado:
             linhas.append("**Prompt enviado (mensagens):**")
             linhas.append("")
@@ -200,9 +252,6 @@ def generate_report(
     # Nenhuma coluna "Configurado"/fake é exibida.
     meta = metadados_modelo or {}
     if metadados_modelo:
-        modelo_nome = (
-            meta.get("nome_exibicao") or meta.get("id_exibicao") or "Desconhecido"
-        )
         modelo_id = meta.get("id") or "N/A"
         modelo_qtz = meta.get("quantizacao") or "N/A"
         linhas_modelo = [
@@ -210,9 +259,8 @@ def generate_report(
             "",
             "| Propriedade | Valor |",
             "|---|---:|",
-            f"| Nome | {modelo_nome} |",
             f"| Quantização | {modelo_qtz} |",
-            f"| ID real | {modelo_id} |",
+            f"| ID modelo | {modelo_id} |",
         ]
 
         # Parâmetros (reais, via /v1/models)
@@ -253,7 +301,7 @@ def generate_report(
             "\n"
             "| Propriedade | Valor |\n"
             "|---|---:|\n"
-            "| Nome | Não detectado |\n"
+            "| ID modelo | Não detectado |\n"
             "\n"
             "> ERRO: Não foi possível obter metadados do modelo via /v1/models."
         )
