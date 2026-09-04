@@ -529,6 +529,8 @@ class LlamaClient:
                 choice = (data.get("choices") or [{}])[0]
                 delta = choice.get("delta", {})
                 finish_reason = choice.get("finish_reason")
+                if finish_reason:
+                    finish_reason_final = finish_reason
 
                 # Acumular tool call via delta (formato OpenAI streaming)
                 delta_tool_calls = delta.get("tool_calls") or []
@@ -577,6 +579,7 @@ class LlamaClient:
             metricas_saida["tokens_gerados"] = eval_count
             metricas_saida["ttft"] = round(t_primeiro_token, 3) if t_primeiro_token is not None else None
             metricas_saida["tokens_por_segundo"] = round(eval_count / duracao, 1) if duracao > 0 else 0.0
+            metricas_saida["finish_reason"] = finish_reason_final
 
         yield None, tool_call_final
 
@@ -613,12 +616,17 @@ class LlamaClient:
         mensagem_usuario: str,
         historico: list[dict[str, str]] | None = None,
         tools: list[dict] | None = None,
+        extras_saida: dict | None = None,
     ) -> tuple[str, dict | None, int, float, float | None]:
         """
         Envia uma mensagem em streaming e retorna (texto, tool_call,
         tokens_gerados, tokens_por_segundo, ttft_ms). ttft_ms é o tempo até o
         primeiro token em MILISSEGUNDOS (chat_stream usa segundos internamente
         em metricas_saida["ttft"] — converter aqui).
+
+        extras_saida: dict mutável opcional que recebe campos adicionais de
+        diagnóstico ("finish_reason"). Retrocompatível: chamadores que não o
+        passam recebem a tupla de 5 elementos de sempre.
         """
         mensagens = _montar_mensagens_com_reforco(historico, mensagem_usuario)
         metricas: dict = {}
@@ -636,6 +644,9 @@ class LlamaClient:
         tokens_por_segundo = metricas.get("tokens_por_segundo", 0.0)
         ttft_s = metricas.get("ttft")
         ttft_ms = round(ttft_s * 1000, 1) if ttft_s is not None else None
+
+        if extras_saida is not None:
+            extras_saida["finish_reason"] = metricas.get("finish_reason")
 
         return texto_final, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms
 
@@ -689,6 +700,7 @@ class LlamaClient:
         tool_call_final: dict | None = None
         eval_count = 0
         t_primeiro_token: float | None = None
+        finish_reason_final: str | None = None
 
         tc_nome_acumulado = ""
         tc_args_acumulado = ""

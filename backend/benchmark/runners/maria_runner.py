@@ -1,6 +1,7 @@
 """Runner que executa uma MariaTask usando o código real da MARIA."""
 import logging
 import os
+import re
 import shutil
 import sys
 import time
@@ -102,9 +103,14 @@ class MariaRunner:
         confirmation_completed = not task.confirm_sequence
         contexto_ok = True
         correction_attempts = 0
+        finish_reason: str | None = None
 
         try:
-            resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms, prompt_enviado = self._enviar_com_retry(sessao, task)
+            (
+                resposta_textual, tool_call_final, tokens_gerados,
+                tokens_por_segundo, ttft_ms, prompt_enviado, extras,
+            ) = self._enviar_com_retry(sessao, task)
+            finish_reason = (extras or {}).get("finish_reason")
             resposta_bruta_modelo = resposta_textual
             if time.monotonic() - inicio > BENCHMARK_TASK_TIMEOUT:
                 raise TimeoutError(
@@ -249,6 +255,16 @@ class MariaRunner:
         )
         language_ok = resposta_em_portugues(resposta_textual)
 
+        # Diagnóstico de parser: sem tool call detectada mas com padrão de
+        # chamada conhecida na resposta bruta → suspeita de falha do parser,
+        # não de "modelo não chamou".
+        parse_suspeito = False
+        if tool_call_final is None and resposta_bruta_modelo:
+            from backend.core.tool_call_textual_parser import POSITIONAL_MAP
+            nomes = "|".join(re.escape(nome) for nome in POSITIONAL_MAP)
+            if re.search(rf"\b({nomes})\s*[:(]", resposta_bruta_modelo):
+                parse_suspeito = True
+
         return MariaTaskResult(
             task_id=task.id,
             task_name=task.name,
@@ -270,6 +286,9 @@ class MariaRunner:
             ttft_ms=ttft_ms,
             contexto_ok=contexto_ok,
             correction_attempts=correction_attempts,
+            confirmacao_elegivel=bool(task.confirm_sequence),
+            parse_suspeito=parse_suspeito,
+            finish_reason=finish_reason,
             prompt_enviado=prompt_enviado,
             resposta_bruta_modelo=resposta_bruta_modelo,
             sampler_params=self.sampler_params,
@@ -403,15 +422,17 @@ class MariaRunner:
                 inicio_tentativa = time.monotonic()
                 metodo_metricas = getattr(self.cliente, "chat_com_tools_stream_com_metricas", None)
                 if callable(metodo_metricas):
+                    extras: dict = {}
                     resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms = (
                         metodo_metricas(
                             mensagem_usuario=task.user_message,
                             historico=historico,
                             tools=TOOLS_SCHEMA,
+                            extras_saida=extras,
                         )
                     )
                     self._verificar_timeout_por_chamada(inicio_tentativa)
-                    return resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms, prompt_enviado
+                    return resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms, prompt_enviado, extras
 
                 resposta_textual = ""
                 tool_call_final = None
@@ -425,7 +446,7 @@ class MariaRunner:
                     if tool_chunk is not None:
                         tool_call_final = tool_chunk
                 self._verificar_timeout_por_chamada(inicio_tentativa)
-                return resposta_textual, tool_call_final, 0, 0.0, None, prompt_enviado
+                return resposta_textual, tool_call_final, 0, 0.0, None, prompt_enviado, {}
             except LlamaTimeoutError:
                 raise
             except LlamaClientError as error:

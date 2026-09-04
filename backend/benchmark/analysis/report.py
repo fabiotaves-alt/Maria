@@ -309,6 +309,13 @@ def generate_report(
     secao_sampler = _montar_secacao_sampler(sampler_params)
     secao_detalhes = _montar_detalhes_execucao(results)
 
+    _taxa_eleg = metrics.confirmation_success_rate_elegiveis
+    taxa_elegiveis = (
+        f"{_taxa_eleg * 100:.1f}%"
+        if isinstance(_taxa_eleg, (int, float))
+        else "N/D (sem tarefas elegíveis)"
+    )
+
     report = f"""# Relatório do Benchmark MARIA
 
 Gerado em: {generated_at}
@@ -321,7 +328,9 @@ Gerado em: {generated_at}
 |---|---:|
 | Total de tarefas | {metrics.total_tasks} |
 | Acurácia de tool calling | {metrics.tool_accuracy * 100:.1f}% |
-| Taxa de confirmação | {metrics.confirmation_success_rate * 100:.1f}% |
+| Taxa de confirmação (todas) | {metrics.confirmation_success_rate * 100:.1f}% |
+| Taxa de confirmação (elegíveis) | {taxa_elegiveis} |
+| Suspeitas de falha de parser | {metrics.parse_suspeito_count} |
 | Taxa de palavras-chave | {metrics.keyword_match_rate * 100:.1f}% |
 | Taxa de execução | {metrics.runtime_success_rate * 100:.1f}% |
 | Taxa de conformidade de idioma | {metrics.language_compliance_rate * 100:.1f}% |

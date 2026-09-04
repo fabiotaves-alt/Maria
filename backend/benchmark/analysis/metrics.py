@@ -24,6 +24,14 @@ class MariaBenchmarkMetrics:
     p90_latency_ms: float = 0.0
     # Taxa de tarefas sem erro de contexto (prompt > ctx_size do servidor).
     contexto_ok_rate: float = 1.0
+    # Taxa de confirmação calculada SOMENTE sobre tarefas elegíveis
+    # (confirmacao_elegivel=True). None quando não há tarefa elegível no run.
+    # Elimina o efeito cascata de falhas de parser/timeout, que impedem a
+    # confirmação de ser sequer oferecida ao usuário simulado.
+    confirmation_success_rate_elegiveis: float | None = None
+    # Nº de execuções sem tool call detectada MAS com padrão de chamada na
+    # resposta bruta — separa "modelo não chamou" de "parser falhou".
+    parse_suspeito_count: int = 0
 
 
 def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMetrics:
@@ -74,6 +82,12 @@ def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMet
         statistics.quantiles(latencias, n=10)[8] if len(latencias) >= 2 else latencias[0]
     )
 
+    elegiveis = [r for r in results if r.confirmacao_elegivel]
+    confirmation_elegiveis = (
+        sum(1 for r in elegiveis if r.confirmation_completed) / len(elegiveis)
+        if elegiveis else None
+    )
+
     return MariaBenchmarkMetrics(
         total_tasks=total,
         tool_accuracy=sum(result.tool_correct for result in results) / total,
@@ -90,6 +104,8 @@ def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMet
         p50_latency_ms=p50_latency_ms,
         p90_latency_ms=p90_latency_ms,
         contexto_ok_rate=contexto_ok_count / total,
+        confirmation_success_rate_elegiveis=confirmation_elegiveis,
+        parse_suspeito_count=sum(1 for r in results if r.parse_suspeito),
     )
 
 

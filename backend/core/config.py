@@ -43,7 +43,11 @@ LLAMA_NUM_CTX = int(os.getenv("LLAMA_NUM_CTX", "4096"))
 LLAMA_NUM_PREDICT = int(os.getenv("LLAMA_NUM_PREDICT", "400"))
 LLAMA_TEMPERATURE_TOOLS = float(os.getenv("LLAMA_TEMPERATURE_TOOLS", "0.1"))
 LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL = os.getenv("LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL", "true").lower() == "true"
-LLAMA_NUM_PREDICT_DOCUMENTO = int(os.getenv("LLAMA_NUM_PREDICT_DOCUMENTO", "300"))
+# Teto de tokens para composição de documento narrativo. 600 (antes 300):
+# o valor anterior TRUNCAVA a tool call de criar_documento (lista de args
+# sem fechamento) exatamente nos casos que precisam de mais texto — o parser
+# não conseguia extrair e a tarefa falhava. É teto, não geração fixa.
+LLAMA_NUM_PREDICT_DOCUMENTO = int(os.getenv("LLAMA_NUM_PREDICT_DOCUMENTO", "600"))
 LLAMA_NUM_PREDICT_CONTINUACAO = int(os.getenv("LLAMA_NUM_PREDICT_CONTINUACAO", "200"))
 
 # Temperatura usada SOMENTE nas chamadas de correção de tool call inválida

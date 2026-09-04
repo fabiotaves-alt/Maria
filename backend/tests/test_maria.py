@@ -393,6 +393,65 @@ class TestBenchmarkMetrics(unittest.TestCase):
         """Testa erro ao editar uma planilha inexistente."""
         with self.assertRaises(ValueError):
             editar_planilha_real("planilha_que_nao_existe", colunas=["A", "B"])
+    def test_confirmation_rate_elegiveis_exclui_tasks_sem_confirmacao(self):
+        """A taxa sobre elegíveis mede só tasks com confirm_sequence —
+        elimina o efeito cascata de parser em tarefas sem confirmação."""
+        elegivel_ok = MariaTaskResult(
+            task_id=1, task_name="T1", category="c", model="m",
+            tool_detected="criar_planilha", tool_correct=True,
+            confirmation_completed=True, keyword_match=True, runtime_ok=True,
+            final_message="ok", latency_ms=1.0, errors=[], raw_tool_args={},
+            confirmacao_elegivel=True,
+        )
+        elegivel_falha = MariaTaskResult(
+            task_id=2, task_name="T2", category="c", model="m",
+            tool_detected=None, tool_correct=False,
+            confirmation_completed=False, keyword_match=False, runtime_ok=True,
+            final_message="falha", latency_ms=1.0, errors=[], raw_tool_args={},
+            confirmacao_elegivel=True,
+        )
+        nao_elegivel = MariaTaskResult(
+            task_id=3, task_name="T3", category="c", model="m",
+            tool_detected=None, tool_correct=True,
+            confirmation_completed=True, keyword_match=True, runtime_ok=True,
+            final_message="ok", latency_ms=1.0, errors=[], raw_tool_args={},
+            confirmacao_elegivel=False,
+        )
+
+        metrics = calculate_maria_metrics([elegivel_ok, elegivel_falha, nao_elegivel])
+
+        # Taxa global inclui a não elegível (2/3); a elegível ignora (1/2).
+        self.assertAlmostEqual(metrics.confirmation_success_rate, 2 / 3)
+        self.assertAlmostEqual(metrics.confirmation_success_rate_elegiveis, 0.5)
+
+    def test_confirmation_rate_elegiveis_none_sem_elegiveis(self):
+        sem_elegivel = MariaTaskResult(
+            task_id=1, task_name="T1", category="c", model="m",
+            tool_detected=None, tool_correct=True,
+            confirmation_completed=True, keyword_match=True, runtime_ok=True,
+            final_message="ok", latency_ms=1.0, errors=[], raw_tool_args={},
+            confirmacao_elegivel=False,
+        )
+        metrics = calculate_maria_metrics([sem_elegivel])
+        self.assertIsNone(metrics.confirmation_success_rate_elegiveis)
+
+    def test_parse_suspeito_contabilizado(self):
+        suspeito = MariaTaskResult(
+            task_id=1, task_name="T1", category="c", model="m",
+            tool_detected=None, tool_correct=False,
+            confirmation_completed=False, keyword_match=False, runtime_ok=True,
+            final_message="falha", latency_ms=1.0, errors=[], raw_tool_args={},
+            parse_suspeito=True,
+        )
+        limpo = MariaTaskResult(
+            task_id=2, task_name="T2", category="c", model="m",
+            tool_detected=None, tool_correct=True,
+            confirmation_completed=True, keyword_match=True, runtime_ok=True,
+            final_message="ok", latency_ms=1.0, errors=[], raw_tool_args={},
+            parse_suspeito=False,
+        )
+        metrics = calculate_maria_metrics([suspeito, limpo])
+        self.assertEqual(metrics.parse_suspeito_count, 1)
 
 
 class TestValidacaoArgumentos(unittest.TestCase):
@@ -1444,6 +1503,97 @@ class TestLlamaClientErros(unittest.TestCase):
         cliente = LlamaClient()
         with self.assertRaises(LlamaTimeoutError):
             cliente.chat([{"role": "user", "content": "oi"}])
+
+class TestToolCallTextualParser(unittest.TestCase):
+    """Testa o parser de tool call textual (formato posicional do Qwen).
+
+    Cada caso reproduz uma falha observada no log real do benchmark
+    (run_20260903_190549), onde o modelo gerou a chamada correta mas o
+    parser antigo (regex ancorada) não a reconheceu.
+    """
+
+    def setUp(self):
+        from backend.core.tool_call_textual_parser import extrair_tool_call_textual
+        self.extrair = extrair_tool_call_textual
+
+    # --- Casos já suportados (contrato preservado) ---
+
+    def test_formato_basico_preservado(self):
+        resultado = self.extrair('criar_planilha: ["gastos", ["Data", "Valor"]]')
+        self.assertEqual(resultado, {
+            "name": "criar_planilha",
+            "arguments": {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]},
+        })
+
+    def test_formato_parenteses_preservado(self):
+        resultado = self.extrair('criar_documento(["pauta", "Título", "conteúdo"])')
+        self.assertEqual(resultado["name"], "criar_documento")
+        self.assertEqual(resultado["arguments"]["titulo"], "Título")
+
+    def test_texto_sem_tool_call_retorna_none(self):
+        self.assertIsNone(self.extrair("Olá! Posso ajudar com planilhas e documentos."))
+        self.assertIsNone(self.extrair(""))
+        self.assertIsNone(self.extrair(None))
+
+    # --- Falhas reais do log (run_20260903_190549) ---
+
+    def test_ponto_e_virgula_final_task_3_5_14(self):
+        resultado = self.extrair('criar_planilha: ["agenda", ["Dia", "Compromisso"]];')
+        self.assertIsNotNone(resultado)
+        self.assertEqual(resultado["name"], "criar_planilha")
+        self.assertEqual(resultado["arguments"]["colunas"], ["Dia", "Compromisso"])
+
+    def test_texto_explicativo_apos_a_chamada_task_4(self):
+        conteudo = (
+            'criar_planilha: ["despesas.xlsx", ["Data", "Descrição", "Categoria", "Valor"]]\n\n'
+            'Esta planilha será usada para registrar todas as despesas.'
+        )
+        resultado = self.extrair(conteudo)
+        self.assertIsNotNone(resultado)
+        self.assertEqual(resultado["arguments"]["nome_arquivo"], "despesas.xlsx")
+
+    def test_segunda_pseudo_chamada_ignorada_task_9(self):
+        conteudo = (
+            'criar_documento: ["relatorio_reuniao", "Relatório", "conteúdo da reunião."]\n\n'
+            'Listar arquivos: ["relatorio_reuniao"]'
+        )
+        resultado = self.extrair(conteudo)
+        self.assertIsNotNone(resultado)
+        self.assertEqual(resultado["name"], "criar_documento")
+
+    def test_lista_achatada_agrupada_em_colunas_task_3_14(self):
+        resultado = self.extrair('criar_planilha: ["gastos", "Data", "Valor"]')
+        self.assertIsNotNone(resultado)
+        self.assertEqual(resultado["arguments"]["colunas"], ["Data", "Valor"])
+
+    def test_string_virgula_vira_lista_de_colunas_task_14(self):
+        resultado = self.extrair('criar_planilha: ["agenda", "Dia, Compromisso"]')
+        self.assertIsNotNone(resultado)
+        self.assertEqual(resultado["arguments"]["colunas"], ["Dia", "Compromisso"])
+
+    def test_lista_truncada_reparada_task_8_10_15(self):
+        # Modelo cortado por max_tokens: último item sem aspas de fechamento.
+        conteudo = 'criar_documento: ["ata", "Ata", "Reunião realizada com sucesso. Próxima'
+        resultado = self.extrair(conteudo)
+        self.assertIsNotNone(resultado)
+        self.assertEqual(resultado["name"], "criar_documento")
+        self.assertEqual(resultado["arguments"]["nome_arquivo"], "ata")
+        self.assertEqual(resultado["arguments"]["titulo"], "Ata")
+        self.assertIn("Reunião", resultado["arguments"]["conteudo"])
+
+    def test_nome_desconhecido_nao_gera_dict_posicional(self):
+        # Sem nome conhecido, não deve retornar dict de índices numéricos.
+        self.assertIsNone(self.extrair('ferramenta_inventada: ["a", "b"]'))
+
+    def test_ponto_final_apos_lista_task_18(self):
+        resultado = self.extrair('editar_planilha: ["projetos.xlsx", ["Projeto", "Status"]].')
+        self.assertIsNotNone(resultado)
+        self.assertEqual(resultado["name"], "editar_planilha")
+        self.assertEqual(resultado["arguments"]["colunas"], ["Projeto", "Status"])
+
+
+class TestLlamaClientErros(unittest.TestCase):
+    """Testa tratamento de erros de conexão e timeout."""
 
 
 class TestLlamaClientCompatibilidade(unittest.TestCase):

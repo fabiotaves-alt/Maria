@@ -64,6 +64,19 @@ class MariaTaskResult:
     # nesta execução. 0 quando a tool call já veio válida ou quando não havia
     # ferramenta de escrita a validar.
     correction_attempts: int = 0
+    # True quando a tarefa possui confirm_sequence — ou seja, a confirmação
+    # efetivamente precisou ser exercitada. Permite medir a taxa de confirmação
+    # SOMENTE sobre as tarefas elegíveis, eliminando o efeito cascata de
+    # falhas de parser (que impedem a confirmação de ser sequer oferecida).
+    confirmacao_elegivel: bool = False
+    # True quando nenhuma tool call foi detectada MAS a resposta bruta contém
+    # um padrão de chamada de ferramenta conhecida — indica falha provável do
+    # parser textual, não "o modelo não chamou". Diagnóstico do benchmark.
+    parse_suspeito: bool = False
+    # finish_reason do último chunk do streaming ("stop", "tool_calls",
+    # "length" ou None quando não capturado). "length" evidencia truncamento
+    # por max_tokens.
+    finish_reason: str | None = None
 
 
 @dataclass

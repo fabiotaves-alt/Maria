@@ -20,6 +20,9 @@ BENCHMARK_REPETICOES = int(os.getenv("BENCHMARK_REPETICOES", "3"))
 # continua como timeout TOTAL da tarefa (incluindo retries e continuacoes); a
 # separacao permite identificar se uma tarefa estourou por uma chamada lenta
 # ou pelo acumulo de varias chamadas.
+# Default 300s: a ~1.8 tok/s (7B Q4_K_M em CPU), uma chamada com
+# max_tokens=400 leva ~220s. O default anterior (120s) gerava falso negativo
+# estrutural em documentos narrativos (tasks 8, 10, 15).
 BENCHMARK_TIMEOUT_POR_CHAMADA = int(
-    os.getenv("BENCHMARK_TIMEOUT_POR_CHAMADA", "120")
+    os.getenv("BENCHMARK_TIMEOUT_POR_CHAMADA", "300")
 )

@@ -2,6 +2,30 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.18] — Benchmark: parser textual robusto, métricas honestas e system prompt determinístico — 2026-09-04
+
+### 🐛 Correções (o problema não era o modelo)
+
+Diagnóstico do run `run_20260903_190549` (7B Q4_K_M, tool accuracy 65,3%) confirmou que o modelo gerava a tool call correta na maioria das falhas — a infraestrutura é que não a reconhecia. Detalhes em `docs/RELATORIO_BENCHMARK_DIAGNOSTICO.md`.
+
+- **Parser textual robusto** (`backend/core/tool_call_textual_parser.py`): `extrair_tool_call_textual` reescrita — scan balanceado de colchetes (respeitando aspas) em vez de regex ancorada; whitelist de ferramentas (`POSITIONAL_MAP`) elimina pseudo-chamadas ("Listar arquivos:"); reparo conservador de lista truncada por `max_tokens`; normalização de `colunas` achatadas ou em string única. Resolve as falhas reais das tasks 3, 4, 5, 8, 9, 10, 14 e 15.
+- **Métricas honestas** (`task_schema.py`, `metrics.py`, `maria_runner.py`, `report.py`): novos campos `confirmacao_elegivel`, `parse_suspeito` e `finish_reason`; nova métrica `confirmation_success_rate_elegiveis` (elimina o efeito cascata que zerava a categoria `confirmacao` sem falha real de confirmação) e contagem de `parse_suspeito` no relatório — separa "modelo não chamou" de "parser falhou".
+- **Timeouts/tokens**: `BENCHMARK_TIMEOUT_POR_CHAMADA` 120s → 300s (a ~1,8 tok/s, 400 tokens = ~220s; 120s era falso negativo estrutural); `LLAMA_NUM_PREDICT_DOCUMENTO` 300 → 600 (o teto anterior truncava a tool call de `criar_documento`).
+- **`core/llama_client.py`**: `chat_stream` expõe `finish_reason` em `metricas_saida`; `chat_com_tools_stream_com_metricas` ganha `extras_saida` opcional (retrocompatível).
+
+### 📝 Prompt e tarefas
+
+- **`backend/core/system_prompt.txt`** reescrito: de prosa única (451 tokens) para seções estruturadas (~375 tokens estimados), sem mudar regras de negócio. Instrução de formato explícita (chamada em UMA linha, sem texto extra, `colunas` sempre lista) e nova regra "nomes inseguros são corrigidos pelo sistema" (destrava tasks 24/25, onde o modelo se recusava por segurança).
+- **`tasks_core.py`**: task 2 ganha sinônimos de keyword (`organizar`, `planejar`, `rotina`, `produtividade`).
+
+### ✅ Verificação
+
+- **169 testes passando** (157 + 12 novos) + 33 subtests; `py_compile` sem erros.
+- Nova classe `TestToolCallTextualParser` com 1 teste por variação real do log do benchmark.
+- Validação empírica (smoke live + run completo) pendente: requer llama-server ativo.
+
+---
+
 ## [4.1.17] — Benchmark: contrato de cliente (Liskov), fixtures e limpeza de Ollama — 2026-09-03
 
 ### 🏗️ Design e refatoração
