@@ -34,7 +34,7 @@ def encadear_leitura_stream(cliente, historico_com_system, tool_call_inicial, to
     ferramenta de escrita, nenhuma ferramenta, ou atingir MAX_PASSOS_LEITURA.
 
     Args:
-        cliente: instância de OllamaClient (ou compatível).
+        cliente: instância de LlamaClient (ou compatível).
         historico_com_system: histórico JÁ incluindo o system prompt (mesmo
             formato de ChatSession.get_historico_com_system()).
         tool_call_inicial: {"name": str, "arguments": dict} da primeira
@@ -120,7 +120,7 @@ def validar_e_corrigir_tool_call_stream(cliente, historico_com_system, tool_call
     vezes.
 
     Args:
-        cliente: instância de OllamaClient/LlamaClient.
+        cliente: instância de LlamaClient.
         historico_com_system: histórico já incluindo o system prompt.
         tool_call_atual: {"name": str, "arguments": dict} da última tool call
             obtida, ou None.

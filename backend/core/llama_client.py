@@ -5,7 +5,7 @@ Suporta entradas multimodais: texto, imagem (base64) e áudio (.wav).
 
 Requisitos:
 - Comunicação apenas via localhost (sem dependência de internet)
-- Interface pública idêntica ao OllamaClient (chat, chat_stream)
+- Interface pública do cliente (chat, chat_stream)
 - Suporte a streaming, tool calling e fallback textual
 """
 
@@ -202,7 +202,7 @@ class LlamaClient:
     """
     Cliente para comunicação com o llama-server (llama.cpp) via API OpenAI-compatible.
 
-    Expõe a mesma interface pública que OllamaClient:
+    Expõe a interface pública do cliente:
         chat()        — síncrono, retorna (texto, tool_call)
         chat_stream() — generator, yielda (chunk_texto, tool_call)
     """
@@ -581,7 +581,7 @@ class LlamaClient:
         yield None, tool_call_final
 
     # ------------------------------------------------------------------
-    # Métodos de compatibilidade com a interface do OllamaClient
+    # Métodos de compatibilidade da interface do cliente
     # (usados por main.py, tool_chaining.py e benchmark)
     # ------------------------------------------------------------------
 
@@ -591,7 +591,7 @@ class LlamaClient:
         tools: list[dict] | None = None,
         stream: bool = False,
     ) -> str:
-        """Compatibilidade com OllamaClient.enviar_mensagem (usado em aquecer_modelo)."""
+        """Compatibilidade da interface enviar_mensagem (usado em aquecer_modelo)."""
         content, _ = self.chat(mensagens, tools=tools)
         return content or ""
 
@@ -602,7 +602,7 @@ class LlamaClient:
         tools: list[dict] | None = None,
     ) -> Generator[tuple[str | None, dict | None], None, None]:
         """
-        Compatibilidade com OllamaClient.chat_com_tools_stream.
+        Compatibilidade da interface chat_com_tools_stream.
         Monta as mensagens com reforço e delega ao chat_stream.
         """
         mensagens = _montar_mensagens_com_reforco(historico, mensagem_usuario)

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class MariaController:
     """
     Encapsula toda a lógica de negócio da MARIA:
-    conexão com Ollama, sessão de chat, ferramentas e persistência.
+    conexão com o llama-server, sessão de chat, ferramentas e persistência.
     """
 
     def __init__(self, modelo: str | None = None):

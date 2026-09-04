@@ -2,6 +2,27 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.15] — Remoção do cliente legado Ollama — 2026-09-03
+
+### 🧹 Remoção do legado
+
+- **`backend/core/ollama_client.py` removido** (~866 linhas): cliente legado do Ollama que duplicava o `llama_client.py` e não era importado por nenhum caminho de produção. `LlamaClient` passa a ser o único cliente.
+- **Constantes `OLLAMA_*` removidas** de `backend/core/config.py` (contrato de env vars `OLLAMA_*` descontinuado).
+- **Exceções renomeadas** no benchmark: `LlamaClientError`/`LlamaTimeoutError` usadas diretamente (sem aliases `Ollama*`); o campo `kind` do `log.json` passou de `"OllamaClientError"` para `"LlamaClientError"`.
+
+### 🧪 Testes
+
+- **Test doubles do benchmark migrados** (`ClienteComTimeout`/`Conta`/`Normal`/`Leitura`) de subclasses de `OllamaClient` para fakes sem herança.
+- **~23 testes do cliente legado removidos** (recuperação de tool call do campo `thinking`, param `think`, `/api/tags`, etc.), sem equivalente no `LlamaClient`.
+- Docstrings atualizadas (`llama_client.py`, `tool_chaining.py`, `router.py`, `tools_schema.py`, `manual_redacao.py`, `maria_controller.py`, `main.py`).
+
+### ✅ Verificação
+
+- **157 testes passando** (`pytest backend/tests/test_maria.py -q`) + 33 subtests.
+- `py_compile` sem erros; zero referências residuais a `ollama_client`/`OllamaClient`/`OLLAMA_*` no código ativo.
+
+---
+
 ## [4.1.14] — Refatoração estrutural do backend — 2026-09-03
 
 ### 🏗️ Estrutura e organização

@@ -21,7 +21,7 @@ Como integrar (quando o roteamento multi-modelo for ativado):
 
 2. Instanciar o router em ``MariaController.inicializar()`` e usar
    ``route_message()`` para escolher o cliente/modelo antes de chamar
-   ``LlamaClient`` ou ``OllamaClient`` (hoje o controller usa apenas
+   ``LlamaClient`` (hoje o controller usa apenas
    ``LlamaClient``).
 
 3. Decidir como o frontend expõe o modelo escolhido (ex.: campo

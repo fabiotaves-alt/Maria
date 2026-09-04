@@ -34,38 +34,6 @@ def _carregar_system_prompt() -> str:
 
 MARIA_SYSTEM_PROMPT = _carregar_system_prompt()
 
-# Configurações do Ollama (LEGADO — caminho não utilizado em produção; mantido por compatibilidade)
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
-OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "240"))
-
-# Parâmetros de geração do modelo (otimização de performance)
-OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "4096"))
-OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", "400"))
-OLLAMA_NUM_THREAD = int(os.getenv("OLLAMA_NUM_THREAD", "4"))
-OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "30m")
-
-# ---- Comportamento do modelo (concentrado aqui; ajustável por modelo via ENV) ----
-# Controla se o campo "think" é enviado no payload do Ollama. Desative para
-# modelos que não suportam esse campo.
-OLLAMA_ENVIAR_THINK_PARAM = os.getenv("OLLAMA_ENVIAR_THINK_PARAM", "true").lower() == "true"
-# Valor enviado no campo "think" quando OLLAMA_ENVIAR_THINK_PARAM é True.
-OLLAMA_THINK_HABILITADO = os.getenv("OLLAMA_THINK_HABILITADO", "false").lower() == "true"
-# Temperatura usada nas chamadas de tool calling (mais baixa = mais determinístico).
-OLLAMA_TEMPERATURE_TOOLS = float(os.getenv("OLLAMA_TEMPERATURE_TOOLS", "0.1"))
-# Controla se o fallback de extração de tool call vazada como texto (comportamento
-# observado no Qwen3.5) é tentado. Desative para modelos que não apresentam esse
-# comportamento (ver Item 3).
-OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL = os.getenv("OLLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL", "true").lower() == "true"
-# Orçamento de tokens para respostas que compõem documentos narrativos
-# (carta, relatório, ata, comunicado) — maior que o padrão, pois o modelo
-# precisa redigir o conteúdo inteiro antes de emitir a tool call.
-OLLAMA_NUM_PREDICT_DOCUMENTO = int(os.getenv("OLLAMA_NUM_PREDICT_DOCUMENTO", "600"))
-# Orçamento de tokens para a chamada de CONTINUAÇÃO após uma ferramenta de
-# leitura (listar_arquivos/resumir_documento) — menor que o padrão, pois
-# nesse ponto o modelo só precisa decidir a próxima ferramenta.
-OLLAMA_NUM_PREDICT_CONTINUACAO = int(os.getenv("OLLAMA_NUM_PREDICT_CONTINUACAO", "200"))
-
 # Configurações do llama-server (suportam override via ENV).
 # Modelos em teste: qwen2.5-omni-3b (leve) e qwen2.5-omni-7b (pesado).
 LLAMA_BASE_URL = os.getenv("LLAMA_BASE_URL", "http://localhost:8080")

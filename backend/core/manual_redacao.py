@@ -51,8 +51,7 @@ def consultar_manual(
         Texto formatado com os trechos encontrados, pronto para ser
         devolvido ao modelo como resultado de ferramenta de leitura. Cada
         trecho é truncado em MANUAL_REDACAO_MAX_CHARS_POR_TRECHO caracteres
-        para evitar estourar o contexto do modelo (ver OLLAMA_NUM_CTX /
-        LLAMA_NUM_CTX em core/config.py).
+        para evitar estourar o contexto do modelo (ver LLAMA_NUM_CTX em core/config.py).
     """
     limite = limite or MANUAL_REDACAO_TOP_K
 

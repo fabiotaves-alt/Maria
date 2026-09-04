@@ -61,8 +61,8 @@ def main():
         "-m", "--modelo",
         dest="modelo",
         default=None,
-        help="Nome do modelo Ollama a usar nesta execução (ex: qwen3:8b). "
-             "Se omitido, usa OLLAMA_MODEL do ambiente/config.py."
+        help="Nome do modelo llama-server a usar nesta execução (ex: qwen2.5-omni-3b). "
+             "Se omitido, usa LLAMA_MODEL do ambiente/config.py."
     )
     parser.add_argument(
         "--bridge",

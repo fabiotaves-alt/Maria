@@ -4,7 +4,7 @@ Módulo de definição de ferramentas (function calling) para o assistente MARIA
 Descrição unificada
 ====================
 Este módulo concentra a especificação das ferramentas que o modelo de linguagem
-(Qwen2.5-3B via Ollama) pode solicitar por meio de *function calling*. As ferramentas
+(Qwen2.5-Omni) pode solicitar por meio de *function calling*. As ferramentas
 estão divididas em duas categorias:
 
 1. **Ferramentas de escrita** (modificam o sistema de arquivos, exigem confirmação):
@@ -48,7 +48,7 @@ A tabela a seguir resume os campos exigidos para cada ferramenta:
 
 Notas
 -----
-- As constantes ``FERRAMENTA_*`` seguem o formato exigido pela API do Ollama
+- As constantes ``FERRAMENTA_*`` seguem o formato exigido pela API (OpenAI-compatível)
   (``type: function`` e ``function`` com ``name``, ``description`` e ``parameters``).
 - A lista ``TOOLS_SCHEMA`` agrega todas as definições para envio ao modelo.
 - O conjunto ``FERRAMENTAS_LEITURA`` identifica as funções que não exigem confirmação.
