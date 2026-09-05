@@ -1,10 +1,10 @@
 """Automação do llama-server para o benchmark da MARIA.
 
-Abre (ou reutiliza) o llama-server em uma nova janela do PowerShell com o
-modelo Hugging Face escolhido no menu de Avaliação de Desempenho. A janela
-permanece aberta enquanto o servidor rodar — nada é encerrado automaticamente
-ao final da avaliação (o servidor pode ser reutilizado por uma próxima
-execução ou pelo modo chat).
+Abre (ou reutiliza) o llama-server em uma nova janela de console com o modelo
+Hugging Face escolhido no menu de Avaliação de Desempenho. A janela permanece
+aberta enquanto o servidor rodar e exibe os LOGS NORMAIS do llama-server —
+nada é encerrado automaticamente ao final da avaliação (o servidor pode ser
+reutilizado por uma próxima execução ou pelo modo chat).
 
 Tudo é configurável via ENV:
     LLAMA_SERVER_EXE            caminho completo do llama-server.exe
@@ -179,11 +179,12 @@ def _familia_esperada(modelo: str) -> str:
 # Início do servidor
 # ───────────────────────────────────────────────────────────────────────────
 def _abrir_janela_servidor(cfg: dict, modelo: str):
-    """Abre o llama-server em uma nova janela do PowerShell (fica aberta).
+    """Abre o llama-server em uma nova janela de console própria.
 
-    No Windows usa powershell.exe -NoExit em novo console: se o servidor
-    falhar logo na subida, a janela permanece exibindo o erro. Em outros SOs,
-    roda o processo herdando o terminal.
+    No Windows o executável é iniciado DIRETAMENTE com CREATE_NEW_CONSOLE:
+    a janela nova exibe os logs normais do llama-server (mesma experiência de
+    rodar o exe manualmente). Em outros SOs, roda o processo herdando o
+    terminal.
     """
     exe = cfg["exe"]
     repo = MODELOS_HF[modelo]
@@ -197,17 +198,12 @@ def _abrir_janela_servidor(cfg: dict, modelo: str):
         "-lv", str(cfg["log_level"]),
     ]
     print()
-    print("Abrindo o llama-server em uma nova janela do PowerShell...")
+    print("Abrindo o llama-server em uma nova janela (logs do servidor visíveis)...")
     print(f"  {exe}")
     print(f"  {' '.join(args)}")
     if os.name == "nt":
-        exe_escapado = exe.replace("'", "''")
-        cmd_ps = f"& '{exe_escapado}' {' '.join(args)}"
         creationflags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
-        subprocess.Popen(
-            ["powershell.exe", "-NoExit", "-Command", cmd_ps],
-            creationflags=creationflags,
-        )
+        subprocess.Popen([exe] + args, creationflags=creationflags)
     else:
         subprocess.Popen([exe] + args)
 
@@ -290,7 +286,8 @@ def garantir_servidor(modelo: str) -> dict:
       1. Se já houver servidor na porta com o MESMO modelo → reutiliza.
       2. Se houver com OUTRO modelo → pergunta: encerrar e iniciar o escolhido,
          usar o atual mesmo assim, ou cancelar.
-      3. Se não houver servidor → abre nova janela do PowerShell e aguarda.
+      3. Se não houver servidor → abre nova janela de console (logs do
+         llama-server visíveis) e aguarda o /v1/models responder.
 
     Returns:
         dict com os dados do primeiro modelo de /v1/models.

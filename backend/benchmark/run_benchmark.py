@@ -497,34 +497,24 @@ def main() -> int:
     return 0
 
 
-def run_benchmark_programatico(
+def _run_benchmark_programatico(
     modelo: str,
     task_ids: list[int] | None,
     repeticoes: int,
     metricas_sistema: dict | None = None,
 ) -> int:
     """
-    Ponto de entrada programático (chamado pelo menu do ui_terminal).
-    Equivale ao main() mas recebe parâmetros diretamente em vez de args CLI.
-
-    Garante automaticamente o llama-server com o modelo escolhido (abre nova
-    janela do PowerShell quando necessário) antes do warmup real, que mede o
-    tempo de aquecimento registrado no report.md e no log.json.
-
-    Args:
-        modelo: nome do modelo llama (ex: 'qwen2.5-omni-3b')
-        task_ids: lista de IDs de tarefas ou None para todas
-        repeticoes: número de repetições por tarefa
-        metricas_sistema: dict coletado antes do warmup (snapshot de CPU/RAM/GPU)
-
-    Returns:
-        0 em sucesso, != 0 em falha
+    Corpo da avaliação programática — garante o llama-server, faz warmup real
+    e executa o benchmark. Deve ser chamado via run_benchmark_programatico(),
+    que cuida do nível de logging (WARNING durante a avaliação, restaurado em
+    try/finally).
     """
     import types
 
     # Garante o llama-server com o modelo escolhido no menu. Quando o servidor
-    # não está ativo, abre nova janela do PowerShell (fica aberta) e aguarda o
-    # /v1/models responder — a escolha do modelo deixa de ser apenas cosmética.
+    # não está ativo, abre nova janela de console (logs do llama-server visíveis)
+    # e aguarda o /v1/models responder — a escolha do modelo deixa de ser apenas
+    # cosmética.
     from .servidor_llama import garantir_servidor
 
     # Monta namespace de args equivalente ao _parse_args()
@@ -541,6 +531,11 @@ def run_benchmark_programatico(
     # Sobrescreve o modelo no config em runtime (sem alterar ENV permanentemente)
     import backend.core.config as _cfg
     _cfg.LLAMA_MODEL = modelo
+    # Atualiza também o binding deste módulo (importado por valor no topo): o
+    # warmup compara o modelo detectado com LLAMA_MODEL para emitir aviso de
+    # divergência — com o menu, o "configurado" É o escolhido, então o aviso
+    # não deve mais aparecer.
+    globals()["LLAMA_MODEL"] = modelo
 
     todas = load_all_maria_tasks()
     tasks = _select_tasks(todas, args)
@@ -662,9 +657,51 @@ def run_benchmark_programatico(
     print(f"Runtime: {metricas_finais.runtime_success_rate * 100:.1f}%")
     print(f"Latência média: {metricas_finais.avg_latency_ms:.1f} ms")
     print(f"Relatório: {os.path.join(run_dir, 'report.md')}")
-    print("\nO llama-server continua ativo na janela do PowerShell aberta.")
+    print("\nO llama-server continua ativo na janela de console aberta.")
     print("Você pode fechá-la ou mantê-la para reutilizar na próxima execução.")
     return 0
+
+
+def run_benchmark_programatico(
+    modelo: str,
+    task_ids: list[int] | None,
+    repeticoes: int,
+    metricas_sistema: dict | None = None,
+) -> int:
+    """
+    Ponto de entrada programático (chamado pelo menu do ui_terminal).
+
+    Garante automaticamente o llama-server com o modelo escolhido (abre nova
+    janela de console quando necessário) antes do warmup real, que mede o tempo
+    de aquecimento registrado no report.md e no log.json.
+
+    Mantém o terminal da MARIA limpo durante a avaliação: o logger raiz é
+    elevado para WARNING (suprime os INFO de core.llama_client/tools_schema/
+    maria_runner) e RESTAURADO ao nível anterior no finally — mesmo em caso de
+    SystemExit, KeyboardInterrupt ou erro inesperado.
+
+    Args:
+        modelo: nome do modelo llama (ex: 'qwen2.5-omni-3b')
+        task_ids: lista de IDs de tarefas ou None para todas
+        repeticoes: número de repetições por tarefa
+        metricas_sistema: dict coletado antes do warmup (snapshot de CPU/RAM/GPU)
+
+    Returns:
+        0 em sucesso, != 0 em falha
+    """
+    import logging
+    root = logging.getLogger()
+    nivel_anterior = root.getEffectiveLevel()
+    root.setLevel(logging.WARNING)
+    try:
+        return _run_benchmark_programatico(
+            modelo=modelo,
+            task_ids=task_ids,
+            repeticoes=repeticoes,
+            metricas_sistema=metricas_sistema,
+        )
+    finally:
+        root.setLevel(nivel_anterior)
 
 
 if __name__ == "__main__":
