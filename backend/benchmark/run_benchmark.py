@@ -9,7 +9,7 @@ from datetime import datetime
 from dataclasses import asdict
 
 from .analysis.metrics import calculate_maria_metrics, aggregate_by_task
-from .analysis.report import generate_report, extrair_texto_system, mascarar_system_prompt, formatar_correcoes
+from .analysis.report import generate_report, extrair_texto_system, mascarar_system_prompt, formatar_avisos
 from .benchmark_config import (
     BENCHMARK_RESULTS_DIR,
     BENCHMARK_TIMEOUT_POR_CHAMADA,
@@ -418,8 +418,9 @@ def main() -> int:
                 f"tool={resultado.tool_detected or '—'}{esperado} "
                 f"args={'OK' if resultado.args_correct else 'DIVERGENTE'} "
                 f"latência={resultado.latency_ms / 1000:.1f}s tokens={resultado.tokens_gerados}"
-                + formatar_correcoes(resultado)
             )
+            for aviso in formatar_avisos(resultado):
+                print(f"    {aviso}")
 
         resultados_task = runner.run_repeated(
             task, args.repeticoes, apos_cada_execucao=_mostrar_resultado_individual
@@ -582,8 +583,9 @@ def _run_benchmark_programatico(
                 f"tool={resultado.tool_detected or '—'}{esperado} "
                 f"args={'OK' if resultado.args_correct else 'DIVERGENTE'} "
                 f"latência={resultado.latency_ms / 1000:.1f}s tokens={resultado.tokens_gerados}"
-                + formatar_correcoes(resultado)
             )
+            for aviso in formatar_avisos(resultado):
+                print(f"    {aviso}")
 
         resultados_task = runner.run_repeated(
             task, repeticoes, apos_cada_execucao=_mostrar_resultado_individual

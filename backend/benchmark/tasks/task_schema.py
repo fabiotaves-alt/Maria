@@ -90,6 +90,14 @@ class MariaTaskResult:
     cadeia_ferramentas: list[str] = field(default_factory=list)
     # Primeira tool call do modelo (antes do encadeamento), para diagnóstico.
     tool_call_inicial: dict = field(default_factory=dict)
+    # Fonte da detecção da tool call: "delta" (nativo), "fallback_json" ou
+    # "parser_posicional". None quando não houve tool call.
+    tool_call_fonte: str | None = None
+    # Nome literal escrito pelo modelo quando o parser mapeou para o canônico
+    # (case b); None quando não houve mapeamento.
+    tool_nome_bruto: str | None = None
+    # Nome canônico/final da ferramenta (== tool_detected, explícito para o JSON).
+    tool_nome_final: str | None = None
     # Correções automáticas aplicadas à tool call de escrita (ex.: sanitização
     # de nome_arquivo com path traversal). Cada item: {"campo", "antes", "depois"}.
     correcoes: list[dict] = field(default_factory=list)

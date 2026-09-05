@@ -63,16 +63,19 @@ MAX_TENTATIVAS_CORRECAO_FERRAMENTA = int(os.getenv("MAX_TENTATIVAS_CORRECAO_FERR
 # Defaults idênticos aos do llama-server; enviá-los explicitamente no payload
 # permite configurar (via ENV) e auditar (benchmark) cada valor. O servidor
 # ignora campos desconhecidos com warning, então o payload permanece seguro.
-LLAMA_REPEAT_LAST_N = int(os.getenv("LLAMA_REPEAT_LAST_N", "64"))
-# Penalidade de repetição de tokens. 1.1 (antes 1.0 = desativada): com 1.0,
-# temperature 0.1 e sem DRY, modelos pequenos entravam em loop degenerado de
-# "\n" (run_20260904_131134, task 15: 600 tokens de "\n", finish_reason=length,
-# 250s desperdiçados). 1.1 é o default clássico do llama.cpp para chat.
+LLAMA_REPEAT_LAST_N = int(os.getenv("LLAMA_REPEAT_LAST_N", "128"))
+# Penalidade de repetição de tokens. 1.3 (antes 1.1, e antes 1.0 = desativada):
+# com 1.1 + temperature 0.1, o 7B ainda entrava em loop de FRASE inteira
+# (run_20260905_150433, task 8: repete "Prezado(a) Senhor(a)... Meu nome é
+# Maria..." até estourar 600 tokens). 1.3 + janela 128 + DRY ligado mitigam.
 # Reversível via ENV se afetar tool calls: LLAMA_REPEAT_PENALTY=1.0.
-LLAMA_REPEAT_PENALTY = float(os.getenv("LLAMA_REPEAT_PENALTY", "1.1"))
-LLAMA_FREQUENCY_PENALTY = float(os.getenv("LLAMA_FREQUENCY_PENALTY", "0.0"))
-LLAMA_PRESENCE_PENALTY = float(os.getenv("LLAMA_PRESENCE_PENALTY", "0.0"))
-LLAMA_DRY_MULTIPLIER = float(os.getenv("LLAMA_DRY_MULTIPLIER", "0.0"))
+LLAMA_REPEAT_PENALTY = float(os.getenv("LLAMA_REPEAT_PENALTY", "1.3"))
+LLAMA_FREQUENCY_PENALTY = float(os.getenv("LLAMA_FREQUENCY_PENALTY", "0.1"))
+LLAMA_PRESENCE_PENALTY = float(os.getenv("LLAMA_PRESENCE_PENALTY", "0.1"))
+# DRY (Don't Repeat Yourself): penaliza sequências já emitidas — a defesa mais
+# eficaz contra loops de frase (que o repeat_penalty, limitado à janela, não
+# pega). 0.0 = desativado; 0.8 é um valor de referência do llama.cpp.
+LLAMA_DRY_MULTIPLIER = float(os.getenv("LLAMA_DRY_MULTIPLIER", "0.8"))
 LLAMA_DRY_BASE = float(os.getenv("LLAMA_DRY_BASE", "1.75"))
 LLAMA_DRY_ALLOWED_LENGTH = int(os.getenv("LLAMA_DRY_ALLOWED_LENGTH", "2"))
 LLAMA_DRY_PENALTY_LAST_N = int(os.getenv("LLAMA_DRY_PENALTY_LAST_N", "64"))

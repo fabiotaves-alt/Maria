@@ -2,6 +2,24 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.27] — Mitigações de loop + fonte de detecção e avisos no terminal — 2026-09-05
+
+### 🛡️ Mitigações de loop de geração (sampler)
+- **`core/config.py`**: `LLAMA_REPEAT_LAST_N` 64→**128**, `LLAMA_REPEAT_PENALTY` 1.1→**1.3**, `LLAMA_FREQUENCY_PENALTY`/`LLAMA_PRESENCE_PENALTY` 0.0→**0.1**, `LLAMA_DRY_MULTIPLIER` 0.0→**0.8** — mitigam o loop de **frase inteira** (run `run_20260905_150433`, task 8: o 7B repetia "Prezado(a) Senhor(a)... Meu nome é Maria..." até estourar 600 tokens, contado como sucesso).
+
+### 🔎 Captura da fonte de detecção + mapeamento de nome
+- **`core/llama_client.py`**: `_resolver_tool_call_final` agora retorna `(tool_call, fonte, nome_bruto)` — fonte ∈ `{delta, fallback_json, parser_posicional}`; propagada via `metricas_saida`/`extras_saida`.
+- **`core/tool_call_textual_parser.py`**: `NOME_CANONICO` mapeia nomes legíveis (`"Listar arquivos"`) → canônico (`"listar_arquivos"`) — case (b).
+- **`task_schema.py`** + **`runners/maria_runner.py`**: novos campos `tool_call_fonte`, `tool_nome_bruto`, `tool_nome_final` (estado bruto no JSON).
+
+### 🖥️ Terminal: avisos em linhas separadas
+- **`analysis/report.py`** (`formatar_avisos`) + **`run_benchmark.py`**: correções e detecção via parser aparecem em **linhas próprias abaixo do `rep X/Y`** (não mais inline), suportando múltiplos avisos.
+
+### 🧪 Testes
+- **200 testes passando + 33 subtests** — novos: mapeamento de nome, avisos (correção/parser), fonte de detecção; defaults do sampler atualizados.
+
+---
+
 ## [4.1.26] — Log de correções + métricas de qualidade semântica — 2026-09-05
 
 ### 🧹 Log do terminal: correção visível (Fase 1)

@@ -15,6 +15,25 @@ POSITIONAL_MAP = {
     "consultar_manual_redacao": ["tipo_documento"],
 }
 
+# Variantes legíveis (com espaço/capitalização) → nome canônico (case b:
+# normalização de nome de ferramenta). Usado apenas como fallback quando o
+# modelo desvia do formato snake_case exato da whitelist.
+NOME_CANONICO = {
+    "criar planilha": "criar_planilha",
+    "criar documento": "criar_documento",
+    "editar planilha": "editar_planilha",
+    "listar arquivos": "listar_arquivos",
+    "resumir documento": "resumir_documento",
+    "consultar manual": "consultar_manual_redacao",
+    "consultar manual de redacao": "consultar_manual_redacao",
+}
+
+
+def _normalizar_nome_ferramenta(nome: str) -> str:
+    """Normaliza um nome de ferramenta (caixa, hífens, underscores, espaços)."""
+    n = nome.strip().lower().replace("-", " ").replace("_", " ")
+    return re.sub(r"\s+", " ", n).strip()
+
 
 def _extrair_lista_balanceada(texto: str, inicio: int) -> str | None:
     """Extrai a substring da lista que começa em texto[inicio] == '['.
@@ -135,6 +154,26 @@ def extrair_tool_call_textual(conteudo: str) -> Optional[Dict[str, Any]]:
         if args_str is None:
             return None
         return _parse_posicional(nome, args_str)
+
+    # Fallback (case b): nome legível com espaço/capitalização ("Listar
+    # arquivos:") → nome canônico. Só aceita variantes mapeadas em NOME_CANONICO.
+    for match in re.finditer(r"\b([A-Za-z][A-Za-z0-9]*(?:\s+[A-Za-z][A-Za-z0-9]*){0,3})\s*[:(]", conteudo):
+        nome_bruto = match.group(1).strip()
+        nome_canonico = NOME_CANONICO.get(_normalizar_nome_ferramenta(nome_bruto))
+        if nome_canonico is None:
+            continue
+        idx_lista = conteudo.find("[", match.end())
+        if idx_lista == -1:
+            return None
+        args_str = _extrair_lista_balanceada(conteudo, idx_lista)
+        if args_str is None:
+            args_str = _reparar_lista_truncada(conteudo[idx_lista:])
+        if args_str is None:
+            return None
+        resultado = _parse_posicional(nome_canonico, args_str)
+        if resultado is not None:
+            resultado["_nome_bruto"] = nome_bruto
+            return resultado
 
     return None
 

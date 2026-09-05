@@ -337,7 +337,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
         from backend.core.llama_client import LlamaClient
 
         cliente = LlamaClient()
-        tool_call = cliente._resolver_tool_call_final(
+        tool_call, fonte, nome_bruto = cliente._resolver_tool_call_final(
             tc_detectada_via_delta=False,
             tc_nome_acumulado="",
             tc_args_acumulado="",
@@ -345,6 +345,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
         )
 
         self.assertIsNotNone(tool_call)
+        self.assertEqual(fonte, "parser_posicional")
         self.assertEqual(tool_call["name"], "criar_planilha")
         self.assertEqual(tool_call["arguments"]["nome_arquivo"], "gastos")
         self.assertEqual(tool_call["arguments"]["colunas"], ["Data", "Valor"])
@@ -1768,8 +1769,8 @@ class TestAnaliseSemantica(unittest.TestCase):
         self.assertEqual(metrics.correcoes_count, 1)
 
 
-class TestFormatarCorrecoes(unittest.TestCase):
-    """Testa a formatação do sufixo de correções automáticas (Fase 1)."""
+class TestFormatarAvisos(unittest.TestCase):
+    """Testa a lista de avisos (⚠️ ...) exibida em linhas separadas."""
 
     def _resultado(self, **kwargs):
         from backend.benchmark.tasks.task_schema import MariaTaskResult
@@ -1780,18 +1781,56 @@ class TestFormatarCorrecoes(unittest.TestCase):
         base.update(kwargs)
         return MariaTaskResult(**base)
 
-    def test_sem_correcoes_retorna_vazio(self):
-        from backend.benchmark.analysis.report import formatar_correcoes
-        self.assertEqual(formatar_correcoes(self._resultado()), "")
+    def test_sem_avisos_retorna_vazio(self):
+        from backend.benchmark.analysis.report import formatar_avisos
+        self.assertEqual(formatar_avisos(self._resultado()), [])
 
-    def test_com_correcao_formata_antes_depois(self):
-        from backend.benchmark.analysis.report import formatar_correcoes
-        saida = formatar_correcoes(self._resultado(correcoes=[
+    def test_correcao_gera_aviso_antes_depois(self):
+        from backend.benchmark.analysis.report import formatar_avisos
+        avisos = formatar_avisos(self._resultado(correcoes=[
             {"campo": "nome_arquivo", "antes": "../../teste", "depois": "teste"},
         ]))
-        self.assertIn("corrigido", saida)
-        self.assertIn("../../teste", saida)
-        self.assertIn("teste", saida)
+        self.assertEqual(len(avisos), 1)
+        self.assertIn("corrigido", avisos[0])
+        self.assertIn("../../teste", avisos[0])
+        self.assertIn("teste", avisos[0])
+
+    def test_ferramenta_detectada_via_parser(self):
+        from backend.benchmark.analysis.report import formatar_avisos
+        avisos = formatar_avisos(self._resultado(
+            tool_detected="criar_planilha",
+            tool_nome_final="criar_planilha",
+            tool_call_fonte="parser_posicional",
+        ))
+        self.assertTrue(any("ferramenta detectada via parser" in a for a in avisos))
+
+    def test_mapeamento_de_nome_mostra_bruto_canonico(self):
+        from backend.benchmark.analysis.report import formatar_avisos
+        avisos = formatar_avisos(self._resultado(
+            tool_detected="listar_arquivos",
+            tool_nome_final="listar_arquivos",
+            tool_nome_bruto="Listar arquivos",
+            tool_call_fonte="parser_posicional",
+        ))
+        self.assertTrue(any("Listar arquivos" in a and "listar_arquivos" in a for a in avisos))
+
+
+class TestMapeamentoNomeFerramenta(unittest.TestCase):
+    """Testa o mapeamento de nome legível → canônico (case b)."""
+
+    def test_nome_legivel_mapeado_para_canonico(self):
+        from backend.core.tool_call_textual_parser import extrair_tool_call_textual
+        resultado = extrair_tool_call_textual('Listar arquivos: ["pasta"]')
+        self.assertIsNotNone(resultado)
+        self.assertEqual(resultado["name"], "listar_arquivos")
+        self.assertEqual(resultado["_nome_bruto"], "Listar arquivos")
+
+    def test_snake_case_sem_nome_bruto(self):
+        from backend.core.tool_call_textual_parser import extrair_tool_call_textual
+        resultado = extrair_tool_call_textual('criar_planilha: ["gastos", ["Data", "Valor"]]')
+        self.assertIsNotNone(resultado)
+        self.assertEqual(resultado["name"], "criar_planilha")
+        self.assertNotIn("_nome_bruto", resultado)
 
 
 class TestChatStreamDegeneracao(unittest.TestCase):
@@ -2512,11 +2551,11 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
             LLAMA_TOP_K, LLAMA_TOP_N_SIGMA, LLAMA_TOP_P, LLAMA_TYPICAL_P,
             LLAMA_XTC_PROBABILITY, LLAMA_XTC_THRESHOLD,
         )
-        self.assertEqual(LLAMA_REPEAT_LAST_N, 64)
-        self.assertEqual(LLAMA_REPEAT_PENALTY, 1.1)  # era 1.0: desativada (ver config.py)
-        self.assertEqual(LLAMA_FREQUENCY_PENALTY, 0.0)
-        self.assertEqual(LLAMA_PRESENCE_PENALTY, 0.0)
-        self.assertEqual(LLAMA_DRY_MULTIPLIER, 0.0)
+        self.assertEqual(LLAMA_REPEAT_LAST_N, 128)
+        self.assertEqual(LLAMA_REPEAT_PENALTY, 1.3)  # 1.3: mitiga loop de frase (ver config.py)
+        self.assertEqual(LLAMA_FREQUENCY_PENALTY, 0.1)
+        self.assertEqual(LLAMA_PRESENCE_PENALTY, 0.1)
+        self.assertEqual(LLAMA_DRY_MULTIPLIER, 0.8)
         self.assertEqual(LLAMA_DRY_BASE, 1.75)
         self.assertEqual(LLAMA_DRY_ALLOWED_LENGTH, 2)
         self.assertEqual(LLAMA_DRY_PENALTY_LAST_N, 64)

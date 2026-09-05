@@ -108,6 +108,8 @@ class MariaRunner:
         cadeia_ferramentas: list[str] = []
         tool_call_inicial: dict = {}
         correcoes: list[dict] = []
+        tool_call_fonte: str | None = None
+        tool_nome_bruto: str | None = None
 
         try:
             (
@@ -124,6 +126,8 @@ class MariaRunner:
                     cadeia_ferramentas.append(nome_inicial)
             finish_reason = (extras or {}).get("finish_reason")
             degeneracao_detectada = bool((extras or {}).get("degeneracao_detectada"))
+            tool_call_fonte = (extras or {}).get("tool_call_fonte")
+            tool_nome_bruto = (extras or {}).get("tool_nome_bruto")
             resposta_bruta_modelo = resposta_textual
             if time.monotonic() - inicio > BENCHMARK_TASK_TIMEOUT:
                 raise TimeoutError(
@@ -379,6 +383,9 @@ class MariaRunner:
             sampler_params=self.sampler_params,
             cadeia_ferramentas=cadeia_ferramentas,
             tool_call_inicial=tool_call_inicial,
+            tool_call_fonte=tool_call_fonte,
+            tool_nome_bruto=tool_nome_bruto,
+            tool_nome_final=detected_name,
             correcoes=correcoes,
             titulo_conteudo_invertido=semanticas["titulo_conteudo_invertido"],
             placeholder_detectado=semanticas["placeholder_detectado"],

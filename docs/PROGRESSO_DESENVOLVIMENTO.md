@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.26  
+**Versão Atual:** v4.1.27  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -51,6 +51,7 @@
 | **4.1.24** | 2026-09-05 | Análise de 9 runs de benchmark (7B/3B, 3 versões de system prompt), rastreio de hashes V1/V2/V3 do prompt, e detecção de loop degenerado multi-caractere (`_x_x_x…`) que gerava falso positivo na run 3B; detector ampliado + testes | ✅ Concluída |
 | **4.1.25** | 2026-09-05 | Decisão final do system prompt (V2 = 100% no 7B; V3 abandonado), consolidação de todas as branches no `main` e limpeza de 15 branches integradas/superseded | ✅ Concluída |
 | **4.1.26** | 2026-09-05 | Log de correções no terminal (antes → depois da sanitização, suprimindo INFO poluentes) + métricas de qualidade semântica (`semantic_quality_rate`, flags de título/conteúdo invertido, placeholders, conteúdo curto e nome com extensão) no `log.json`/`report.md` | ✅ Concluída |
+| **4.1.27** | 2026-09-05 | Mitigações de loop de frase no sampler (repeat 1.3, janela 128, freq/presença 0.1, DRY 0.8) + captura da fonte de detecção (`tool_call_fonte`) e mapeamento de nome de ferramenta + avisos em linhas separadas no terminal | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -104,6 +105,12 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.27 — Mitigações de loop e fonte de detecção (2026-09-05)
+- **Sampler**: `repeat_penalty` 1.3, janela 128, freq/presença 0.1 e DRY 0.8 — atacam o loop de frase da task 8 (run `run_20260905_150433`).
+- **Fonte de detecção**: `tool_call_fonte` (delta/fallback_json/parser_posicional) + `tool_nome_bruto`/`tool_nome_final`; mapeamento de nomes legíveis (`NOME_CANONICO`).
+- **Terminal**: avisos em linhas separadas (correção + "ferramenta detectada via parser").
+- **Testes**: 200/200 + 33 subtests.
 
 ### 4.1.26 — Log de correções e métricas semânticas (2026-09-05)
 - **Log do terminal**: correção de `nome_arquivo` agora aparece em uma linha — `⚠️ corrigido nome_arquivo: "../../teste_seguro" → "teste_seguro"` — em vez de ficar silenciosa; os `INFO` poluentes (`Executando ferramenta real`, `Planilha criada`) seguem suprimidos pelo "terminal limpo".

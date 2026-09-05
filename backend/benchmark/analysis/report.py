@@ -93,15 +93,23 @@ def _execucao_falhou(result: MariaTaskResult) -> bool:
     )
 
 
-def formatar_correcoes(result: MariaTaskResult) -> str:
-    """Sufixo `⚠️ corrigido ...` quando a execução teve correções automáticas."""
-    if not result.correcoes:
-        return ""
-    partes = [
-        f"{c.get('campo')}: \"{c.get('antes')}\" → \"{c.get('depois')}\""
-        for c in result.correcoes
-    ]
-    return "  ⚠️ corrigido " + "; ".join(partes)
+def formatar_avisos(result: MariaTaskResult) -> list[str]:
+    """Lista de avisos (⚠️ ...) para exibir em linhas separadas abaixo do `rep X/Y`.
+
+    - Correção automática (sanitização): `⚠️ corrigido campo: "antes" → "depois"`.
+    - Ferramenta detectada via parser (não nativo) e, quando houve mapeamento
+      de nome (case b), `"bruto" → "canônico"`.
+    """
+    avisos = []
+    for c in result.correcoes or []:
+        avisos.append(f'⚠️ corrigido {c.get("campo")}: "{c.get("antes")}" → "{c.get("depois")}"')
+    if result.tool_call_fonte == "parser_posicional":
+        nome_final = result.tool_nome_final or result.tool_detected
+        if result.tool_nome_bruto and result.tool_nome_bruto != nome_final:
+            avisos.append(f'⚠️ ferramenta detectada via parser: "{result.tool_nome_bruto}" → "{nome_final}"')
+        else:
+            avisos.append(f'⚠️ ferramenta detectada via parser: "{nome_final}"')
+    return avisos
 
 
 def _formatar_linha_resumo(result: MariaTaskResult, indice_rep: int, total_rep: int) -> str:
@@ -116,7 +124,6 @@ def _formatar_linha_resumo(result: MariaTaskResult, indice_rep: int, total_rep: 
         f"args={'OK' if result.args_correct else 'DIVERGENTE'} "
         f"latência={result.latency_ms / 1000:.1f}s tokens={result.tokens_gerados}"
     )
-    linha += formatar_correcoes(result)
     if _execucao_falhou(result):
         linha += f" — erro: {_diagnosticar_falha(result)}"
     return linha
@@ -178,6 +185,8 @@ def _montar_detalhes_execucao(results: list[MariaTaskResult]) -> str:
                 total_por_tarefa[result.task_id],
             )
         )
+        for aviso in formatar_avisos(result):
+            linhas.append(aviso)
         linhas.append("")
 
         if result.prompt_enviado:
