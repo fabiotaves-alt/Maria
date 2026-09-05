@@ -2,6 +2,50 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.24] — Análise de benchmarks 2026-09-05, system prompt V3 e detecção de loop degenerado multi-caractere — 2026-09-05
+
+### 📊 9 runs de benchmark executadas hoje (modelos 7B e 3B, 3 versões de system prompt)
+- **7B — V1 (madrugada, hash prompt `1a5838a1f67b`)**: tasks 22/23 (×3, ×2, ×1) com 100%; sequência completa 1–25 ×1 com **92%** (falhas: tasks 2 e 10).
+- **7B — V2 (manhã, hash `091d6ab5c83f`)**: **1–25 ×3 = 75 execuções com 100% de acurácia de tool calling** — melhor resultado histórico do projeto (run `run_20260905_094804`).
+- **3B — V2**: 63/75 = **84,0%** (falhas: 12, 13, 21 e 25).
+- **3B — V3 (tarde; working tree, hash `ce187676ddf7`)**: 13 execuções apenas (tasks 12, 13, 25) → 55,6% e 25%; **V3 ainda não validado no 7B**.
+- Sem loops `\n` (o padrão anterior — task 15); **1 truncamento** (`finish_reason=length`) na run 3B.
+
+### 🐛 Loop degenerado multi-caractere não detectado (falso positivo na run `run_20260905_101728`)
+- A task 10 (Documento comunicado), rep 1, do 3B às 10:30 gerou **`_x_x_x…` por 600 tokens** (`finish_reason=length`, latência 127s) e **foi contabilizada como sucesso** (`tool_correct=True`, `errors=[]`) — documento lixo criado.
+- **Causa raiz**: `_detectar_degeneracao()` só detectava **repetição de um único caractere** no fim do texto (ex.: `\n`×100). O padrão real `_x_x_x_…` (bloco de 2 caracteres alternados) não disparava a detecção.
+- **Impacto**: acurácia real da run ≈ **82,7%** (62/75) em vez dos 84,0% reportados; 127s desperdiçados.
+- **Correção aplicada**: detector ampliado para **padrões cíclicos multi-caractere** (bloco repetido de 1..N chars no fim do texto) — continua abortando a geração cedo, suprimindo a tool call degenerada e registrando `finish_reason=degenerate` + `DegenerateGeneration`.
+
+### ✏️ System prompt — 3 versões usadas hoje (rastreáveis por hash)
+- **V1** (`1a5838a1f67b`): abertura "brasileira" + seção `## Arquivo não encontrado` (== HEAD commitado).
+- **V2** (`091d6ab5c83f`): abertura "assistente" + `## Quando NÃO chamar ferramenta` com **5 bullets** (inclui regra de "certeza absoluta" que destravou tasks 21–25) → **100% no 7B**.
+- **V3** (working tree, hash `ce187676ddf7`): reestruturado — nova seção `## Quando chamar ferramenta`, `## Quando NÃO` com **4 bullets** (bullet "certeza absoluta" **removida**), "Explicações QUEBRAM" e "nomes inseguros DEVEM ser corrigidos".
+- ⚠️ **Atenção**: a bullet removida no V3 era o que resolvia as tasks 21–23 no V2; **V3 precisa de validação no 7B com a run completa** antes da adoção (só foi testado no 3B até agora).
+
+### 🧪 Testes
+- **Suíte: 187 testes passando + 33 subtests** (`pytest backend/tests/test_maria.py`) — 5 novos em `TestDeteccaoDegeneracao` cobrindo bloco de 2 chars (`_x_x…`), bloco de 3 chars, prefixo válido seguido de loop, limiar e texto narrativo real (não deve disparar).
+
+---
+
+## [4.1.23] — UX da Avaliação de Desempenho: terminal limpo, janela do llama-server com logs e sem aviso de modelo — 2026-09-05
+
+### 🧹 Terminal da MARIA limpo (`run_benchmark.py`)
+- `run_benchmark_programatico()` virou **wrapper público** que eleva o logger raiz para `WARNING` durante a avaliação e o **restaura ao nível anterior em `try/finally`** (mesmo com `SystemExit`, `KeyboardInterrupt` ou erro inesperado). As linhas `core.llama_client - INFO - …` (parser, `tools_schema`, `maria_runner`) não poluem mais o terminal — restam apenas os prints de progresso (`[1/N] Tarefa`, `rep x/y`, acumulado, resumo).
+- O corpo da avaliação foi movido para `_run_benchmark_programatico()` (mesma lógica, sem reindentação).
+
+### 🖥️ Janela do llama-server com logs normais (`servidor_llama.py`)
+- `_abrir_janela_servidor()` agora inicia o `llama-server.exe` **diretamente** com `CREATE_NEW_CONSOLE` (sem o wrapper do PowerShell, que deixava a janela preta). A janela nova exibe os logs habituais do servidor, como quando o exe é rodado manualmente.
+
+### 🔇 Aviso de divergência de modelo removido
+- `_run_benchmark_programatico()` atualiza também o binding local do módulo (`globals()["LLAMA_MODEL"]`) com o modelo escolhido no menu — o warmup passa a comparar com o "configurado" correto e o aviso `[AVISO] LLAMA_MODEL configurado = 'qwen2.5-omni-3b'…` não aparece mais ao rodar com o 7B.
+
+### 🧪 Testes
+- **Suíte: 182 testes passando + 33 subtests** (`pytest backend/tests/test_maria.py`).
+- Smoke tests (não versionados): wrapper restaura o nível do logger; `_abrir_janela_servidor` chama `Popen` direto com `CREATE_NEW_CONSOLE`; `globals()["LLAMA_MODEL"]` atualizado.
+
+---
+
 ## [4.1.22] — Avaliação de Desempenho integrada ao terminal + automação do llama-server — 2026-09-05
 
 ### 🎯 Menu de modo e avaliação (`backend/ui_terminal.py`)

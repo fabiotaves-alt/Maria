@@ -113,18 +113,32 @@ def _sugere_composicao_de_documento(mensagem_usuario: str) -> bool:
     return any(palavra in texto for palavra in _PALAVRAS_COMPOSICAO_DOCUMENTO)
 
 
-def _detectar_degeneracao(texto: str, minimo: int = 100) -> bool:
+def _detectar_degeneracao(texto: str, minimo: int = 100, tamanho_bloco_max: int = 8) -> bool:
     """
-    Detecta loop de geração degenerado: texto terminando com `minimo` ou mais
-    repetições idênticas do mesmo caractere (ex.: '\\n' x 600 na task 15 do
-    run_20260904_131134). Modelos pequenos com temperature baixa e sem
-    penalidade de repetição podem entrar nesse loop e consumir todo o
-    orçamento de tokens sem gerar conteúdo útil.
+    Detecta loop de geração degenerado: o fim do texto é formado por uma
+    repetição cíclica de um bloco de 1..`tamanho_bloco_max` caracteres.
+
+    Cobre tanto o caso clássico de um único caractere (ex.: '\\n' x 600 na
+    task 15 do run_20260904_131134) quanto o padrão multi-caractere observado
+    na task 10 do run_20260905_101728 ('_x_x_x…', bloco '_x' de 2 caracteres,
+    contado indevidamente como sucesso porque o detector antigo só via um char
+    repetido no fim). Modelos pequenos com temperature baixa e sem penalidade
+    de repetição podem entrar nesse loop e consumir todo o orçamento de tokens
+    sem gerar conteúdo útil.
     """
     if len(texto) < minimo:
         return False
-    ultimo = texto[-1]
-    return texto[-minimo:] == ultimo * minimo
+
+    cauda = texto[-minimo:]
+    for tamanho in range(1, tamanho_bloco_max + 1):
+        bloco = cauda[:tamanho]
+        repeticoes = len(cauda) // tamanho
+        # Exige ao menos 2 cópias completas do bloco no início da cauda;
+        # para tamanhos que dividem `minimo`, isso equivale a `cauda == bloco*n`.
+        if repeticoes >= 2 and cauda.startswith(bloco * repeticoes):
+            return True
+
+    return False
 
 
 def _montar_mensagens_com_reforco(historico: list[dict] | None, mensagem_usuario: str) -> list[dict]:
