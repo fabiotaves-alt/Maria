@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.29  
+**Versão Atual:** v4.1.30  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -54,6 +54,7 @@
 | **4.1.27** | 2026-09-05 | Mitigações de loop de frase no sampler (repeat 1.3, janela 128, freq/presença 0.1, DRY 0.8) + captura da fonte de detecção (`tool_call_fonte`) e mapeamento de nome de ferramenta + avisos em linhas separadas no terminal | ✅ Concluída |
 | **4.1.28** | 2026-09-05 | Avisos de fallback por mecanismo específico (`fallback_json`, `nome_mapeado`, `lista_reparada`, `colunas_normalizadas`) em vez de "detectada via parser" genérico; nova métrica `fallbacks` salva no `log.json` | ✅ Concluída |
 | **4.1.29** | 2026-09-05 | Correção de regressão do sampler (tool calling 100%→76% no run `170437`): `repeat_penalty` 1.1, `presence`/`frequency_penalty` 0.0, mantendo `DRY 0.8` + janela 128 contra loop de frase; README do benchmark atualizado | ✅ Concluída |
+| **4.1.30** | 2026-09-05 | Migração para `pyproject.toml` + uv (fonte primária de dependências, `uv sync --extra dev`, `uv run pytest`); `requirements.txt` como fallback; `.gitignore` (uv) e `.vscode/settings.json` atualizados; README migrado para `uv run` | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -107,6 +108,12 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.30 — Migração para pyproject.toml + uv (2026-09-05)
+- **`pyproject.toml`** na raiz: dependências (produção + grupo `dev`), `[tool.uv] package = false` e `[tool.pytest.ini_options]` com `pythonpath = ["."]` (necessário porque `backend` é namespace package — equivale ao `python -m pytest`).
+- **uv**: `uv venv --seed --python 3.14` + `uv sync --extra dev`; comandos migrados para `uv run python` / `uv run pytest`.
+- **Fallback**: `requirements.txt` preservado; `.gitignore` ganha `uv.lock`/`.uv/`; `.vscode/settings.json` aponta para `.venv`.
+- **Testes**: 203/203 + 33 subtests sem regressão; smoke `--bridge-http` OK (200 `/ping`).
 
 ### 4.1.28 — Avisos de fallback por mecanismo (2026-09-05)
 - **Avisos condicionais**: só aparecem quando o sistema usa fallback para corrigir desvio do modelo — `fallback JSON`, `nome mapeado`, `lista reparada`, `colunas normalizadas`. `parser_posicional` limpo não gera aviso.

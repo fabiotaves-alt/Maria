@@ -114,13 +114,11 @@ python --version # 3.11+
 git clone <repo-url>
 cd maria
 
-# Criar ambiente virtual na raiz do monorepo
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # Linux/macOS
+# Instalar uv (uma vez)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
-# Instalar dependências do backend
-pip install -r requirements.txt
+# Criar ambiente e instalar dependências
+uv sync --extra dev
 ```
 
 ### 3. Compilar o llama.cpp e baixar o modelo
@@ -195,7 +193,7 @@ Abra um terminal separado e mantenha-o rodando:
 O modo mais simples, sem frontend. Útil para testar o backend isoladamente.
 
 ```bash
-.venv\Scripts\python.exe backend\main.py
+uv run python backend/main.py
 ```
 
 Comandos disponíveis no prompt: `ajuda`, `limpar`, `retomar` (retoma sessão salva), `sair`.
@@ -209,7 +207,7 @@ O modo de uso normal. Requer dois processos rodando em paralelo.
 **Terminal 1 — Backend Python (bridge HTTP):**
 
 ```bash
-.venv\Scripts\python.exe backend\main.py --bridge-http
+uv run python backend/main.py --bridge-http
 ```
 
 O backend gera um token de autenticação em `shared/.bridge_token` e registra no log:
@@ -251,10 +249,10 @@ O instalador gerado em `frontend-tauri/src-tauri/target/release/bundle/` inclui 
 
 ```bash
 # Suíte principal do backend (pytest)
-.venv\Scripts\python.exe -m pytest backend/tests/test_maria.py -v
+uv run pytest
 
 # Smoke-test contra o llama-server ao vivo (requer servidor rodando na porta 8080)
-.venv\Scripts\python.exe backend/tests/validate_llama_server.py
+uv run python backend/tests/validate_llama_server.py
 
 # Frontend — type-check + build Vite
 cd frontend-tauri && npm run build
@@ -293,7 +291,8 @@ Para detalhes completos, resultados do `bandit`, pendências e instruções de t
 maria/
 ├── README.md                      ← este arquivo
 ├── CHANGELOG.md                   ← histórico de versões
-├── requirements.txt               ← dependências Python (raiz do monorepo)
+├── pyproject.toml                 ← dependências Python (uv) + config pytest
+├── requirements.txt               ← fallback (pip) das dependências Python
 ├── .venv/                         ← ambiente virtual Python
 │
 ├── shared/                        ← recursos compartilhados entre frontend e backend
@@ -395,7 +394,7 @@ maria/
    - **Rust:** `cargo fmt` e `cargo clippy` sem warnings
 3. Rode a suíte completa de testes antes de abrir o PR:
    ```bash
-   .venv\Scripts\python.exe -m pytest backend/tests/test_maria.py -q
+   uv run pytest
    cd frontend-tauri && npm run build && cargo test
    ```
 4. Escreva mensagens de commit claras e em português

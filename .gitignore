@@ -187,3 +187,7 @@ frontend-tauri/shared/.bridge_token
 backend/benchmark/results/arquivos_gerados_benchmark/
 backend/benchmark/results/run_*/arquivos_gerados/
 
+# ============== 17. uv (gerenciador de dependências) ==============
+.uv/
+uv.lock
+

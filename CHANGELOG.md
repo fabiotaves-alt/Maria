@@ -2,6 +2,20 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.30] — Migração para pyproject.toml + uv — 2026-09-05
+
+### 🔧 Tooling & Dependências
+- **`pyproject.toml`** criado na raiz do monorepo (fonte primária de dependências via uv): `requires-python >=3.11`, dependências de produção e grupo `dev` (`pytest`, `pytest-cov`); `[tool.uv] package = false` (o `backend` é namespace package e não é instalado como pacote); `[tool.pytest.ini_options]` com `testpaths`, `pythonpath = ["."]` e `addopts`.
+- **uv** como gerenciador: `uv venv --seed --python 3.14` + `uv sync --extra dev` substituem `python -m venv` + `pip install -r requirements.txt`.
+- **`requirements.txt`** mantido como fallback (comentário aponta para `pyproject.toml`).
+- **`.gitignore`**: nova seção 17 (`uv.lock`, `.uv/`).
+- **`.vscode/settings.json`**: interpretador `.venv` e pytest configurados (pasta `.vscode/` segue gitignorada — só local).
+- **README.md**: comandos migrados para `uv run python` / `uv run pytest`.
+
+### 🧪 Testes
+- `uv run pytest` → 203 passed + 33 subtests (sem regressão vs. baseline).
+- Smoke tests: `uv run python backend/main.py --help` OK; `--bridge-http` responde `/ping` 200 na porta 8081.
+
 ## [4.1.29] — Correção do sampler: restaura tool calling sem reexpor o loop — 2026-09-05
 
 ### 🔧 Regressão corrigida (run `run_20260905_170437`)
