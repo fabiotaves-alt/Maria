@@ -1277,6 +1277,108 @@ class TestMariaRunnerMensagemDeErro(unittest.TestCase):
         self.assertIn("não encontrado", resultado.final_message)
 
 
+
+class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
+    """Tarefas com tools_obrigatorios: exige verificação de leitura
+    (listar_arquivos) antes da resposta final — simula 2 turnos reais:
+    usuário pede edição → modelo verifica → ferramenta devolve o resultado
+    real (pasta vazia) → modelo responde em texto explicando a inexistência."""
+
+    def _task(self, **kwargs):
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        base = dict(
+            id=9010,
+            name="Verificação teste",
+            description="desc",
+            user_message="Edite a planilha estoque com a coluna preco.",
+            tools_obrigatorios=["listar_arquivos"],
+            expected_keywords=["nao existe", "nao encontrado", "encontrado", "vazia", "criar"],
+            confirm_sequence=[],
+            category=MariaTaskCategory.EDITAR_PLANILHA,
+        )
+        base.update(kwargs)
+        return MariaTask(**base)
+
+    def test_cadeia_listar_arquivos_termina_em_texto_conta_como_correta(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+
+        class ClienteVerifica:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return ("", {"name": "listar_arquivos", "arguments": {}}, 10, 5.0, 1.0)
+
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                yield "A planilha estoque não foi encontrada. Deseja criar uma nova?", None
+
+        resultado = MariaRunner(cliente=ClienteVerifica()).run(self._task())
+
+        self.assertIsNone(resultado.tool_detected)
+        self.assertTrue(resultado.tool_correct)
+        self.assertEqual(resultado.cadeia_ferramentas, ["listar_arquivos"])
+        self.assertEqual(resultado.tool_call_inicial.get("name"), "listar_arquivos")
+        self.assertTrue(resultado.keyword_match)
+        self.assertTrue(resultado.runtime_ok)
+
+    def test_edicao_direta_sem_verificacao_conta_como_incorreta(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+
+        class ClienteDireto:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return (
+                    "",
+                    {"name": "editar_planilha", "arguments": {"nome_arquivo": "estoque", "colunas": ["preco"]}},
+                    10, 5.0, 1.0,
+                )
+
+        resultado = MariaRunner(cliente=ClienteDireto()).run(self._task())
+
+        self.assertFalse(resultado.tool_correct)
+        self.assertEqual(resultado.cadeia_ferramentas, ["editar_planilha"])
+
+    def test_verifica_mas_tenta_escrever_depois_conta_como_incorreta(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+
+        class ClienteTeimoso:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return ("", {"name": "listar_arquivos", "arguments": {}}, 10, 5.0, 1.0)
+
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                yield None, {
+                    "name": "editar_planilha",
+                    "arguments": {"nome_arquivo": "estoque", "colunas": ["preco"]},
+                }
+
+        resultado = MariaRunner(cliente=ClienteTeimoso()).run(self._task())
+
+        self.assertFalse(resultado.tool_correct)
+        self.assertEqual(resultado.cadeia_ferramentas, ["listar_arquivos", "editar_planilha"])
+
+
+class TestTarefas22E23Verificacao(unittest.TestCase):
+    """Tarefas 22 e 23: mensagem realista (não entrega a inexistência ao
+    modelo), exigem listar_arquivos na cadeia e não possuem fixture
+    (a pasta vazia do benchmark gera o erro real da ferramenta)."""
+
+    def test_desenho_das_tarefas_22_e_23(self):
+        from backend.benchmark.tasks import load_all_maria_tasks
+
+        tarefas = {t.id: t for t in load_all_maria_tasks()}
+        for tid in (22, 23):
+            task = tarefas[tid]
+            self.assertEqual(task.tools_obrigatorios, ["listar_arquivos"])
+            self.assertEqual(task.fixtures, [])
+            self.assertEqual(task.confirm_sequence, [])
+            self.assertTrue(task.expected_keywords)
+            mensagem = task.user_message.lower()
+            self.assertNotIn("inexistente", mensagem)
+            self.assertNotIn("nao existe", mensagem)
+
 # ═══════════════════════════════════════════════════════════════
 # Testes do LlamaClient (llama-server / API OpenAI-compatible)
 # ═══════════════════════════════════════════════════════════════

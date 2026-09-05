@@ -2,6 +2,28 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.20] — Benchmark: tarefas 22/23 redesenhadas para simular 2 turnos reais (verificação de leitura) — 2026-09-04
+
+### 🎯 Redesenho das tarefas 22 e 23 (`tasks_edges.py`)
+
+As tarefas antigas ("Edite a planilha planilha_inexistente...") entregavam a inexistência do arquivo no próprio nome, esperavam que o modelo NÃO chamasse ferramenta (`expected_tool=None`) e não espelhavam uma situação real — induziam o modelo ao erro e puniam o comportamento correto (verificar antes de editar; nos runs, `tool_detected=listar_arquivos` virava `tool_correct=false`).
+
+- **Novo desenho em 2 turnos**: turno 1 — usuário pede edição com nome realista ("Edite a planilha estoque com a coluna preco." / "Atualize a planilha clientes com as colunas nome e email."), sem entregar a inexistência; turno 2 — o modelo chama `listar_arquivos`, a ferramenta devolve o erro real da aplicação ("A pasta está vazia (nenhum arquivo encontrado).") via encadeamento de leitura já existente (`encadear_leitura_stream`) e o modelo responde em texto explicando que o arquivo não existe.
+- `fixtures=[]` e `confirm_sequence=[]`: o diretório isolado do benchmark fica vazio, então a ferramenta devolve o erro real (não simulado).
+
+### ⚙️ Infraestrutura de avaliação (`task_schema.py`, `maria_runner.py`)
+
+- **`MariaTask.tools_obrigatorios` (novo)**: ferramentas que DEVEM ter sido chamadas na execução.
+- **`MariaTaskResult.cadeia_ferramentas` e `tool_call_inicial` (novos)**: a cadeia completa de ferramentas chamadas (tool call inicial + encadeamento/correção) e a primeira tool call — antes disso o runner sobrescrevia `tool_call_final` com a última chamada e o benchmark não distinguia "verificou com listar_arquivos" de "respondeu sem verificar".
+- **Nova regra de avaliação** (somente quando `tools_obrigatorios` está definido; demais tarefas inalteradas): `tool_correct` = todas as ferramentas exigidas presentes na cadeia **e** a execução termina em texto (sem escrita pendente). Classificação: verificou + respondeu ✔ | `editar_planilha` direto ✘ | verificou mas tentou editar mesmo assim ✘.
+
+### 🧪 Testes
+
+- **4 testes novos**: `TestMariaRunnerCadeiaFerramentas` (verificar e responder em texto ✔; edição direta ✘; verificar e escrever depois ✘) e `TestTarefas22E23Verificacao` (desenho das tarefas).
+- **Suíte: 182 testes — 181 passando + 33 subtests.** A única falha (`TestSystemPromptExcecaoArquivoInexistente`) é pré-existente e alheia a esta mudança: decorre da reescrita ainda não commitada do `backend/core/system_prompt.txt` na working tree.
+
+---
+
 ## [4.1.19] — Benchmark: auto-sanitização de path traversal e proteção contra geração degenerada — 2026-09-04
 
 ### 🐛 Correções (tasks 21–25 e task 15)

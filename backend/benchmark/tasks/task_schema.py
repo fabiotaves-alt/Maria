@@ -27,6 +27,12 @@ class MariaTask:
     fixtures: list[str] = field(default_factory=list)
     category: MariaTaskCategory = MariaTaskCategory.CONVERSA
     tools_aceitos: list[str | None] | None = None
+    # Ferramentas que DEVEM ter sido chamadas em algum momento da execução
+    # (ex.: verificação de leitura com listar_arquivos antes de responder).
+    # Quando definida, a avaliação de tool_correct muda: todas precisam
+    # aparecer na cadeia e a execução precisa terminar em texto (sem
+    # ferramenta de escrita pendente).
+    tools_obrigatorios: list[str] = field(default_factory=list)
     expected_args_subset: dict | None = None
 
 
@@ -77,6 +83,13 @@ class MariaTaskResult:
     # "length" ou None quando não capturado). "length" evidencia truncamento
     # por max_tokens.
     finish_reason: str | None = None
+    # Cadeia completa de ferramentas chamadas nesta execução (nomes em ordem):
+    # tool call inicial + tool calls do encadeamento/correção. Permite avaliar
+    # tarefas que exigem verificação de leitura mesmo quando o encadeamento
+    # termina em texto (tool_detected=None).
+    cadeia_ferramentas: list[str] = field(default_factory=list)
+    # Primeira tool call do modelo (antes do encadeamento), para diagnóstico.
+    tool_call_inicial: dict = field(default_factory=dict)
 
 
 @dataclass

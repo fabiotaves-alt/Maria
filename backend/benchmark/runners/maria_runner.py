@@ -105,12 +105,22 @@ class MariaRunner:
         correction_attempts = 0
         finish_reason: str | None = None
         degeneracao_detectada = False
+        cadeia_ferramentas: list[str] = []
+        tool_call_inicial: dict = {}
 
         try:
             (
                 resposta_textual, tool_call_final, tokens_gerados,
                 tokens_por_segundo, ttft_ms, prompt_enviado, extras,
             ) = self._enviar_com_retry(sessao, task)
+            # Registro da cadeia de ferramentas: a tool call inicial é a
+            # verificação de leitura (ex.: listar_arquivos) que dispara o
+            # encadeamento; as demais entram via detected_name no fim do run().
+            if tool_call_final:
+                tool_call_inicial = dict(tool_call_final)
+                nome_inicial = tool_call_final.get("name")
+                if nome_inicial and nome_inicial not in cadeia_ferramentas:
+                    cadeia_ferramentas.append(nome_inicial)
             finish_reason = (extras or {}).get("finish_reason")
             degeneracao_detectada = bool((extras or {}).get("degeneracao_detectada"))
             resposta_bruta_modelo = resposta_textual
@@ -241,7 +251,18 @@ class MariaRunner:
 
         latency_ms = (time.monotonic() - inicio) * 1000
         detected_name = tool_call_final.get("name") if tool_call_final else None
-        if task.tools_aceitos is not None:
+        if detected_name and detected_name not in cadeia_ferramentas:
+            cadeia_ferramentas.append(detected_name)
+        # Tarefas com ferramenta obrigatória na cadeia (ex.: verificar com
+        # listar_arquivos antes de responder): todas as ferramentas exigidas
+        # precisam ter sido chamadas e a execução precisa terminar em texto
+        # (nenhuma ferramenta de escrita pendente ao final).
+        if task.tools_obrigatorios:
+            tool_correct = (
+                all(nome in cadeia_ferramentas for nome in task.tools_obrigatorios)
+                and detected_name is None
+            )
+        elif task.tools_aceitos is not None:
             tool_correct = detected_name in task.tools_aceitos
         elif task.expected_tool is not None:
             tool_correct = detected_name == task.expected_tool
@@ -306,6 +327,8 @@ class MariaRunner:
             prompt_enviado=prompt_enviado,
             resposta_bruta_modelo=resposta_bruta_modelo,
             sampler_params=self.sampler_params,
+            cadeia_ferramentas=cadeia_ferramentas,
+            tool_call_inicial=tool_call_inicial,
         )
 
     @staticmethod
