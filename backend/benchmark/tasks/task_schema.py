@@ -98,6 +98,9 @@ class MariaTaskResult:
     tool_nome_bruto: str | None = None
     # Nome canônico/final da ferramenta (== tool_detected, explícito para o JSON).
     tool_nome_final: str | None = None
+    # Mecanismos de fallback usados para recuperar/corrigir a tool call
+    # (fallback_json, nome_mapeado, lista_reparada, colunas_normalizadas).
+    fallbacks: list[str] = field(default_factory=list)
     # Correções automáticas aplicadas à tool call de escrita (ex.: sanitização
     # de nome_arquivo com path traversal). Cada item: {"campo", "antes", "depois"}.
     correcoes: list[dict] = field(default_factory=list)

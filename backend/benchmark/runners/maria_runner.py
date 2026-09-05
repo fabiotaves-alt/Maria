@@ -110,6 +110,7 @@ class MariaRunner:
         correcoes: list[dict] = []
         tool_call_fonte: str | None = None
         tool_nome_bruto: str | None = None
+        fallbacks: list[str] = []
 
         try:
             (
@@ -128,6 +129,7 @@ class MariaRunner:
             degeneracao_detectada = bool((extras or {}).get("degeneracao_detectada"))
             tool_call_fonte = (extras or {}).get("tool_call_fonte")
             tool_nome_bruto = (extras or {}).get("tool_nome_bruto")
+            fallbacks = (extras or {}).get("fallbacks", [])
             resposta_bruta_modelo = resposta_textual
             if time.monotonic() - inicio > BENCHMARK_TASK_TIMEOUT:
                 raise TimeoutError(
@@ -386,6 +388,7 @@ class MariaRunner:
             tool_call_fonte=tool_call_fonte,
             tool_nome_bruto=tool_nome_bruto,
             tool_nome_final=detected_name,
+            fallbacks=fallbacks,
             correcoes=correcoes,
             titulo_conteudo_invertido=semanticas["titulo_conteudo_invertido"],
             placeholder_detectado=semanticas["placeholder_detectado"],

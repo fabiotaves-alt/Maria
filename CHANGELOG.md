@@ -2,6 +2,26 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.28] — Avisos de fallback por mecanismo (em vez de "detectada via parser") — 2026-09-05
+
+### 🎯 Avisos condicionais por mecanismo de fallback
+- Antes, `⚠️ ferramenta detectada via parser` aparecia em ~100% das tool calls (o llama-server não emite `tool_calls` nativas). Agora os avisos aparecem **somente quando o sistema usa um fallback para corrigir comportamento inesperado**, indicando **qual** mecanismo:
+  - `⚠️ fallback JSON` — tool call vazada como JSON no content.
+  - `⚠️ nome mapeado: "bruto" → "canônico"` — nome legível mapeado (`NOME_CANONICO`).
+  - `⚠️ lista reparada` — lista posicional truncada por max_tokens e reparada.
+  - `⚠️ colunas normalizadas` — colunas achatadas/string.
+- `parser_posicional` **limpo** (formato instruído) **não** gera mais aviso.
+
+### 📊 Nova métrica `fallbacks`
+- **`llama_client.py`**: `_resolver_tool_call_final` retorna `(tool_call, fonte, nome_bruto, fallbacks)`.
+- **`tool_call_textual_parser.py`**: marca `_lista_reparada` e `_colunas_normalizadas`.
+- **`task_schema.py`** + **`runners/maria_runner.py`**: campo `fallbacks: list[str]` (salva no `log.json`).
+
+### 🧪 Testes
+- **203 testes passando + 33 subtests** — novos: fallback por mecanismo, ausência de aviso quando limpo, colunas achatadas.
+
+---
+
 ## [4.1.27] — Mitigações de loop + fonte de detecção e avisos no terminal — 2026-09-05
 
 ### 🛡️ Mitigações de loop de geração (sampler)

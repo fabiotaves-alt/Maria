@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.27  
+**Versão Atual:** v4.1.28  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -52,6 +52,7 @@
 | **4.1.25** | 2026-09-05 | Decisão final do system prompt (V2 = 100% no 7B; V3 abandonado), consolidação de todas as branches no `main` e limpeza de 15 branches integradas/superseded | ✅ Concluída |
 | **4.1.26** | 2026-09-05 | Log de correções no terminal (antes → depois da sanitização, suprimindo INFO poluentes) + métricas de qualidade semântica (`semantic_quality_rate`, flags de título/conteúdo invertido, placeholders, conteúdo curto e nome com extensão) no `log.json`/`report.md` | ✅ Concluída |
 | **4.1.27** | 2026-09-05 | Mitigações de loop de frase no sampler (repeat 1.3, janela 128, freq/presença 0.1, DRY 0.8) + captura da fonte de detecção (`tool_call_fonte`) e mapeamento de nome de ferramenta + avisos em linhas separadas no terminal | ✅ Concluída |
+| **4.1.28** | 2026-09-05 | Avisos de fallback por mecanismo específico (`fallback_json`, `nome_mapeado`, `lista_reparada`, `colunas_normalizadas`) em vez de "detectada via parser" genérico; nova métrica `fallbacks` salva no `log.json` | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -105,6 +106,11 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.28 — Avisos de fallback por mecanismo (2026-09-05)
+- **Avisos condicionais**: só aparecem quando o sistema usa fallback para corrigir desvio do modelo — `fallback JSON`, `nome mapeado`, `lista reparada`, `colunas normalizadas`. `parser_posicional` limpo não gera aviso.
+- **Métrica `fallbacks`**: lista de mecanismos salva no `log.json`; `_resolver_tool_call_final` retorna `(tool_call, fonte, nome_bruto, fallbacks)`.
+- **Testes**: 203/203 + 33 subtests.
 
 ### 4.1.27 — Mitigações de loop e fonte de detecção (2026-09-05)
 - **Sampler**: `repeat_penalty` 1.3, janela 128, freq/presença 0.1 e DRY 0.8 — atacam o loop de frase da task 8 (run `run_20260905_150433`).

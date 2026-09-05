@@ -337,7 +337,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
         from backend.core.llama_client import LlamaClient
 
         cliente = LlamaClient()
-        tool_call, fonte, nome_bruto = cliente._resolver_tool_call_final(
+        tool_call, fonte, nome_bruto, fallbacks = cliente._resolver_tool_call_final(
             tc_detectada_via_delta=False,
             tc_nome_acumulado="",
             tc_args_acumulado="",
@@ -346,6 +346,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
 
         self.assertIsNotNone(tool_call)
         self.assertEqual(fonte, "parser_posicional")
+        self.assertEqual(fallbacks, [])
         self.assertEqual(tool_call["name"], "criar_planilha")
         self.assertEqual(tool_call["arguments"]["nome_arquivo"], "gastos")
         self.assertEqual(tool_call["arguments"]["colunas"], ["Data", "Valor"])
@@ -1795,14 +1796,24 @@ class TestFormatarAvisos(unittest.TestCase):
         self.assertIn("../../teste", avisos[0])
         self.assertIn("teste", avisos[0])
 
-    def test_ferramenta_detectada_via_parser(self):
+    def test_fallback_json_gera_aviso(self):
+        from backend.benchmark.analysis.report import formatar_avisos
+        avisos = formatar_avisos(self._resultado(
+            tool_detected="criar_planilha",
+            tool_nome_final="criar_planilha",
+            fallbacks=["fallback_json"],
+        ))
+        self.assertTrue(any("fallback JSON" in a for a in avisos))
+
+    def test_parser_posicional_limpo_nao_gera_aviso(self):
         from backend.benchmark.analysis.report import formatar_avisos
         avisos = formatar_avisos(self._resultado(
             tool_detected="criar_planilha",
             tool_nome_final="criar_planilha",
             tool_call_fonte="parser_posicional",
+            fallbacks=[],
         ))
-        self.assertTrue(any("ferramenta detectada via parser" in a for a in avisos))
+        self.assertEqual(avisos, [])
 
     def test_mapeamento_de_nome_mostra_bruto_canonico(self):
         from backend.benchmark.analysis.report import formatar_avisos
@@ -1810,9 +1821,19 @@ class TestFormatarAvisos(unittest.TestCase):
             tool_detected="listar_arquivos",
             tool_nome_final="listar_arquivos",
             tool_nome_bruto="Listar arquivos",
-            tool_call_fonte="parser_posicional",
+            fallbacks=["nome_mapeado"],
         ))
         self.assertTrue(any("Listar arquivos" in a and "listar_arquivos" in a for a in avisos))
+
+    def test_lista_reparada_e_colunas_normalizadas(self):
+        from backend.benchmark.analysis.report import formatar_avisos
+        avisos = formatar_avisos(self._resultado(
+            tool_detected="criar_planilha",
+            tool_nome_final="criar_planilha",
+            fallbacks=["lista_reparada", "colunas_normalizadas"],
+        ))
+        self.assertTrue(any("lista reparada" in a for a in avisos))
+        self.assertTrue(any("colunas normalizadas" in a for a in avisos))
 
 
 class TestMapeamentoNomeFerramenta(unittest.TestCase):
@@ -1831,6 +1852,13 @@ class TestMapeamentoNomeFerramenta(unittest.TestCase):
         self.assertIsNotNone(resultado)
         self.assertEqual(resultado["name"], "criar_planilha")
         self.assertNotIn("_nome_bruto", resultado)
+
+    def test_colunas_achatadas_marca_normalizacao(self):
+        from backend.core.tool_call_textual_parser import extrair_tool_call_textual
+        resultado = extrair_tool_call_textual('criar_planilha: ["gastos", "Data", "Valor"]')
+        self.assertIsNotNone(resultado)
+        self.assertTrue(resultado.get("_colunas_normalizadas"))
+        self.assertEqual(resultado["arguments"]["colunas"], ["Data", "Valor"])
 
 
 class TestChatStreamDegeneracao(unittest.TestCase):

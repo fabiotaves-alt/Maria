@@ -96,14 +96,18 @@ def _reparar_lista_truncada(args_str: str) -> str | None:
     return texto + "]" * profundidade
 
 
-def _normalizar_argumentos(nome: str, args_dict: Dict[str, Any]) -> Dict[str, Any]:
+def _normalizar_argumentos(nome: str, args_dict: Dict[str, Any]):
     """Normaliza os argumentos posicionais mapeados.
 
     - Se o modelo achatou as colunas (criar_planilha: ["gastos", "Data", "Valor"]),
       os itens extras são agrupados na lista 'colunas'.
     - Se 'colunas' veio como string única ("Dia, Compromisso"), vira lista
       (split por vírgula, itens aparados).
+
+    Retorna (args_dict, normalizou): normalizou indica se houve correção
+    (colunas achatadas/string) — usado para o diagnóstico de fallback.
     """
+    normalizou = False
     param_names = POSITIONAL_MAP.get(nome, [])
     if "colunas" in param_names:
         extras = args_dict.pop("_extras", [])
@@ -112,11 +116,13 @@ def _normalizar_argumentos(nome: str, args_dict: Dict[str, Any]) -> Dict[str, An
             lista = list(colunas) if isinstance(colunas, list) else ([colunas] if colunas is not None else [])
             lista.extend(extras)
             args_dict["colunas"] = lista
+            normalizou = True
         elif isinstance(colunas, str):
             args_dict["colunas"] = [item.strip() for item in colunas.split(",") if item.strip()]
+            normalizou = True
     else:
         args_dict.pop("_extras", None)
-    return args_dict
+    return args_dict, normalizou
 
 
 def extrair_tool_call_textual(conteudo: str) -> Optional[Dict[str, Any]]:
@@ -149,11 +155,15 @@ def extrair_tool_call_textual(conteudo: str) -> Optional[Dict[str, Any]]:
         if idx_lista == -1:
             return None
         args_str = _extrair_lista_balanceada(conteudo, idx_lista)
+        lista_reparada = args_str is None
         if args_str is None:
             args_str = _reparar_lista_truncada(conteudo[idx_lista:])
         if args_str is None:
             return None
-        return _parse_posicional(nome, args_str)
+        resultado = _parse_posicional(nome, args_str)
+        if resultado is not None and lista_reparada:
+            resultado["_lista_reparada"] = True
+        return resultado
 
     # Fallback (case b): nome legível com espaço/capitalização ("Listar
     # arquivos:") → nome canônico. Só aceita variantes mapeadas em NOME_CANONICO.
@@ -166,6 +176,7 @@ def extrair_tool_call_textual(conteudo: str) -> Optional[Dict[str, Any]]:
         if idx_lista == -1:
             return None
         args_str = _extrair_lista_balanceada(conteudo, idx_lista)
+        lista_reparada = args_str is None
         if args_str is None:
             args_str = _reparar_lista_truncada(conteudo[idx_lista:])
         if args_str is None:
@@ -173,6 +184,8 @@ def extrair_tool_call_textual(conteudo: str) -> Optional[Dict[str, Any]]:
         resultado = _parse_posicional(nome_canonico, args_str)
         if resultado is not None:
             resultado["_nome_bruto"] = nome_bruto
+            if lista_reparada:
+                resultado["_lista_reparada"] = True
             return resultado
 
     return None
@@ -208,4 +221,8 @@ def _parse_posicional(nome: str, args_str: str) -> Optional[Dict[str, Any]]:
     if len(args_list) > len(param_names):
         args_dict["_extras"] = args_list[len(param_names):]
 
-    return {"name": nome, "arguments": _normalizar_argumentos(nome, args_dict)}
+    args_normalizados, normalizou = _normalizar_argumentos(nome, args_dict)
+    resultado = {"name": nome, "arguments": args_normalizados}
+    if normalizou:
+        resultado["_colunas_normalizadas"] = True
+    return resultado

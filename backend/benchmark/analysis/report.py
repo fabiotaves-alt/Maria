@@ -94,21 +94,28 @@ def _execucao_falhou(result: MariaTaskResult) -> bool:
 
 
 def formatar_avisos(result: MariaTaskResult) -> list[str]:
-    """Lista de avisos (⚠️ ...) para exibir em linhas separadas abaixo do `rep X/Y`.
+    """Lista de avisos (⚠️ ...) exibidos em linhas separadas abaixo do `rep X/Y`.
 
+    Aparecem apenas quando o sistema usou um fallback para corrigir um
+    comportamento inesperado do modelo:
     - Correção automática (sanitização): `⚠️ corrigido campo: "antes" → "depois"`.
-    - Ferramenta detectada via parser (não nativo) e, quando houve mapeamento
-      de nome (case b), `"bruto" → "canônico"`.
+    - fallback_json: tool call vazada como JSON no content.
+    - nome_mapeado: nome legível mapeado para o canônico.
+    - lista_reparada: lista posicional truncada por max_tokens e reparada.
+    - colunas_normalizadas: colunas achatadas/string normalizadas.
     """
     avisos = []
     for c in result.correcoes or []:
         avisos.append(f'⚠️ corrigido {c.get("campo")}: "{c.get("antes")}" → "{c.get("depois")}"')
-    if result.tool_call_fonte == "parser_posicional":
-        nome_final = result.tool_nome_final or result.tool_detected
-        if result.tool_nome_bruto and result.tool_nome_bruto != nome_final:
-            avisos.append(f'⚠️ ferramenta detectada via parser: "{result.tool_nome_bruto}" → "{nome_final}"')
-        else:
-            avisos.append(f'⚠️ ferramenta detectada via parser: "{nome_final}"')
+    for fb in result.fallbacks or []:
+        if fb == "fallback_json":
+            avisos.append('⚠️ fallback JSON: tool call extraída do content')
+        elif fb == "nome_mapeado":
+            avisos.append(f'⚠️ nome mapeado: "{result.tool_nome_bruto}" → "{result.tool_nome_final or result.tool_detected}"')
+        elif fb == "lista_reparada":
+            avisos.append('⚠️ lista reparada (truncada por max_tokens)')
+        elif fb == "colunas_normalizadas":
+            avisos.append('⚠️ colunas normalizadas (achatadas/string)')
     return avisos
 
 

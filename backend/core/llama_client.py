@@ -423,10 +423,13 @@ class LlamaClient:
     ):
         """Monta o dict final da tool call a partir dos acumuladores do streaming.
 
-        Retorna a tupla (tool_call, fonte, nome_bruto) onde:
+        Retorna a tupla (tool_call, fonte, nome_bruto, fallbacks) onde:
         - fonte ∈ {"delta", "fallback_json", "parser_posicional", None};
         - nome_bruto é o nome literal escrito pelo modelo quando o parser
-          precisou mapeá-lo para o canônico (case b), senão None.
+          precisou mapeá-lo para o canônico (case b), senão None;
+        - fallbacks lista os mecanismos de recuperação usados (fallback_json,
+          nome_mapeado, lista_reparada, colunas_normalizadas); vazio quando a
+          saída do modelo já estava no formato esperado.
 
         Elimina duplicação entre chat_stream e continuar_com_resultado_ferramenta_stream.
         """
@@ -436,22 +439,29 @@ class LlamaClient:
             except json.JSONDecodeError:
                 argumentos = {}
             logger.debug("Tool call via delta%s: %s(%s)", contexto_log, tc_nome_acumulado, argumentos)
-            return {"name": tc_nome_acumulado, "arguments": argumentos}, "delta", None
+            return {"name": tc_nome_acumulado, "arguments": argumentos}, "delta", None, []
 
         if LLAMA_USAR_FALLBACK_TEXTUAL_TOOL_CALL and conteudo_acumulado:
             tool_call_textual = _tentar_extrair_tool_call_textual(conteudo_acumulado)
             if tool_call_textual:
                 logger.info("Tool call detectada via fallback textual%s: %s", contexto_log, tool_call_textual["name"])
-                return tool_call_textual, "fallback_json", None
+                return tool_call_textual, "fallback_json", None, ["fallback_json"]
 
         # Fallback 3: formato array posicional (Qwen2.5-Omni-3B)
         tool_call_array = extrair_tool_call_textual(conteudo_acumulado)
         if tool_call_array:
             nome_bruto = tool_call_array.pop("_nome_bruto", None)
+            fallbacks = []
+            if nome_bruto:
+                fallbacks.append("nome_mapeado")
+            if tool_call_array.pop("_lista_reparada", False):
+                fallbacks.append("lista_reparada")
+            if tool_call_array.pop("_colunas_normalizadas", False):
+                fallbacks.append("colunas_normalizadas")
             logger.info("Tool call extraída via parser array posicional%s: %s", contexto_log, tool_call_array["name"])
-            return tool_call_array, "parser_posicional", nome_bruto
+            return tool_call_array, "parser_posicional", nome_bruto, fallbacks
 
-        return None, None, None
+        return None, None, None, []
 
     # ------------------------------------------------------------------
     # Interface pública principal
@@ -615,8 +625,9 @@ class LlamaClient:
             tool_call_final = None
             tool_call_fonte = None
             tool_nome_bruto = None
+            tool_fallbacks = []
         else:
-            tool_call_final, tool_call_fonte, tool_nome_bruto = self._resolver_tool_call_final(
+            tool_call_final, tool_call_fonte, tool_nome_bruto, tool_fallbacks = self._resolver_tool_call_final(
                 tc_detectada_via_delta,
                 tc_nome_acumulado,
                 tc_args_acumulado,
@@ -633,6 +644,7 @@ class LlamaClient:
             metricas_saida["degeneracao_detectada"] = degeneracao_detectada
             metricas_saida["tool_call_fonte"] = tool_call_fonte
             metricas_saida["tool_nome_bruto"] = tool_nome_bruto
+            metricas_saida["fallbacks"] = tool_fallbacks
 
         yield None, tool_call_final
 
@@ -703,6 +715,7 @@ class LlamaClient:
             extras_saida["degeneracao_detectada"] = metricas.get("degeneracao_detectada", False)
             extras_saida["tool_call_fonte"] = metricas.get("tool_call_fonte")
             extras_saida["tool_nome_bruto"] = metricas.get("tool_nome_bruto")
+            extras_saida["fallbacks"] = metricas.get("fallbacks", [])
 
         return texto_final, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms
 
@@ -812,7 +825,7 @@ class LlamaClient:
                 "Tempo limite excedido durante o streaming de continuação."
             )
 
-        tool_call_final, tool_call_fonte, tool_nome_bruto = self._resolver_tool_call_final(
+        tool_call_final, tool_call_fonte, tool_nome_bruto, tool_fallbacks = self._resolver_tool_call_final(
             tc_detectada_via_delta,
             tc_nome_acumulado,
             tc_args_acumulado,
@@ -824,6 +837,7 @@ class LlamaClient:
             metricas_saida["tokens_gerados"] = eval_count
             metricas_saida["tool_call_fonte"] = tool_call_fonte
             metricas_saida["tool_nome_bruto"] = tool_nome_bruto
+            metricas_saida["fallbacks"] = tool_fallbacks
 
         yield None, tool_call_final
 
