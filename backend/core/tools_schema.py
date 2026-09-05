@@ -109,6 +109,15 @@ Exemplo INCORRETO: {"nome_arquivo": "gastos", "conteudo": "Data,Valor"} - NÃO u
                 "descricao": {
                     "type": "string",
                     "description": "Descrição breve do propósito da planilha. Ex: 'Planilha para controle mensal de gastos do escritório'"
+                },
+                "linhas": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": (
+                        "Lista opcional de linhas de dados. Cada item é um objeto cujas chaves "
+                        "são os nomes das colunas. Ex: [{\"Data\": \"2026-01-01\", \"Valor\": 100}]. "
+                        "Use para criar planilha já com dados. Omita para criar só com cabeçalho."
+                    )
                 }
             },
             "required": ["nome_arquivo", "colunas"]
@@ -172,7 +181,11 @@ NÃO use se a planilha ainda não existir — nesse caso use criar_planilha.""",
                 "linhas": {
                     "type": "array",
                     "items": {"type": "object"},
-                    "description": "Linhas opcionais com chaves iguais aos nomes das colunas."
+                    "description": (
+                        "Linhas opcionais com dados. Chaves devem corresponder aos nomes das colunas. "
+                        "Colunas ausentes ficam vazias; chaves extras são ignoradas. "
+                        "Omita para sobrescrever mantendo só o cabeçalho."
+                    )
                 },
                 "descricao": {
                     "type": "string",
@@ -426,7 +439,8 @@ def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
         caminho = criar_planilha_real(
             nome_arquivo=nome_seguro,
             colunas=argumentos.get("colunas", []),
-            descricao=argumentos.get("descricao", "")
+            descricao=argumentos.get("descricao", ""),
+            linhas=argumentos.get("linhas"),          # novo
         )
         return f"Planilha criada com sucesso: {caminho}"
 

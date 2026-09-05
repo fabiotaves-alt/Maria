@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.30  
+**Versão Atual:** v4.2.0  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -55,7 +55,8 @@
 | **4.1.28** | 2026-09-05 | Avisos de fallback por mecanismo específico (`fallback_json`, `nome_mapeado`, `lista_reparada`, `colunas_normalizadas`) em vez de "detectada via parser" genérico; nova métrica `fallbacks` salva no `log.json` | ✅ Concluída |
 | **4.1.29** | 2026-09-05 | Correção de regressão do sampler (tool calling 100%→76% no run `170437`): `repeat_penalty` 1.1, `presence`/`frequency_penalty` 0.0, mantendo `DRY 0.8` + janela 128 contra loop de frase; README do benchmark atualizado | ✅ Concluída |
 | **4.1.30** | 2026-09-05 | Migração para `pyproject.toml` + uv (fonte primária de dependências, `uv sync --extra dev`, `uv run pytest`); `requirements.txt` como fallback; `.gitignore` (uv) e `.vscode/settings.json` atualizados; README migrado para `uv run` | ✅ Concluída |
-| **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
+| **4.2.0** | 2026-09-05 | Planilhas com pandas: `criar_planilha`/`editar_planilha` aceitam `linhas` (dados na criação/edição), limite de linhas por modelo (`get_max_linhas_por_chamada`; 3B=50, 7B=150) e dependência `pandas>=2.0.0`; **210 testes passando** | ✅ Concluída |
+| **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
 
@@ -108,6 +109,13 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.2.0 — Planilhas com pandas e linhas de dados (2026-09-05)
+- **pandas (>=2.0.0)**: `excel_handler` reescrito — `criar_planilha`/`editar_planilha` recebem `linhas` (dicts), colunas ausentes viram vazias e chaves extras são ignoradas; `ler_planilha_resumo` segue openpyxl.
+- **Limite por modelo**: `MAX_LINHAS_POR_CHAMADA_3B/7B` (ENV) + `get_max_linhas_por_chamada()` em `config.py`; truncamento silencioso de excedente.
+- **Schema**: `linhas` opcional em `criar_planilha` (required inalterado); `executar_ferramenta_real` repassa `linhas`.
+- **Testes**: 7 novos (`TestCriarPlanilhaComLinhas`); suíte **210/210 + 33 subtests** sem regressão.
+- **Roadmap**: 4.2.0 (planilhas) concluído; instalador one-click movido para **4.3.0**.
 
 ### 4.1.30 — Migração para pyproject.toml + uv (2026-09-05)
 - **`pyproject.toml`** na raiz: dependências (produção + grupo `dev`), `[tool.uv] package = false` e `[tool.pytest.ini_options]` com `pythonpath = ["."]` (necessário porque `backend` é namespace package — equivale ao `python -m pytest`).

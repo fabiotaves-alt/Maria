@@ -11,6 +11,7 @@ import tempfile
 import os
 import json
 import time
+import pandas as pd
 from unittest.mock import patch, MagicMock
 from backend.core.chat_session import ChatSession, interpretar_confirmacao
 from backend.core.llama_client import _montar_mensagens_com_reforco
@@ -3097,6 +3098,84 @@ class TestPreCheckContexto(unittest.TestCase):
             callback(limite + 1, 5)
         # Abaixo do limite: não levanta (soma tokens via nonlocal internamente).
         callback(1, 7)
+
+
+class TestCriarPlanilhaComLinhas(unittest.TestCase):
+    """Testa criar_planilha_real e editar_planilha_real com o parâmetro linhas."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        os.environ["PASTA_ARQUIVOS_GERADOS"] = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+        os.environ.pop("PASTA_ARQUIVOS_GERADOS", None)
+
+    def test_criar_sem_linhas_retrocompativel(self):
+        """Chamada sem linhas mantém comportamento anterior (só cabeçalho)."""
+        from backend.core.excel_handler import criar_planilha_real
+        caminho = criar_planilha_real("teste", ["Nome", "Valor"])
+        self.assertTrue(os.path.exists(caminho))
+        df = pd.read_excel(caminho)
+        self.assertEqual(list(df.columns), ["Nome", "Valor"])
+        self.assertEqual(len(df), 0)
+
+    def test_criar_com_linhas(self):
+        """Cria planilha com dados e verifica conteúdo."""
+        from backend.core.excel_handler import criar_planilha_real
+        linhas = [{"Nome": "Ana", "Valor": 100}, {"Nome": "Bruno", "Valor": 200}]
+        caminho = criar_planilha_real("teste", ["Nome", "Valor"], linhas=linhas)
+        df = pd.read_excel(caminho)
+        self.assertEqual(len(df), 2)
+        self.assertEqual(df.iloc[0]["Nome"], "Ana")
+        self.assertEqual(df.iloc[1]["Valor"], 200)
+
+    def test_criar_coluna_ausente_fica_vazia(self):
+        """Linha sem uma coluna deixa célula vazia."""
+        from backend.core.excel_handler import criar_planilha_real
+        linhas = [{"Nome": "Ana"}]  # "Valor" ausente
+        caminho = criar_planilha_real("teste", ["Nome", "Valor"], linhas=linhas)
+        df = pd.read_excel(caminho)
+        self.assertEqual(df.iloc[0]["Nome"], "Ana")
+        self.assertTrue(pd.isna(df.iloc[0]["Valor"]) or df.iloc[0]["Valor"] == "")
+
+    def test_criar_chave_extra_ignorada(self):
+        """Chave extra na linha não gera erro e é ignorada."""
+        from backend.core.excel_handler import criar_planilha_real
+        linhas = [{"Nome": "Ana", "Valor": 100, "Ignorar": "x"}]
+        caminho = criar_planilha_real("teste", ["Nome", "Valor"], linhas=linhas)
+        df = pd.read_excel(caminho)
+        self.assertNotIn("Ignorar", df.columns)
+
+    def test_editar_sem_linhas_retrocompativel(self):
+        """editar_planilha sem linhas mantém comportamento anterior."""
+        from backend.core.excel_handler import criar_planilha_real, editar_planilha_real
+        caminho = criar_planilha_real("editar_teste", ["A"])
+        nome = os.path.splitext(os.path.basename(caminho))[0]
+        resultado = editar_planilha_real(nome, ["X", "Y"])
+        df = pd.read_excel(resultado)
+        self.assertEqual(list(df.columns), ["X", "Y"])
+        self.assertEqual(len(df), 0)
+
+    def test_editar_com_linhas(self):
+        """editar_planilha com linhas escreve dados corretamente."""
+        from backend.core.excel_handler import criar_planilha_real, editar_planilha_real
+        caminho = criar_planilha_real("editar_dados", ["Nome"])
+        nome = os.path.splitext(os.path.basename(caminho))[0]
+        linhas = [{"Nome": "Carlos", "Valor": 50}]
+        resultado = editar_planilha_real(nome, ["Nome", "Valor"], linhas=linhas)
+        df = pd.read_excel(resultado)
+        self.assertEqual(df.iloc[0]["Nome"], "Carlos")
+
+    def test_limite_linhas_aplicado(self):
+        """Número de linhas acima do limite é truncado silenciosamente."""
+        from backend.core.excel_handler import criar_planilha_real
+        from backend.core.config import get_max_linhas_por_chamada
+        limite = get_max_linhas_por_chamada()
+        linhas = [{"Col": i} for i in range(limite + 20)]
+        caminho = criar_planilha_real("limite", ["Col"], linhas=linhas)
+        df = pd.read_excel(caminho)
+        self.assertLessEqual(len(df), limite)
 
 
 if __name__ == "__main__":

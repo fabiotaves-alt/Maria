@@ -1,6 +1,6 @@
 # MARIA — Assistente de IA de Escritório, 100% Local
 
-> **Versão atual:** v4.1.1 · **Status:** ✅ Estável
+> **Versão atual:** v4.2.0 · **Status:** ✅ Estável
 
 **MARIA** é uma assistente de inteligência artificial para escritório que roda **completamente no seu computador**, sem enviar dados para a internet e sem depender de serviços em nuvem. Ela entende linguagem natural em português, executa tarefas reais (criar documentos, preencher planilhas, transcrever áudio, gerenciar memórias e automações) e aprende com as informações que você compartilha ao longo do tempo.
 
@@ -363,9 +363,10 @@ maria/
 | v4.0.0 | ✅ Concluída | Migração completa para Tauri v2 + React; bridge HTTP; sidecar |
 | v4.1.0 | ✅ Concluída | RAG do Manual de Redação da Presidência (FTS5, 255 trechos) |
 | v4.1.1 | ✅ Concluída | Correções críticas de segurança (token atômico, CORS, PATH hijacking, SQLite thread-safe) |
-| v4.2.0 | 📋 Planejado | Instalador one-click (MSI/DEB/AppImage com Python embeddable e modelo pré-baixado) |
-| v4.3.0 | 📋 Planejado | Roteamento multi-modelo (3B ↔ 8B via `router.py`) |
-| v4.4.0 | 📋 Planejado | Voz da MARIA: TTS + STT + avatar animado |
+| v4.2.0 | ✅ Concluída | Planilhas com pandas: criar/editar com linhas de dados e limites por modelo |
+| v4.3.0 | 📋 Planejado | Instalador one-click (MSI/DEB/AppImage com Python embeddable e modelo pré-baixado) |
+| v4.4.0 | 📋 Planejado | Roteamento multi-modelo (3B ↔ 8B via `router.py`) |
+| v4.5.0 | 📋 Planejado | Voz da MARIA: TTS + STT + avatar animado |
 | v5.0.0 | 📋 Planejado | Whisper.cpp empacotado; lançamento para parceiros fundadores |
 
 ---

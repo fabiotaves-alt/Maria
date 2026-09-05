@@ -120,3 +120,22 @@ MANUAL_REDACAO_MAX_CHARS_POR_TRECHO = int(os.getenv("MANUAL_REDACAO_MAX_CHARS_PO
 # Qualquer outro valor (padrão: "production") aplica a configuração mais restrita.
 MARIA_ENV = os.getenv("MARIA_ENV", "production").strip().lower()
 
+# ---- Limites de linhas por modelo (planilhas) ----
+# Aplicados automaticamente pelo excel_handler conforme LLAMA_MODEL ativo.
+# Configuráveis via ENV para ajuste sem alteração de código.
+# v4.3.x: usados também para controle de paginação na visualização em tempo real.
+MAX_LINHAS_POR_CHAMADA_3B = int(os.getenv("MAX_LINHAS_POR_CHAMADA_3B", "50"))
+MAX_LINHAS_POR_CHAMADA_7B = int(os.getenv("MAX_LINHAS_POR_CHAMADA_7B", "150"))
+MAX_LINHAS_EXTRACAO_3B = int(os.getenv("MAX_LINHAS_EXTRACAO_3B", "50"))
+MAX_LINHAS_EXTRACAO_7B = int(os.getenv("MAX_LINHAS_EXTRACAO_7B", "150"))
+
+
+def get_max_linhas_por_chamada() -> int:
+    """
+    Retorna o limite de linhas por chamada conforme o modelo ativo (LLAMA_MODEL).
+    Automático — não exposto ao modelo nem ao usuário.
+    """
+    if "7b" in LLAMA_MODEL.lower():
+        return MAX_LINHAS_POR_CHAMADA_7B
+    return MAX_LINHAS_POR_CHAMADA_3B
+

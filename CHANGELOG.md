@@ -2,6 +2,19 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.0] — Planilhas com pandas e linhas de dados — 2026-09-05
+
+### ✨ Novas capacidades
+- **`backend/core/excel_handler.py` reescrito com pandas**: `criar_planilha_real()` e `editar_planilha_real()` agora aceitam `linhas` (lista de dicts) para criar/sobrescrever planilhas já com dados. `ler_planilha_resumo()` permanece com openpyxl.
+- **Limite de linhas por modelo**: novas constantes `MAX_LINHAS_POR_CHAMADA_3B/7B` e `MAX_LINHAS_EXTRACAO_3B/7B` (configuráveis via ENV) + função `get_max_linhas_por_chamada()` em `backend/core/config.py`; excedente é truncado silenciosamente.
+- **Schema `criar_planilha`**: novo campo opcional `linhas` (nunca obrigatório — `required` permanece `["nome_arquivo", "colunas"]`); descrição de `linhas` em `editar_planilha` esclarecida.
+- **`executar_ferramenta_real`**: repassa `linhas` para `criar_planilha_real`.
+- **Dependência `pandas>=2.0.0`** adicionada ao `pyproject.toml` e ao `requirements.txt` (fallback).
+
+### 🧪 Testes
+- Nova classe `TestCriarPlanilhaComLinhas` (7 testes): retrocompatibilidade sem `linhas`, dados, colunas ausentes/chaves extras, edição e limite de linhas.
+- Suíte completa: **210 passed + 33 subtests** (203 anteriores + 7 novos) — sem regressão.
+
 ## [4.1.30] — Migração para pyproject.toml + uv — 2026-09-05
 
 ### 🔧 Tooling & Dependências
