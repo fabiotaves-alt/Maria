@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.24  
+**Versão Atual:** v4.1.25  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -49,6 +49,7 @@
 | **4.1.22** | 2026-09-05 | Avaliação de Desempenho integrada ao terminal: menu de modo (Chat/Avaliação) com escolha de modelo/tarefas/repetições; automação do llama-server (nova janela PowerShell, GGUF 3B/7B via `-hf`); `run_benchmark_programatico` + métricas de sistema e warmup no `report.md`/`log.json`; fix das repetições (default 2, valor escolhido respeitado); **182 testes passando + 33 subtests** | ✅ Concluída |
 | **4.1.23** | 2026-09-05 | UX da Avaliação de Desempenho: terminal limpo (logger raiz em WARNING durante o run, restaurado via `try/finally`), janela do llama-server com logs normais (`CREATE_NEW_CONSOLE` direto) e aviso de divergência de modelo removido (config = modelo escolhido); **182 testes passando + 33 subtests** | ✅ Concluída |
 | **4.1.24** | 2026-09-05 | Análise de 9 runs de benchmark (7B/3B, 3 versões de system prompt), rastreio de hashes V1/V2/V3 do prompt, e detecção de loop degenerado multi-caractere (`_x_x_x…`) que gerava falso positivo na run 3B; detector ampliado + testes | ✅ Concluída |
+| **4.1.25** | 2026-09-05 | Decisão final do system prompt (V2 = 100% no 7B; V3 abandonado), consolidação de todas as branches no `main` e limpeza de 15 branches integradas/superseded | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -102,6 +103,12 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.25 — System prompt final (V2) e consolidação no main (2026-09-05)
+- **Decisão**: system prompt **V2** (`091d6ab5c83f`) selecionado como final — 100% no 7B em duas runs (`094804`, `131333`); **V3** (`ce187676ddf7`) abandonado.
+- **Consolidação**: merge no `main` de `feat/menu-avaliacao-benchmark` (4.1.22), `feat/ux-avaliacao-terminal` (4.1.23), `fix/benchmark-degeneracao-multicaractere` (4.1.24) e `feat/system-prompt-v2`, além do PR #32.
+- **Limpeza**: 15 branches deletadas (local + remote).
+- **Testes**: 187/187 + 33 subtests no `main`.
 
 ### 4.1.24 — Análise de benchmarks e detecção de degeneração multi-caractere (2026-09-05)
 - **Análise de 9 runs** (7B/3B × 3 versões de system prompt): 7B com V2 atingiu **100% em 1–25 ×3** (run `run_20260905_094804`); 3B ficou em **84,0%** (V2) e 55,6%/25% (V3 parcial).

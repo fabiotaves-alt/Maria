@@ -2,6 +2,24 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.25] — Decisão final do system prompt (V2) e consolidação no main — 2026-09-05
+
+### ✅ System prompt final: V2 (hash `091d6ab5c83f`)
+- Selecionado o **V2** — o prompt que obteve **100% de tool accuracy no 7B** em duas runs independentes (`run_20260905_094804` e `run_20260905_131333`).
+- **V3** (`ce187676ddf7`) **abandonado** — degradou no 3B (55,6% e 25%) e nunca foi validado no 7B.
+
+### 🔀 Consolidação no `main`
+- Merge de `feat/menu-avaliacao-benchmark` (v4.1.22), `feat/ux-avaliacao-terminal` (v4.1.23), `fix/benchmark-degeneracao-multicaractere` (v4.1.24) e `feat/system-prompt-v2`.
+- Integrado o PR #32 (ID do modelo no relatório/log).
+
+### 🧹 Limpeza de branches
+- Deletadas 15 branches integradas/superseded (local + remote), incluindo `feat/system-prompt-v3`.
+
+### 🧪 Testes
+- **187 testes passando + 33 subtests** no `main` consolidado (sem regressão).
+
+---
+
 ## [4.1.24] — Análise de benchmarks 2026-09-05, system prompt V3 e detecção de loop degenerado multi-caractere — 2026-09-05
 
 ### 📊 9 runs de benchmark executadas hoje (modelos 7B e 3B, 3 versões de system prompt)
