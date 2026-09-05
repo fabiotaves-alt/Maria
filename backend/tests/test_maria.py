@@ -2580,9 +2580,9 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
             LLAMA_XTC_PROBABILITY, LLAMA_XTC_THRESHOLD,
         )
         self.assertEqual(LLAMA_REPEAT_LAST_N, 128)
-        self.assertEqual(LLAMA_REPEAT_PENALTY, 1.3)  # 1.3: mitiga loop de frase (ver config.py)
-        self.assertEqual(LLAMA_FREQUENCY_PENALTY, 0.1)
-        self.assertEqual(LLAMA_PRESENCE_PENALTY, 0.1)
+        self.assertEqual(LLAMA_REPEAT_PENALTY, 1.1)  # 1.1: default clássico; 1.3 quebra tool calling (ver config.py)
+        self.assertEqual(LLAMA_FREQUENCY_PENALTY, 0.0)
+        self.assertEqual(LLAMA_PRESENCE_PENALTY, 0.0)
         self.assertEqual(LLAMA_DRY_MULTIPLIER, 0.8)
         self.assertEqual(LLAMA_DRY_BASE, 1.75)
         self.assertEqual(LLAMA_DRY_ALLOWED_LENGTH, 2)

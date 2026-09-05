@@ -33,13 +33,13 @@ Os resultados são gravados em `benchmark/results/run_<timestamp>/report.md` e `
 
 ## Orçamento de tokens por tipo de resposta
 
-Para caber no `BENCHMARK_TASK_TIMEOUT` (400s) deste hardware (CPU, sem GPU, ~1,15–1,22 tok/s), as respostas que compõem documentos narrativos usam um orçamento de tokens **reduzido** (`LLAMA_NUM_PREDICT_DOCUMENTO=300`, configurável via ENV). Antes esse valor era 600 e uma única tarefa de documento (ex.: Task 15) podia ultrapassar 400s de geração, estourando o timeout.
+As respostas que compõem documentos narrativos usam `LLAMA_NUM_PREDICT_DOCUMENTO` como **teto de tokens** (não geração fixa). O valor é **600** (configurável via ENV): o anterior (300) truncava a tool call de `criar_documento` (lista de argumentos sem fechamento) exatamente nos casos que precisam de mais texto, fazendo o parser falhar.
 
-- `LLAMA_NUM_PREDICT_DOCUMENTO` **padrão 300** — documentos narrativos (carta, relatório, ata, comunicado).
+- `LLAMA_NUM_PREDICT_DOCUMENTO` **padrão 600** — documentos narrativos (carta, relatório, ata, comunicado).
 - `LLAMA_NUM_PREDICT_CONTINUACAO` **padrão 200** — continuação após ferramenta de leitura.
 - `LLAMA_NUM_PREDICT` **padrão 400** — demais respostas.
 
-> ⚠️ Aumentar `LLAMA_NUM_PREDICT_DOCUMENTO` de volta para 600 não é recomendado neste hardware: o problema subjacente é o throughput (~1,2 tok/s), não um timeout configurável. O orçamento reduzido mantém as tarefas de documento dentro do limite enquanto o hardware for CPU-only.
+> ⚠️ O teto maior só é seguro porque o loop de frase (ex.: Task 8, que repetia texto até estourar o orçamento) é mitigado pelo sampler DRY — ver **Parâmetros de sampler**. O `BENCHMARK_TASK_TIMEOUT` (400s) continua o limite total da tarefa e o `BENCHMARK_TIMEOUT_POR_CHAMADA` (300s) o limite por chamada individual.
 
 ## Parâmetros de sampler
 
@@ -47,11 +47,11 @@ Todos os parâmetros de sampler são enviados explicitamente no payload das cham
 
 | Variável | Default | Descrição |
 |---|---|---|
-| `LLAMA_REPEAT_LAST_N` | `64` | Quantos tokens recentes considerar na penalidade de repetição |
+| `LLAMA_REPEAT_LAST_N` | `128` | Quantos tokens recentes considerar na penalidade de repetição |
 | `LLAMA_REPEAT_PENALTY` | `1.1` | Penalidade de repetição de tokens (1.0 desativa; 1.1 evita loops degenerados, ex.: `\n` × 600) |
 | `LLAMA_FREQUENCY_PENALTY` | `0.0` | Penalidade por frequência |
 | `LLAMA_PRESENCE_PENALTY` | `0.0` | Penalidade por presença |
-| `LLAMA_DRY_MULTIPLIER` | `0.0` | Multiplicador do sampler DRY |
+| `LLAMA_DRY_MULTIPLIER` | `0.8` | Multiplicador do sampler DRY (defesa contra loop de frase) |
 | `LLAMA_DRY_BASE` | `1.75` | Base exponencial do DRY |
 | `LLAMA_DRY_ALLOWED_LENGTH` | `2` | Comprimento de sequência permitido no DRY |
 | `LLAMA_DRY_PENALTY_LAST_N` | `64` | Janela do DRY |
@@ -63,6 +63,8 @@ Todos os parâmetros de sampler são enviados explicitamente no payload das cham
 | `LLAMA_TYPICAL_P` | `1.0` | Typical-P sampling |
 | `LLAMA_TOP_N_SIGMA` | `-1.0` | Top-N-Sigma (desativado quando negativo) |
 | `LLAMA_TEMPERATURE_TOOLS` | `0.1` | Temperatura (tool calling) |
+
+> ℹ️ `frequency_penalty` e `presence_penalty` ficam em **0.0** de propósito: valores > 0 penalizam o nome canônico da ferramenta (presente no system prompt) e os tokens estruturais do JSON, quebrando o tool calling (regressão do run `run_20260905_170437`). O loop de frase é tratado por `LLAMA_DRY_MULTIPLIER=0.8` + `LLAMA_REPEAT_LAST_N=128`, que não atingem tokens estruturais isolados.
 
 Exemplo: `LLAMA_TOP_K=50 LLAMA_TEMPERATURE_TOOLS=0.4 python -m backend.benchmark.run_benchmark --tasks 25`
 

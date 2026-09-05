@@ -2,6 +2,18 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.29] — Correção do sampler: restaura tool calling sem reexpor o loop — 2026-09-05
+
+### 🔧 Regressão corrigida (run `run_20260905_170437`)
+- O ajuste agressivo do sampler (4.1.27) derrubou a acurácia de tool calling de 100% para **76%**: `presence_penalty`/`frequency_penalty` em 0.1 penalizavam o nome canônico da ferramenta (presente no system prompt) e os tokens estruturais do JSON — o modelo passou a emitir `create_planilha` (inglês), JSON malformado e prosa após a chamada.
+- **`core/config.py`**: `LLAMA_REPEAT_PENALTY` 1.3→**1.1** (default clássico), `LLAMA_FREQUENCY_PENALTY`/`LLAMA_PRESENCE_PENALTY` 0.1→**0.0** (desativados). O loop de frase da Task 8 continua coberto por `LLAMA_DRY_MULTIPLIER` **0.8** + `LLAMA_REPEAT_LAST_N` **128** — mecanismos que não atingem tokens estruturais isolados.
+- **`backend/benchmark/README_benchmark.md`**: tabela de sampler e seção de orçamento de tokens (`LLAMA_NUM_PREDICT_DOCUMENTO` 300→**600**) atualizadas.
+
+### 🧪 Testes
+- Teste de defaults do sampler (`TestSamplerParamsBenchmark`) atualizado para os novos valores.
+
+---
+
 ## [4.1.28] — Avisos de fallback por mecanismo (em vez de "detectada via parser") — 2026-09-05
 
 ### 🎯 Avisos condicionais por mecanismo de fallback
