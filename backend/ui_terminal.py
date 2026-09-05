@@ -302,6 +302,164 @@ def exibir_banner(imagem=None, glifo="M", mono=False):
 
 
 # ═══════════════════════════════════════════════════════════════
+# Modo de avaliação de desempenho (menu integrado ao fluxo principal)
+# ═══════════════════════════════════════════════════════════════
+
+def _coletar_metricas_sistema() -> dict:
+    """Coleta snapshot de CPU, RAM e GPU antes do warmup."""
+    import datetime
+    import platform
+
+    import psutil
+
+    mem = psutil.virtual_memory()
+    cpu_freq = psutil.cpu_freq()
+    dados = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "plataforma": platform.platform(),
+        "cpu_modelo": platform.processor(),
+        "cpu_nucleos_fisicos": psutil.cpu_count(logical=False),
+        "cpu_nucleos_logicos": psutil.cpu_count(logical=True),
+        "cpu_freq_mhz": round(cpu_freq.current, 1) if cpu_freq else None,
+        "cpu_uso_percent": psutil.cpu_percent(interval=0.5),
+        "ram_total_gb": round(mem.total / 1024**3, 2),
+        "ram_disponivel_gb": round(mem.available / 1024**3, 2),
+        "ram_uso_percent": mem.percent,
+        "gpu": [],
+    }
+    try:
+        import pynvml
+        pynvml.nvmlInit()
+        contagem = pynvml.nvmlDeviceGetCount()
+        for i in range(contagem):
+            h = pynvml.nvmlDeviceGetHandleByIndex(i)
+            mem_gpu = pynvml.nvmlDeviceGetMemoryInfo(h)
+            util = pynvml.nvmlDeviceGetUtilizationRates(h)
+            dados["gpu"].append({
+                "nome": pynvml.nvmlDeviceGetName(h),
+                "vram_total_gb": round(mem_gpu.total / 1024**3, 2),
+                "vram_livre_gb": round(mem_gpu.free / 1024**3, 2),
+                "gpu_uso_percent": util.gpu,
+                "vram_uso_percent": util.memory,
+            })
+        pynvml.nvmlShutdown()
+    except Exception:
+        pass  # sem GPU NVIDIA ou pynvml não instalado
+    return dados
+
+
+def _caixa(titulo: str, linhas: list[str], largura: int | None = None) -> None:
+    """Desenha uma caixa teal com título no topo e linhas alinhadas.
+
+    `linhas` são os textos internos SEM bordas. A largura da área útil é
+    derivada do maior conteúdo (ou `largura`, quando informada), garantindo
+    que todas as bordas fechem no mesmo caractere.
+    """
+    largura_util = largura or max([len(t) for t in linhas] + [len(titulo) + 2])
+    base_topo = f"─ {titulo} " if titulo else "─"
+    topo_interno = base_topo + "─" * max(0, largura_util - len(base_topo))
+    print(rgb(TEAL, "┌" + topo_interno + "┐"))
+    for texto in linhas:
+        print(rgb(TEAL, "│") + texto.ljust(largura_util) + rgb(TEAL, "│"))
+    print(rgb(TEAL, "└" + "─" * largura_util + "┘"))
+
+
+def _menu_modo() -> str:
+    """
+    Exibe menu de modo e retorna 'chat' ou 'avaliacao'.
+    Fica em loop até entrada válida.
+    """
+    opcoes = {"1": "chat", "2": "avaliacao"}
+    while True:
+        print()
+        _caixa("MODO DE OPERAÇÃO", ["  1. Chat", "  2. Avaliação de Desempenho"])
+        escolha = input(rgb(CINZA, "Escolha [1/2]: ")).strip()
+        if escolha in opcoes:
+            return opcoes[escolha]
+        print(rgb(ROSA, "Opção inválida. Digite 1 ou 2."))
+
+
+def _menu_avaliacao() -> dict:
+    """
+    Exibe menus de modelo e tarefas para a Avaliação de Desempenho.
+    Retorna dict com chaves: modelo (str), task_ids (list[int] | None), repeticoes (int).
+    """
+    # --- Escolha de modelo ---
+    modelos = {"1": "qwen2.5-omni-3b", "2": "qwen2.5-omni-7b"}
+    while True:
+        print()
+        _caixa("MODELO", [
+            "  1. Qwen2.5-Omni 3B  (rápido, ~2,3 GB)",
+            "  2. Qwen2.5-Omni 7B  (preciso, ~4,5 GB)",
+        ])
+        escolha = input(rgb(CINZA, "Escolha [1/2]: ")).strip()
+        if escolha in modelos:
+            modelo = modelos[escolha]
+            break
+        print(rgb(ROSA, "Opção inválida. Digite 1 ou 2."))
+
+    # --- Escolha de tarefas ---
+    from backend.benchmark.tasks import load_all_maria_tasks
+    todas = load_all_maria_tasks()
+    print()
+    linhas_tarefas = [f"  0. Todas as tarefas ({len(todas)} tarefas)"]
+    for t in todas:
+        linhas_tarefas.append(f"  {t.id:2d}. [{t.category.value}] {t.name}")
+    _caixa("TAREFAS", linhas_tarefas)
+    print(rgb(CINZA, "Digite IDs separados por espaço, ou 0 para todas (ex: 1 3 5):"))
+    entrada_ids = input(rgb(CINZA, "IDs: ")).strip()
+
+    task_ids = None
+    if entrada_ids and entrada_ids != "0":
+        try:
+            task_ids = [int(x) for x in entrada_ids.split()]
+        except ValueError:
+            print(rgb(ROSA, "Entrada inválida. Usando todas as tarefas."))
+            task_ids = None
+
+    # --- Repetições ---
+    from backend.benchmark.benchmark_config import BENCHMARK_REPETICOES
+    while True:
+        print()
+        entrada_rep = input(
+            rgb(CINZA, f"Repetições por tarefa [{BENCHMARK_REPETICOES}]: ")
+        ).strip()
+        if not entrada_rep:
+            repeticoes = BENCHMARK_REPETICOES
+            break
+        try:
+            repeticoes = int(entrada_rep)
+            if repeticoes > 0:
+                break
+            print(rgb(ROSA, "Digite um número maior que zero."))
+        except ValueError:
+            print(rgb(ROSA, "Valor inválido."))
+
+    return {"modelo": modelo, "task_ids": task_ids, "repeticoes": repeticoes}
+
+
+def _executar_avaliacao(config: dict, metricas_sistema: dict):
+    """
+    Chama run_benchmark_programatico() com os parâmetros escolhidos no menu.
+    Trata SystemExit (erros fatais do benchmark, ex: llama-server offline).
+    """
+    try:
+        from backend.benchmark.run_benchmark import run_benchmark_programatico
+        run_benchmark_programatico(
+            modelo=config["modelo"],
+            task_ids=config["task_ids"],
+            repeticoes=config["repeticoes"],
+            metricas_sistema=metricas_sistema,
+        )
+    except SystemExit as e:
+        print(rgb(ROSA, f"\n[ERRO] {e}"))
+    except KeyboardInterrupt:
+        print(rgb(ROSA, "\nAvaliação interrompida pelo usuário."))
+    except Exception as e:
+        print(rgb(ROSA, f"\n[ERRO inesperado] {e}"))
+
+
+# ═══════════════════════════════════════════════════════════════
 # Interface Terminal — loop de interação
 # ═══════════════════════════════════════════════════════════════
 
@@ -436,15 +594,28 @@ class InterfaceTerminal:
         except AttributeError:
             pass
 
-        # Inicializar controller
+        # Exibir banner (sem inicializar o modelo ainda)
+        exibir_banner(imagem=self.imagem_banner)
+
+        # Menu de modo
+        modo = _menu_modo()
+
+        if modo == "avaliacao":
+            config_aval = _menu_avaliacao()
+            metricas_sistema = _coletar_metricas_sistema()
+            print()
+            print(rgb(TEAL, "Iniciando Avaliação de Desempenho..."))
+            print(rgb(CINZA, f"Modelo: {config_aval['modelo']}"))
+            _executar_avaliacao(config_aval, metricas_sistema)
+            return
+
+        # Modo chat: fluxo original a partir daqui
         try:
             self.controller.inicializar()
         except Exception as e:
             print(f"\n[ERRO] Falha ao inicializar: {e}")
             return
 
-        # Exibir banner
-        exibir_banner(imagem=self.imagem_banner)
         print("\nOlá! Eu sou a MARIA, sua assistente de escritório.")
         print("Rodando 100% localmente no seu computador, sem internet.\n")
 

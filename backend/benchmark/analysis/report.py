@@ -229,6 +229,54 @@ def _diagnosticar_falha(result: MariaTaskResult) -> str:
     return "Falha não identificada"
 
 
+def _montar_secao_sistema(metricas_sistema: dict, warmup_duracao_s: float | None) -> str:
+    """Monta a seção '## Sistema' do report.md a partir do snapshot coletado."""
+    if not metricas_sistema:
+        return ""
+
+    linhas = ["## Sistema\n"]
+    linhas.append(f"| Campo | Valor |")
+    linhas.append(f"|-------|-------|")
+    linhas.append(f"| Plataforma | {metricas_sistema.get('plataforma', 'N/D')} |")
+    linhas.append(f"| Processador | {metricas_sistema.get('cpu_modelo', 'N/D')} |")
+    linhas.append(
+        f"| Núcleos físicos / lógicos | "
+        f"{metricas_sistema.get('cpu_nucleos_fisicos', 'N/D')} / "
+        f"{metricas_sistema.get('cpu_nucleos_logicos', 'N/D')} |"
+    )
+    freq = metricas_sistema.get("cpu_freq_mhz")
+    linhas.append(f"| Frequência CPU | {f'{freq} MHz' if freq else 'N/D'} |")
+    linhas.append(f"| Uso CPU (pré-warmup) | {metricas_sistema.get('cpu_uso_percent', 'N/D')}% |")
+    linhas.append(f"| RAM total | {metricas_sistema.get('ram_total_gb', 'N/D')} GB |")
+    linhas.append(
+        f"| RAM disponível (pré-warmup) | "
+        f"{metricas_sistema.get('ram_disponivel_gb', 'N/D')} GB |"
+    )
+    linhas.append(f"| Uso RAM (pré-warmup) | {metricas_sistema.get('ram_uso_percent', 'N/D')}% |")
+
+    gpus = metricas_sistema.get("gpu", [])
+    if gpus:
+        for i, g in enumerate(gpus):
+            prefixo = f"GPU {i}" if len(gpus) > 1 else "GPU"
+            linhas.append(f"| {prefixo} | {g.get('nome', 'N/D')} |")
+            linhas.append(f"| {prefixo} VRAM total | {g.get('vram_total_gb', 'N/D')} GB |")
+            linhas.append(
+                f"| {prefixo} VRAM livre (pré-warmup) | "
+                f"{g.get('vram_livre_gb', 'N/D')} GB |"
+            )
+            linhas.append(
+                f"| {prefixo} uso (pré-warmup) | "
+                f"{g.get('gpu_uso_percent', 'N/D')}% |"
+            )
+    else:
+        linhas.append("| GPU | Não detectada (pynvml indisponível) |")
+
+    if warmup_duracao_s is not None:
+        linhas.append(f"| Tempo de warmup | {warmup_duracao_s:.1f}s |")
+
+    return "\n".join(linhas) + "\n"
+
+
 def generate_report(
     results: list[MariaTaskResult],
     metrics: MariaBenchmarkMetrics,
@@ -236,6 +284,8 @@ def generate_report(
     metadados_modelo: dict | None = None,
     sampler_params: dict | None = None,
     log_final: dict | None = None,
+    metricas_sistema: dict | None = None,
+    warmup_duracao_s: float | None = None,
 ) -> str:
     os.makedirs(output_dir, exist_ok=True)
     generated_at = datetime.now().isoformat(timespec="seconds")
@@ -307,6 +357,7 @@ def generate_report(
         )
 
     secao_sampler = _montar_secacao_sampler(sampler_params)
+    secao_sistema = _montar_secao_sistema(metricas_sistema, warmup_duracao_s)
     secao_detalhes = _montar_detalhes_execucao(results)
 
     _taxa_eleg = metrics.confirmation_success_rate_elegiveis
@@ -321,6 +372,7 @@ def generate_report(
 Gerado em: {generated_at}
 
 {secao_modelo}
+{secao_sistema}
 {secao_sampler}
 ## Métricas gerais
 

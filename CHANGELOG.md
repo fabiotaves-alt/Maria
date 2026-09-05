@@ -2,6 +2,36 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.22] — Avaliação de Desempenho integrada ao terminal + automação do llama-server — 2026-09-05
+
+### 🎯 Menu de modo e avaliação (`backend/ui_terminal.py`)
+- **Menu de MODO** após o banner: `1. Chat` / `2. Avaliação de Desempenho` — o fluxo de chat permanece 100% inalterado (sem regressão); a avaliação não inicializa o controller de chat.
+- **`_menu_avaliacao()`**: escolha do modelo (Qwen2.5-Omni 3B/7B), seleção de tarefas (IDs separados por espaço ou `0` = todas) e repetições por tarefa (default `BENCHMARK_REPETICOES`, agora **2**).
+- **`_coletar_metricas_sistema()`**: snapshot pré-warmup de CPU/RAM/GPU (`psutil`; `pynvml` opcional com fallback silencioso).
+- **`_executar_avaliacao()`**: chama `run_benchmark_programatico()` e exibe `SystemExit`/erros de forma limpa, sem traceback cru.
+- Caixas de menu desenhadas por helper `_caixa()` com bordas alinhadas dinamicamente.
+
+### 🆕 Automação do llama-server (`backend/benchmark/servidor_llama.py`)
+- A escolha do modelo no menu deixa de ser cosmética: o llama-server abre em **nova janela do PowerShell** (permanece aberta) com o GGUF correto (`-hf ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M` ou `...7B...`) e os parâmetros `-c 2048 -t 4 -b 1024 -ub 256 --port 8080 -lv 1`.
+- Reutiliza servidor já ativo com o mesmo modelo; se houver outro modelo, pergunta encerrar/usar/cancelar; auto-descoberta do executável (ENV `LLAMA_SERVER_EXE` > PATH > `~/Documents/llama_cpp`) e espera por `/v1/models`.
+- Parâmetros configuráveis via ENV (`LLAMA_SERVER_CTX`, `LLAMA_SERVER_THREADS`, `LLAMA_SERVER_BATCH`, `LLAMA_SERVER_UBATCH`, `LLAMA_SERVER_LOG_LEVEL`, `LLAMA_SERVER_STARTUP_TIMEOUT`, `LLAMA_SERVER_POLL_INTERVALO`).
+
+### 🐛 Correção: repetições respeitadas
+- **`run_benchmark.py` (`main()`)**: usava a constante `BENCHMARK_REPETICOES` no lugar de `args.repeticoes` — pedir `--repeticoes 1` rodava 3. Agora o valor escolhido (CLI ou menu) é respeitado em prints, `run_repeated` e `meta.repeticoes_por_tarefa`.
+- **`benchmark_config.py`**: default de `BENCHMARK_REPETICOES` alterado de 3 para **2** (sempre sobrescrevível pelo usuário).
+
+### ⚙️ Ponto de entrada programático (`run_benchmark.py`) e relatório
+- **`run_benchmark_programatico()`**: garante o llama-server do modelo, faz warmup real cronometrado, executa as tarefas com progresso no terminal da MARIA (mesmo processo) e gera `report.md` + `log.json`.
+- **`log.json`**: `meta.warmup_duracao_s` e `meta.metricas_sistema` registrados.
+- **`report.py`**: `generate_report()` aceita `metricas_sistema`/`warmup_duracao_s` (opcionais, retrocompatível) e insere a seção **`## Sistema`** (plataforma, CPU, RAM, GPU e tempo de warmup) logo após `## Modelo`.
+
+### 🧪 Testes
+- **Suíte: 182 testes passando + 33 subtests** (`pytest backend/tests/test_maria.py`).
+- Smoke tests manuais (não versionados): menus, modo chat sem regressão, wiring da avaliação e helpers do servidor — `SMOKE_OK`.
+- Validação empírica live (llama-server real) pendente de execução manual pelo usuário.
+
+---
+
 ## [4.1.21] — Benchmark: tarefas 22/23 reformuladas para o fluxo real (ferramenta executa, erro volta ao modelo) — 2026-09-05
 
 ### 🎯 Novo conceito das tarefas 22 e 23 (`tasks_edges.py`)

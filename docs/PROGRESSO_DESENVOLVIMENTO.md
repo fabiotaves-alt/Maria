@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.21  
+**Versão Atual:** v4.1.22  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -11,7 +11,7 @@
 
 | Área | Progresso | Observações |
 |------|-----------|-------------|
-| Backend Core & Ferramentas (Python) | 98% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo, sampler configurável, system prompt externo, lógica de negócio em `backend/core/maria_controller.py` e **autocorreção de tool calls inválidas** |
+| Backend Core & Ferramentas (Python) | 99% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo, sampler configurável, system prompt externo, lógica de negócio em `backend/core/maria_controller.py`, autocorreção de tool calls inválidas e **avaliação de desempenho integrada ao terminal com automação do llama-server** |
 | Segurança & Concorrência | 95% | Token atômico, CORS por ambiente, SQLite thread-safe, PATH hijacking |
 | Frontend (Tauri v2 + React) | 92% | Interface completa, temas, persistência rusqlite, sidecar |
 | Integração Bridge (HTTP/Sidecar) | 95% | 19 comandos bridge, autenticação Bearer, health check; transporte e protocolo separados em `backend/bridge/` (`servidores.py` + `comandos.py`) |
@@ -46,6 +46,7 @@
 | **4.1.19** | 2026-09-04 | Auto-sanitização de path traversal (tasks 21-25 destravadas) + proteção contra geração degenerada (`repeat_penalty` 1.1, abort precoce em stream, supressão de tool call degenerada com motivo de falha visível no relatório); **178 testes passando** | ✅ Concluída |
 | **4.1.20** | 2026-09-04 | Benchmark: tarefas 22/23 redesenhadas em 2 turnos reais (edição → `listar_arquivos` → erro real da ferramenta → resposta em texto) com `tools_obrigatorios`, `cadeia_ferramentas` e `tool_call_inicial` na avaliação; **181/182 testes passando** | ✅ Concluída |
 | **4.1.21** | 2026-09-05 | Benchmark: tarefas 22/23 reformuladas para o fluxo real — modelo chama `editar_planilha`, a ferramenta EXECUTA e retorna o erro real de arquivo ausente, o erro volta ao modelo via continuação e ele responde em texto (`tools_obrigatorios=["editar_planilha"]`, `confirm_sequence=["sim"]`); nova seção `## Arquivo não encontrado` no system prompt; **182 testes passando + 33 subtests** | ✅ Concluída |
+| **4.1.22** | 2026-09-05 | Avaliação de Desempenho integrada ao terminal: menu de modo (Chat/Avaliação) com escolha de modelo/tarefas/repetições; automação do llama-server (nova janela PowerShell, GGUF 3B/7B via `-hf`); `run_benchmark_programatico` + métricas de sistema e warmup no `report.md`/`log.json`; fix das repetições (default 2, valor escolhido respeitado); **182 testes passando + 33 subtests** | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -93,11 +94,20 @@
 - [x] Metadados do modelo como fonte única de verdade: warmup aborta sem `/v1/models`, relatório exibe apenas dados reais (sem coluna "Configurado"), `log.json` v2.0 com hash do system prompt e métrica `contexto_ok` para estouro de contexto
 - [x] Verificação de contexto em camadas: warmup valida ctx real + system prompt (contagem exata via `/tokenize` com calibração), runner faz pre-check por tarefa sem retry inútil, timeout por chamada (120s) separado do timeout total (400s) e `num_ctx` adaptativo no `LlamaClient`
 - [x] Benchmark: relatório/log com "ID modelo" (sem "Nome") e linha de resumo `rep X/Y` por execução (com descrição de erro)
+- [x] Avaliação de desempenho integrada ao terminal da MARIA: menu de modo (Chat/Avaliação), escolha de modelo/tarefas/repetições, automação do llama-server em nova janela PowerShell (GGUF 3B/7B) e métricas de sistema + tempo de warmup no `report.md`/`log.json`
 - [ ] Cobertura formal de código (`pytest-cov`)
 
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.22 — Avaliação de Desempenho no terminal + llama-server automático (2026-09-05)
+- **Menu de modo** no `backend/ui_terminal.py`: após o banner, `1. Chat` (fluxo intacto) ou `2. Avaliação de Desempenho` (modelo 3B/7B → tarefas → repetições).
+- **`servidor_llama.py`**: abre o llama-server em nova janela do PowerShell com o GGUF do modelo escolhido (`-hf ggml-org/Qwen2.5-Omni-{3B,7B}-GGUF:Q4_K_M`, `-c 2048 -t 4 -b 1024 -ub 256 --port 8080 -lv 1`), reutiliza servidor ativo equivalente, pergunta antes de trocar de modelo e aguarda `/v1/models`.
+- **`run_benchmark_programatico()`**: novo ponto de entrada programático (warmup real cronometrado, progresso no terminal da MARIA, `log.json` com `warmup_duracao_s` + `metricas_sistema`).
+- **Seção `## Sistema`** no `report.md` (CPU/RAM/GPU/tempo de warmup) via novos parâmetros opcionais de `generate_report()`.
+- **Bug de repetições corrigido**: `main()` passou a usar `args.repeticoes` (valor escolhido respeitado) e o default virou 2.
+- **Testes**: 182/182 + 33 subtests; validação live pendente.
 
 ### 4.1.17 — Benchmark: contrato de cliente, fixtures e limpeza de Ollama (2026-09-03)
 - **Protocol de cliente**: `client_protocol.py` (`LLMClientProtocol`) tipa `MariaRunner`/`tool_chaining` (Liskov).

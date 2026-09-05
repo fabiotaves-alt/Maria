@@ -14,7 +14,10 @@ BENCHMARK_RETRY_BACKOFF_SECONDS = float(
     os.getenv("BENCHMARK_RETRY_BACKOFF_SECONDS", "3.0")
 )
 BENCHMARK_WARMUP_TIMEOUT = int(os.getenv("BENCHMARK_WARMUP_TIMEOUT", "300"))
-BENCHMARK_REPETICOES = int(os.getenv("BENCHMARK_REPETICOES", "3"))
+# Número padrão de repetições por tarefa. O valor escolhido pelo usuário
+# (menu de avaliação ou --repeticoes na CLI) SEMPRE prevalece sobre este
+# default — o main() do run_benchmark usa args.repeticoes, não esta constante.
+BENCHMARK_REPETICOES = int(os.getenv("BENCHMARK_REPETICOES", "2"))
 
 # Timeout POR CHAMADA individual ao modelo (s). O BENCHMARK_TASK_TIMEOUT (400s)
 # continua como timeout TOTAL da tarefa (incluindo retries e continuacoes); a

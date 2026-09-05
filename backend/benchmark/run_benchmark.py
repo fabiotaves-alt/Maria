@@ -404,7 +404,7 @@ def main() -> int:
     agregados_todas_tarefas = []
 
     for index, task in enumerate(tasks, start=1):
-        print(f"[{index}/{len(tasks)}] Tarefa {task.id}: {task.name} ({BENCHMARK_REPETICOES}x)")
+        print(f"[{index}/{len(tasks)}] Tarefa {task.id}: {task.name} ({args.repeticoes}x)")
 
         def _mostrar_resultado_individual(indice_execucao, resultado, task=task):
             status = "✓" if resultado.tool_correct else "✗"
@@ -414,14 +414,14 @@ def main() -> int:
                 else ""
             )
             print(
-                f"    rep {indice_execucao}/{BENCHMARK_REPETICOES}: {status} "
+                f"    rep {indice_execucao}/{args.repeticoes}: {status} "
                 f"tool={resultado.tool_detected or '—'}{esperado} "
                 f"args={'OK' if resultado.args_correct else 'DIVERGENTE'} "
                 f"latência={resultado.latency_ms / 1000:.1f}s tokens={resultado.tokens_gerados}"
             )
 
         resultados_task = runner.run_repeated(
-            task, BENCHMARK_REPETICOES, apos_cada_execucao=_mostrar_resultado_individual
+            task, args.repeticoes, apos_cada_execucao=_mostrar_resultado_individual
         )
         resultados_individuais_todas_tarefas.extend(resultados_task)
         agregados_todas_tarefas.append(aggregate_by_task(resultados_task))
@@ -452,7 +452,7 @@ def main() -> int:
             "modelo_quantizacao": (metadados_modelo or {}).get("quantizacao"),
             "data_execucao": datetime.now().isoformat(),
             "total_tarefas": len(tasks),
-            "repeticoes_por_tarefa": BENCHMARK_REPETICOES,
+            "repeticoes_por_tarefa": args.repeticoes,
             "versao_benchmark": "2.0",
             "system_prompt_hash": system_prompt_hash,
             "system_prompt_completo": system_prompt_texto,
@@ -494,6 +494,176 @@ def main() -> int:
     print(f"Runtime: {metricas_finais.runtime_success_rate * 100:.1f}%")
     print(f"Latência média: {metricas_finais.avg_latency_ms:.1f} ms")
     print(f"Relatório: {os.path.join(run_dir, 'report.md')}")
+    return 0
+
+
+def run_benchmark_programatico(
+    modelo: str,
+    task_ids: list[int] | None,
+    repeticoes: int,
+    metricas_sistema: dict | None = None,
+) -> int:
+    """
+    Ponto de entrada programático (chamado pelo menu do ui_terminal).
+    Equivale ao main() mas recebe parâmetros diretamente em vez de args CLI.
+
+    Garante automaticamente o llama-server com o modelo escolhido (abre nova
+    janela do PowerShell quando necessário) antes do warmup real, que mede o
+    tempo de aquecimento registrado no report.md e no log.json.
+
+    Args:
+        modelo: nome do modelo llama (ex: 'qwen2.5-omni-3b')
+        task_ids: lista de IDs de tarefas ou None para todas
+        repeticoes: número de repetições por tarefa
+        metricas_sistema: dict coletado antes do warmup (snapshot de CPU/RAM/GPU)
+
+    Returns:
+        0 em sucesso, != 0 em falha
+    """
+    import types
+
+    # Garante o llama-server com o modelo escolhido no menu. Quando o servidor
+    # não está ativo, abre nova janela do PowerShell (fica aberta) e aguarda o
+    # /v1/models responder — a escolha do modelo deixa de ser apenas cosmética.
+    from .servidor_llama import garantir_servidor
+
+    # Monta namespace de args equivalente ao _parse_args()
+    args = types.SimpleNamespace(
+        task_ids=task_ids,
+        tasks=None,
+        category=None,
+        output_dir=BENCHMARK_RESULTS_DIR,
+        delay=0.0,
+        repeticoes=repeticoes,
+        num_predict=None,
+    )
+
+    # Sobrescreve o modelo no config em runtime (sem alterar ENV permanentemente)
+    import backend.core.config as _cfg
+    _cfg.LLAMA_MODEL = modelo
+
+    todas = load_all_maria_tasks()
+    tasks = _select_tasks(todas, args)
+    if not tasks:
+        raise SystemExit("Nenhuma tarefa selecionada.")
+
+    # Servidor ativo com o modelo escolhido antes de aquecer (o warmup mede o
+    # tempo real de carregamento/primeira resposta).
+    garantir_servidor(modelo)
+
+    # Warmup real com o modelo escolhido (mede tempo de aquecimento)
+    inicio_warmup = time.monotonic()
+    metadados_modelo = _warmup_model()
+    duracao_warmup_s = round(time.monotonic() - inicio_warmup, 2)
+    modelo_carregado = (metadados_modelo or {}).get("id")
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = os.path.join(args.output_dir, f"run_{timestamp}")
+    os.makedirs(run_dir, exist_ok=True)
+    print(f"Executando {len(tasks)} tarefa(s). Resultados: {run_dir}")
+
+    runner = MariaRunner(
+        num_predict=args.num_predict,
+        modelo_carregado=modelo_carregado,
+        ctx_size=(metadados_modelo or {}).get("ctx_size"),
+    )
+    resultados_individuais_todas_tarefas = []
+    agregados_todas_tarefas = []
+
+    for index, task in enumerate(tasks, start=1):
+        print(f"[{index}/{len(tasks)}] Tarefa {task.id}: {task.name} ({repeticoes}x)")
+
+        def _mostrar_resultado_individual(indice_execucao, resultado, task=task):
+            status = "✓" if resultado.tool_correct else "✗"
+            esperado = (
+                f" (esperado: {task.expected_tool})"
+                if not resultado.tool_correct and task.expected_tool
+                else ""
+            )
+            print(
+                f"    rep {indice_execucao}/{repeticoes}: {status} "
+                f"tool={resultado.tool_detected or '—'}{esperado} "
+                f"args={'OK' if resultado.args_correct else 'DIVERGENTE'} "
+                f"latência={resultado.latency_ms / 1000:.1f}s tokens={resultado.tokens_gerados}"
+            )
+
+        resultados_task = runner.run_repeated(
+            task, repeticoes, apos_cada_execucao=_mostrar_resultado_individual
+        )
+        resultados_individuais_todas_tarefas.extend(resultados_task)
+        agregados_todas_tarefas.append(aggregate_by_task(resultados_task))
+
+        metricas_parciais = calculate_maria_metrics(resultados_individuais_todas_tarefas)
+        print(
+            f"    → acumulado: tool_accuracy={metricas_parciais.tool_accuracy * 100:.1f}% "
+            f"confirmação={metricas_parciais.confirmation_success_rate * 100:.1f}% "
+            f"latência média={metricas_parciais.avg_latency_ms / 1000:.1f}s"
+        )
+
+    system_prompt_hash = _hash_prompt(MARIA_SYSTEM_PROMPT)
+    system_prompt_texto = None
+    for resultado in resultados_individuais_todas_tarefas:
+        texto = extrair_texto_system(resultado.prompt_enviado)
+        if texto:
+            system_prompt_texto = texto
+            break
+
+    log_final = {
+        "meta": {
+            "id_modelo": (metadados_modelo or {}).get("id"),
+            "modelo_quantizacao": (metadados_modelo or {}).get("quantizacao"),
+            "data_execucao": datetime.now().isoformat(),
+            "total_tarefas": len(tasks),
+            "repeticoes_por_tarefa": repeticoes,
+            "versao_benchmark": "2.0",
+            "system_prompt_hash": system_prompt_hash,
+            "system_prompt_completo": system_prompt_texto,
+            "llama_base_url": LLAMA_BASE_URL,
+            "llama_num_ctx_config": LLAMA_NUM_CTX,
+            "ctx_size_detectado": (metadados_modelo or {}).get("ctx_size"),
+            "ctx_fonte": (metadados_modelo or {}).get("ctx_fonte"),
+            "system_prompt_tokens": (metadados_modelo or {}).get("system_prompt_tokens"),
+            "fator_calibracao_tokens": obter_fator_calibracao(),
+            "timeout_por_chamada_s": BENCHMARK_TIMEOUT_POR_CHAMADA,
+            "sampler_params": montar_sampler_params(),
+            "warmup_duracao_s": duracao_warmup_s,
+            "metricas_sistema": metricas_sistema or {},
+        },
+        "individual": [
+            {
+                **asdict(r),
+                "prompt_enviado": mascarar_system_prompt(r.prompt_enviado) if r.prompt_enviado else None,
+            }
+            for r in resultados_individuais_todas_tarefas
+        ],
+        "agregado_por_tarefa": [asdict(a) for a in agregados_todas_tarefas],
+    }
+    log_path = os.path.join(run_dir, "log.json")
+    with open(log_path, "w", encoding="utf-8") as log_file:
+        json.dump(log_final, log_file, ensure_ascii=False, indent=2)
+
+    metricas_finais = calculate_maria_metrics(resultados_individuais_todas_tarefas)
+
+    generate_report(
+        resultados_individuais_todas_tarefas,
+        metricas_finais,
+        run_dir,
+        metadados_modelo=metadados_modelo,
+        sampler_params=montar_sampler_params(),
+        log_final=log_final,
+        metricas_sistema=metricas_sistema,
+        warmup_duracao_s=duracao_warmup_s,
+    )
+
+    print("\nResumo")
+    print(f"Tarefas: {metricas_finais.total_tasks}")
+    print(f"Tool accuracy: {metricas_finais.tool_accuracy * 100:.1f}%")
+    print(f"Confirmação: {metricas_finais.confirmation_success_rate * 100:.1f}%")
+    print(f"Runtime: {metricas_finais.runtime_success_rate * 100:.1f}%")
+    print(f"Latência média: {metricas_finais.avg_latency_ms:.1f} ms")
+    print(f"Relatório: {os.path.join(run_dir, 'report.md')}")
+    print("\nO llama-server continua ativo na janela do PowerShell aberta.")
+    print("Você pode fechá-la ou mantê-la para reutilizar na próxima execução.")
     return 0
 
 
