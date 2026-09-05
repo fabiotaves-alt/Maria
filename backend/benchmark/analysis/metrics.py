@@ -1,7 +1,7 @@
 """Métricas agregadas do benchmark MARIA."""
 import statistics
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ..tasks.task_schema import MariaTaskResult, MariaTaskAggregateResult
 
@@ -32,6 +32,15 @@ class MariaBenchmarkMetrics:
     # Nº de execuções sem tool call detectada MAS com padrão de chamada na
     # resposta bruta — separa "modelo não chamou" de "parser falhou".
     parse_suspeito_count: int = 0
+    # Proporção de execuções SEM erro semântico (heurística de qualidade de
+    # conteúdo: título/conteúdo invertidos, placeholders, conteúdo curto,
+    # nome com extensão). Complementa args_accuracy (que é estrutural).
+    semantic_quality_rate: float = 1.0
+    # Contagem de erros semânticos por tipo (chaves: titulo_conteudo_invertido,
+    # placeholder_detectado, conteudo_curto, nome_com_extensao).
+    semantic_errors_by_type: dict[str, int] = field(default_factory=dict)
+    # Total de correções automáticas aplicadas (ex.: sanitização de nome).
+    correcoes_count: int = 0
 
 
 def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMetrics:
@@ -70,6 +79,25 @@ def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMet
         for category, values in by_category.items()
     }
 
+    _SEMANTIC_FLAGS = (
+        "titulo_conteudo_invertido",
+        "placeholder_detectado",
+        "conteudo_curto",
+        "nome_com_extensao",
+    )
+    semantic_errors = defaultdict(int)
+    semantic_ok_count = 0
+    correcoes_total = 0
+    for result in results:
+        tem_erro = False
+        for flag in _SEMANTIC_FLAGS:
+            if getattr(result, flag, False):
+                semantic_errors[flag] += 1
+                tem_erro = True
+        if not tem_erro:
+            semantic_ok_count += 1
+        correcoes_total += len(result.correcoes)
+
     tokens_medidos = [r.tokens_por_segundo for r in results if r.tokens_por_segundo > 0]
     avg_tokens_por_segundo = sum(tokens_medidos) / len(tokens_medidos) if tokens_medidos else 0.0
 
@@ -106,6 +134,9 @@ def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMet
         contexto_ok_rate=contexto_ok_count / total,
         confirmation_success_rate_elegiveis=confirmation_elegiveis,
         parse_suspeito_count=sum(1 for r in results if r.parse_suspeito),
+        semantic_quality_rate=semantic_ok_count / total,
+        semantic_errors_by_type=dict(semantic_errors),
+        correcoes_count=correcoes_total,
     )
 
 

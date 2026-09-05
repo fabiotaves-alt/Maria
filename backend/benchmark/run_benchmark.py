@@ -9,7 +9,7 @@ from datetime import datetime
 from dataclasses import asdict
 
 from .analysis.metrics import calculate_maria_metrics, aggregate_by_task
-from .analysis.report import generate_report, extrair_texto_system, mascarar_system_prompt
+from .analysis.report import generate_report, extrair_texto_system, mascarar_system_prompt, formatar_correcoes
 from .benchmark_config import (
     BENCHMARK_RESULTS_DIR,
     BENCHMARK_TIMEOUT_POR_CHAMADA,
@@ -418,6 +418,7 @@ def main() -> int:
                 f"tool={resultado.tool_detected or '—'}{esperado} "
                 f"args={'OK' if resultado.args_correct else 'DIVERGENTE'} "
                 f"latência={resultado.latency_ms / 1000:.1f}s tokens={resultado.tokens_gerados}"
+                + formatar_correcoes(resultado)
             )
 
         resultados_task = runner.run_repeated(
@@ -493,6 +494,7 @@ def main() -> int:
     print(f"Confirmação: {metricas_finais.confirmation_success_rate * 100:.1f}%")
     print(f"Runtime: {metricas_finais.runtime_success_rate * 100:.1f}%")
     print(f"Latência média: {metricas_finais.avg_latency_ms:.1f} ms")
+    print(f"Qualidade semântica: {metricas_finais.semantic_quality_rate * 100:.1f}%")
     print(f"Relatório: {os.path.join(run_dir, 'report.md')}")
     return 0
 
@@ -580,6 +582,7 @@ def _run_benchmark_programatico(
                 f"tool={resultado.tool_detected or '—'}{esperado} "
                 f"args={'OK' if resultado.args_correct else 'DIVERGENTE'} "
                 f"latência={resultado.latency_ms / 1000:.1f}s tokens={resultado.tokens_gerados}"
+                + formatar_correcoes(resultado)
             )
 
         resultados_task = runner.run_repeated(
@@ -656,6 +659,7 @@ def _run_benchmark_programatico(
     print(f"Confirmação: {metricas_finais.confirmation_success_rate * 100:.1f}%")
     print(f"Runtime: {metricas_finais.runtime_success_rate * 100:.1f}%")
     print(f"Latência média: {metricas_finais.avg_latency_ms:.1f} ms")
+    print(f"Qualidade semântica: {metricas_finais.semantic_quality_rate * 100:.1f}%")
     print(f"Relatório: {os.path.join(run_dir, 'report.md')}")
     print("\nO llama-server continua ativo na janela de console aberta.")
     print("Você pode fechá-la ou mantê-la para reutilizar na próxima execução.")

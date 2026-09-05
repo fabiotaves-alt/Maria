@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.25  
+**Versão Atual:** v4.1.26  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -50,6 +50,7 @@
 | **4.1.23** | 2026-09-05 | UX da Avaliação de Desempenho: terminal limpo (logger raiz em WARNING durante o run, restaurado via `try/finally`), janela do llama-server com logs normais (`CREATE_NEW_CONSOLE` direto) e aviso de divergência de modelo removido (config = modelo escolhido); **182 testes passando + 33 subtests** | ✅ Concluída |
 | **4.1.24** | 2026-09-05 | Análise de 9 runs de benchmark (7B/3B, 3 versões de system prompt), rastreio de hashes V1/V2/V3 do prompt, e detecção de loop degenerado multi-caractere (`_x_x_x…`) que gerava falso positivo na run 3B; detector ampliado + testes | ✅ Concluída |
 | **4.1.25** | 2026-09-05 | Decisão final do system prompt (V2 = 100% no 7B; V3 abandonado), consolidação de todas as branches no `main` e limpeza de 15 branches integradas/superseded | ✅ Concluída |
+| **4.1.26** | 2026-09-05 | Log de correções no terminal (antes → depois da sanitização, suprimindo INFO poluentes) + métricas de qualidade semântica (`semantic_quality_rate`, flags de título/conteúdo invertido, placeholders, conteúdo curto e nome com extensão) no `log.json`/`report.md` | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -103,6 +104,11 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.26 — Log de correções e métricas semânticas (2026-09-05)
+- **Log do terminal**: correção de `nome_arquivo` agora aparece em uma linha — `⚠️ corrigido nome_arquivo: "../../teste_seguro" → "teste_seguro"` — em vez de ficar silenciosa; os `INFO` poluentes (`Executando ferramenta real`, `Planilha criada`) seguem suprimidos pelo "terminal limpo".
+- **Métricas semânticas**: novos campos por execução (`titulo_conteudo_invertido`, `placeholder_detectado`, `conteudo_curto`, `nome_com_extensao`, `correcoes`) + `semantic_quality_rate`/`semantic_errors_by_type`/`correcoes_count` agregados — complementam o `args_accuracy` (estrutural) com qualidade de conteúdo.
+- **Testes**: 196/196 + 33 subtests (9 novos em `TestAnaliseSemantica`/`TestFormatarCorrecoes`).
 
 ### 4.1.25 — System prompt final (V2) e consolidação no main (2026-09-05)
 - **Decisão**: system prompt **V2** (`091d6ab5c83f`) selecionado como final — 100% no 7B em duas runs (`094804`, `131333`); **V3** (`ce187676ddf7`) abandonado.

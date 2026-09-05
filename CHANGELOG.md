@@ -2,6 +2,26 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.26] — Log de correções + métricas de qualidade semântica — 2026-09-05
+
+### 🧹 Log do terminal: correção visível (Fase 1)
+- **`core/tool_chaining.py`**: `validar_e_corrigir_tool_call_stream` registra o **antes → depois** da auto-sanitização de `nome_arquivo` (path traversal) em `correcoes` e devolve no resultado.
+- **`benchmark/runners/maria_runner.py`**: expõe `correcoes` no `MariaTaskResult`.
+- **`benchmark/analysis/report.py`**: novo `formatar_correcoes()` + sufixo `⚠️ corrigido campo: "antes" → "depois"` na linha de resumo.
+- **`benchmark/run_benchmark.py`**: sufixo de correção nas duas saídas do terminal (CLI e programática) — uma linha só, sem os INFO poluentes.
+
+### 📊 Métricas de qualidade semântica (Fase 2)
+- **`task_schema.py`**: novos campos em `MariaTaskResult` — `correcoes`, `titulo_conteudo_invertido`, `placeholder_detectado`, `conteudo_curto`, `nome_com_extensao`.
+- **`maria_runner.py`**: `_analisar_semantica()` (heurística) detecta título/conteúdo invertidos, placeholders (`[data]`, `[Seu Nome]`), conteúdo curto e nome com extensão.
+- **`analysis/metrics.py`**: `semantic_quality_rate`, `semantic_errors_by_type`, `correcoes_count`.
+- **`analysis/report.py`**: seção `## Qualidade Semântica` + linha na tabela de métricas gerais.
+- **`run_benchmark.py`**: linha `Qualidade semântica` no `Resumo`.
+
+### 🧪 Testes
+- **196 testes passando + 33 subtests** — 9 novos (`TestAnaliseSemantica`, `TestFormatarCorrecoes`); mocks de `metrics` atualizados.
+
+---
+
 ## [4.1.25] — Decisão final do system prompt (V2) e consolidação no main — 2026-09-05
 
 ### ✅ System prompt final: V2 (hash `091d6ab5c83f`)

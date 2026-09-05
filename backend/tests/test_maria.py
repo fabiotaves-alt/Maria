@@ -1691,6 +1691,109 @@ class TestDeteccaoDegeneracao(unittest.TestCase):
         self.assertFalse(_detectar_degeneracao(texto))
 
 
+class TestAnaliseSemantica(unittest.TestCase):
+    """Testa a análise semântica heurística da tool call final (Fase 2)."""
+
+    def _analisar(self, tool_call):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        return MariaRunner._analisar_semantica(tool_call)
+
+    def test_titulo_conteudo_invertido_detectado(self):
+        flags = self._analisar({
+            "name": "criar_documento",
+            "arguments": {
+                "nome_arquivo": "comunicado",
+                "titulo": "Informamos que o horário de atendimento será alterado a partir da próxima semana para melhor atender nossos clientes.",
+                "conteudo": "Agradecemos a compreensão.",
+            },
+        })
+        self.assertTrue(flags["titulo_conteudo_invertido"])
+
+    def test_placeholder_detectado(self):
+        flags = self._analisar({
+            "name": "criar_documento",
+            "arguments": {
+                "nome_arquivo": "ata",
+                "titulo": "Ata",
+                "conteudo": "Data: [data] Local: [local]",
+            },
+        })
+        self.assertTrue(flags["placeholder_detectado"])
+
+    def test_conteudo_curto_detectado(self):
+        flags = self._analisar({
+            "name": "criar_documento",
+            "arguments": {"nome_arquivo": "a", "titulo": "T", "conteudo": "muito curto"},
+        })
+        self.assertTrue(flags["conteudo_curto"])
+
+    def test_nome_com_extensao_detectado(self):
+        flags = self._analisar({
+            "name": "criar_planilha",
+            "arguments": {"nome_arquivo": "estoque.xlsx", "colunas": ["A"]},
+        })
+        self.assertTrue(flags["nome_com_extensao"])
+
+    def test_tool_call_limpa_sem_flags(self):
+        flags = self._analisar({
+            "name": "criar_documento",
+            "arguments": {
+                "nome_arquivo": "ata",
+                "titulo": "Ata",
+                "conteudo": "Reunião realizada com sucesso, com discussão dos pontos de pauta.",
+            },
+        })
+        self.assertFalse(any(flags.values()))
+
+    def test_sem_tool_call_retorna_flags_falsas(self):
+        flags = self._analisar(None)
+        self.assertFalse(any(flags.values()))
+
+    def test_calculate_maria_metrics_com_semantica(self):
+        from backend.benchmark.analysis.metrics import calculate_maria_metrics
+        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        base = dict(task_name="t", category="c", model="m", tool_detected=None,
+                    tool_correct=True, confirmation_completed=True,
+                    keyword_match=True, runtime_ok=True, final_message="",
+                    latency_ms=0.0)
+        r_limpo = MariaTaskResult(task_id=1, **base)
+        r_placeholder = MariaTaskResult(task_id=2, **base, placeholder_detectado=True)
+        r_corrigido = MariaTaskResult(
+            task_id=3, **base,
+            correcoes=[{"campo": "nome_arquivo", "antes": "../x", "depois": "x"}],
+        )
+        metrics = calculate_maria_metrics([r_limpo, r_placeholder, r_corrigido])
+        self.assertAlmostEqual(metrics.semantic_quality_rate, 2 / 3)
+        self.assertEqual(metrics.semantic_errors_by_type.get("placeholder_detectado"), 1)
+        self.assertEqual(metrics.correcoes_count, 1)
+
+
+class TestFormatarCorrecoes(unittest.TestCase):
+    """Testa a formatação do sufixo de correções automáticas (Fase 1)."""
+
+    def _resultado(self, **kwargs):
+        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        base = dict(task_id=1, task_name="t", category="c", model="m",
+                    tool_detected=None, tool_correct=True,
+                    confirmation_completed=True, keyword_match=True,
+                    runtime_ok=True, final_message="", latency_ms=0.0)
+        base.update(kwargs)
+        return MariaTaskResult(**base)
+
+    def test_sem_correcoes_retorna_vazio(self):
+        from backend.benchmark.analysis.report import formatar_correcoes
+        self.assertEqual(formatar_correcoes(self._resultado()), "")
+
+    def test_com_correcao_formata_antes_depois(self):
+        from backend.benchmark.analysis.report import formatar_correcoes
+        saida = formatar_correcoes(self._resultado(correcoes=[
+            {"campo": "nome_arquivo", "antes": "../../teste", "depois": "teste"},
+        ]))
+        self.assertIn("corrigido", saida)
+        self.assertIn("../../teste", saida)
+        self.assertIn("teste", saida)
+
+
 class TestChatStreamDegeneracao(unittest.TestCase):
     """Testa o abort precoce de geração degenerada em chat_stream."""
 
@@ -2369,6 +2472,8 @@ class TestAvisoNctx(unittest.TestCase):
                         p50_latency_ms=100.0, p90_latency_ms=100.0,
                         avg_latency_ms=100.0, error_distribution={}, by_category={},
                         contexto_ok_rate=1.0,
+                        semantic_quality_rate=1.0, semantic_errors_by_type={},
+                        correcoes_count=0,
                     ),
                     tmpdir,
                     metadados_modelo=metadados,
@@ -2536,6 +2641,8 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
             p50_latency_ms=100.0, p90_latency_ms=100.0,
             avg_latency_ms=100.0, error_distribution={}, by_category={},
             contexto_ok_rate=1.0,
+            semantic_quality_rate=1.0, semantic_errors_by_type={},
+            correcoes_count=0,
         )
         with tempfile.TemporaryDirectory() as tmpdir:
             generate_report(

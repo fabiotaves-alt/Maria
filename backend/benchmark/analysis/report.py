@@ -93,6 +93,17 @@ def _execucao_falhou(result: MariaTaskResult) -> bool:
     )
 
 
+def formatar_correcoes(result: MariaTaskResult) -> str:
+    """Sufixo `⚠️ corrigido ...` quando a execução teve correções automáticas."""
+    if not result.correcoes:
+        return ""
+    partes = [
+        f"{c.get('campo')}: \"{c.get('antes')}\" → \"{c.get('depois')}\""
+        for c in result.correcoes
+    ]
+    return "  ⚠️ corrigido " + "; ".join(partes)
+
+
 def _formatar_linha_resumo(result: MariaTaskResult, indice_rep: int, total_rep: int) -> str:
     """Formata a linha de resumo `rep X/Y: ...` exibida em cada execução.
 
@@ -105,6 +116,7 @@ def _formatar_linha_resumo(result: MariaTaskResult, indice_rep: int, total_rep: 
         f"args={'OK' if result.args_correct else 'DIVERGENTE'} "
         f"latência={result.latency_ms / 1000:.1f}s tokens={result.tokens_gerados}"
     )
+    linha += formatar_correcoes(result)
     if _execucao_falhou(result):
         linha += f" — erro: {_diagnosticar_falha(result)}"
     return linha
@@ -206,6 +218,29 @@ def _format_errors(errors: dict[str, int]) -> str:
     lines = ["| Tipo | Ocorrências |", "|---|---:|"]
     lines.extend(f"| {kind} | {count} |" for kind, count in sorted(errors.items()))
     return "\n".join(lines)
+
+
+def _montar_secao_semantica(metrics: MariaBenchmarkMetrics) -> str:
+    """Renderiza a seção '## Qualidade Semântica' do report.md."""
+    rotulos = {
+        "titulo_conteudo_invertido": "Título/conteúdo invertidos",
+        "placeholder_detectado": "Placeholders não preenchidos ([...])",
+        "conteudo_curto": "Conteúdo muito curto (<20 chars)",
+        "nome_com_extensao": "nome_arquivo com extensão (.xlsx/.docx)",
+    }
+    erros = metrics.semantic_errors_by_type or {}
+    linhas = [
+        "## Qualidade Semântica",
+        "",
+        f"Acurácia semântica (heurística): **{metrics.semantic_quality_rate * 100:.1f}%**",
+        "",
+        "| Indicador | Ocorrências |",
+        "|---|---:|",
+    ]
+    for chave, rotulo in rotulos.items():
+        linhas.append(f"| {rotulo} | {erros.get(chave, 0)} |")
+    linhas.append(f"| Correções automáticas (sanitização) | {metrics.correcoes_count} |")
+    return "\n".join(linhas) + "\n"
 
 
 def _diagnosticar_falha(result: MariaTaskResult) -> str:
@@ -359,6 +394,7 @@ def generate_report(
     secao_sampler = _montar_secacao_sampler(sampler_params)
     secao_sistema = _montar_secao_sistema(metricas_sistema, warmup_duracao_s)
     secao_detalhes = _montar_detalhes_execucao(results)
+    secao_semantica = _montar_secao_semantica(metrics)
 
     _taxa_eleg = metrics.confirmation_success_rate_elegiveis
     taxa_elegiveis = (
@@ -393,7 +429,9 @@ Gerado em: {generated_at}
 | Latência p90 | {metrics.p90_latency_ms:.1f} ms |
 | Latência média | {metrics.avg_latency_ms:.1f} ms |
 | Contexto OK | {metrics.contexto_ok_rate * 100:.1f}% |
+| Qualidade semântica | {metrics.semantic_quality_rate * 100:.1f}% |
 
+{secao_semantica}
 ## Métricas por categoria
 
 | Categoria | Total | Acurácia de tool calling |

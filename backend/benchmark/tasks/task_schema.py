@@ -90,6 +90,15 @@ class MariaTaskResult:
     cadeia_ferramentas: list[str] = field(default_factory=list)
     # Primeira tool call do modelo (antes do encadeamento), para diagnóstico.
     tool_call_inicial: dict = field(default_factory=dict)
+    # Correções automáticas aplicadas à tool call de escrita (ex.: sanitização
+    # de nome_arquivo com path traversal). Cada item: {"campo", "antes", "depois"}.
+    correcoes: list[dict] = field(default_factory=list)
+    # Análise semântica heurística da tool call final (qualidade do conteúdo,
+    # além da validação estrutural de args_correct).
+    titulo_conteudo_invertido: bool = False
+    placeholder_detectado: bool = False
+    conteudo_curto: bool = False
+    nome_com_extensao: bool = False
 
 
 @dataclass

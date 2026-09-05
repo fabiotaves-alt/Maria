@@ -107,6 +107,7 @@ class MariaRunner:
         degeneracao_detectada = False
         cadeia_ferramentas: list[str] = []
         tool_call_inicial: dict = {}
+        correcoes: list[dict] = []
 
         try:
             (
@@ -190,6 +191,7 @@ class MariaRunner:
                 if resultado_validacao is not None:
                     tool_call_final = resultado_validacao["tool_call"]
                     correction_attempts = resultado_validacao["tentativas"]
+                    correcoes = resultado_validacao.get("correcoes", [])
                     if tool_call_final is None:
                         # Sem tool call após as tentativas de correção: não há
                         # nada a confirmar/executar; a tarefa segue sem ferramenta.
@@ -344,6 +346,10 @@ class MariaRunner:
                 ),
             })
 
+        # Análise semântica heurística da tool call final (qualidade do conteúdo,
+        # além da validação estrutural de args_correct).
+        semanticas = MariaRunner._analisar_semantica(tool_call_final)
+
         return MariaTaskResult(
             task_id=task.id,
             task_name=task.name,
@@ -373,6 +379,11 @@ class MariaRunner:
             sampler_params=self.sampler_params,
             cadeia_ferramentas=cadeia_ferramentas,
             tool_call_inicial=tool_call_inicial,
+            correcoes=correcoes,
+            titulo_conteudo_invertido=semanticas["titulo_conteudo_invertido"],
+            placeholder_detectado=semanticas["placeholder_detectado"],
+            conteudo_curto=semanticas["conteudo_curto"],
+            nome_com_extensao=semanticas["nome_com_extensao"],
         )
 
     @staticmethod
@@ -384,6 +395,39 @@ class MariaRunner:
         texto = texto.lower()
         texto = unicodedata.normalize('NFKD', texto)
         return ''.join(c for c in texto if not unicodedata.combining(c))
+
+    @staticmethod
+    def _analisar_semantica(tool_call: dict | None) -> dict:
+        """Análise semântica heurística da tool call final (qualidade do conteúdo).
+
+        Detecta sinais de baixa qualidade que o `args_correct` (estrutural:
+        apenas presença de campos) não captura. Retorna um dict de flags booleanas.
+        """
+        flags = {
+            "titulo_conteudo_invertido": False,
+            "placeholder_detectado": False,
+            "conteudo_curto": False,
+            "nome_com_extensao": False,
+        }
+        if not tool_call:
+            return flags
+        nome = tool_call.get("name")
+        argumentos = tool_call.get("arguments", {}) or {}
+        if nome == "criar_documento":
+            titulo = str(argumentos.get("titulo", ""))
+            conteudo = str(argumentos.get("conteudo", ""))
+            # Título muito maior que o conteúdo sugere inversão dos campos.
+            if len(titulo) > 60 and len(conteudo) < len(titulo) * 0.4:
+                flags["titulo_conteudo_invertido"] = True
+            if re.search(r"\[[^\]]+\]", conteudo) or re.search(r"\[[^\]]+\]", titulo):
+                flags["placeholder_detectado"] = True
+            if len(conteudo) < 20:
+                flags["conteudo_curto"] = True
+        if nome in ("criar_planilha", "criar_documento"):
+            nome_arquivo = str(argumentos.get("nome_arquivo", "")).lower()
+            if nome_arquivo.endswith((".xlsx", ".xls", ".docx", ".doc")):
+                flags["nome_com_extensao"] = True
+        return flags
 
     @staticmethod
     def _normalizar_valor(chave: str, valor: Any) -> Any:

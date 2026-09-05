@@ -135,28 +135,36 @@ def validar_e_corrigir_tool_call_stream(cliente: LLMClientProtocol, historico_co
         Último item: (None, {"tool_call": dict | None, "tentativas": int}).
     """
     if not tool_call_atual or tool_call_atual.get("name") not in FERRAMENTAS_ESCRITA:
-        yield None, {"tool_call": tool_call_atual, "tentativas": 0}
+        yield None, {"tool_call": tool_call_atual, "tentativas": 0, "correcoes": []}
         return
 
     tentativas = 0
+    correcoes: list[dict] = []
     while tentativas < MAX_TENTATIVAS_CORRECAO_FERRAMENTA:
         try:
             validar_argumentos_obrigatorios(
                 tool_call_atual["name"], tool_call_atual.get("arguments", {})
             )
-            yield None, {"tool_call": tool_call_atual, "tentativas": tentativas}
+            yield None, {"tool_call": tool_call_atual, "tentativas": tentativas, "correcoes": correcoes}
             return
         except ValueError as erro:
             tentativas += 1
             erro_str = str(erro)
-            # Auto-sanitização silenciosa de path traversal: em vez de devolver
-            # o erro ao modelo (que responde com texto em vez de corrigir),
-            # corrige o nome_arquivo e retenta a validação imediatamente.
+            # Auto-sanitização de path traversal: em vez de devolver o erro ao
+            # modelo (que responde com texto em vez de corrigir), corrige o
+            # nome_arquivo e retenta a validação imediatamente. A correção é
+            # registrada (antes → depois) para o log/relatório do benchmark.
             if "path traversal" in erro_str.lower() and "nome_arquivo" in tool_call_atual.get("arguments", {}):
                 from backend.core.tools_schema import _sanitizar_nome_seguro
-                tool_call_atual["arguments"]["nome_arquivo"] = _sanitizar_nome_seguro(
-                    tool_call_atual["arguments"]["nome_arquivo"]
-                )
+                nome_antes = tool_call_atual["arguments"]["nome_arquivo"]
+                nome_depois = _sanitizar_nome_seguro(nome_antes)
+                tool_call_atual["arguments"]["nome_arquivo"] = nome_depois
+                if nome_antes != nome_depois:
+                    correcoes.append({
+                        "campo": "nome_arquivo",
+                        "antes": nome_antes,
+                        "depois": nome_depois,
+                    })
                 continue
             feedback = f"Erro na chamada da ferramenta: {erro}"
             logger.warning(
@@ -186,8 +194,8 @@ def validar_e_corrigir_tool_call_stream(cliente: LLMClientProtocol, historico_co
 
             tool_call_atual = novo_tool_call
             if not tool_call_atual or tool_call_atual.get("name") not in FERRAMENTAS_ESCRITA:
-                yield None, {"tool_call": tool_call_atual, "tentativas": tentativas}
+                yield None, {"tool_call": tool_call_atual, "tentativas": tentativas, "correcoes": correcoes}
                 return
 
     logger.warning("Limite de %s correções atingido sem tool call válida.", MAX_TENTATIVAS_CORRECAO_FERRAMENTA)
-    yield None, {"tool_call": None, "tentativas": tentativas}
+    yield None, {"tool_call": None, "tentativas": tentativas, "correcoes": correcoes}
