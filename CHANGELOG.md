@@ -2,6 +2,34 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.1.21] — Benchmark: tarefas 22/23 reformuladas para o fluxo real (ferramenta executa, erro volta ao modelo) — 2026-09-05
+
+### 🎯 Novo conceito das tarefas 22 e 23 (`tasks_edges.py`)
+
+Análise do run `run_20260904_232935`: o modelo já chamava `editar_planilha` diretamente em **todas** as repetições de 22/23 — o conceito anterior (exigir `listar_arquivos` antes da edição) não espelhava uma situação real e punia o comportamento natural. Novo desenho em 2 turnos reais:
+
+- **Turno 1**: usuário pede edição com nome realista ("Edite a planilha estoque com a coluna preco." / "Atualize a planilha clientes com as colunas nome e email."), sem entregar a inexistência.
+- **Turno 2**: o modelo chama `editar_planilha` → `confirm_sequence=["sim"]` auto-confirma → a ferramenta **EXECUTA de verdade** e falha (arquivo ausente na pasta isolada, `fixtures=[]`), devolvendo o erro real `"Arquivo 'estoque.xlsx' não encontrado na pasta de arquivos gerados."` → o erro volta ao modelo → ele responde em texto.
+- `tools_obrigatorios=["editar_planilha"]`: avalia "chamou a ferramenta (cadeia) **e** terminou em texto". Modelo que re-chama a ferramenta após o erro → ✘ (antes o erro travava a tarefa como falha de runtime).
+
+### ⚙️ Runner (`maria_runner.py`)
+
+- **Novo caminho de erro em runtime**: quando a ferramenta de escrita confirmada falha (`PermissionError`/`OSError`/`ValueError`), o erro real é devolvido ao modelo via `continuar_com_resultado_ferramenta_stream` (mesma mecânica do encadeamento de leitura), com timeout por chamada e soma de tokens — antes, a exceção virava erro de tarefa (`runtime_ok=False`) e o modelo nunca via o resultado. Agora `runtime_ok` permanece True: arquivo inexistente é o cenário esperado, não erro.
+
+### 📝 System prompt (`system_prompt.txt`)
+
+- Nova seção `## Arquivo não encontrado`: "Ao receber erro de ferramenta informando que o arquivo não foi encontrado, NÃO chame a ferramenta de novo: responda em texto dizendo que o arquivo não foi encontrado e oferecendo criar um novo, se for o caso."
+- Distinção clara entre **erro de chamada inválida** (seção `## Correção de erro` → corrigir e re-chamar) e **arquivo não encontrado em runtime** (responder em texto). Reabilita o teste `TestSystemPromptExcecaoArquivoInexistente` (pré-existente falhando).
+
+### 🧪 Testes
+
+- `TestMariaRunnerCadeiaFerramentas` reescrito: erro devolvido → resposta em texto ✔ | re-chamada após erro ✘ | responder sem chamar a ferramenta ✘.
+- `TestTarefas22E23EscritaInexistente` (novo): desenho das tarefas 22/23 (`tools_obrigatorios=["editar_planilha"]`, `confirm_sequence=["sim"]`, sem fixtures).
+- `TestMariaRunnerMensagemDeErro` atualizado para a nova semântica (erro da ferramenta não é mais erro de tarefa).
+- **Suíte: 182 testes passando + 33 subtests** (antes 181/182). Validação empírica live (llama-server) pendente.
+
+---
+
 ## [4.1.20] — Benchmark: tarefas 22/23 redesenhadas para simular 2 turnos reais (verificação de leitura) — 2026-09-04
 
 ### 🎯 Redesenho das tarefas 22 e 23 (`tasks_edges.py`)

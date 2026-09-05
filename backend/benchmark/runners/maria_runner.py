@@ -203,12 +203,56 @@ class MariaRunner:
                 for resposta_usuario in task.confirm_sequence:
                     resultado = interpretar_confirmacao(resposta_usuario)
                     if resultado is True:
-                        caminho = executar_ferramenta_real(
-                            tool_call_final["name"], tool_call_final["arguments"]
-                        )
-                        resposta_textual = caminho
                         confirmation_completed = True
-                        break
+                        try:
+                            caminho = executar_ferramenta_real(
+                                tool_call_final["name"], tool_call_final["arguments"]
+                            )
+                            resposta_textual = caminho
+                            break
+                        except TimeoutError:
+                            raise
+                        except (PermissionError, OSError, ValueError) as error:
+                            # Mimetiza o fluxo real da MARIA: a ferramenta de
+                            # escrita foi confirmada e EXECUTADA, mas falhou em
+                            # runtime (ex.: arquivo não encontrado). O erro real
+                            # é devolvido ao modelo via continuação — ele deve
+                            # responder em texto (tasks 22/23). Se re-chamar a
+                            # ferramenta, a avaliação marca a execução como
+                            # incorreta (não termina em texto).
+                            logger.info(
+                                "Ferramenta '%s' falhou na tarefa %s: %s",
+                                tool_call_final["name"], task.id, error,
+                            )
+                            historico_erro = sessao.get_historico_com_system()
+                            resultado_erro = (
+                                f"[ERRO] Não foi possível executar a ferramenta "
+                                f"{tool_call_final['name']}: {error}"
+                            )
+                            resposta_erro = ""
+                            novo_tool_call_final = None
+                            metricas_erro: dict = {}
+                            inicio_continuacao = time.monotonic()
+                            for chunk, tool_chunk in self.cliente.continuar_com_resultado_ferramenta_stream(
+                                historico=historico_erro,
+                                tool_call=tool_call_final,
+                                resultado=resultado_erro,
+                                tools=TOOLS_SCHEMA,
+                                metricas_saida=metricas_erro,
+                            ):
+                                if chunk is not None:
+                                    resposta_erro += chunk
+                                if tool_chunk is not None:
+                                    novo_tool_call_final = tool_chunk
+                            self._verificar_timeout_por_chamada(inicio_continuacao)
+                            tokens_gerados += metricas_erro.get("tokens_gerados", 0)
+                            tool_call_final = novo_tool_call_final
+                            if resposta_erro.strip():
+                                resposta_textual = resposta_erro
+                                resposta_bruta_modelo = (
+                                    resposta_bruta_modelo + "\n" + resposta_erro
+                                ).strip()
+                            break
                     if resultado is False:
                         resposta_textual = "Ação cancelada."
                         confirmation_completed = True

@@ -1246,12 +1246,15 @@ class TestMariaRunnerNegaEAmbiguidade(unittest.TestCase):
 
 
 class TestMariaRunnerMensagemDeErro(unittest.TestCase):
-    """Tarefa 5: erro ao executar ferramenta preenche final_message
-    com a mensagem do erro em vez de deixar vazia."""
+    """Arquivo inexistente: após a confirmação, a ferramenta EXECUTA e falha
+    (ValueError); o erro REAL é devolvido ao modelo via continuação e a
+    resposta do modelo vira a mensagem final — não é erro de tarefa."""
 
-    def test_value_error_edicao_inexistente_preenche_final_message(self):
+    def test_value_error_edicao_inexistente_devolvido_ao_modelo(self):
         from backend.benchmark.runners.maria_runner import MariaRunner
         from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        continuacao_vista = {}
 
         class ClienteFalso:
             model = "modelo-teste"
@@ -1262,6 +1265,10 @@ class TestMariaRunnerMensagemDeErro(unittest.TestCase):
                     "arguments": {"nome_arquivo": "arquivo_ausente_a", "colunas": ["A"]},
                 }, 5, 2.0, 0.5)
 
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                continuacao_vista.update(kwargs)
+                yield "O arquivo não existe. Deseja criar uma nova?", None
+
         task = MariaTask(
             9006, "Edição inexistente teste", "desc",
             "Edite a planilha arquivo_ausente_a com a coluna A.",
@@ -1271,60 +1278,60 @@ class TestMariaRunnerMensagemDeErro(unittest.TestCase):
         runner = MariaRunner(cliente=ClienteFalso())
         resultado = runner.run(task)
 
-        self.assertFalse(resultado.runtime_ok)
-        self.assertTrue(resultado.errors)
-        self.assertIn("ValueError", resultado.errors[0]["kind"])
-        self.assertIn("não encontrado", resultado.final_message)
+        # O erro real da ferramenta voltou ao modelo (não virou erro de tarefa).
+        self.assertTrue(resultado.runtime_ok)
+        self.assertFalse(resultado.errors)
+        self.assertIn("não encontrado", continuacao_vista["resultado"])
+        self.assertEqual(continuacao_vista["tool_call"]["name"], "editar_planilha")
+        self.assertIn("não existe", resultado.final_message)
 
 
 
 class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
-    """Tarefas com tools_obrigatorios: exige verificação de leitura
-    (listar_arquivos) antes da resposta final — simula 2 turnos reais:
-    usuário pede edição → modelo verifica → ferramenta devolve o resultado
-    real (pasta vazia) → modelo responde em texto explicando a inexistência."""
+    """Tarefas com tools_obrigatorios=["editar_planilha"]: a ferramenta precisa
+    ter sido chamada na cadeia E a execução precisa terminar em texto — simula
+    2 turnos reais: usuário pede edição → modelo chama editar_planilha → a
+    ferramenta EXECUTA e falha (arquivo ausente) → o erro volta ao modelo →
+    ele responde em texto."""
+
+    def setUp(self):
+        """Garante a pasta de arquivos do benchmark vazia: as tarefas sob teste
+        exigem que o arquivo NÃO exista para a ferramenta falhar em runtime."""
+        import shutil
+        from backend.benchmark.benchmark_config import BENCHMARK_ARQUIVOS_DIR
+        if os.path.isdir(BENCHMARK_ARQUIVOS_DIR):
+            for item in os.listdir(BENCHMARK_ARQUIVOS_DIR):
+                item_path = os.path.join(BENCHMARK_ARQUIVOS_DIR, item)
+                try:
+                    if os.path.isfile(item_path):
+                        os.unlink(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                except OSError:
+                    pass
 
     def _task(self, **kwargs):
         from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
 
         base = dict(
             id=9010,
-            name="Verificação teste",
+            name="Edição inexistente teste",
             description="desc",
             user_message="Edite a planilha estoque com a coluna preco.",
-            tools_obrigatorios=["listar_arquivos"],
+            tools_obrigatorios=["editar_planilha"],
             expected_keywords=["nao existe", "nao encontrado", "encontrado", "vazia", "criar"],
-            confirm_sequence=[],
+            confirm_sequence=["sim"],
             category=MariaTaskCategory.EDITAR_PLANILHA,
         )
         base.update(kwargs)
         return MariaTask(**base)
 
-    def test_cadeia_listar_arquivos_termina_em_texto_conta_como_correta(self):
+    def test_erro_da_ferramenta_devolvido_ao_modelo_que_responde_em_texto_conta_como_correta(self):
         from backend.benchmark.runners.maria_runner import MariaRunner
 
-        class ClienteVerifica:
-            model = "modelo-teste"
+        continuacao_vista = {}
 
-            def chat_com_tools_stream_com_metricas(self, **kwargs):
-                return ("", {"name": "listar_arquivos", "arguments": {}}, 10, 5.0, 1.0)
-
-            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
-                yield "A planilha estoque não foi encontrada. Deseja criar uma nova?", None
-
-        resultado = MariaRunner(cliente=ClienteVerifica()).run(self._task())
-
-        self.assertIsNone(resultado.tool_detected)
-        self.assertTrue(resultado.tool_correct)
-        self.assertEqual(resultado.cadeia_ferramentas, ["listar_arquivos"])
-        self.assertEqual(resultado.tool_call_inicial.get("name"), "listar_arquivos")
-        self.assertTrue(resultado.keyword_match)
-        self.assertTrue(resultado.runtime_ok)
-
-    def test_edicao_direta_sem_verificacao_conta_como_incorreta(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-
-        class ClienteDireto:
+        class ClienteEditaInexistente:
             model = "modelo-teste"
 
             def chat_com_tools_stream_com_metricas(self, **kwargs):
@@ -1334,19 +1341,36 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
                     10, 5.0, 1.0,
                 )
 
-        resultado = MariaRunner(cliente=ClienteDireto()).run(self._task())
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                continuacao_vista.update(kwargs)
+                yield "A planilha estoque não existe. Deseja criar uma nova?", None
 
-        self.assertFalse(resultado.tool_correct)
+        resultado = MariaRunner(cliente=ClienteEditaInexistente()).run(self._task())
+
+        self.assertIsNone(resultado.tool_detected)
+        self.assertTrue(resultado.tool_correct)
         self.assertEqual(resultado.cadeia_ferramentas, ["editar_planilha"])
+        self.assertEqual(resultado.tool_call_inicial.get("name"), "editar_planilha")
+        self.assertTrue(resultado.confirmation_completed)
+        self.assertTrue(resultado.runtime_ok)
+        self.assertTrue(resultado.keyword_match)
+        # O erro REAL da ferramenta (arquivo não encontrado) voltou ao modelo.
+        self.assertIn("não encontrado", continuacao_vista["resultado"])
+        self.assertEqual(continuacao_vista["tool_call"]["name"], "editar_planilha")
+        self.assertIn("não existe", resultado.final_message)
 
-    def test_verifica_mas_tenta_escrever_depois_conta_como_incorreta(self):
+    def test_rechamada_da_ferramenta_apos_erro_conta_como_incorreta(self):
         from backend.benchmark.runners.maria_runner import MariaRunner
 
         class ClienteTeimoso:
             model = "modelo-teste"
 
             def chat_com_tools_stream_com_metricas(self, **kwargs):
-                return ("", {"name": "listar_arquivos", "arguments": {}}, 10, 5.0, 1.0)
+                return (
+                    "",
+                    {"name": "editar_planilha", "arguments": {"nome_arquivo": "estoque", "colunas": ["preco"]}},
+                    10, 5.0, 1.0,
+                )
 
             def continuar_com_resultado_ferramenta_stream(self, **kwargs):
                 yield None, {
@@ -1357,13 +1381,28 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
         resultado = MariaRunner(cliente=ClienteTeimoso()).run(self._task())
 
         self.assertFalse(resultado.tool_correct)
-        self.assertEqual(resultado.cadeia_ferramentas, ["listar_arquivos", "editar_planilha"])
+        self.assertEqual(resultado.tool_detected, "editar_planilha")
+        self.assertEqual(resultado.cadeia_ferramentas, ["editar_planilha"])
+
+    def test_resposta_em_texto_sem_chamar_ferramenta_conta_como_incorreta(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+
+        class ClienteNaoChama:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return ("Não encontrei a planilha em nenhum lugar.", None, 10, 5.0, 1.0)
+
+        resultado = MariaRunner(cliente=ClienteNaoChama()).run(self._task())
+
+        self.assertFalse(resultado.tool_correct)
+        self.assertEqual(resultado.cadeia_ferramentas, [])
 
 
-class TestTarefas22E23Verificacao(unittest.TestCase):
+class TestTarefas22E23EscritaInexistente(unittest.TestCase):
     """Tarefas 22 e 23: mensagem realista (não entrega a inexistência ao
-    modelo), exigem listar_arquivos na cadeia e não possuem fixture
-    (a pasta vazia do benchmark gera o erro real da ferramenta)."""
+    modelo); ele deve CHAMAR editar_planilha (que executa e falha com arquivo
+    ausente, devolvendo o erro ao modelo) e responder em texto."""
 
     def test_desenho_das_tarefas_22_e_23(self):
         from backend.benchmark.tasks import load_all_maria_tasks
@@ -1371,9 +1410,10 @@ class TestTarefas22E23Verificacao(unittest.TestCase):
         tarefas = {t.id: t for t in load_all_maria_tasks()}
         for tid in (22, 23):
             task = tarefas[tid]
-            self.assertEqual(task.tools_obrigatorios, ["listar_arquivos"])
+            self.assertEqual(task.tools_obrigatorios, ["editar_planilha"])
+            self.assertEqual(task.confirm_sequence, ["sim"])
             self.assertEqual(task.fixtures, [])
-            self.assertEqual(task.confirm_sequence, [])
+            self.assertIsNone(task.expected_tool)
             self.assertTrue(task.expected_keywords)
             mensagem = task.user_message.lower()
             self.assertNotIn("inexistente", mensagem)
