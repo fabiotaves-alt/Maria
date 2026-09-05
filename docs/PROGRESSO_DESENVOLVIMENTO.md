@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.1.22  
+**Versão Atual:** v4.1.24  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -47,6 +47,8 @@
 | **4.1.20** | 2026-09-04 | Benchmark: tarefas 22/23 redesenhadas em 2 turnos reais (edição → `listar_arquivos` → erro real da ferramenta → resposta em texto) com `tools_obrigatorios`, `cadeia_ferramentas` e `tool_call_inicial` na avaliação; **181/182 testes passando** | ✅ Concluída |
 | **4.1.21** | 2026-09-05 | Benchmark: tarefas 22/23 reformuladas para o fluxo real — modelo chama `editar_planilha`, a ferramenta EXECUTA e retorna o erro real de arquivo ausente, o erro volta ao modelo via continuação e ele responde em texto (`tools_obrigatorios=["editar_planilha"]`, `confirm_sequence=["sim"]`); nova seção `## Arquivo não encontrado` no system prompt; **182 testes passando + 33 subtests** | ✅ Concluída |
 | **4.1.22** | 2026-09-05 | Avaliação de Desempenho integrada ao terminal: menu de modo (Chat/Avaliação) com escolha de modelo/tarefas/repetições; automação do llama-server (nova janela PowerShell, GGUF 3B/7B via `-hf`); `run_benchmark_programatico` + métricas de sistema e warmup no `report.md`/`log.json`; fix das repetições (default 2, valor escolhido respeitado); **182 testes passando + 33 subtests** | ✅ Concluída |
+| **4.1.23** | 2026-09-05 | UX da Avaliação de Desempenho: terminal limpo (logger raiz em WARNING durante o run, restaurado via `try/finally`), janela do llama-server com logs normais (`CREATE_NEW_CONSOLE` direto) e aviso de divergência de modelo removido (config = modelo escolhido); **182 testes passando + 33 subtests** | ✅ Concluída |
+| **4.1.24** | 2026-09-05 | Análise de 9 runs de benchmark (7B/3B, 3 versões de system prompt), rastreio de hashes V1/V2/V3 do prompt, e detecção de loop degenerado multi-caractere (`_x_x_x…`) que gerava falso positivo na run 3B; detector ampliado + testes | ✅ Concluída |
 | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -83,7 +85,7 @@
 - [ ] Validação de instalação *one-click* em máquina limpa (sem dependência de Python instalado)
 
 ### Fase 5 — Qualidade, Testes & Benchmark
-- [x] Suíte de testes unitários do backend (172 testes passando via `pytest`)
+- [x] Suíte de testes unitários do backend (187 testes passando via `pytest`)
 - [x] Testes unitários do frontend TypeScript (Vitest) e da camada Rust (`cargo test`)
 - [x] Framework de benchmark de tool calling com relatório e log JSON
 - [x] Metadados do modelo no benchmark: nome real via `/v1/models` + parámetros (quantização, n_params, n_ctx, tamanho) em `log.json` e `report.md`
@@ -94,12 +96,24 @@
 - [x] Metadados do modelo como fonte única de verdade: warmup aborta sem `/v1/models`, relatório exibe apenas dados reais (sem coluna "Configurado"), `log.json` v2.0 com hash do system prompt e métrica `contexto_ok` para estouro de contexto
 - [x] Verificação de contexto em camadas: warmup valida ctx real + system prompt (contagem exata via `/tokenize` com calibração), runner faz pre-check por tarefa sem retry inútil, timeout por chamada (120s) separado do timeout total (400s) e `num_ctx` adaptativo no `LlamaClient`
 - [x] Benchmark: relatório/log com "ID modelo" (sem "Nome") e linha de resumo `rep X/Y` por execução (com descrição de erro)
-- [x] Avaliação de desempenho integrada ao terminal da MARIA: menu de modo (Chat/Avaliação), escolha de modelo/tarefas/repetições, automação do llama-server em nova janela PowerShell (GGUF 3B/7B) e métricas de sistema + tempo de warmup no `report.md`/`log.json`
+- [x] Avaliação de desempenho integrada ao terminal da MARIA: menu de modo (Chat/Avaliação), escolha de modelo/tarefas/repetições, automação do llama-server em nova janela de console (logs do servidor; GGUF 3B/7B) e métricas de sistema + tempo de warmup no `report.md`/`log.json`
 - [ ] Cobertura formal de código (`pytest-cov`)
 
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.1.24 — Análise de benchmarks e detecção de degeneração multi-caractere (2026-09-05)
+- **Análise de 9 runs** (7B/3B × 3 versões de system prompt): 7B com V2 atingiu **100% em 1–25 ×3** (run `run_20260905_094804`); 3B ficou em **84,0%** (V2) e 55,6%/25% (V3 parcial).
+- **Falso positivo corrigido**: task 10 do 3B gerou loop `_x_x_x…` (600 tokens, `finish_reason=length`, 127s) contado como sucesso; `_detectar_degeneracao()` agora detecta blocos cíclicos de 1..8 caracteres (antes só char único no fim).
+- **System prompt V3** (working tree, hash `ce187676ddf7`) ainda **sem validação no 7B** — a bullet "certeza absoluta" removida era o que destravava tasks 21–23 no V2.
+- **Testes**: 187/187 + 33 subtests (5 novos em `TestDeteccaoDegeneracao`).
+
+### 4.1.23 — UX da Avaliação: terminal limpo e janela com logs do llama (2026-09-05)
+- **Terminal limpo**: `run_benchmark_programatico` vira wrapper com logger raiz em `WARNING` durante o run e restauração via `try/finally`; corpo movido para `_run_benchmark_programatico`. Linhas `core.llama_client - INFO` suprimidas.
+- **Janela com logs**: `_abrir_janela_servidor` inicia o exe direto (`CREATE_NEW_CONSOLE`), sem wrapper PowerShell — logs normais do llama-server visíveis na janela nova.
+- **Sem aviso de modelo**: `globals()["LLAMA_MODEL"] = modelo` no corpo da avaliação — config passa a refletir o modelo escolhido no menu.
+- **Testes**: 182/182 + 33 subtests; smoke de wrapper/janela OK.
 
 ### 4.1.22 — Avaliação de Desempenho no terminal + llama-server automático (2026-09-05)
 - **Menu de modo** no `backend/ui_terminal.py`: após o banner, `1. Chat` (fluxo intacto) ou `2. Avaliação de Desempenho` (modelo 3B/7B → tarefas → repetições).

@@ -1661,6 +1661,35 @@ class TestDeteccaoDegeneracao(unittest.TestCase):
         from backend.core.llama_client import _detectar_degeneracao
         self.assertFalse(_detectar_degeneracao("\n" * 99))
 
+    def test_repeticao_de_bloco_dois_chars_detectada(self):
+        # Padrão real da task 10 (run_20260905_101728): bloco "_x" repetido.
+        from backend.core.llama_client import _detectar_degeneracao
+        self.assertTrue(_detectar_degeneracao("texto: " + "_x" * 60))
+
+    def test_repeticao_de_bloco_dois_chars_com_prefixo_valido(self):
+        # Tool call textual válida seguida de loop "_x" (caso observado no log).
+        from backend.core.llama_client import _detectar_degeneracao
+        prefixo = 'criar_documento: ["Novo_horario", "Mudança_horario", "A partir_de'
+        self.assertTrue(_detectar_degeneracao(prefixo + "_x" * 60))
+
+    def test_repeticao_de_bloco_de_tres_chars_detectada(self):
+        from backend.core.llama_client import _detectar_degeneracao
+        self.assertTrue(_detectar_degeneracao("x: " + "abc" * 40))
+
+    def test_bloco_dois_chars_abaixo_do_limiar_nao_detectado(self):
+        from backend.core.llama_client import _detectar_degeneracao
+        self.assertFalse(_detectar_degeneracao("_x" * 49))  # 98 chars < minimo
+
+    def test_texto_real_longo_nao_detectado(self):
+        # Conteúdo narrativo legítimo com 100+ chars não deve ser sinalizado.
+        from backend.core.llama_client import _detectar_degeneracao
+        texto = (
+            "A diretoria informa que, a partir da próxima segunda-feira, o novo "
+            "horário de funcionamento será das 8h às 17h, com intervalo para "
+            "almoço das 12h às 13h, conforme deliberado em reunião."
+        )
+        self.assertFalse(_detectar_degeneracao(texto))
+
 
 class TestChatStreamDegeneracao(unittest.TestCase):
     """Testa o abort precoce de geração degenerada em chat_stream."""
