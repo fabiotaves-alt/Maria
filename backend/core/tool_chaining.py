@@ -11,6 +11,7 @@ ferramenta de escrita (ou nenhuma ferramenta) ser retornada.
 
 import logging
 import time
+from typing import Callable
 
 from backend.core.config import (
     MAX_PASSOS_LEITURA,
@@ -27,7 +28,14 @@ from backend.core.client_protocol import LLMClientProtocol
 logger = logging.getLogger(__name__)
 
 
-def encadear_leitura_stream(cliente: LLMClientProtocol, historico_com_system, tool_call_inicial, tools, apos_cada_chamada=None):
+def encadear_leitura_stream(
+    cliente: LLMClientProtocol,
+    historico_com_system,
+    tool_call_inicial,
+    tools,
+    apos_cada_chamada=None,
+    executar_leitura: Callable[[str, dict], str] | None = None,
+):
     """
     Generator que encadeia ferramentas de leitura a partir de uma tool call
     já obtida (`tool_call_inicial`), reenviando o resultado ao modelo via
@@ -48,6 +56,10 @@ def encadear_leitura_stream(cliente: LLMClientProtocol, historico_com_system, to
             encadeamento nesse ponto — usado pelo benchmark para aplicar
             timeout POR CHAMADA e somar os tokens da continuação ao total
             da tarefa.
+        executar_leitura: callable opcional de execução de ferramenta de
+            leitura `(nome, argumentos) -> str`. Se None, usa a função
+            global `executar_ferramenta_leitura` (comportamento atual).
+            Permite injetar um executor fake nos testes (Opção B da Fase 1).
 
     Yields:
         (chunk_texto | None, None) durante o streaming de texto; o último
@@ -55,6 +67,7 @@ def encadear_leitura_stream(cliente: LLMClientProtocol, historico_com_system, to
         ferramenta de escrita encontrada, ou None.
     """
     tool_call_atual = tool_call_inicial
+    executor_leitura = executar_leitura or executar_ferramenta_leitura
     passos = 0
 
     while (
@@ -63,7 +76,7 @@ def encadear_leitura_stream(cliente: LLMClientProtocol, historico_com_system, to
         and passos < MAX_PASSOS_LEITURA
     ):
         try:
-            resultado_ferramenta = executar_ferramenta_leitura(
+            resultado_ferramenta = executor_leitura(
                 tool_call_atual["name"], tool_call_atual.get("arguments", {})
             )
         except (PermissionError, OSError, ValueError) as error:

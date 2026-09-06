@@ -2,6 +2,26 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Fase 1: Fundação (migrations, /health e Protocol) — 2026-09-06
+
+### 🗄️ Migrations versionadas (Tarefa 1.1)
+- **`backend/database/migrations/001_initial.sql` (novo)**: DDL atual do `schema.py` congelado como migration 001 — sem mudança de schema, apenas formalização para permitir `ALTER TABLE` futuros com controle de versão.
+- **`backend/database/migration_runner.py` (novo)**: tabela de controle `schema_migrations`, aplicação em ordem numérica (prefixo `NNN_`) dentro de BEGIN/COMMIT, `PRAGMA user_version` registrado **na mesma transação** (atomicidade) e FTS5 **tolerante**: `OperationalError` vira warning e a migration segue registrada.
+- **`backend/database/schema.py`**: `init_db()` virou delegador de `run_migrations(conn)`; `limpar_tudo()` agora também remove `schema_migrations` e zera `user_version` (reset completo para testes/dev).
+- Verificado por smoke: banco vazio aplica 001 (`user_version=1`, 1 linha em `schema_migrations`), segunda execução pula (idempotente) e banco "antigo" com dados é preservado.
+
+### 🩺 Endpoint GET /health (Tarefa 1.2)
+- **`backend/bridge/servidores.py`**: nova rota **sem autenticação** (mesmo tratamento do `/ping`), com checks de llama-server (`GET /v1/models`, timeout 2s), banco (`SELECT 1`) e disco (`psutil`, mínimo 500 MB livres em `PASTA_ARQUIVOS_GERADOS`). `status: "healthy"|"degraded"` vai no corpo JSON com HTTP 200 sempre; `versao` usa `__version__` (fonte única da Fase 0); nenhuma exceção propaga.
+
+### 🧩 Protocol e injeção (Tarefa 1.3 — Opção B)
+- **`backend/core/interfaces.py` (novo)**: `SessionStorageProtocol` e `ToolExecutorProtocol`; `LLMClientProtocol` reexportado de `client_protocol.py` (fonte única, **não** redefinido).
+- **`backend/core/maria_controller.py`**: `__init__(modelo=None, cliente=None, tool_executor=None)`; `inicializar()` só cria `LlamaClient` quando `cliente` não foi injetado; `processar_confirmacao` usa `tool_executor.executar_real` quando injetado (fallback: função global).
+- **`backend/core/tool_chaining.py`**: `encadear_leitura_stream` ganhou o parâmetro opcional `executar_leitura` (fallback para `executar_ferramenta_leitura` global). O controller repassa o executor injetado — cobre o caminho de **leitura** sem código morto.
+
+### 🧪 Testes
+- Novos: `test_health_http.py` (5 testes) e `test_interfaces_injection.py` (5 testes).
+- Suíte completa: **262 passed** (252 baseline + 10 novos) — sem regressão.
+
 ## [4.2.5-dev] — Fase 0: Preparação para a profissionalização — 2026-09-06
 
 ### 🏗️ Infraestrutura

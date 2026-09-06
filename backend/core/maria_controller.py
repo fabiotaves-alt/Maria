@@ -14,6 +14,7 @@ from backend.core.chat_session import ChatSession, interpretar_confirmacao
 from backend.core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real
 from backend.core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
 from backend.core.tool_chaining import encadear_leitura_stream, validar_e_corrigir_tool_call_stream
+from backend.core.interfaces import LLMClientProtocol, ToolExecutorProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,15 @@ class MariaController:
     conexão com o llama-server, sessão de chat, ferramentas e persistência.
     """
 
-    def __init__(self, modelo: str | None = None):
-        self.cliente: LlamaClient | None = None
+    def __init__(
+        self,
+        modelo: str | None = None,
+        cliente: LLMClientProtocol | None = None,          # injeção opcional
+        tool_executor: ToolExecutorProtocol | None = None,  # injeção opcional
+    ):
+        # Se `cliente` for None, `inicializar()` cria o LlamaClient real.
+        self.cliente: LLMClientProtocol | None = cliente
+        self._tool_executor: ToolExecutorProtocol | None = tool_executor
         self.sessao: ChatSession | None = None
         self.nome_sessao: str = ""
         self._tool_call_final = None
@@ -35,8 +43,11 @@ class MariaController:
     # ── Ciclo de vida ─────────────────────────────────────────
 
     def inicializar(self):
-        """Cria cliente, sessão e define nome do arquivo de persistência."""
-        self.cliente = LlamaClient(model=self.modelo) if self.modelo else LlamaClient()
+        """Cria cliente (se não injetado), sessão e nome do arquivo de persistência."""
+        if self.cliente is None:
+            self.cliente = (
+                LlamaClient(model=self.modelo) if self.modelo else LlamaClient()
+            )
         self.sessao = ChatSession(max_mensagens=MAX_MENSAGENS_HISTORICO)
         self.nome_sessao = self._gerar_nome_sessao()
         self._tool_call_final = None
@@ -156,8 +167,15 @@ class MariaController:
 
         historico_continuacao = self.sessao.get_historico_com_system()
 
+        executor_leitura = (
+            self._tool_executor.executar_leitura
+            if self._tool_executor is not None
+            else None
+        )
+
         for chunk, tool_chunk in encadear_leitura_stream(
-            self.cliente, historico_continuacao, tool_call_atual, TOOLS_SCHEMA
+            self.cliente, historico_continuacao, tool_call_atual, TOOLS_SCHEMA,
+            executar_leitura=executor_leitura,
         ):
             if chunk is not None:
                 yield chunk, None
@@ -259,7 +277,10 @@ class MariaController:
             try:
                 nome_acao = self.sessao.acao_pendente["name"]
                 argumentos = self.sessao.acao_pendente["arguments"]
-                caminho = executar_ferramenta_real(nome_acao, argumentos)
+                if self._tool_executor is not None:
+                    caminho = self._tool_executor.executar_real(nome_acao, argumentos)
+                else:
+                    caminho = executar_ferramenta_real(nome_acao, argumentos)
                 self.sessao.adicionar_mensagem("assistant", caminho)
                 self.sessao.limpar_acao_pendente()
                 self._salvar_silenciosamente()
