@@ -188,7 +188,7 @@ async fn call_python_backend(comando: &str, dados: Value) -> Result<String, Stri
     };
 
     // Autenticação: lê o token regenerado pelo backend a cada inicialização
-    // (persistido em shared/.bridge_token) e injeta no header Authorization.
+    // (persistido em frontend-tauri/shared/.bridge_token) e injeta no header Authorization.
     let mut requisicao = client.post("http://localhost:8081/chat").json(&request);
     if let Ok(dir_raiz) = std::env::current_dir() {
         let caminho_token = dir_raiz.join("../shared/.bridge_token");

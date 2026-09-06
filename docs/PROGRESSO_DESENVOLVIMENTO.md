@@ -63,6 +63,8 @@
 | **4.2.5** | 2026-09-06 | Testes de regressão para `bridge/comandos.py`: 23 testes cobrindo os 7 bugs corrigidos na análise de 2026-09-03 (`carregar_sessao`, `criar_automacao`, `listar/toggle_automacao`, `exportar_conversa`, `ler_planilha_resumo`, `listar_memoria`); **247 testes passando** | ✅ Concluída |
 | **4.2.5-dev (Fase 0)** | 2026-09-06 | Preparação para a profissionalização: `pyproject.toml` sincronizado para **4.2.5** (fonte única), `__version__` em `config.py` lendo do `pyproject.toml` via `tomllib`, commit de fechamento `7bcabaf` e branch `feat/fase-0-preparacao`; baseline real revalidado com Flask instalado: **252 testes passando** | ✅ Concluída |
 | **4.2.5-dev (Fase 1)** | 2026-09-06 | Fundação da profissionalização: migrations versionadas (`schema_migrations` + `PRAGMA user_version`, FTS5 tolerante), endpoint `GET /health` sem autenticação (checks llama/banco/disco, versão via `__version__`) e Protocol de injeção — Opção B (`tool_executor` no `MariaController`, `executar_leitura` opcional no `encadear_leitura_stream`); **262 testes passando** | ✅ Concluída |
+| **4.2.5-dev (docs)** | 2026-09-06 | Correção da documentação do token de autenticação (`shared/.bridge_token` → `frontend-tauri/shared/.bridge_token`), inclusão do `/health` como rota aberta, referência de módulo `backend/main.py` → `backend/bridge/servidores.py` e exemplos autenticados em `Invoke-RestMethod`; remoção do arquivo obsoleto `shared/.bridge_token` | ✅ Concluída |
+
 | **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---

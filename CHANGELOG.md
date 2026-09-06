@@ -2,6 +2,24 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Correção da documentação do token de autenticação (.bridge_token) — 2026-09-06
+
+### 📚 Documentação
+- Correção do caminho canônico do token de autenticação em toda a documentação: `shared/.bridge_token` → `frontend-tauri/shared/.bridge_token` (o backend grava em `backend/bridge/servidores.py` e o frontend lê em `src-tauri/src/main.rs`; o arquivo na raiz `shared/` era um leftover de 30/08/2026, não usado pelo backend vivo).
+- Inclusão do `/health` como rota aberta (além do `/ping`) nas descrições de autenticação e atualização da referência de módulo de `backend/main.py` para `backend/bridge/servidores.py`.
+- Exemplos de chamada autenticada (`curl.exe -d '{"..."}'`) substituídos por `Invoke-RestMethod` (PowerShell nativo): o `curl.exe` real no Windows corrompe o JSON quando a body vem entre aspas via PowerShell (verificado empiricamente — retornava `"Campo 'comando' vazio"`).
+- Arquivos: `docs/GUIA_TESTES_EMPIRICOS.md`, `docs/SEGURANCA.md`, `docs/ARQUITETURA_SISTEMA.md`, `docs/GUIA_DESENVOLVIMENTO.md`, `README.md` (+ comentários de código em `backend/bridge/servidores.py` e `frontend-tauri/src-tauri/src/main.rs`).
+
+### 🧹 Limpeza
+- Removido o arquivo obsoleto `shared/.bridge_token` (30/08/2026).
+
+### ✅ Testes
+- Validação manual: `/chat` autenticado retornou `{"dados":"pong","id":"1","mensagemErro":null,"status":"ok"}` (HTTP 200) com o token de `frontend-tauri/shared/.bridge_token`; `/chat` sem token → HTTP 401 (esperado).
+
+### 🧪 Cobertura
+- Sem alteração de lógica de produção (apenas documentação e comentários); suíte de testes não afetada.
+
+
 ## [4.2.5-dev] — Fase 1: Fundação (migrations, /health e Protocol) — 2026-09-06
 
 ### 🗄️ Migrations versionadas (Tarefa 1.1)

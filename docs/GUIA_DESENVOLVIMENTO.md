@@ -82,7 +82,7 @@ python src-tauri/build_sidecar.py
 npm run tauri build
 ```
 
-> **Autenticação Automática da Bridge:** Ao iniciar com `--bridge-http`, o backend regenera atomicamente o token de autenticação em `shared/.bridge_token`. O frontend Tauri relê este arquivo a cada chamada e injeta o header `Authorization: Bearer <token>` automaticamente. Em desenvolvimento, use `MARIA_ENV=development` no `.env` para permitir CORS do Vite dev server (`http://localhost:5173`).
+> **Autenticação Automática da Bridge:** Ao iniciar com `--bridge-http`, o backend regenera atomicamente o token de autenticação em `frontend-tauri/shared/.bridge_token`. O frontend Tauri relê este arquivo a cada chamada e injeta o header `Authorization: Bearer <token>` automaticamente. Em desenvolvimento, use `MARIA_ENV=development` no `.env` para permitir CORS do Vite dev server (`http://localhost:5173`).
 
 #### Testes Automatizados
 

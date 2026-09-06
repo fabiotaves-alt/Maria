@@ -1,7 +1,7 @@
 # Guia de Testes Empíricos — MARIA v4.1.1
 
 **Versão:** v4.1.1  
-**Última atualização:** 2026-08-31  
+**Última atualização:** 2026-09-06  
 **Escopo:** Backend Python (Flask bridge HTTP + LlamaClient) + Frontend Tauri v2/React + Sidecar PyInstaller  
 
 Este guia descreve, passo a passo, como **construir** e **executar** os testes do sistema MARIA, do build inicial ao teste de ponta a ponta em máquina limpa. Os comandos são para **PowerShell no Windows** (ambiente de referência do projeto).
@@ -145,37 +145,37 @@ Executa sequencialmente:
 .\.venv\Scripts\python.exe backend\main.py --bridge-http --porta 8081
 ```
 
-O backend gera atomicamente o token de autenticação em `shared\.bridge_token`.
+O backend gera atomicamente o token de autenticação em `frontend-tauri\shared\.bridge_token`.
 
 ### 3.2 Testar os Endpoints Autenticados (em outro terminal)
 
 ```powershell
 # 1. Carregar o token da sessão
-$token = Get-Content shared\.bridge_token
+$token = (Get-Content frontend-tauri\shared\.bridge_token -Raw).Trim()
 
 # 2. Health check aberto (não requer token)
 curl.exe http://localhost:8081/ping
 # Esperado: {"status":"ok","dados":"pong"}
 
 # 3. Ping autenticado via /chat
-curl.exe -X POST http://localhost:8081/chat `
-  -H "Content-Type: application/json" `
-  -H "Authorization: Bearer $token" `
-  -d '{"id":"1","comando":"ping","dados":{}}'
+Invoke-RestMethod -Uri http://localhost:8081/chat -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType 'application/json' `
+  -Body '{"id":"1","comando":"ping","dados":{}}'
 # Esperado: {"dados":"pong","id":"1","mensagemErro":null,"status":"ok"}
 
 # 4. Status do sistema (telemetria em tempo real)
-curl.exe -X POST http://localhost:8081/chat `
-  -H "Content-Type: application/json" `
-  -H "Authorization: Bearer $token" `
-  -d '{"id":"2","comando":"status","dados":{}}'
+Invoke-RestMethod -Uri http://localhost:8081/chat -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType 'application/json' `
+  -Body '{"id":"2","comando":"status","dados":{}}'
 # Esperado: {"status":"ok","dados":{"cpu":..,"ram":..,"gpu":..,"plataforma":"Windows","modelo":"qwen2.5-omni-3b"}}
 
 # 5. Chat integrado (requer llama-server ativo)
-curl.exe -X POST http://localhost:8081/chat `
-  -H "Content-Type: application/json" `
-  -H "Authorization: Bearer $token" `
-  -d '{"id":"3","comando":"chat","dados":{"mensagem":"Olá, quem é você?"}}'
+Invoke-RestMethod -Uri http://localhost:8081/chat -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType 'application/json' `
+  -Body '{"id":"3","comando":"chat","dados":{"mensagem":"Olá, quem é você?"}}'
 ```
 
 ---
@@ -237,7 +237,7 @@ sqlite3 shared\maria.db "SELECT role, substr(conteudo,1,50) FROM mensagens ORDER
 
 | Sintoma | Causa Provável | Ação Recomendada |
 |---|---|---|
-| `/chat` retorna `401 Unauthorized` | Token ausente ou divergente | Ler `$token = Get-Content shared\.bridge_token` e enviar `-H "Authorization: Bearer $token"` |
+| `/chat` retorna `401 Unauthorized` | Token ausente ou divergente | Ler `$token = (Get-Content frontend-tauri\shared\.bridge_token -Raw).Trim()` e enviar `Authorization: Bearer $token` |
 | `validate_llama_server` aborta no `[1]` | llama-server desligado ou em porta incorreta | Iniciar `llama-server` na porta 8080 |
 | CORS bloqueado no browser | `MARIA_ENV` em produção | Definir `MARIA_ENV=development` no `.env` para dev web |
 | Monitor de recursos zerado | Primeira amostra de CPU do psutil | Fazer duas chamadas consecutivas ao comando `status` |

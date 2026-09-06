@@ -94,7 +94,7 @@ Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo 
 | Módulo | Responsabilidade |
 |--------|------------------|
 | `main.py` | Entry point: argparse (`-m/--modelo`, `--bridge`, `--bridge-http`, `--porta`), logging, verificação de dependências e despacho dos modos de execução. Mantém re-exports de `bridge.*` por compatibilidade com testes/patches |
-| `bridge/servidores.py` | Transporte do bridge: loop stdin/stdout JSON-lines (`_modo_bridge` — sidecar em produção) e servidor Flask HTTP autenticado (`_modo_bridge_http`/`_criar_app_http` — porta 8081 em dev); geração e carga atômica do token em `shared/.bridge_token` |
+| `bridge/servidores.py` | Transporte do bridge: loop stdin/stdout JSON-lines (`_modo_bridge` — sidecar em produção) e servidor Flask HTTP autenticado (`_modo_bridge_http`/`_criar_app_http` — porta 8081 em dev); geração e carga atômica do token em `frontend-tauri/shared/.bridge_token` |
 | `bridge/comandos.py` | Protocolo de comandos compartilhado entre os dois transportes (`_despachar_comando`, `_responder_bridge`, `_get_system_status` — métricas de CPU/RAM/GPU) |
 | `core/maria_controller.py` | Lógica de negócio (`MariaController`): cliente LLM, sessão de chat, ferramentas e persistência de sessão |
 | `core/llama_client.py` | Cliente llama-server (produção) |
@@ -122,7 +122,7 @@ O frontend Tauri consome o backend Python via **HTTP JSON na porta 8081** (modo 
 
 | Medida | Implementação |
 |--------|---------------|
-| **Autenticação por token** | Token de 32 bytes (`secrets.token_hex(32)`) gerado a cada startup e persistido de forma atômica (`.tmp` + `os.replace()`) em `shared/.bridge_token` com permissão POSIX `0o600`. Header `Authorization: Bearer <token>` obrigatório em `/chat`; `/ping` aberto apenas para health check. O Rust relê o arquivo a cada requisição e injeta o header. |
+| **Autenticação por token** | Token de 32 bytes (`secrets.token_hex(32)`) gerado a cada startup e persistido de forma atômica (`.tmp` + `os.replace()`) em `frontend-tauri/shared/.bridge_token` com permissão POSIX `0o600`. Header `Authorization: Bearer <token>` obrigatório em `/chat`; `/ping` e `/health` abertos apenas para health check. O Rust relê o arquivo a cada requisição e injeta o header. |
 | **CORS por ambiente** | Em produção (`MARIA_ENV=production`), restrito estritamente a `tauri://localhost` e `http://tauri.localhost`. `http://localhost:5173` (Vite dev server) é aceito apenas quando `MARIA_ENV=development`. |
 | **Proteção contra PATH hijacking** | O comando `transcrever_audio` valida se o binário resolvido via `shutil.which()` reside estritamente dentro do diretório configurado em `WHISPER_ALLOWED_DIR` (padrão: `<raiz_monorepo>/bin`). |
 | **Isolamento de caminhos (Path Traversal)** | Funções de arquivo (`resumir_documento`, `analisar_arquivo`, `upload_arquivo`, etc.) utilizam `resolver_caminho_permitido()`, que resolve symlinks e restringe acessos a pastas permitidas (`PASTAS_PERMITIDAS`). |

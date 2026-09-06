@@ -210,7 +210,7 @@ O modo de uso normal. Requer dois processos rodando em paralelo.
 uv run python backend/main.py --bridge-http
 ```
 
-O backend gera um token de autenticação em `shared/.bridge_token` e registra no log:
+O backend gera um token de autenticação em `frontend-tauri/shared/.bridge_token` e registra no log:
 ```
 INFO — Token da API bridge HTTP regenerado
 INFO — Servidor bridge HTTP iniciado em http://127.0.0.1:8081
@@ -274,7 +274,7 @@ O MARIA foi projetado para rodar 100% localmente. As principais medidas implemen
 
 | Medida | Detalhe |
 |--------|---------|
-| **Autenticação por sessão** | Token de 64 hex chars gerado a cada inicialização, escrito atomicamente em `shared/.bridge_token` (chmod 600 em POSIX). O frontend injeta o token no header `Authorization: Bearer` automaticamente. |
+| **Autenticação por sessão** | Token de 64 hex chars gerado a cada inicialização, escrito atomicamente em `frontend-tauri/shared/.bridge_token` (chmod 600 em POSIX). O frontend injeta o token no header `Authorization: Bearer` automaticamente. |
 | **CORS por ambiente** | Em `MARIA_ENV=production` (padrão), apenas origens do webview Tauri são aceitas. `http://localhost:5173` (Vite) só é liberado com `MARIA_ENV=development`. |
 | **Thread-safety do banco** | SQLite com `check_same_thread=False`, WAL mode, `busy_timeout=5000ms` e double-checked locking na criação da conexão. |
 | **Proteção contra PATH hijacking** | O binário do whisper.cpp é validado via `WHISPER_ALLOWED_DIR` — binários fora do diretório permitido são rejeitados. |
@@ -297,8 +297,7 @@ maria/
 │
 ├── shared/                        ← recursos compartilhados entre frontend e backend
 │   ├── schema.sql                 ← DDL canônico (6 tabelas em português)
-│   ├── maria.db                   ← banco SQLite (gerado automaticamente)
-│   └── .bridge_token              ← token de sessão HTTP (gerado em runtime, fora do git)
+│   └── maria.db                   ← banco SQLite (gerado automaticamente)
 │
 ├── backend/                       ← backend Python
 │   ├── main.py                    ← entry point fino (CLI / --bridge / --bridge-http)
@@ -330,6 +329,8 @@ maria/
 │   └── benchmark/                 ← sistema de benchmark de tool calling
 │
 ├── frontend-tauri/                ← frontend Tauri v2 + React
+│   ├── shared/
+│   │   └── .bridge_token          ← token de sessão HTTP (gerado em runtime, fora do git)
 │   ├── src/
 │   │   ├── App.tsx                ← entry point React
 │   │   ├── components/            ← TopBar, Sidebar, CenterStage, ChatPanel

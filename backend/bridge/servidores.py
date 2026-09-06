@@ -83,7 +83,7 @@ def _modo_bridge(modelo: str | None = None):
 def _carregar_token_api() -> str:
     """
     Gera o token da API bridge HTTP e o persiste atomicamente em
-    `shared/.bridge_token`, restringindo a permissão de leitura ao
+    `frontend-tauri/shared/.bridge_token`, restringindo a permissão de leitura ao
     usuário atual (POSIX). O frontend Tauri relê este arquivo a cada
     chamada (ver `call_python_backend` em main.rs), portanto não é
     necessário nenhum mecanismo adicional de sincronização.
