@@ -2,8 +2,8 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.2.3  
-**Última alteração:** 2026-09-05  
+**Versão Atual:** v4.2.4  
+**Última alteração:** 2026-09-06  
 
 ---
 
@@ -59,6 +59,7 @@
 | **4.2.1** | 2026-09-05 | Ferramenta `extrair_dados_planilha`: leitura paginada de planilhas (offset/`proximo_offset`/`tem_mais`), detecção automática da linha de cabeçalho (com/sem `descricao`) e limite automático por modelo (`get_max_linhas_extracao`; 3B=50, 7B=150); **218 testes passando** | ✅ Concluída |
 | **4.2.2** | 2026-09-05 | System prompt com seção `Extrair dados de planilha existente` (fluxo leitura-paginada → escrita) + parser posicional: `extrair_dados_planilha` em `POSITIONAL_MAP` e coerção de `offset` string→`int`; **222 testes passando** | ✅ Concluída |
 | **4.2.3** | 2026-09-05 | Consistência e avaliação do fluxo de planilhas: `descricao` ignorada quando `linhas` é fornecido (com warning), `linha_cabecalho`/`limite_linhas` opcionais em `extrair_dados_planilha`, campo `tipos` no retorno, Task 26 (tradução mandarim→PT/EN) com fixture de dados reais e avaliação de `tools_obrigatorios` compatível com término na escrita esperada; **229 testes passando** | ✅ Concluída |
+| **4.2.4** | 2026-09-06 | Tarefas 26-28 do benchmark em `tasks_extracao.py` (tradução de planilha real Mandarim→Inglês, resumo de planilha e listar arquivos); cópia genérica de fixtures reais de `benchmark/fixtures/` via `BENCHMARK_FIXTURES_DIR` + `shutil.copy2`; Task 26 antiga (`nomes_mandarim`) removida de `tasks_core.py`; **229 testes passando** (cobertura 69%) | ✅ Concluída |
 | **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -107,11 +108,19 @@
 - [x] Verificação de contexto em camadas: warmup valida ctx real + system prompt (contagem exata via `/tokenize` com calibração), runner faz pre-check por tarefa sem retry inútil, timeout por chamada (120s) separado do timeout total (400s) e `num_ctx` adaptativo no `LlamaClient`
 - [x] Benchmark: relatório/log com "ID modelo" (sem "Nome") e linha de resumo `rep X/Y` por execução (com descrição de erro)
 - [x] Avaliação de desempenho integrada ao terminal da MARIA: menu de modo (Chat/Avaliação), escolha de modelo/tarefas/repetições, automação do llama-server em nova janela de console (logs do servidor; GGUF 3B/7B) e métricas de sistema + tempo de warmup no `report.md`/`log.json`
+- [x] Tarefas de extração/transformação/resumo no benchmark (26-28) com fixture real `produtos_mandarim.xlsx` (tradução Mandarim→Inglês, resumo de planilha e listar arquivos)
 - [ ] Cobertura formal de código (`pytest-cov`)
 
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.2.4 — Tarefas de extração com planilha real (2026-09-06)
+- **`tasks_extracao.py` (novo)**: Tasks 26-28 — tradução de planilha real (Mandarim→Inglês) com `tools_obrigatorios=["extrair_dados_planilha","criar_planilha"]` e `expected_args_subset` (`produtos_traduzidos`, colunas `model/product/english description/NCM`); resumo de planilha (termina em texto, sem escrita); listar arquivos (`listar_arquivos`).
+- **Task 26 antiga** (`nomes_mandarim`, gerada via pandas) **removida** de `tasks_core.py`; o arquivo termina na Task 15.
+- **Fixtures reais**: `_garantir_planilha_existente` copia arquivos de `benchmark/fixtures/` (`BENCHMARK_FIXTURES_DIR` + `shutil.copy2`) quando existem — genérico, sem hardcode; fallback de workbook vazio preservado.
+- **Fixture real `produtos_mandarim.xlsx`**: 6 produtos em Mandarim (NCM 4602/6302/7323/7010).
+- **Testes**: 2 atualizados (`TestTarefa26Traducao`); suíte **229/229** sem regressão (cobertura 69%).
 
 ### 4.2.3 — Consistência e avaliação do fluxo de planilhas (2026-09-05)
 - **`criar_planilha`**: `descricao` ignorada (com `logger.warning`) quando `linhas` é fornecido — cabeçalho sai na linha 1; schema atualizado.

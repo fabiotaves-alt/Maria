@@ -3397,8 +3397,9 @@ class TestExtrairDadosPlanilha(unittest.TestCase):
 
 
 class TestTarefa26Traducao(unittest.TestCase):
-    """v4.2.3: Task 26 do benchmark — tradução mandarim → PT/EN. Valida o
-    desenho da tarefa e a fixture com dados reais (nomes em mandarim)."""
+    """v4.2.2: Task 26 do benchmark — tradução mandarim → inglês de planilha
+    real (produtos). Valida o desenho da tarefa e a cópia da fixture real
+    (backend/benchmark/fixtures/produtos_mandarim.xlsx)."""
 
     def test_estrutura_da_task_26(self):
         from backend.benchmark.tasks import load_all_maria_tasks
@@ -3411,19 +3412,19 @@ class TestTarefa26Traducao(unittest.TestCase):
             task.tools_obrigatorios,
             ["extrair_dados_planilha", "criar_planilha"],
         )
-        self.assertEqual(task.fixtures, ["nomes_mandarim.xlsx"])
+        self.assertEqual(task.fixtures, ["produtos_mandarim"])
         self.assertEqual(task.confirm_sequence, ["sim"])
         self.assertEqual(
             task.expected_args_subset,
             {
-                "nome_arquivo": "nomes_traduzidos",
-                "colunas": ["Mandarim", "Portuguese", "English"],
+                "nome_arquivo": "produtos_traduzidos",
+                "colunas": ["model", "product", "english description", "NCM"],
             },
         )
 
-    def test_fixture_nomes_mandarim_tem_dados(self):
-        """A fixture nomes_mandarim.xlsx é criada com dados reais (pandas),
-        não como workbook vazio."""
+    def test_fixture_produtos_mandarim_copiada(self):
+        """A fixture produtos_mandarim.xlsx é copiada do diretório real de
+        fixtures (backend/benchmark/fixtures/), não gerada programaticamente."""
         import pandas as pd
         from unittest.mock import patch
         from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
@@ -3433,8 +3434,8 @@ class TestTarefa26Traducao(unittest.TestCase):
             id=26,
             name="Tradução de planilha",
             description="desc",
-            user_message="Traduza a planilha nomes_mandarim.xlsx.",
-            fixtures=["nomes_mandarim.xlsx"],
+            user_message="Preencha a columna english description da planilha produtos.",
+            fixtures=["produtos_mandarim"],
             category=MariaTaskCategory.CRIAR_PLANILHA,
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -3442,16 +3443,19 @@ class TestTarefa26Traducao(unittest.TestCase):
                 "backend.benchmark.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", tmp
             ):
                 MariaRunner._garantir_planilha_existente(task)
-                caminho = os.path.join(tmp, "nomes_mandarim.xlsx")
+                caminho = os.path.join(tmp, "produtos_mandarim.xlsx")
                 self.assertTrue(os.path.exists(caminho))
                 df = pd.read_excel(caminho)
-                self.assertEqual(list(df.columns), ["Nome"])
-                self.assertEqual(len(df), 5)
-                self.assertEqual(df.iloc[0]["Nome"], "张三")
+                self.assertEqual(
+                    list(df.columns),
+                    ["model", "product", "english description", "NCM"],
+                )
+                self.assertEqual(len(df), 6)
+                self.assertEqual(df.iloc[0]["model"], "QFY000013")
                 # Rodar de novo não duplica (idempotente: arquivo existe)
                 MariaRunner._garantir_planilha_existente(task)
                 df2 = pd.read_excel(caminho)
-                self.assertEqual(len(df2), 5)
+                self.assertEqual(len(df2), 6)
 
 
 if __name__ == "__main__":

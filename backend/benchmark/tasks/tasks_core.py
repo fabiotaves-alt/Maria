@@ -18,20 +18,4 @@ TASKS_CORE = [
     MariaTask(13, "Editar contatos", "Remover e adicionar colunas", "Corrija a planilha contatos para conter Nome, Email e Empresa.", expected_tool="editar_planilha", expected_keywords=["atualizada"], confirm_sequence=["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, fixtures=["contatos"], context=[{"role": "assistant", "content": "A planilha contatos.xlsx já foi criada."}]),
     MariaTask(14, "Confirmação de criação", "Confirmação afirmativa explícita", "Crie uma planilha chamada agenda com as colunas Dia e Compromisso.", expected_tool="criar_planilha", expected_keywords=["sucesso"], confirm_sequence=["sim"], category=MariaTaskCategory.CONFIRMACAO),
     MariaTask(15, "Confirmação de documento", "Confirmação afirmativa de Word", "Crie um documento de ata com título Ata e conteúdo completo sobre uma reunião.", expected_tool="criar_documento", expected_keywords=["sucesso"], confirm_sequence=["sim"], category=MariaTaskCategory.CONFIRMACAO),
-    MariaTask(
-        26,
-        "Tradução de planilha (Mandarim → PT/EN)",
-        "Traduzir planilha de nomes em mandarim para português e inglês.",
-        "Traduza a planilha 'nomes_mandarim.xlsx' para português e inglês. Crie uma nova planilha chamada 'nomes_traduzidos' com as colunas 'Mandarim', 'Portuguese', 'English'.",
-        expected_tool="criar_planilha",
-        expected_keywords=["traduzida", "português", "inglês"],
-        confirm_sequence=["sim"],
-        category=MariaTaskCategory.CRIAR_PLANILHA,
-        fixtures=["nomes_mandarim.xlsx"],
-        tools_obrigatorios=["extrair_dados_planilha", "criar_planilha"],
-        expected_args_subset={
-            "nome_arquivo": "nomes_traduzidos",
-            "colunas": ["Mandarim", "Portuguese", "English"]
-        }
-    ),
-]
+    ]

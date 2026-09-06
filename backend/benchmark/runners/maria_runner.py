@@ -6,6 +6,7 @@ import shutil
 import sys
 import time
 import unicodedata
+from pathlib import Path
 from typing import Any
 
 from openpyxl import Workbook
@@ -35,6 +36,10 @@ from ..benchmark_config import (
     BENCHMARK_TASK_TIMEOUT,
     BENCHMARK_TIMEOUT_POR_CHAMADA,
 )
+
+# Diretório de arquivos reais usados como fixtures de benchmark
+BENCHMARK_FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
+
 from ..utils import MARGEM_RESERVA_RESPOSTA, estimar_tokens_calibrado
 from ..analysis.language_check import resposta_em_portugues
 from ..tasks.task_schema import MariaTask, MariaTaskResult
@@ -509,13 +514,10 @@ class MariaRunner:
             if os.path.exists(caminho):
                 continue
 
-            # v4.2.3: fixture com dados reais para a task 26 (tradução
-            # mandarim → PT/EN). Demais fixtures: workbook vazio.
-            if nome_arquivo == "nomes_mandarim":
-                import pandas as pd
-
-                df = pd.DataFrame({"Nome": ["张三", "李四", "王五", "赵六", "孙七"]})
-                df.to_excel(caminho, index=False)
+            # Fixtures com arquivo real: copiar de benchmark/fixtures/ em vez de gerar.
+            fixture_real = BENCHMARK_FIXTURES_DIR / f"{nome_arquivo}.xlsx"
+            if fixture_real.exists():
+                shutil.copy2(fixture_real, caminho)
                 continue
 
             workbook = Workbook()

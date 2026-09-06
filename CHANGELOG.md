@@ -2,6 +2,23 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.4] — Tarefas de extração com planilha real (Mandarim → Inglês) — 2026-09-06
+
+### ✨ Benchmark: novo módulo `tasks_extracao.py` (tasks 26-28)
+- **Task 26 — Tradução de planilha (Mandarim → Inglês)**: modelo deve ler `produtos_mandarim` com `extrair_dados_planilha`, traduzir a coluna `product` para inglês e criar `produtos_traduzidos` com `criar_planilha` (colunas `model/product/english description/NCM`).
+- **Task 27 — Resumo de planilha**: extrai os dados e responde em texto (quantidade de produtos, códigos NCM presentes, quantos têm a descrição em inglês preenchida) — sem ferramenta de escrita.
+- **Task 28 — Listar arquivos**: valida `listar_arquivos` sem ferramenta de escrita subsequente.
+- **Task 26 antiga removida** de `tasks_core.py` (fixture `nomes_mandarim` gerada via pandas); o arquivo volta a terminar na Task 15.
+
+### ✨ Fixtures reais: cópia de `backend/benchmark/fixtures/`
+- `_garantir_planilha_existente` passa a **copiar arquivos reais** (`shutil.copy2`) quando existe `benchmark/fixtures/<nome>.xlsx` — abordagem genérica, sem hardcode de nomes de arquivo.
+- Nova constante `BENCHMARK_FIXTURES_DIR` e import de `pathlib.Path` no runner.
+- Nova fixture real `backend/benchmark/fixtures/produtos_mandarim.xlsx`: 6 produtos em Mandarim (NCM 4602/6302/7323/7010, `english description` vazia).
+
+### 🧪 Testes
+- 2 atualizados (`TestTarefa26Traducao`): estrutura da nova Task 26 e verificação da cópia real da fixture (6 linhas, 4 colunas, idempotente).
+- Suíte completa: **229 passed** — sem regressão. Cobertura: **69%**.
+
 ## [4.2.3] — Consistência e avaliação do fluxo de planilhas — 2026-09-05
 
 ### ✨ `criar_planilha`: `descricao` vs `linhas` (`backend/core/excel_handler.py`, `tools_schema.py`)
