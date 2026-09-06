@@ -2,6 +2,23 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.2] — System prompt + parser posicional para `extrair_dados_planilha` — 2026-09-05
+
+### ✨ System prompt (`backend/core/system_prompt.txt`)
+- Nova seção **`## Extrair dados de planilha existente`** inserida entre `## Quando NÃO chamar ferramenta` e `## Conteúdo de documento`: instrui o modelo a chamar `extrair_dados_planilha` antes de `criar_planilha`/`editar_planilha` quando houver transformação/tradução/filtro/cálculo/reorganização de dados existentes.
+- Fluxo de paginação documentado: chamar com `offset` 0, repetir com `proximo_offset` enquanto `tem_mais` for `true`, e só então escrever (padrão "salvar e continuar" para planilhas grandes — `editar_planilha` sobrescreve o arquivo inteiro).
+- As demais seções (`## Como chamar uma ferramenta`, `## Quando NÃO chamar ferramenta`, `## Conteúdo de documento`, `## Correção de erro`) **inalteradas**.
+
+### ✨ Parser posicional (`backend/core/tool_call_textual_parser.py`)
+- `POSITIONAL_MAP` ganhou `"extrair_dados_planilha": ["nome_arquivo", "offset"]` — habilita o fallback textual (formato posicional do Qwen 3B) para a nova ferramenta.
+- `_normalizar_argumentos`: coerção defensiva de `offset` string numérica ("50") para `int` (50), no mesmo ponto onde `colunas` é normalizada.
+- `NOME_CANONICO` intocado.
+
+### 🧪 Testes
+- 3 métodos em `TestToolCallTextualParser` (via `self.extrair`): `offset` omitido → `None`, `offset` inteiro, `offset` string convertido para `int`.
+- 1 teste de integração em `TestFerramentaConsultarManualRedacao`: `extrair_dados_planilha` presente em `POSITIONAL_MAP` com o mapeamento correto.
+- Suíte completa: **222 passed + 33 subtests** (218 anteriores + 4 novos) — sem regressão.
+
 ## [4.2.1] — Ferramenta `extrair_dados_planilha` (leitura paginada) — 2026-09-05
 
 ### ✨ Novas capacidades

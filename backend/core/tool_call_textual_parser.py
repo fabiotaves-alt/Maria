@@ -12,6 +12,7 @@ POSITIONAL_MAP = {
     "editar_planilha": ["nome_arquivo", "colunas"],
     "listar_arquivos": ["pasta"],
     "resumir_documento": ["nome_arquivo"],
+    "extrair_dados_planilha": ["nome_arquivo", "offset"],
     "consultar_manual_redacao": ["tipo_documento"],
 }
 
@@ -103,6 +104,8 @@ def _normalizar_argumentos(nome: str, args_dict: Dict[str, Any]):
       os itens extras são agrupados na lista 'colunas'.
     - Se 'colunas' veio como string única ("Dia, Compromisso"), vira lista
       (split por vírgula, itens aparados).
+    - Se 'offset' (extrair_dados_planilha) veio como string numérica
+      ("50" em vez de 50), é convertido para int.
 
     Retorna (args_dict, normalizou): normalizou indica se houve correção
     (colunas achatadas/string) — usado para o diagnóstico de fallback.
@@ -120,6 +123,11 @@ def _normalizar_argumentos(nome: str, args_dict: Dict[str, Any]):
         elif isinstance(colunas, str):
             args_dict["colunas"] = [item.strip() for item in colunas.split(",") if item.strip()]
             normalizou = True
+    elif "offset" in param_names:
+        args_dict.pop("_extras", None)
+        offset_valor = args_dict.get("offset")
+        if isinstance(offset_valor, str) and offset_valor.strip().lstrip("-").isdigit():
+            args_dict["offset"] = int(offset_valor)
     else:
         args_dict.pop("_extras", None)
     return args_dict, normalizou

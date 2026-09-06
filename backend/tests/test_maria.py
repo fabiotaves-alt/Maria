@@ -2017,6 +2017,22 @@ class TestToolCallTextualParser(unittest.TestCase):
         self.assertEqual(resultado["name"], "editar_planilha")
         self.assertEqual(resultado["arguments"]["colunas"], ["Projeto", "Status"])
 
+    def test_extrai_dados_planilha_offset_omitido(self):
+        resultado = self.extrair('extrair_dados_planilha: ["vendas"]')
+        self.assertEqual(resultado["name"], "extrair_dados_planilha")
+        self.assertEqual(resultado["arguments"]["nome_arquivo"], "vendas")
+        self.assertIsNone(resultado["arguments"]["offset"])
+
+    def test_extrai_dados_planilha_com_offset_inteiro(self):
+        resultado = self.extrair('extrair_dados_planilha: ["vendas", 50]')
+        self.assertEqual(resultado["arguments"]["nome_arquivo"], "vendas")
+        self.assertEqual(resultado["arguments"]["offset"], 50)
+
+    def test_extrai_dados_planilha_offset_string_numerica_convertido(self):
+        resultado = self.extrair('extrair_dados_planilha: ["vendas", "50"]')
+        self.assertEqual(resultado["arguments"]["offset"], 50)
+        self.assertIsInstance(resultado["arguments"]["offset"], int)
+
 
 class TestSanitizacaoNomeSeguro(unittest.TestCase):
     """Testa a auto-sanitização silenciosa de nomes inseguros."""
@@ -2385,6 +2401,12 @@ class TestFerramentaConsultarManualRedacao(unittest.TestCase):
     def test_executar_ferramenta_leitura_ferramenta_desconhecida_ainda_falha(self):
         with self.assertRaises(ValueError):
             executar_ferramenta_leitura("ferramenta_inexistente", {})
+
+    def test_extrair_dados_planilha_no_positional_map(self):
+        from backend.core.tool_call_textual_parser import POSITIONAL_MAP
+        self.assertIn("extrair_dados_planilha", POSITIONAL_MAP)
+        self.assertEqual(POSITIONAL_MAP["extrair_dados_planilha"], ["nome_arquivo", "offset"])
+
 
 class TestObterMetadadosModelo(unittest.TestCase):
     """Testa a extração de metadados do llama-server via /v1/models (mock, sem servidor)."""

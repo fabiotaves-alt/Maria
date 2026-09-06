@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.2.1  
+**Versão Atual:** v4.2.2  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -57,6 +57,7 @@
 | **4.1.30** | 2026-09-05 | Migração para `pyproject.toml` + uv (fonte primária de dependências, `uv sync --extra dev`, `uv run pytest`); `requirements.txt` como fallback; `.gitignore` (uv) e `.vscode/settings.json` atualizados; README migrado para `uv run` | ✅ Concluída |
 | **4.2.0** | 2026-09-05 | Planilhas com pandas: `criar_planilha`/`editar_planilha` aceitam `linhas` (dados na criação/edição), limite de linhas por modelo (`get_max_linhas_por_chamada`; 3B=50, 7B=150) e dependência `pandas>=2.0.0`; **210 testes passando** | ✅ Concluída |
 | **4.2.1** | 2026-09-05 | Ferramenta `extrair_dados_planilha`: leitura paginada de planilhas (offset/`proximo_offset`/`tem_mais`), detecção automática da linha de cabeçalho (com/sem `descricao`) e limite automático por modelo (`get_max_linhas_extracao`; 3B=50, 7B=150); **218 testes passando** | ✅ Concluída |
+| **4.2.2** | 2026-09-05 | System prompt com seção `Extrair dados de planilha existente` (fluxo leitura-paginada → escrita) + parser posicional: `extrair_dados_planilha` em `POSITIONAL_MAP` e coerção de `offset` string→`int`; **222 testes passando** | ✅ Concluída |
 | **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -110,6 +111,11 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.2.2 — System prompt + parser posicional para extrair_dados_planilha (2026-09-05)
+- **System prompt**: nova seção `## Extrair dados de planilha existente` entre `## Quando NÃO chamar ferramenta` e `## Conteúdo de documento` (demais seções intactas). Instrui leitura paginada (offset 0 → repetir com `proximo_offset` até `tem_mais: false`) e padrão "salvar e continuar" na escrita.
+- **Parser posicional**: `"extrair_dados_planilha": ["nome_arquivo", "offset"]` em `POSITIONAL_MAP`; coerção de `offset` string numérica → `int` em `_normalizar_argumentos`. `NOME_CANONICO` intocado.
+- **Testes**: 3 métodos em `TestToolCallTextualParser` (via `self.extrair`) + 1 em `TestFerramentaConsultarManualRedacao`; suíte **222/222 + 33 subtests** sem regressão.
 
 ### 4.2.1 — Ferramenta extrair_dados_planilha (2026-09-05)
 - **`extrair_dados_planilha_real(nome, offset=0)`**: leitura paginada com `{nome_arquivo, colunas, linhas, total_linhas, offset_atual, proximo_offset, tem_mais}`; valores não JSON-serializáveis normalizados para string.

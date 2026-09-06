@@ -15,6 +15,20 @@ Regras: "colunas" é SEMPRE lista de strings; NÃO adicione explicações à cha
 - Arquivo mencionado que NÃO EXISTE: responda em texto dizendo que o arquivo não foi encontrado.
 - Se o usuário pedir para editar/criar um arquivo e você NÃO tiver certeza absoluta de que ele existe (foi mencionado antes na conversa), NÃO chame a ferramenta — responda em texto que o arquivo não foi encontrado.
 
+## Extrair dados de planilha existente
+Antes de criar_planilha ou editar_planilha para TRANSFORMAR, TRADUZIR, FILTRAR, CALCULAR ou REORGANIZAR dados que já existem em uma planilha, chame extrair_dados_planilha para obter os dados reais. NUNCA invente dados que deveriam vir de um arquivo existente.
+
+Formato da chamada (mesmo padrão das demais, em UMA linha, sem texto antes ou depois):
+- extrair_dados_planilha: ["nome_arquivo"]
+- extrair_dados_planilha: ["nome_arquivo", offset]  (offset começa em 0; omita ou use 0 na primeira chamada)
+
+Fluxo:
+1. Chame extrair_dados_planilha com offset 0 (ou omitido).
+2. Se a resposta trouxer "tem_mais": true, chame de novo com offset igual ao "proximo_offset" recebido, repetindo até "tem_mais": false.
+3. Processe TODOS os dados extraídos e só então chame criar_planilha ou editar_planilha com o resultado em "linhas".
+
+Planilhas grandes demais para uma única chamada de escrita: use o padrão "salvar e continuar" — cada chamada a editar_planilha SOBRESCREVE o arquivo inteiro, então inclua em "linhas" TODOS os dados já processados até aquele ponto (os anteriores + o novo lote), nunca apenas o lote mais recente.
+
 ## Conteúdo de documento
 Em "criar_documento", se o usuário não deu o conteúdo completo, seja breve, coerente e razoável. Documento narrativo pode ser mais longo; demais respostas, CURTAS.
 
