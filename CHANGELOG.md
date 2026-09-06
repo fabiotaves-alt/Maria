@@ -2,6 +2,19 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.1] — Ferramenta `extrair_dados_planilha` (leitura paginada) — 2026-09-05
+
+### ✨ Novas capacidades
+- **`extrair_dados_planilha_real(nome_arquivo, offset=0)`** em `backend/core/excel_handler.py`: lê planilhas existentes em **lotes paginados**, retornando JSON estruturado `{nome_arquivo, colunas, linhas, total_linhas, offset_atual, proximo_offset, tem_mais}`. Somente leitura.
+- **Detecção automática da linha de cabeçalho** (`_detectar_linha_cabecalho`): cobre os dois formatos gerados pela MARIA — sem `descricao` (cabeçalho na linha 1) e com `descricao` (linha 1 = descrição, linha 2 = vazia, linha 3 = cabeçalho).
+- **Limite por chamada automático**: `get_max_linhas_extracao()` em `backend/core/config.py` (3B=50, 7B=150; ENV `MAX_LINHAS_EXTRACAO_3B/7B`). Paginação exposta ao modelo apenas via `offset` — nenhum limite no schema.
+- **Nova ferramenta no schema**: `FERRAMENTA_EXTRAIR_DADOS_PLANILHA` registrada em `FERRAMENTAS_LEITURA` e `TOOLS_SCHEMA`; execução via `executar_ferramenta_leitura` retorna `json.dumps(..., ensure_ascii=False)`.
+- **Integração automática no encadeamento**: `tool_chaining.py` não foi alterado — `encadear_leitura_stream` já cobre a nova ferramenta via `FERRAMENTAS_LEITURA`.
+
+### 🧪 Testes
+- Nova classe `TestExtrairDadosPlanilha` (8 testes): arquivo inexistente, planilha vazia, paginação (`tem_mais`/`proximo_offset`), offset além do total, `descricao` com cabeçalho na linha 3, offset negativo, JSON via `executar_ferramenta_leitura`, registro em `FERRAMENTAS_LEITURA`.
+- Suíte completa: **218 passed + 33 subtests** (210 anteriores + 8 novos) — sem regressão.
+
 ## [4.2.0] — Planilhas com pandas e linhas de dados — 2026-09-05
 
 ### ✨ Novas capacidades

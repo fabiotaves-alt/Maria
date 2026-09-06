@@ -1,6 +1,6 @@
 # MARIA — Assistente de IA de Escritório, 100% Local
 
-> **Versão atual:** v4.2.0 · **Status:** ✅ Estável
+> **Versão atual:** v4.2.1 · **Status:** ✅ Estável
 
 **MARIA** é uma assistente de inteligência artificial para escritório que roda **completamente no seu computador**, sem enviar dados para a internet e sem depender de serviços em nuvem. Ela entende linguagem natural em português, executa tarefas reais (criar documentos, preencher planilhas, transcrever áudio, gerenciar memórias e automações) e aprende com as informações que você compartilha ao longo do tempo.
 

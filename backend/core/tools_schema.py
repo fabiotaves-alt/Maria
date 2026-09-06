@@ -71,6 +71,7 @@ CAMPOS_OBRIGATORIOS = {
     # Leitura
     "listar_arquivos": [],  # nenhum campo obrigatório
     "resumir_documento": ["nome_arquivo"],
+    "extrair_dados_planilha": ["nome_arquivo"],
     "consultar_manual_redacao": ["tipo_documento"],
 }
 
@@ -247,6 +248,35 @@ NÃO use para criar um documento novo — nesse caso use criar_documento.""",
     }
 }
 
+FERRAMENTA_EXTRAIR_DADOS_PLANILHA = {
+    "type": "function",
+    "function": {
+        "name": "extrair_dados_planilha",
+        "description": """Lê os dados de uma planilha Excel existente em lotes paginados, retornando um JSON estruturado (colunas, linhas, total_linhas, tem_mais, proximo_offset). Somente leitura, não modifica nada.
+Use PARA: processar, transformar, traduzir, filtrar ou analisar dados de uma planilha já existente antes de criar ou editar outra.
+Exemplos de frases-gatilho:
+- "traduza a planilha vendas para inglês"
+- "adicione uma coluna calculada na planilha estoque"
+- "quais são os dados da planilha clientes?"
+Se a resposta indicar "tem_mais": true, chame esta ferramenta novamente com offset=proximo_offset até obter todos os dados, ANTES de criar ou editar a planilha de destino.
+NÃO use para apenas listar arquivos (use listar_arquivos) nem para obter um resumo textual simples (use resumir_documento).""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "nome_arquivo": {
+                    "type": "string",
+                    "description": "Nome do arquivo da planilha a ler (com ou sem .xlsx). Ex.: 'vendas'"
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Índice (a partir de 0) da primeira linha de dados a retornar. Omita ou use 0 para começar do início. Use o valor de 'proximo_offset' da resposta anterior para continuar a leitura em lotes."
+                }
+            },
+            "required": ["nome_arquivo"]
+        }
+    }
+}
+
 FERRAMENTA_CONSULTAR_MANUAL_REDACAO = {
     "type": "function",
     "function": {
@@ -279,7 +309,7 @@ NÃO use para documentos narrativos comuns (cartas informais, relatórios intern
 # -----------------------------------------------------------------------------
 # Conjunto de ferramentas de leitura (executadas sem confirmação)
 # -----------------------------------------------------------------------------
-FERRAMENTAS_LEITURA = {"listar_arquivos", "resumir_documento", "consultar_manual_redacao"}
+FERRAMENTAS_LEITURA = {"listar_arquivos", "resumir_documento", "extrair_dados_planilha", "consultar_manual_redacao"}
 
 # Lista de todas as ferramentas disponíveis para envio ao modelo
 TOOLS_SCHEMA = [
@@ -288,6 +318,7 @@ TOOLS_SCHEMA = [
     FERRAMENTA_EDITAR_PLANILHA,
     FERRAMENTA_LISTAR_ARQUIVOS,
     FERRAMENTA_RESUMIR_DOCUMENTO,
+    FERRAMENTA_EXTRAIR_DADOS_PLANILHA,
     FERRAMENTA_CONSULTAR_MANUAL_REDACAO,
 ]
 
@@ -506,6 +537,15 @@ def executar_ferramenta_leitura(nome_funcao: str, argumentos: dict) -> str:
         if instrucoes:
             cabecalho += f"\nPedido do usuário: {instrucoes}"
         return f"{cabecalho}{aviso}\n\n{doc['texto']}"
+
+    elif nome_funcao == "extrair_dados_planilha":
+        import json
+        from backend.core.excel_handler import extrair_dados_planilha_real
+        resultado = extrair_dados_planilha_real(
+            nome_arquivo=argumentos.get("nome_arquivo", ""),
+            offset=argumentos.get("offset", 0) or 0,
+        )
+        return json.dumps(resultado, ensure_ascii=False)
 
     elif nome_funcao == "consultar_manual_redacao":
         from backend.core.manual_redacao import consultar_manual

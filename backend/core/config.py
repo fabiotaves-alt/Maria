@@ -139,3 +139,14 @@ def get_max_linhas_por_chamada() -> int:
         return MAX_LINHAS_POR_CHAMADA_7B
     return MAX_LINHAS_POR_CHAMADA_3B
 
+
+def get_max_linhas_extracao() -> int:
+    """
+    Retorna o limite de linhas por chamada de extração (leitura paginada)
+    conforme o modelo ativo (LLAMA_MODEL). Automático — não exposto ao
+    modelo nem ao usuário.
+    """
+    if "7b" in LLAMA_MODEL.lower():
+        return MAX_LINHAS_EXTRACAO_7B
+    return MAX_LINHAS_EXTRACAO_3B
+

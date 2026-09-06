@@ -3178,5 +3178,101 @@ class TestCriarPlanilhaComLinhas(unittest.TestCase):
         self.assertLessEqual(len(df), limite)
 
 
+class TestExtrairDadosPlanilha(unittest.TestCase):
+    """Testa extrair_dados_planilha_real e a integração via executar_ferramenta_leitura."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        os.environ["PASTA_ARQUIVOS_GERADOS"] = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+        os.environ.pop("PASTA_ARQUIVOS_GERADOS", None)
+
+    def test_arquivo_inexistente_levanta_value_error(self):
+        from backend.core.excel_handler import extrair_dados_planilha_real
+        with self.assertRaises(ValueError):
+            extrair_dados_planilha_real("nao_existe")
+
+    def test_planilha_vazia_retorna_zero_linhas(self):
+        from backend.core.excel_handler import criar_planilha_real, extrair_dados_planilha_real
+        caminho = criar_planilha_real("vazia", ["A", "B"])
+        nome = os.path.splitext(os.path.basename(caminho))[0]
+        resultado = extrair_dados_planilha_real(nome)
+        self.assertEqual(resultado["colunas"], ["A", "B"])
+        self.assertEqual(resultado["total_linhas"], 0)
+        self.assertEqual(resultado["linhas"], [])
+        self.assertFalse(resultado["tem_mais"])
+        self.assertEqual(resultado["proximo_offset"], 0)
+
+    def test_paginacao_basica(self):
+        from unittest.mock import patch
+        from backend.core.excel_handler import criar_planilha_real, extrair_dados_planilha_real
+        # Limites separados: criação preserva todas as linhas (50) e a extração
+        # pagina de fato (10 por página). Sem o patch, criar_planilha_real
+        # truncaria as 15 linhas na criação (default 50) e a paginação nunca
+        # veria tem_mais=True.
+        limite = 10
+        with patch("backend.core.excel_handler.get_max_linhas_por_chamada", return_value=50), \
+             patch("backend.core.excel_handler.get_max_linhas_extracao", return_value=limite):
+            linhas = [{"Col": i} for i in range(limite + 5)]
+            caminho = criar_planilha_real("paginada", ["Col"], linhas=linhas)
+            nome = os.path.splitext(os.path.basename(caminho))[0]
+
+            pagina1 = extrair_dados_planilha_real(nome, offset=0)
+            self.assertEqual(len(pagina1["linhas"]), limite)
+            self.assertTrue(pagina1["tem_mais"])
+            self.assertEqual(pagina1["proximo_offset"], limite)
+            self.assertEqual(pagina1["total_linhas"], limite + 5)
+
+            pagina2 = extrair_dados_planilha_real(nome, offset=pagina1["proximo_offset"])
+            self.assertEqual(len(pagina2["linhas"]), 5)
+            self.assertFalse(pagina2["tem_mais"])
+
+    def test_offset_alem_do_total(self):
+        from backend.core.excel_handler import criar_planilha_real, extrair_dados_planilha_real
+        caminho = criar_planilha_real("curta", ["Col"], linhas=[{"Col": 1}, {"Col": 2}])
+        nome = os.path.splitext(os.path.basename(caminho))[0]
+        resultado = extrair_dados_planilha_real(nome, offset=100)
+        self.assertEqual(resultado["linhas"], [])
+        self.assertFalse(resultado["tem_mais"])
+        self.assertEqual(resultado["proximo_offset"], 100)
+
+    def test_planilha_com_descricao_detecta_cabecalho(self):
+        from backend.core.excel_handler import criar_planilha_real, extrair_dados_planilha_real
+        caminho = criar_planilha_real(
+            "com_descricao", ["Nome", "Valor"],
+            descricao="Planilha de teste",
+            linhas=[{"Nome": "Ana", "Valor": 10}],
+        )
+        nome = os.path.splitext(os.path.basename(caminho))[0]
+        resultado = extrair_dados_planilha_real(nome)
+        self.assertEqual(resultado["colunas"], ["Nome", "Valor"])
+        self.assertEqual(len(resultado["linhas"]), 1)
+        self.assertEqual(resultado["linhas"][0]["Nome"], "Ana")
+
+    def test_offset_negativo_tratado_como_zero(self):
+        from backend.core.excel_handler import criar_planilha_real, extrair_dados_planilha_real
+        caminho = criar_planilha_real("neg", ["Col"], linhas=[{"Col": 1}])
+        nome = os.path.splitext(os.path.basename(caminho))[0]
+        resultado = extrair_dados_planilha_real(nome, offset=-5)
+        self.assertEqual(resultado["offset_atual"], 0)
+
+    def test_executar_ferramenta_leitura_retorna_json_valido(self):
+        import json
+        from backend.core.excel_handler import criar_planilha_real
+        from backend.core.tools_schema import executar_ferramenta_leitura
+        caminho = criar_planilha_real("via_ferramenta", ["A"], linhas=[{"A": 1}])
+        nome = os.path.splitext(os.path.basename(caminho))[0]
+        resultado_str = executar_ferramenta_leitura("extrair_dados_planilha", {"nome_arquivo": nome})
+        dados = json.loads(resultado_str)
+        self.assertEqual(dados["colunas"], ["A"])
+        self.assertEqual(dados["total_linhas"], 1)
+
+    def test_ferramenta_registrada_em_ferramentas_leitura(self):
+        from backend.core.tools_schema import FERRAMENTAS_LEITURA
+        self.assertIn("extrair_dados_planilha", FERRAMENTAS_LEITURA)
+
+
 if __name__ == "__main__":
     unittest.main()

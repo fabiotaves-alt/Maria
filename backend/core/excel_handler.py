@@ -12,7 +12,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from backend.core.file_utils import garantir_pasta_arquivos, gerar_nome_unico, sanitizar_nome_arquivo
-from backend.core.config import PASTA_ARQUIVOS_GERADOS, get_max_linhas_por_chamada
+from backend.core.config import PASTA_ARQUIVOS_GERADOS, get_max_linhas_por_chamada, get_max_linhas_extracao
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,29 @@ def _aplicar_estilo_cabecalho(caminho: str, linha_cabecalho: int, num_colunas: i
         ws.column_dimensions[col_letter].width = max(len(valor) + 2, 10)
     wb.save(caminho)
     wb.close()
+
+
+def _detectar_linha_cabecalho(caminho: str) -> int:
+    """
+    Detecta a linha (1-based) do cabeçalho de uma planilha gerada pela MARIA.
+
+    Estrutura sem descrição: cabeçalho na linha 1.
+    Estrutura com descrição (ver criar_planilha_real/editar_planilha_real):
+    linha 1 = descrição (só a primeira célula preenchida, demais mescladas/vazias),
+    linha 2 = vazia (separador), linha 3 = cabeçalho.
+    """
+    wb = load_workbook(caminho, read_only=True, data_only=True)
+    ws = wb.active
+    linha1 = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+    linha2_vazia = True
+    for row in ws.iter_rows(min_row=2, max_row=2):
+        linha2_vazia = all(c.value is None for c in row)
+    wb.close()
+
+    preenchidos_linha1 = sum(1 for v in linha1 if v is not None and str(v).strip())
+    if preenchidos_linha1 == 1 and linha2_vazia:
+        return 3  # descrição + linha vazia + cabeçalho
+    return 1
 
 
 def criar_planilha_real(
@@ -214,6 +237,103 @@ def editar_planilha_real(
         ) from error
     except Exception as error:
         logger.error("Erro inesperado ao editar planilha: %s", error)
+        raise
+
+
+def extrair_dados_planilha_real(nome_arquivo: str, offset: int = 0) -> dict:
+    """
+    Lê uma planilha existente com paginação por offset, retornando dados
+    estruturados para o modelo processar em lotes.
+
+    Args:
+        nome_arquivo: Nome do arquivo (com ou sem .xlsx — normalizado internamente)
+        offset: Índice (0-based) da primeira linha de dados a retornar.
+                Valores negativos são tratados como 0.
+
+    Returns:
+        Dict com:
+            nome_arquivo (str), colunas (list[str]), linhas (list[dict]),
+            total_linhas (int), offset_atual (int), proximo_offset (int),
+            tem_mais (bool).
+        O número de linhas retornadas por chamada é limitado automaticamente
+        por get_max_linhas_extracao() conforme o modelo ativo.
+
+    # v4.3.x: estrutura compatível com TableView do frontend (colunas/linhas
+    #         já no formato esperado por uma tabela paginada no React).
+
+    Raises:
+        ValueError: Arquivo não encontrado.
+        PermissionError: Sem permissão de leitura.
+        OSError: Erro de disco.
+    """
+    try:
+        if nome_arquivo.endswith(".xlsx"):
+            nome_arquivo = nome_arquivo[:-5]
+
+        nome_seguro = sanitizar_nome_arquivo(nome_arquivo)
+        pasta_absoluta = garantir_pasta_arquivos()
+        caminho_completo = os.path.join(pasta_absoluta, f"{nome_seguro}.xlsx")
+
+        if not os.path.exists(caminho_completo):
+            raise ValueError(
+                f"Arquivo '{nome_seguro}.xlsx' não encontrado na pasta de arquivos gerados."
+            )
+
+        offset = max(0, offset or 0)
+        linha_cabecalho = _detectar_linha_cabecalho(caminho_completo)
+
+        df = pd.read_excel(caminho_completo, header=linha_cabecalho - 1)
+        df = df.dropna(how="all")  # remove linhas totalmente vazias
+
+        colunas = [str(c) for c in df.columns]
+        total_linhas = len(df)
+
+        limite = get_max_linhas_extracao()
+        fim = offset + limite
+        df_pagina = df.iloc[offset:fim].fillna("")
+
+        linhas = df_pagina.to_dict(orient="records")
+        # Normaliza valores não JSON-serializáveis (ex.: pandas.Timestamp) para string.
+        linhas = [
+            {
+                chave: (valor if isinstance(valor, (str, int, float, bool)) else str(valor))
+                for chave, valor in linha.items()
+            }
+            for linha in linhas
+        ]
+
+        proximo_offset = offset + len(linhas)
+        tem_mais = proximo_offset < total_linhas
+
+        logger.info(
+            "Planilha extraída: %s (offset=%d, %d/%d linhas retornadas)",
+            caminho_completo, offset, len(linhas), total_linhas,
+        )
+
+        return {
+            "nome_arquivo": nome_seguro,
+            "colunas": colunas,
+            "linhas": linhas,
+            "total_linhas": total_linhas,
+            "offset_atual": offset,
+            "proximo_offset": proximo_offset,
+            "tem_mais": tem_mais,
+        }
+
+    except ValueError:
+        raise
+    except PermissionError as error:
+        logger.error("Permissão negada ao extrair dados da planilha: %s", error)
+        raise PermissionError(
+            "Não foi possível ler o arquivo. Verifique as permissões da pasta de arquivos gerados."
+        ) from error
+    except OSError as error:
+        logger.error("Erro de disco ao extrair dados da planilha: %s", error)
+        raise OSError(
+            "Não foi possível ler o arquivo devido a um erro de disco."
+        ) from error
+    except Exception as error:
+        logger.error("Erro inesperado ao extrair dados da planilha: %s", error)
         raise
 
 
