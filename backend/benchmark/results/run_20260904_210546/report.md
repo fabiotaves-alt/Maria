@@ -1,0 +1,254 @@
+# Relatório do Benchmark MARIA
+
+Gerado em: 2026-09-04T21:07:18
+
+## Modelo
+
+| Propriedade | Valor |
+|---|---:|
+| Quantização | Q4_K - Medium |
+| ID modelo | ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M |
+| Parâmetros | 7.62B (7,615,616,512) |
+| n_ctx (servidor / treino) | 4096 / 32768 |
+| Tamanho | 4.36 GiB |
+## Parâmetros do sampler
+
+| Parâmetro | Valor |
+|---|---:|
+| repeat_last_n | 64 |
+| repeat_penalty | 1.100 |
+| frequency_penalty | 0.000 |
+| presence_penalty | 0.000 |
+| dry_multiplier | 0.000 |
+| dry_base | 1.750 |
+| dry_allowed_length | 2 |
+| dry_penalty_last_n | 64 |
+| top_k | 40 |
+| top_p | 0.950 |
+| min_p | 0.050 |
+| xtc_probability | 0.000 |
+| xtc_threshold | 0.100 |
+| typical_p | 1.000 |
+| top_n_sigma | -1.000 |
+| temperature | 0.100 |
+
+## Métricas gerais
+
+| Métrica | Resultado |
+|---|---:|
+| Total de tarefas | 6 |
+| Acurácia de tool calling | 0.0% |
+| Taxa de confirmação (todas) | 100.0% |
+| Taxa de confirmação (elegíveis) | N/D (sem tarefas elegíveis) |
+| Suspeitas de falha de parser | 0 |
+| Taxa de palavras-chave | 100.0% |
+| Taxa de execução | 100.0% |
+| Taxa de conformidade de idioma | 100.0% |
+| Acurácia de argumentos | 100.0% |
+| Tokens por segundo (média) | 1.5 tok/s |
+| TTFT médio (1º token) | 8970.2 ms |
+| Latência p50 | 9963.1 ms |
+| Latência p90 | 55035.4 ms |
+| Latência média | 15451.0 ms |
+| Contexto OK | 100.0% |
+
+## Métricas por categoria
+
+| Categoria | Total | Acurácia de tool calling |
+|---|---:|---:|
+| editar_planilha | 6 | 0.0% |
+
+## Distribuição de erros
+
+| Nenhum erro | 0 |
+|---|---|
+
+## Detalhes por execução
+
+**Prompt do system (injetado em todas as execuções abaixo):**
+
+```text
+Você é MARIA, assistente de escritório. Cria e edita planilhas Excel e documentos Word usando ferramentas. SEMPRE responda em português do Brasil.
+
+## Como chamar uma ferramenta
+Para criar ou editar arquivo, responda APENAS com a chamada, em UMA linha, sem texto antes ou depois, sem ponto final:
+- Planilha nova: criar_planilha: ["nome_arquivo", ["Coluna1", "Coluna2"]]
+- Documento novo: criar_documento: ["nome_arquivo", "Título", "conteúdo"]
+- Editar planilha: editar_planilha: ["nome_arquivo", ["Coluna1", "Coluna2"]]
+
+Regras: "colunas" é SEMPRE lista de strings; NÃO adicione explicações à chamada; nomes inseguros ("/", "..", "*") são corrigidos pelo sistema — chame normalmente; preencha TODOS os campos obrigatórios. A confirmação é automática após a tool call.
+
+## Quando NÃO chamar ferramenta
+- Cumprimentos, apresentações ou perguntas gerais: responda em texto curto.
+- Editar planilha JÁ CRIADA na conversa: ela EXISTE, chame "editar_planilha".
+- Editar planilha NÃO mencionada antes: chame "listar_arquivos" primeiro.
+
+## Conteúdo de documento
+Em "criar_documento", se o usuário não deu o conteúdo completo, seja breve, coerente e razoável. Documento narrativo pode ser mais longo; demais respostas, CURTAS.
+
+## Correção de erro
+Ao receber ERRO de chamada inválida (campo ausente, tipo incorreto, nome inválido), corrija SOMENTE o campo apontado e chame de novo na próxima resposta, sem desculpas nem perguntas.
+```
+
+### Execução 1 — Tarefa 22: Edição inexistente A (editar_planilha)
+
+rep 1/3: ✗ tool=editar_planilha args=OK latência=45.0s tokens=14 — erro: Tool call incorreto ou ferramenta inesperada
+
+**Prompt enviado (mensagens):**
+
+```json
+[
+  {
+    "role": "system",
+    "content": "prompt do system injetado"
+  },
+  {
+    "role": "user",
+    "content": "Edite a planilha planilha_inexistente com a coluna A."
+  }
+]
+```
+
+**Resposta bruta do modelo:**
+
+```text
+editar_planilha: ["planilha_inexistente", ["A"]]
+```
+
+### Execução 2 — Tarefa 22: Edição inexistente A (editar_planilha)
+
+rep 2/3: ✗ tool=editar_planilha args=OK latência=8.1s tokens=14 — erro: Tool call incorreto ou ferramenta inesperada
+
+**Prompt enviado (mensagens):**
+
+```json
+[
+  {
+    "role": "system",
+    "content": "prompt do system injetado"
+  },
+  {
+    "role": "user",
+    "content": "Edite a planilha planilha_inexistente com a coluna A."
+  }
+]
+```
+
+**Resposta bruta do modelo:**
+
+```text
+editar_planilha: ["planilha_inexistente", ["A"]]
+```
+
+### Execução 3 — Tarefa 22: Edição inexistente A (editar_planilha)
+
+rep 3/3: ✗ tool=editar_planilha args=OK latência=8.1s tokens=14 — erro: Tool call incorreto ou ferramenta inesperada
+
+**Prompt enviado (mensagens):**
+
+```json
+[
+  {
+    "role": "system",
+    "content": "prompt do system injetado"
+  },
+  {
+    "role": "user",
+    "content": "Edite a planilha planilha_inexistente com a coluna A."
+  }
+]
+```
+
+**Resposta bruta do modelo:**
+
+```text
+editar_planilha: ["planilha_inexistente", ["A"]]
+```
+
+### Execução 4 — Tarefa 23: Edição inexistente B (editar_planilha)
+
+rep 1/3: ✗ tool=editar_planilha args=OK latência=11.6s tokens=18 — erro: Tool call incorreto ou ferramenta inesperada
+
+**Prompt enviado (mensagens):**
+
+```json
+[
+  {
+    "role": "system",
+    "content": "prompt do system injetado"
+  },
+  {
+    "role": "user",
+    "content": "Atualize a planilha planilha_nao_existe com as colunas X e Y."
+  }
+]
+```
+
+**Resposta bruta do modelo:**
+
+```text
+editar_planilha: ["planilha_nao_existe", ["X", "Y"]]
+```
+
+### Execução 5 — Tarefa 23: Edição inexistente B (editar_planilha)
+
+rep 2/3: ✗ tool=editar_planilha args=OK latência=9.9s tokens=18 — erro: Tool call incorreto ou ferramenta inesperada
+
+**Prompt enviado (mensagens):**
+
+```json
+[
+  {
+    "role": "system",
+    "content": "prompt do system injetado"
+  },
+  {
+    "role": "user",
+    "content": "Atualize a planilha planilha_nao_existe com as colunas X e Y."
+  }
+]
+```
+
+**Resposta bruta do modelo:**
+
+```text
+editar_planilha: ["planilha_nao_existe", ["X", "Y"]]
+```
+
+### Execução 6 — Tarefa 23: Edição inexistente B (editar_planilha)
+
+rep 3/3: ✗ tool=editar_planilha args=OK latência=10.1s tokens=18 — erro: Tool call incorreto ou ferramenta inesperada
+
+**Prompt enviado (mensagens):**
+
+```json
+[
+  {
+    "role": "system",
+    "content": "prompt do system injetado"
+  },
+  {
+    "role": "user",
+    "content": "Atualize a planilha planilha_nao_existe com as colunas X e Y."
+  }
+]
+```
+
+**Resposta bruta do modelo:**
+
+```text
+editar_planilha: ["planilha_nao_existe", ["X", "Y"]]
+```
+
+
+
+## Tarefas com falha
+
+| ID | Tarefa | Motivo da falha |
+|---:|---|---|
+| 22 | Edição inexistente A | Tool call incorreto ou ferramenta inesperada |
+| 22 | Edição inexistente A | Tool call incorreto ou ferramenta inesperada |
+| 22 | Edição inexistente A | Tool call incorreto ou ferramenta inesperada |
+| 23 | Edição inexistente B | Tool call incorreto ou ferramenta inesperada |
+| 23 | Edição inexistente B | Tool call incorreto ou ferramenta inesperada |
+| 23 | Edição inexistente B | Tool call incorreto ou ferramenta inesperada |

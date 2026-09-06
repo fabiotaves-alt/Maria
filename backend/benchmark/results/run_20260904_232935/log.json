@@ -1,0 +1,509 @@
+{
+  "meta": {
+    "id_modelo": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+    "modelo_quantizacao": "Q4_K - Medium",
+    "data_execucao": "2026-09-04T23:31:14.381850",
+    "total_tarefas": 2,
+    "repeticoes_por_tarefa": 3,
+    "versao_benchmark": "2.0",
+    "system_prompt_hash": "0b1cd0b9371a",
+    "system_prompt_completo": "Você é MARIA, brasileira, assistente de escritório. Além de interagir com o usuário você CRIA e EDITA planilhas Excel e documentos Word usando FERRAMENTAS. SEMPRE responda em português do Brasil.\n\n## Como chamar uma ferramenta\nPara criar ou editar arquivo, responda APENAS com a chamada, em UMA linha, sem texto antes ou depois, sem ponto final:\n- Planilha nova: criar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n- Documento novo: criar_documento: [\"nome_arquivo\", \"Título\", \"conteúdo\"]\n- Editar planilha: editar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n\nRegras: \"colunas\" é SEMPRE lista de strings; NÃO adicione explicações à chamada; nomes inseguros (\"/\", \"..\", \"*\") são corrigidos pelo sistema — chame normalmente; preencha TODOS os campos obrigatórios. A confirmação é automática após a tool call.\n\n\n## Conteúdo de documento\nEm \"criar_documento\", se o usuário não deu o conteúdo completo, seja breve, coerente e razoável. Documento narrativo pode ser mais longo; demais respostas, CURTAS.\n\n## Correção de erro\nAo receber ERRO de chamada inválida (campo ausente, tipo incorreto, nome inválido), corrija SOMENTE o campo apontado e chame de novo na próxima resposta, sem desculpas nem perguntas.",
+    "llama_base_url": "http://localhost:8080",
+    "llama_num_ctx_config": 4096,
+    "ctx_size_detectado": 4096,
+    "ctx_fonte": "models",
+    "system_prompt_tokens": 348,
+    "fator_calibracao_tokens": 1.1485148514851484,
+    "timeout_por_chamada_s": 300,
+    "sampler_params": {
+      "temperature": 0.1,
+      "repeat_last_n": 64,
+      "repeat_penalty": 1.1,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "dry_multiplier": 0.0,
+      "dry_base": 1.75,
+      "dry_allowed_length": 2,
+      "dry_penalty_last_n": 64,
+      "top_k": 40,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "xtc_probability": 0.0,
+      "xtc_threshold": 0.1,
+      "typical_p": 1.0,
+      "top_n_sigma": -1.0
+    }
+  },
+  "individual": [
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A (verificar antes)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"estoque.xlsx\", [\"Preço\", \"Quantidade\", \"Descrição\"]]",
+      "latency_ms": 55475.29289999511,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "estoque.xlsx",
+        "colunas": [
+          "Preço",
+          "Quantidade",
+          "Descrição"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 21,
+      "tokens_por_segundo": 0.4,
+      "args_correct": true,
+      "ttft_ms": 47065.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha estoque com a coluna preco."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"estoque.xlsx\", [\"Preço\", \"Quantidade\", \"Descrição\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque.xlsx",
+          "colunas": [
+            "Preço",
+            "Quantidade",
+            "Descrição"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A (verificar antes)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"estoque.xlsx\", [\"Preço\", \"Quantidade\", \"Descrição\"]]",
+      "latency_ms": 10849.519499999587,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "estoque.xlsx",
+        "colunas": [
+          "Preço",
+          "Quantidade",
+          "Descrição"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 21,
+      "tokens_por_segundo": 1.9,
+      "args_correct": true,
+      "ttft_ms": 2509.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha estoque com a coluna preco."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"estoque.xlsx\", [\"Preço\", \"Quantidade\", \"Descrição\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque.xlsx",
+          "colunas": [
+            "Preço",
+            "Quantidade",
+            "Descrição"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A (verificar antes)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"estoque\", [\"Preço\"]]",
+      "latency_ms": 7452.7400999941165,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "estoque",
+        "colunas": [
+          "Preço"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 12,
+      "tokens_por_segundo": 1.6,
+      "args_correct": true,
+      "ttft_ms": 2541.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha estoque com a coluna preco."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"estoque\", [\"Preço\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "Preço"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B (verificar antes)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"clientes\", [\"nome\", \"email\"]]",
+      "latency_ms": 9541.544300009264,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "clientes",
+        "colunas": [
+          "nome",
+          "email"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 13,
+      "tokens_por_segundo": 1.4,
+      "args_correct": true,
+      "ttft_ms": 4268.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha clientes com as colunas nome e email."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"clientes\", [\"nome\", \"email\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "clientes",
+          "colunas": [
+            "nome",
+            "email"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B (verificar antes)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"clientes\", [\"nome\", \"email\"]]",
+      "latency_ms": 7738.780399988173,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "clientes",
+        "colunas": [
+          "nome",
+          "email"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 13,
+      "tokens_por_segundo": 1.7,
+      "args_correct": true,
+      "ttft_ms": 2537.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha clientes com as colunas nome e email."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"clientes\", [\"nome\", \"email\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "clientes",
+          "colunas": [
+            "nome",
+            "email"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B (verificar antes)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"clientes\", [\"nome\", \"email\"]]",
+      "latency_ms": 7815.839300004882,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "clientes",
+        "colunas": [
+          "nome",
+          "email"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 13,
+      "tokens_por_segundo": 1.7,
+      "args_correct": true,
+      "ttft_ms": 2504.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha clientes com as colunas nome e email."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"clientes\", [\"nome\", \"email\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "clientes",
+          "colunas": [
+            "nome",
+            "email"
+          ]
+        }
+      }
+    }
+  ],
+  "agregado_por_tarefa": [
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A (verificar antes)",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 0.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 24592.517499996273,
+      "stddev_latency_ms": 26799.139722725344,
+      "avg_tokens_por_segundo": 1.3,
+      "avg_tokens_gerados": 18.0
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B (verificar antes)",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 0.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 8365.388000000772,
+      "stddev_latency_ms": 1019.3096929075059,
+      "avg_tokens_por_segundo": 1.5999999999999999,
+      "avg_tokens_gerados": 13.0
+    }
+  ]
+}

@@ -1,0 +1,366 @@
+{
+  "meta": {
+    "id_modelo": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+    "modelo_quantizacao": "Q4_K - Medium",
+    "data_execucao": "2026-09-05T10:58:42.160423",
+    "total_tarefas": 2,
+    "repeticoes_por_tarefa": 2,
+    "versao_benchmark": "2.0",
+    "system_prompt_hash": "ce187676ddf7",
+    "system_prompt_completo": "Você é MARIA, assistente de escritório. Cria e edita planilhas Excel e documentos Word usando ferramentas. SEMPRE responda em português do Brasil.\n\n## Como chamar uma ferramenta\nPara criar ou editar arquivo, responda APENAS com a chamada, em UMA linha, sem texto antes ou depois, sem ponto final:\n\n- Planilha nova: criar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n- Documento novo: criar_documento: [\"nome_arquivo\", \"Título\", \"conteúdo\"]\n- Editar planilha: editar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n\nRegras: \"colunas\" é SEMPRE lista de strings; Explicações QUEBRAM a chamada; nomes inseguros (\"/\", \"..\", \"*\") DEVEM ser corrigidos normalmente; preencha TODOS os campos obrigatórios. A confirmação é automática após a tool call.\n\n## Quando chamar uma ferramenta\nQuando o usuário solicitar criação e edição/alteração de arquivos.\n\n## Quando NÃO chamar ferramenta\n- Cumprimentos, apresentações ou perguntas gerais: responda em texto curto.\n- Para planilha JÁ CRIADA na conversa: ela EXISTE, chame \"editar_planilha\".\n- Editar planilha NÃO mencionada antes: chame \"listar_arquivos\" primeiro.\n- Arquivo mencionado que NÃO EXISTE: responda em texto dizendo que o arquivo não foi encontrado.\n\n\n## Conteúdo de documento\nEm \"criar_documento\", se o usuário não deu o conteúdo completo, seja breve, coerente e razoável. Documento narrativo pode ser mais longo; demais respostas, CURTAS.\n\n## Correção de erro\nAo receber ERRO de chamada inválida (campo ausente, tipo incorreto, nome inválido), corrija SOMENTE o campo apontado e chame de novo na próxima resposta, sem desculpas nem perguntas.",
+    "llama_base_url": "http://localhost:8080",
+    "llama_num_ctx_config": 4096,
+    "ctx_size_detectado": 2048,
+    "ctx_fonte": "models",
+    "system_prompt_tokens": 461,
+    "fator_calibracao_tokens": 1.1525,
+    "timeout_por_chamada_s": 300,
+    "sampler_params": {
+      "temperature": 0.1,
+      "repeat_last_n": 64,
+      "repeat_penalty": 1.1,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "dry_multiplier": 0.0,
+      "dry_base": 1.75,
+      "dry_allowed_length": 2,
+      "dry_penalty_last_n": 64,
+      "top_k": 40,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "xtc_probability": 0.0,
+      "xtc_threshold": 0.1,
+      "typical_p": 1.0,
+      "top_n_sigma": -1.0
+    },
+    "warmup_duracao_s": 7.51,
+    "metricas_sistema": {
+      "timestamp": "2026-09-05T10:57:07.607525",
+      "plataforma": "Windows-11-10.0.26100-SP0",
+      "cpu_modelo": "Intel64 Family 6 Model 142 Stepping 9, GenuineIntel",
+      "cpu_nucleos_fisicos": 2,
+      "cpu_nucleos_logicos": 4,
+      "cpu_freq_mhz": 2900.0,
+      "cpu_uso_percent": 4.7,
+      "ram_total_gb": 7.89,
+      "ram_disponivel_gb": 5.33,
+      "ram_uso_percent": 32.5,
+      "gpu": []
+    }
+  },
+  "individual": [
+    {
+      "task_id": 13,
+      "task_name": "Editar contatos",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos_1.xlsx",
+      "latency_ms": 22982.52770000545,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "contatos",
+        "colunas": [
+          "Nome",
+          "Email",
+          "Empresa"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 0.8,
+      "args_correct": true,
+      "ttft_ms": 19653.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha contatos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Corrija a planilha contatos para conter Nome, Email e Empresa."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"contatos\", [\"Nome\", \"Email\", \"Empresa\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "contatos",
+          "colunas": [
+            "Nome",
+            "Email",
+            "Empresa"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 13,
+      "task_name": "Editar contatos",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos_1.xlsx",
+      "latency_ms": 5539.364500000374,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "contatos",
+        "colunas": [
+          "Nome",
+          "Email",
+          "Empresa"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 3.3,
+      "args_correct": true,
+      "ttft_ms": 2238.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha contatos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Corrija a planilha contatos para conter Nome, Email e Empresa."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"contatos\", [\"Nome\", \"Email\", \"Empresa\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "contatos",
+          "colunas": [
+            "Nome",
+            "Email",
+            "Empresa"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 25,
+      "task_name": "Nome com caracteres inseguros",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "ERRO: caminho inválido (..). Corrigindo para / relatório*.",
+      "latency_ms": 6343.789600010496,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 2.8,
+      "args_correct": true,
+      "ttft_ms": 3086.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado ../relatório*seguro com conteúdo de teste."
+        }
+      ],
+      "resposta_bruta_modelo": "ERRO: caminho inválido (..). Corrigindo para / relatório*.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    },
+    {
+      "task_id": 25,
+      "task_name": "Nome com caracteres inseguros",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\nome_arquivo.docx",
+      "latency_ms": 15701.655099997879,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "nome_arquivo",
+        "titulo": "Título",
+        "conteudo": "conteúdo"
+      },
+      "language_ok": true,
+      "tokens_gerados": 50,
+      "tokens_por_segundo": 4.0,
+      "args_correct": true,
+      "ttft_ms": 2252.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado ../relatório*seguro com conteúdo de teste."
+        }
+      ],
+      "resposta_bruta_modelo": "ERRO: caminho inválido (..) - corrigido para /.\n\ncriar_documento: [\"../relatório*seguro\", \"Teste\"]\n- criar_documento: [\"nome_arquivo\", \"Título\", \"conteúdo\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 1,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "../relatório*seguro",
+          "titulo": "Teste",
+          "conteudo": null
+        }
+      }
+    }
+  ],
+  "agregado_por_tarefa": [
+    {
+      "task_id": 13,
+      "task_name": "Editar contatos",
+      "category": "editar_planilha",
+      "execucoes": 2,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 0.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 14260.946100002911,
+      "stddev_latency_ms": 12334.178984067226,
+      "avg_tokens_por_segundo": 2.05,
+      "avg_tokens_gerados": 18.0
+    },
+    {
+      "task_id": 25,
+      "task_name": "Nome com caracteres inseguros",
+      "category": "criar_documento",
+      "execucoes": 2,
+      "tool_accuracy": 0.5,
+      "confirmation_success_rate": 0.5,
+      "keyword_match_rate": 0.5,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 11022.722350004187,
+      "stddev_latency_ms": 6617.010152472721,
+      "avg_tokens_por_segundo": 3.4,
+      "avg_tokens_gerados": 34.0
+    }
+  ]
+}
