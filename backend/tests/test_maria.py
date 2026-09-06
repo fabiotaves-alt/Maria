@@ -2033,6 +2033,22 @@ class TestToolCallTextualParser(unittest.TestCase):
         self.assertEqual(resultado["arguments"]["offset"], 50)
         self.assertIsInstance(resultado["arguments"]["offset"], int)
 
+    def test_extrai_dados_planilha_linha_cabecalho_e_limite_linhas(self):
+        """v4.2.3: novos campos posicionais parseados como int (nativo e string)."""
+        resultado = self.extrair('extrair_dados_planilha: ["vendas", 0, 2, 5]')
+        self.assertEqual(resultado["name"], "extrair_dados_planilha")
+        self.assertEqual(resultado["arguments"]["nome_arquivo"], "vendas")
+        self.assertEqual(resultado["arguments"]["offset"], 0)
+        self.assertEqual(resultado["arguments"]["linha_cabecalho"], 2)
+        self.assertEqual(resultado["arguments"]["limite_linhas"], 5)
+
+        resultado_str = self.extrair('extrair_dados_planilha: ["vendas", "0", "2", "5"]')
+        self.assertIsInstance(resultado_str["arguments"]["offset"], int)
+        self.assertIsInstance(resultado_str["arguments"]["linha_cabecalho"], int)
+        self.assertIsInstance(resultado_str["arguments"]["limite_linhas"], int)
+        self.assertEqual(resultado_str["arguments"]["linha_cabecalho"], 2)
+        self.assertEqual(resultado_str["arguments"]["limite_linhas"], 5)
+
 
 class TestSanitizacaoNomeSeguro(unittest.TestCase):
     """Testa a auto-sanitização silenciosa de nomes inseguros."""
@@ -2405,7 +2421,10 @@ class TestFerramentaConsultarManualRedacao(unittest.TestCase):
     def test_extrair_dados_planilha_no_positional_map(self):
         from backend.core.tool_call_textual_parser import POSITIONAL_MAP
         self.assertIn("extrair_dados_planilha", POSITIONAL_MAP)
-        self.assertEqual(POSITIONAL_MAP["extrair_dados_planilha"], ["nome_arquivo", "offset"])
+        self.assertEqual(
+            POSITIONAL_MAP["extrair_dados_planilha"],
+            ["nome_arquivo", "offset", "linha_cabecalho", "limite_linhas"],
+        )
 
 
 class TestObterMetadadosModelo(unittest.TestCase):
@@ -3152,6 +3171,27 @@ class TestCriarPlanilhaComLinhas(unittest.TestCase):
         self.assertEqual(df.iloc[0]["Nome"], "Ana")
         self.assertEqual(df.iloc[1]["Valor"], 200)
 
+    def test_criar_descricao_ignorada_com_linhas(self):
+        """v4.2.3: 'descricao' é ignorada (com warning) quando 'linhas' é
+        fornecido — o arquivo sai com cabeçalho na linha 1, sem título."""
+        from backend.core.excel_handler import criar_planilha_real
+        from openpyxl import load_workbook
+        linhas = [{"Nome": "Ana", "Valor": 1}]
+        with self.assertLogs("backend.core.excel_handler", level="WARNING") as logs:
+            caminho = criar_planilha_real(
+                "descricao_ignorada", ["Nome", "Valor"],
+                descricao="Propósito da planilha",
+                linhas=linhas,
+            )
+        self.assertTrue(any("descricao" in mensagem.lower() for mensagem in logs.output))
+        wb = load_workbook(caminho)
+        ws = wb.active
+        self.assertEqual(ws.cell(row=1, column=1).value, "Nome")  # cabeçalho, não descrição
+        self.assertEqual(ws.cell(row=2, column=1).value, "Ana")
+        wb.close()
+        df = pd.read_excel(caminho)
+        self.assertEqual(len(df), 1)
+
     def test_criar_coluna_ausente_fica_vazia(self):
         """Linha sem uma coluna deixa célula vazia."""
         from backend.core.excel_handler import criar_planilha_real
@@ -3261,13 +3301,17 @@ class TestExtrairDadosPlanilha(unittest.TestCase):
         self.assertEqual(resultado["proximo_offset"], 100)
 
     def test_planilha_com_descricao_detecta_cabecalho(self):
-        from backend.core.excel_handler import criar_planilha_real, extrair_dados_planilha_real
-        caminho = criar_planilha_real(
-            "com_descricao", ["Nome", "Valor"],
+        from backend.core.excel_handler import criar_planilha_real, editar_planilha_real, extrair_dados_planilha_real
+        # v4.2.3: criar_planilha_real ignora 'descricao' quando 'linhas' é
+        # fornecido. O formato com descrição (cabeçalho na linha 3) é
+        # exercitado via editar_planilha_real, que mantém descricao + linhas.
+        caminho_criacao = criar_planilha_real("com_descricao", ["Nome", "Valor"])
+        nome = os.path.splitext(os.path.basename(caminho_criacao))[0]
+        editar_planilha_real(
+            nome, ["Nome", "Valor"],
             descricao="Planilha de teste",
             linhas=[{"Nome": "Ana", "Valor": 10}],
         )
-        nome = os.path.splitext(os.path.basename(caminho))[0]
         resultado = extrair_dados_planilha_real(nome)
         self.assertEqual(resultado["colunas"], ["Nome", "Valor"])
         self.assertEqual(len(resultado["linhas"]), 1)
@@ -3294,6 +3338,120 @@ class TestExtrairDadosPlanilha(unittest.TestCase):
     def test_ferramenta_registrada_em_ferramentas_leitura(self):
         from backend.core.tools_schema import FERRAMENTAS_LEITURA
         self.assertIn("extrair_dados_planilha", FERRAMENTAS_LEITURA)
+
+    def test_linha_cabecalho_override(self):
+        """v4.2.3: linha_cabecalho=2 (0-indexado) extrai cabeçalhos da linha 3
+        do Excel (formato com descrição, gerado via editar_planilha_real)."""
+        from backend.core.excel_handler import criar_planilha_real, editar_planilha_real, extrair_dados_planilha_real
+        caminho_criacao = criar_planilha_real("override_cab", ["Nome", "Valor"])
+        nome = os.path.splitext(os.path.basename(caminho_criacao))[0]
+        editar_planilha_real(
+            nome, ["Nome", "Valor"],
+            descricao="Título que será ignorado pela leitura",
+            linhas=[{"Nome": "Ana", "Valor": 7}],
+        )
+        resultado = extrair_dados_planilha_real(nome, linha_cabecalho=2)
+        self.assertEqual(resultado["colunas"], ["Nome", "Valor"])
+        self.assertEqual(len(resultado["linhas"]), 1)
+        self.assertEqual(resultado["linhas"][0]["Nome"], "Ana")
+
+    def test_limite_linhas_extracao(self):
+        """v4.2.3: limite_linhas reduz o lote, mas o teto do modelo prevalece."""
+        from backend.core.excel_handler import criar_planilha_real, extrair_dados_planilha_real
+        with patch("backend.core.excel_handler.get_max_linhas_por_chamada", return_value=50), \
+             patch("backend.core.excel_handler.get_max_linhas_extracao", return_value=10):
+            linhas = [{"Col": i} for i in range(15)]
+            caminho = criar_planilha_real("limitada", ["Col"], linhas=linhas)
+            nome = os.path.splitext(os.path.basename(caminho))[0]
+
+            pagina = extrair_dados_planilha_real(nome, limite_linhas=4)
+            self.assertEqual(len(pagina["linhas"]), 4)
+            self.assertTrue(pagina["tem_mais"])
+            self.assertEqual(pagina["proximo_offset"], 4)
+
+            # limite_linhas acima do teto do modelo → teto (10) prevalece
+            pagina_teto = extrair_dados_planilha_real(nome, limite_linhas=100)
+            self.assertEqual(len(pagina_teto["linhas"]), 10)
+            self.assertTrue(pagina_teto["tem_mais"])
+
+            # sem limite_linhas → comportamento anterior (teto do modelo)
+            pagina_padrao = extrair_dados_planilha_real(nome)
+            self.assertEqual(len(pagina_padrao["linhas"]), 10)
+
+    def test_tipos_incluidos_no_json(self):
+        """v4.2.3: o retorno inclui 'tipos' com o dtype pandas de cada coluna."""
+        from backend.core.excel_handler import criar_planilha_real, extrair_dados_planilha_real
+        caminho = criar_planilha_real(
+            "com_tipos", ["Nome", "Idade"],
+            linhas=[{"Nome": "Ana", "Idade": 30}],
+        )
+        nome = os.path.splitext(os.path.basename(caminho))[0]
+        resultado = extrair_dados_planilha_real(nome)
+        self.assertIn("tipos", resultado)
+        self.assertIsInstance(resultado["tipos"], dict)
+        self.assertEqual(set(resultado["tipos"].keys()), {"Nome", "Idade"})
+        for tipo in resultado["tipos"].values():
+            self.assertIsInstance(tipo, str)
+        # Detecção automática de cabeçalho segue funcionando junto com 'tipos'
+        self.assertEqual(resultado["colunas"], ["Nome", "Idade"])
+
+
+class TestTarefa26Traducao(unittest.TestCase):
+    """v4.2.3: Task 26 do benchmark — tradução mandarim → PT/EN. Valida o
+    desenho da tarefa e a fixture com dados reais (nomes em mandarim)."""
+
+    def test_estrutura_da_task_26(self):
+        from backend.benchmark.tasks import load_all_maria_tasks
+
+        tarefas = {t.id: t for t in load_all_maria_tasks()}
+        self.assertIn(26, tarefas)
+        task = tarefas[26]
+        self.assertEqual(task.expected_tool, "criar_planilha")
+        self.assertEqual(
+            task.tools_obrigatorios,
+            ["extrair_dados_planilha", "criar_planilha"],
+        )
+        self.assertEqual(task.fixtures, ["nomes_mandarim.xlsx"])
+        self.assertEqual(task.confirm_sequence, ["sim"])
+        self.assertEqual(
+            task.expected_args_subset,
+            {
+                "nome_arquivo": "nomes_traduzidos",
+                "colunas": ["Mandarim", "Portuguese", "English"],
+            },
+        )
+
+    def test_fixture_nomes_mandarim_tem_dados(self):
+        """A fixture nomes_mandarim.xlsx é criada com dados reais (pandas),
+        não como workbook vazio."""
+        import pandas as pd
+        from unittest.mock import patch
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmark.runners.maria_runner import MariaRunner
+
+        task = MariaTask(
+            id=26,
+            name="Tradução de planilha",
+            description="desc",
+            user_message="Traduza a planilha nomes_mandarim.xlsx.",
+            fixtures=["nomes_mandarim.xlsx"],
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch(
+                "backend.benchmark.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", tmp
+            ):
+                MariaRunner._garantir_planilha_existente(task)
+                caminho = os.path.join(tmp, "nomes_mandarim.xlsx")
+                self.assertTrue(os.path.exists(caminho))
+                df = pd.read_excel(caminho)
+                self.assertEqual(list(df.columns), ["Nome"])
+                self.assertEqual(len(df), 5)
+                self.assertEqual(df.iloc[0]["Nome"], "张三")
+                # Rodar de novo não duplica (idempotente: arquivo existe)
+                MariaRunner._garantir_planilha_existente(task)
+                df2 = pd.read_excel(caminho)
+                self.assertEqual(len(df2), 5)
 
 
 if __name__ == "__main__":

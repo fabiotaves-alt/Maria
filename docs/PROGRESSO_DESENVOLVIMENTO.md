@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.2.2  
+**Versão Atual:** v4.2.3  
 **Última alteração:** 2026-09-05  
 
 ---
@@ -58,6 +58,7 @@
 | **4.2.0** | 2026-09-05 | Planilhas com pandas: `criar_planilha`/`editar_planilha` aceitam `linhas` (dados na criação/edição), limite de linhas por modelo (`get_max_linhas_por_chamada`; 3B=50, 7B=150) e dependência `pandas>=2.0.0`; **210 testes passando** | ✅ Concluída |
 | **4.2.1** | 2026-09-05 | Ferramenta `extrair_dados_planilha`: leitura paginada de planilhas (offset/`proximo_offset`/`tem_mais`), detecção automática da linha de cabeçalho (com/sem `descricao`) e limite automático por modelo (`get_max_linhas_extracao`; 3B=50, 7B=150); **218 testes passando** | ✅ Concluída |
 | **4.2.2** | 2026-09-05 | System prompt com seção `Extrair dados de planilha existente` (fluxo leitura-paginada → escrita) + parser posicional: `extrair_dados_planilha` em `POSITIONAL_MAP` e coerção de `offset` string→`int`; **222 testes passando** | ✅ Concluída |
+| **4.2.3** | 2026-09-05 | Consistência e avaliação do fluxo de planilhas: `descricao` ignorada quando `linhas` é fornecido (com warning), `linha_cabecalho`/`limite_linhas` opcionais em `extrair_dados_planilha`, campo `tipos` no retorno, Task 26 (tradução mandarim→PT/EN) com fixture de dados reais e avaliação de `tools_obrigatorios` compatível com término na escrita esperada; **229 testes passando** | ✅ Concluída |
 | **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -111,6 +112,13 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.2.3 — Consistência e avaliação do fluxo de planilhas (2026-09-05)
+- **`criar_planilha`**: `descricao` ignorada (com `logger.warning`) quando `linhas` é fornecido — cabeçalho sai na linha 1; schema atualizado.
+- **`extrair_dados_planilha`**: novos parâmetros opcionais `linha_cabecalho` (0-indexado, override da detecção automática) e `limite_linhas` (reduz o lote; teto do modelo prevalece via `min`); retorno inclui `tipos` (dtype pandas por coluna).
+- **Parser posicional**: `POSITIONAL_MAP["extrair_dados_planilha"]` com 4 campos e coerção `str→int` para `offset`/`linha_cabecalho`/`limite_linhas`.
+- **Benchmark**: Task 26 (tradução mandarim→PT/EN) com `tools_obrigatorios=["extrair_dados_planilha","criar_planilha"]`, fixture `nomes_mandarim.xlsx` com dados reais (pandas) e avaliação de `tools_obrigatorios` que aceita término na escrita esperada (tasks 22/23 seguem exigindo término em texto).
+- **Testes**: 7 novos + 2 atualizados (POSITIONAL_MAP 4 campos; cabeçalho linha 3 agora via `editar_planilha_real`); suíte **229/229** sem regressão.
 
 ### 4.2.2 — System prompt + parser posicional para extrair_dados_planilha (2026-09-05)
 - **System prompt**: nova seção `## Extrair dados de planilha existente` entre `## Quando NÃO chamar ferramenta` e `## Conteúdo de documento` (demais seções intactas). Instrui leitura paginada (offset 0 → repetir com `proximo_offset` até `tem_mais: false`) e padrão "salvar e continuar" na escrita.

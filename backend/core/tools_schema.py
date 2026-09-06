@@ -109,7 +109,7 @@ Exemplo INCORRETO: {"nome_arquivo": "gastos", "conteudo": "Data,Valor"} - NÃO u
                 },
                 "descricao": {
                     "type": "string",
-                    "description": "Descrição breve do propósito da planilha. Ex: 'Planilha para controle mensal de gastos do escritório'"
+                    "description": "Descrição breve do propósito da planilha. Se 'linhas' for fornecido, esta descrição é ignorada (use apenas para planilhas sem dados iniciais)."
                 },
                 "linhas": {
                     "type": "array",
@@ -270,6 +270,16 @@ NÃO use para apenas listar arquivos (use listar_arquivos) nem para obter um res
                 "offset": {
                     "type": "integer",
                     "description": "Índice (a partir de 0) da primeira linha de dados a retornar. Omita ou use 0 para começar do início. Use o valor de 'proximo_offset' da resposta anterior para continuar a leitura em lotes."
+                },
+                "linha_cabecalho": {
+                    "type": "integer",
+                    "description": "Número da linha (0-indexado) onde estão os cabeçalhos. Se omitido, a ferramenta detecta automaticamente (linha 1 ou 3).",
+                    "minimum": 0
+                },
+                "limite_linhas": {
+                    "type": "integer",
+                    "description": "Número máximo de linhas a retornar nesta chamada (respeita o limite máximo do modelo).",
+                    "minimum": 1
                 }
             },
             "required": ["nome_arquivo"]
@@ -544,6 +554,8 @@ def executar_ferramenta_leitura(nome_funcao: str, argumentos: dict) -> str:
         resultado = extrair_dados_planilha_real(
             nome_arquivo=argumentos.get("nome_arquivo", ""),
             offset=argumentos.get("offset", 0) or 0,
+            linha_cabecalho=argumentos.get("linha_cabecalho"),
+            limite_linhas=argumentos.get("limite_linhas"),
         )
         return json.dumps(resultado, ensure_ascii=False)
 

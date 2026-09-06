@@ -12,7 +12,7 @@ POSITIONAL_MAP = {
     "editar_planilha": ["nome_arquivo", "colunas"],
     "listar_arquivos": ["pasta"],
     "resumir_documento": ["nome_arquivo"],
-    "extrair_dados_planilha": ["nome_arquivo", "offset"],
+    "extrair_dados_planilha": ["nome_arquivo", "offset", "linha_cabecalho", "limite_linhas"],
     "consultar_manual_redacao": ["tipo_documento"],
 }
 
@@ -105,7 +105,8 @@ def _normalizar_argumentos(nome: str, args_dict: Dict[str, Any]):
     - Se 'colunas' veio como string única ("Dia, Compromisso"), vira lista
       (split por vírgula, itens aparados).
     - Se 'offset' (extrair_dados_planilha) veio como string numérica
-      ("50" em vez de 50), é convertido para int.
+      ("50" em vez de 50), é convertido para int. O mesmo vale para
+      'linha_cabecalho' e 'limite_linhas' (v4.2.3).
 
     Retorna (args_dict, normalizou): normalizou indica se houve correção
     (colunas achatadas/string) — usado para o diagnóstico de fallback.
@@ -123,13 +124,15 @@ def _normalizar_argumentos(nome: str, args_dict: Dict[str, Any]):
         elif isinstance(colunas, str):
             args_dict["colunas"] = [item.strip() for item in colunas.split(",") if item.strip()]
             normalizou = True
-    elif "offset" in param_names:
-        args_dict.pop("_extras", None)
-        offset_valor = args_dict.get("offset")
-        if isinstance(offset_valor, str) and offset_valor.strip().lstrip("-").isdigit():
-            args_dict["offset"] = int(offset_valor)
     else:
         args_dict.pop("_extras", None)
+        # v4.2.3: coerção de campos inteiros que o modelo pode escrever como
+        # string numérica (ex.: extrair_dados_planilha: ["vendas", "0", "2", "5"]).
+        for campo in ("offset", "linha_cabecalho", "limite_linhas"):
+            if campo in param_names:
+                valor = args_dict.get(campo)
+                if isinstance(valor, str) and valor.strip().lstrip("-").isdigit():
+                    args_dict[campo] = int(valor)
     return args_dict, normalizou
 
 

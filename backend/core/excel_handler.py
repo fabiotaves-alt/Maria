@@ -67,7 +67,9 @@ def criar_planilha_real(
     Args:
         nome_arquivo: Nome do arquivo (com ou sem .xlsx — normalizado internamente)
         colunas: Lista de nomes das colunas
-        descricao: Descrição opcional exibida como título na primeira linha
+        descricao: Descrição opcional exibida como título na primeira linha.
+                IGNORADA (com warning no log) quando `linhas` é fornecido —
+                use apenas uma das opções (v4.2.3).
         linhas: Lista de dicts com dados. Chaves devem corresponder a `colunas`.
                 Colunas ausentes ficam vazias; chaves extras são ignoradas.
                 Parâmetro opcional — None mantém comportamento anterior (só cabeçalho).
@@ -94,6 +96,15 @@ def criar_planilha_real(
         # Aplicar limite de linhas por modelo (transparente ao usuário)
         linhas_dados = linhas or []
         limite = get_max_linhas_por_chamada()
+
+        # v4.2.3: 'descricao' é ignorada quando 'linhas' é fornecido —
+        # a descrição só faz sentido em planilhas sem dados iniciais.
+        usar_descricao = bool(descricao) and not bool(linhas_dados)
+        if descricao and linhas_dados:
+            logger.warning(
+                "'descricao' ignorada porque 'linhas' foi fornecido. Use apenas uma das opções."
+            )
+
         if len(linhas_dados) > limite:
             logger.warning(
                 "criar_planilha: %d linhas recebidas, limite do modelo é %d. Truncando.",
@@ -109,7 +120,7 @@ def criar_planilha_real(
 
         # Escrever arquivo
         startrow = 0
-        if descricao:
+        if usar_descricao:
             # Linha 1: descrição (via openpyxl após escrita do pandas)
             startrow = 2  # pandas escreve a partir da linha 3 (0-indexed: 2)
 
@@ -117,7 +128,7 @@ def criar_planilha_real(
             df.to_excel(writer, sheet_name="Dados", index=False, startrow=startrow)
 
         # Adicionar descrição e aplicar estilos via openpyxl
-        if descricao:
+        if usar_descricao:
             wb = load_workbook(caminho_completo)
             ws = wb.active
             ws.cell(row=1, column=1, value=descricao)
@@ -126,7 +137,7 @@ def criar_planilha_real(
             wb.save(caminho_completo)
             wb.close()
 
-        linha_cabecalho = 3 if descricao else 1
+        linha_cabecalho = 3 if usar_descricao else 1
         _aplicar_estilo_cabecalho(caminho_completo, linha_cabecalho, len(colunas))
 
         linhas_escritas = len(df)
@@ -240,7 +251,12 @@ def editar_planilha_real(
         raise
 
 
-def extrair_dados_planilha_real(nome_arquivo: str, offset: int = 0) -> dict:
+def extrair_dados_planilha_real(
+    nome_arquivo: str,
+    offset: int = 0,
+    linha_cabecalho: int | None = None,
+    limite_linhas: int | None = None,
+) -> dict:
     """
     Lê uma planilha existente com paginação por offset, retornando dados
     estruturados para o modelo processar em lotes.
@@ -249,14 +265,20 @@ def extrair_dados_planilha_real(nome_arquivo: str, offset: int = 0) -> dict:
         nome_arquivo: Nome do arquivo (com ou sem .xlsx — normalizado internamente)
         offset: Índice (0-based) da primeira linha de dados a retornar.
                 Valores negativos são tratados como 0.
+        linha_cabecalho: Número da linha (0-indexado) do cabeçalho. Quando None,
+                detecta automaticamente (linha 1 ou 3 do formato MARIA).
+        limite_linhas: Máximo de linhas a retornar nesta chamada. Respeita o
+                teto do modelo (get_max_linhas_extracao): min(limite_linhas, teto).
 
     Returns:
         Dict com:
             nome_arquivo (str), colunas (list[str]), linhas (list[dict]),
+            tipos (dict[str, str] — tipo pandas de cada coluna),
             total_linhas (int), offset_atual (int), proximo_offset (int),
             tem_mais (bool).
         O número de linhas retornadas por chamada é limitado automaticamente
-        por get_max_linhas_extracao() conforme o modelo ativo.
+        por get_max_linhas_extracao() conforme o modelo ativo (a menos que
+        limite_linhas reduza o lote).
 
     # v4.3.x: estrutura compatível com TableView do frontend (colunas/linhas
     #         já no formato esperado por uma tabela paginada no React).
@@ -280,15 +302,25 @@ def extrair_dados_planilha_real(nome_arquivo: str, offset: int = 0) -> dict:
             )
 
         offset = max(0, offset or 0)
-        linha_cabecalho = _detectar_linha_cabecalho(caminho_completo)
 
-        df = pd.read_excel(caminho_completo, header=linha_cabecalho - 1)
+        # v4.2.3: override explícito do cabeçalho (0-indexado) ou detecção
+        # automática (heurística do formato MARIA: linha 1 ou 3, 1-based).
+        if linha_cabecalho is not None:
+            header = max(0, int(linha_cabecalho))
+        else:
+            header = _detectar_linha_cabecalho(caminho_completo) - 1
+
+        df = pd.read_excel(caminho_completo, header=header)
         df = df.dropna(how="all")  # remove linhas totalmente vazias
 
         colunas = [str(c) for c in df.columns]
         total_linhas = len(df)
+        tipos = df.dtypes.astype(str).to_dict()
 
-        limite = get_max_linhas_extracao()
+        # v4.2.3: limite_linhas reduz o lote, mas nunca ultrapassa o teto do modelo.
+        max_permitido = get_max_linhas_extracao()
+        limite = min(limite_linhas if limite_linhas else max_permitido, max_permitido)
+        limite = max(1, int(limite))
         fim = offset + limite
         df_pagina = df.iloc[offset:fim].fillna("")
 
@@ -314,6 +346,7 @@ def extrair_dados_planilha_real(nome_arquivo: str, offset: int = 0) -> dict:
             "nome_arquivo": nome_seguro,
             "colunas": colunas,
             "linhas": linhas,
+            "tipos": tipos,
             "total_linhas": total_linhas,
             "offset_atual": offset,
             "proximo_offset": proximo_offset,

@@ -2,6 +2,28 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.3] — Consistência e avaliação do fluxo de planilhas — 2026-09-05
+
+### ✨ `criar_planilha`: `descricao` vs `linhas` (`backend/core/excel_handler.py`, `tools_schema.py`)
+- Quando `linhas` é fornecido, `descricao` é **ignorada** (com `logger.warning` "Use apenas uma das opções") — o arquivo sai com cabeçalho na linha 1, sem título. Retrocompatível: sem `linhas`, a descrição continua sendo aplicada.
+- Descrição do campo `descricao` no schema atualizada para documentar a nova regra.
+
+### ✨ `extrair_dados_planilha`: `linha_cabecalho` e `limite_linhas` (`excel_handler.py`, `tools_schema.py`, `tool_call_textual_parser.py`)
+- Novo parâmetro opcional `linha_cabecalho` (0-indexado, schema com `minimum: 0`): override explícito do cabeçalho; quando omitido, mantém a detecção automática (linha 1 ou 3).
+- Novo parâmetro opcional `limite_linhas` (schema com `minimum: 1`): reduz o lote da chamada, mas o teto do modelo prevalece (`min(limite_linhas, get_max_linhas_extracao())`).
+- O retorno inclui **`tipos`**: dict com o dtype pandas de cada coluna (ex.: `{"Idade": "int64"}`), documentado no docstring.
+- `POSITIONAL_MAP["extrair_dados_planilha"]` → `["nome_arquivo", "offset", "linha_cabecalho", "limite_linhas"]`; coerção `str→int` estendida aos 3 campos numéricos no fallback textual.
+
+### ✨ Benchmark: Task 26 — tradução mandarim → PT/EN (`tasks_core.py`, `maria_runner.py`)
+- Nova `MariaTask(id=26, ...)`: exige `tools_obrigatorios=["extrair_dados_planilha", "criar_planilha"]` (fluxo real de leitura → escrita), fixture `nomes_mandarim.xlsx` e `expected_args_subset` (colunas Mandarim/Portuguese/English).
+- `_garantir_planilha_existente`: fixture `nomes_mandarim` criada com **dados reais** via pandas (5 nomes em mandarim); demais fixtures seguem como workbook vazio.
+- Avaliação de `tools_obrigatorios` ajustada: a execução pode terminar em texto (tasks 22/23, `expected_tool=None`) **ou** na ferramenta de escrita esperada (task 26: `criar_planilha`); terminar em escrita diferente da esperada continua incorreto. Comportamento dos testes existentes preservado.
+
+### 🧪 Testes
+- 7 novos: `descricao` ignorada com warning (verifica A1 = cabeçalho), override de `linha_cabecalho` (linha 3), `limite_linhas` (reduz lote + teto prevalece + default), `tipos` no retorno, parser com 4 campos (ints e strings), estrutura da Task 26 e fixture `nomes_mandarim` com dados.
+- 2 atualizados: `test_extrair_dados_planilha_no_positional_map` (4 campos) e `test_planilha_com_descricao_detecta_cabecalho` (agora via `editar_planilha_real`, que mantém o formato com descrição — `criar_planilha` ignora a descrição quando há `linhas`).
+- Suíte completa: **229 passed** (222 anteriores + 7 novos) — sem regressão.
+
 ## [4.2.2] — System prompt + parser posicional para `extrair_dados_planilha` — 2026-09-05
 
 ### ✨ System prompt (`backend/core/system_prompt.txt`)

@@ -312,8 +312,13 @@ class MariaRunner:
         if task.tools_obrigatorios:
             tool_correct = (
                 all(nome in cadeia_ferramentas for nome in task.tools_obrigatorios)
-                and detected_name is None
             )
+            # v4.2.3: a execução pode terminar OU em texto (tasks 22/23,
+            # expected_tool=None) OU na ferramenta de escrita esperada
+            # (task 26: extrair → criar_planilha). Terminar em uma escrita
+            # DIFERENTE da esperada é incorreto.
+            if detected_name is not None and detected_name != task.expected_tool:
+                tool_correct = False
         elif task.tools_aceitos is not None:
             tool_correct = detected_name in task.tools_aceitos
         elif task.expected_tool is not None:
@@ -502,6 +507,15 @@ class MariaRunner:
 
             caminho = os.path.join(BENCHMARK_ARQUIVOS_DIR, nome_arquivo + ".xlsx")
             if os.path.exists(caminho):
+                continue
+
+            # v4.2.3: fixture com dados reais para a task 26 (tradução
+            # mandarim → PT/EN). Demais fixtures: workbook vazio.
+            if nome_arquivo == "nomes_mandarim":
+                import pandas as pd
+
+                df = pd.DataFrame({"Nome": ["张三", "李四", "王五", "赵六", "孙七"]})
+                df.to_excel(caminho, index=False)
                 continue
 
             workbook = Workbook()
