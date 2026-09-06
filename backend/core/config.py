@@ -5,6 +5,8 @@ Suporta override via variáveis de ambiente.
 """
 
 import os
+import tomllib
+from pathlib import Path
 
 # Carregar variáveis de ambiente de arquivo .env se existir (opcional)
 try:
@@ -13,6 +15,30 @@ try:
 except ImportError:
     # python-dotenv não instalado, usar apenas variáveis de ambiente do sistema
     pass
+
+# ------------------------------------------------------------------
+# Versão única da aplicação (fonte: pyproject.toml na raiz do monorepo)
+# ------------------------------------------------------------------
+
+
+def _obter_versao() -> str:
+    """
+    Fonte única de versão: lê `project.version` do pyproject.toml.
+
+    Não usa importlib.metadata de propósito: `[tool.uv] package = false`
+    impede que o backend seja instalado como distribuição, o que faria
+    `importlib.metadata.version("maria-backend")` sempre cair no fallback.
+    """
+    pyproject = Path(__file__).resolve().parent.parent.parent / "pyproject.toml"
+    try:
+        with open(pyproject, "rb") as f:
+            dados = tomllib.load(f)
+        return str(dados["project"]["version"])
+    except Exception:
+        return "4.2.5"  # fallback explícito — nunca deve ocorrer em ambiente normal
+
+
+__version__ = _obter_versao()
 
 # ------------------------------------------------------------------
 # System Prompt da MARIA (carregado de arquivo externo)

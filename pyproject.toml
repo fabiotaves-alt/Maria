@@ -1,6 +1,6 @@
 [project]
 name = "maria-backend"
-version = "4.1.30"
+version = "4.2.5"
 description = "MARIA — Assistente de IA de Escritório, 100% Local"
 requires-python = ">=3.11"
 

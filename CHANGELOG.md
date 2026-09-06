@@ -2,6 +2,16 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Fase 0: Preparação para a profissionalização — 2026-09-06
+
+### 🏗️ Infraestrutura
+- **`pyproject.toml`**: versão sincronizada `4.1.30` → `4.2.5` (CHANGELOG prevalece como fonte única).
+- **`backend/core/config.py`**: `__version__` como fonte única de versão, lida do `pyproject.toml` via `tomllib`. Nota técnica: `importlib.metadata.version("maria-backend")` **não funciona** neste projeto porque `[tool.uv] package = false` impede a instalação do backend como distribuição — por isso a leitura direta do arquivo.
+- **Git**: commit de fechamento `7bcabaf` na branch `test/bridge-comandos-regressao-7-bugs` (arquiva 25 runs de benchmark + 2 análises em `docs/arquivo/`); branch de trabalho `feat/fase-0-preparacao` criada a partir dela.
+
+### 🧪 Testes
+- Baseline real revalidado: **252 passed** em ~4.2s. Os 5 testes antes "desenvolvidos" (Flask ausente no CHANGELOG do 4.2.5) agora **passam** — o ambiente tem Flask 3.1.3. **252 é o novo critério de regressão para todas as fases.**
+
 ## [4.2.5] — Testes de regressão para bridge/comandos.py (7 bugs) — 2026-09-06
 
 ### 🧪 Testes: nova suíte `test_comandos_bridge.py` (23 testes)
