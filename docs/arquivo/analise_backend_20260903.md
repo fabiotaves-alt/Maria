@@ -1,6 +1,8 @@
 # Relatório de Análise do Backend — MARIA
 
-**Data:** 2026-09-03
+> ⚠️ **ARQUIVADO** — Este documento foi arquivado após a conclusão das correções e testes de regressão. Data de arquivamento: 2026-09-06. Itens pendentes foram migrados para `docs/TODO_MELHORIAS_BACKEND.md`.
+
+**Data original:** 2026-09-03
 **Escopo:** análise de erros, bugs e oportunidades de melhoria no backend (`backend/`).
 **Resultado dos testes:** 180 testes + 33 subtests aprovados (sem regressões).
 
@@ -17,7 +19,8 @@ na camada de comandos do bridge e em utilitários, além de pontos de risco
 oportunidades de melhoria.
 
 Todos os 7 bugs foram **corrigidos** nesta rodada e a suíte de testes passou
-sem regressões.
+sem regressões. Em 2026-09-06, foram adicionados **23 testes de regressão**
+(`backend/tests/test_comandos_bridge.py`) para prevenir reintrodução.
 
 ---
 
@@ -77,39 +80,34 @@ sem regressões.
 
 - `listar_memoria` devolvia apenas `fato/categoria/relevancia`, mas
   `deletar_memoria` exige `id`. O frontend nunca recebia o `id` necessário.
-- **Correção:** `id` incluído no `SELECT` e na resposta.
 
 ---
 
 ## 3. Riscos e observações (não bloqueantes)
 
-| # | Item | Local | Observação / recomendação |
-|---|------|-------|---------------------------|
-| 1 | Conexão SQLite compartilhada entre threads | `database/connection.py` | Uma única conexão global com `check_same_thread=False` atendendo múltiplas threads do Flask. `sqlite3` do Python não permite uso concorrente real da mesma conexão. Recomenda-se `threading.local` (uma conexão por thread) ou pool. |
-| 2 | `core/router.py` (código morto) | `core/router.py` | Mantido por decisão do projeto e **documentado** para integração futura (ver docstring do arquivo). Nenhum módulo importa `ModelRouter` hoje. |
-| 3 | Duplicação `llama_client.py` × `ollama_client.py` | `core/` | Dois clientes quase idênticos com diferenças sutis (ex.: normalização de chaves no fallback textual só existe no `llama_client`). Sugere-se extrair uma base comum. |
-| 4 | Alias enganoso | `core/maria_controller.py:12` | `from ...llama_client import LlamaClient as OllamaClient` — o alias "OllamaClient" aponta para `LlamaClient`. Renomear para evitar confusão. |
-| 5 | `finalizar()` do controller vazio | `core/maria_controller.py` | Não fecha conexão SQLite nem libera recursos no encerramento. |
-| 6 | Token do bridge em Windows | `bridge/servidores.py` | `chmod 0o600` só roda em POSIX; no Windows o token fica com permissões padrão (risco baixo, servidor em 127.0.0.1). |
-| 7 | `nvmlInit/nvmlShutdown` a cada status | `bridge/comandos.py` | Inicialização da GPU sem cache; ineficiência leve. |
+| # | Item | Local | Status | Observação |
+|---|------|-------|--------|------------|
+| 1 | Conexão SQLite compartilhada entre threads | `database/connection.py` | ⚠️ Pendente | Uma única conexão global com `check_same_thread=False` atendendo múltiplas threads do Flask. Recomenda-se `threading.local` (uma conexão por thread) ou pool. |
+| 2 | `core/router.py` (código morto) | `core/router.py` | ✅ Documentado | Mantido por decisão do projeto e **documentado** para integração futura (ver docstring do arquivo). |
+| 3 | Duplicação `llama_client.py` × `ollama_client.py` | `core/` | ✅ Resolvido | `ollama_client.py` removido; apenas `llama_client.py` permanece. |
+| 4 | Alias enganoso | `core/maria_controller.py:12` | ✅ Corrigido | `LlamaClient as OllamaClient` → `LlamaClient` (controller e runner). |
+| 5 | `finalizar()` do controller vazio | `core/maria_controller.py` | ⚠️ Pendente | Não fecha conexão SQLite nem libera recursos no encerramento. |
+| 6 | Token do bridge em Windows | `bridge/servidores.py` | 🟡 Risco baixo | `chmod 0o600` só roda em POSIX; no Windows o token fica com permissões padrão (servidor em 127.0.0.1). |
+| 7 | `nvmlInit/nvmlShutdown` a cada status | `bridge/comandos.py` | ⚠️ Pendente | Inicialização da GPU sem cache; ineficiência leve. |
 
 ---
 
 ## 4. Oportunidades de melhoria
 
-1. **Refatorar `_despachar_comando`** (~340 linhas de `if/elif`) para um
-   registro de comandos (`COMMANDS = {"ping": fn, ...}`), facilitando testes e
-   extensão.
-2. **Unificar os dois clientes LLM** numa classe base ou configuração comum
-   (fallback textual, normalização de chaves, parâmetros de sampler).
-3. **Connection pool / `threading.local`** para o SQLite (mitiga o risco #1).
-4. **Tipar os payloads de tool call** (hoje dicts soltos `{"name", "arguments"}`)
-   com `dataclass`/`TypedDict`.
-5. **Adicionar `PRAGMA synchronous`** e fechar conexão no shutdown.
-6. **Ampliar testes da camada `bridge/comandos.py`** — os bugs 1–4 e 7 seriam
-   capturados por testes unitários simples dessa camada.
-7. **Remover código morto/arquivos de debug** (`backend/arquivo/debug_raw_ollama*.py`,
-   `saida_task*.json` etc.).
+| # | Item | Status |
+|---|------|--------|
+| 1 | Refatorar `_despachar_comando` para registro de comandos (`_COMANDOS`) | ✅ Feito |
+| 2 | Unificar os dois clientes LLM numa classe base | ✅ Feito |
+| 3 | Connection pool / `threading.local` para o SQLite | ⚠️ Pendente |
+| 4 | Tipar os payloads de tool call com `dataclass`/`TypedDict` | ⚠️ Pendente |
+| 5 | Adicionar `PRAGMA synchronous` e fechar conexão no shutdown | ⚠️ Pendente |
+| 6 | Ampliar testes da camada `bridge/comandos.py` | ✅ Feito (23 testes) |
+| 7 | Remover código morto/arquivos de debug | ⚠️ Pendente |
 
 ---
 
@@ -133,3 +131,6 @@ sem regressões.
 | `backend/core/excel_handler.py` | Corrigido `\n` literal (bug 5) |
 | `backend/core/config.py` | Corrigido `OLLAMA_MODEL` (bug 6) |
 | `backend/core/router.py` | Documentação para integração futura (mantido) |
+| `backend/tests/test_comandos_bridge.py` | 23 testes de regressão (adicionado em 2026-09-06) |
+
+- **Correção:** `id` incluído no `SELECT` e na resposta.
