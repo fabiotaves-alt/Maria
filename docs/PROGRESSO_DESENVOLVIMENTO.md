@@ -2,7 +2,7 @@
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
-**Versão Atual:** v4.2.4  
+**Versão Atual:** v4.2.5  
 **Última alteração:** 2026-09-06  
 
 ---
@@ -60,6 +60,7 @@
 | **4.2.2** | 2026-09-05 | System prompt com seção `Extrair dados de planilha existente` (fluxo leitura-paginada → escrita) + parser posicional: `extrair_dados_planilha` em `POSITIONAL_MAP` e coerção de `offset` string→`int`; **222 testes passando** | ✅ Concluída |
 | **4.2.3** | 2026-09-05 | Consistência e avaliação do fluxo de planilhas: `descricao` ignorada quando `linhas` é fornecido (com warning), `linha_cabecalho`/`limite_linhas` opcionais em `extrair_dados_planilha`, campo `tipos` no retorno, Task 26 (tradução mandarim→PT/EN) com fixture de dados reais e avaliação de `tools_obrigatorios` compatível com término na escrita esperada; **229 testes passando** | ✅ Concluída |
 | **4.2.4** | 2026-09-06 | Tarefas 26-28 do benchmark em `tasks_extracao.py` (tradução de planilha real Mandarim→Inglês, resumo de planilha e listar arquivos); cópia genérica de fixtures reais de `benchmark/fixtures/` via `BENCHMARK_FIXTURES_DIR` + `shutil.copy2`; Task 26 antiga (`nomes_mandarim`) removida de `tasks_core.py`; **229 testes passando** (cobertura 69%) | ✅ Concluída |
+| **4.2.5** | 2026-09-06 | Testes de regressão para `bridge/comandos.py`: 23 testes cobrindo os 7 bugs corrigidos na análise de 2026-09-03 (`carregar_sessao`, `criar_automacao`, `listar/toggle_automacao`, `exportar_conversa`, `ler_planilha_resumo`, `listar_memoria`); **247 testes passando** | ✅ Concluída |
 | **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -121,6 +122,18 @@
 - **Fixtures reais**: `_garantir_planilha_existente` copia arquivos de `benchmark/fixtures/` (`BENCHMARK_FIXTURES_DIR` + `shutil.copy2`) quando existem — genérico, sem hardcode; fallback de workbook vazio preservado.
 - **Fixture real `produtos_mandarim.xlsx`**: 6 produtos em Mandarim (NCM 4602/6302/7323/7010).
 - **Testes**: 2 atualizados (`TestTarefa26Traducao`); suíte **229/229** sem regressão (cobertura 69%).
+
+### 4.2.5 — Testes de regressão para bridge/comandos.py (2026-09-06)
+- **`test_comandos_bridge.py` (novo)**: 23 testes de regressão para os 7 bugs corrigidos na análise de 2026-09-03.
+- **BUG 1 — `carregar_sessao`**: 3 testes — resolução por `nome_arquivo` (via `listar_sessoes_salvas`), caminho absoluto, nome vazio. Valida acesso a `dados["historico"]` (dict key, não `.historico` atributo).
+- **BUG 2 — `criar_automacao`**: 4 testes — `acao` explícita, default vazio (NOT NULL), nome vazio, persistência no banco. Valida `INSERT` com coluna `acao`.
+- **BUG 3 — `listar_automacoes`/`toggle_automacao`**: 4 testes — SQL com `ativo` (não `ativa`), JSON output com chave `ativa` (contrato frontend), toggle funcional, id vazio.
+- **BUG 4 — `exportar_conversa`**: 5 testes — `.txt`, `.json`, função `exportar_sessao` importável, formato default, conteúdo legível com rótulos `[Usuário]`/`[MARIA]`.
+- **BUG 5 — `ler_planilha_resumo`**: 1 teste — valida newline real (chr(10)), não `\n` literal (chr(92)+"n").
+- **BUG 7 — `listar_memoria`**: 4 testes — retorna `id` no SELECT/resposta, fluxo completo com `deletar_memoria`, id vazio, lista vazia.
+- **Dispatch geral**: 2 testes — comando desconhecido retorna erro, `ping` retorna `pong`.
+- **Estratégia**: DB isolado por teste (`tempfile` + `Path` dedicado), `PASTA_SESSOES` sobrescrito/restaurado, `controller` mockado com `MagicMock` (sem `LlamaClient` real).
+- **Testes**: suíte **247/247** (224 existentes + 23 novos), 5 desenvolvidos (Flask não instalado no ambiente). Sem regressão.
 
 ### 4.2.3 — Consistência e avaliação do fluxo de planilhas (2026-09-05)
 - **`criar_planilha`**: `descricao` ignorada (com `logger.warning`) quando `linhas` é fornecido — cabeçalho sai na linha 1; schema atualizado.

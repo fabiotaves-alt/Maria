@@ -2,6 +2,20 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5] — Testes de regressão para bridge/comandos.py (7 bugs) — 2026-09-06
+
+### 🧪 Testes: nova suíte `test_comandos_bridge.py` (23 testes)
+- **Arquivo**: `backend/tests/test_comandos_bridge.py` — testes de regressão para os 7 bugs corrigidos na análise de 2026-09-03.
+- **BUG 1 — `carregar_sessao`**: 3 testes (resolução por nome_arquivo, caminho absoluto, nome vazio). Cobre o acesso a `dados["historico"]` (dict) em vez de `.historico` (objeto).
+- **BUG 2 — `criar_automacao`**: 4 testes (acao explícita, default vazio, nome vazio, persistência). Cobre o `INSERT` com coluna `acao` (NOT NULL).
+- **BUG 3 — `listar_automacoes`/`toggle_automacao`**: 4 testes (SQL com `ativo`, JSON com `ativa`, toggle, id vazio). Cobre a correção `ativa`×`ativo`.
+- **BUG 4 — `exportar_conversa`**: 5 testes (txt, json, função importável, formato default, conteúdo legível). Cobre `exportar_sessao` inexistente → implementada.
+- **BUG 5 — `ler_planilha_resumo`**: 1 teste (newline real vs `\n` literal).
+- **BUG 7 — `listar_memoria`**: 4 testes (retorna `id`, fluxo com `deletar_memoria`, id vazio, lista vazia).
+- **Dispatch geral**: 2 testes (comando desconhecido, ping).
+- **Estratégia**: DB isolado por teste (`tempfile` + `Path` dedicado), `PASTA_SESSOES` sobrescrito, `controller` mockado com `MagicMock`.
+- Suíte completa: **247 passed** (224 existentes + 23 novos), 5 desenvolvidos (Flask não instalado no ambiente). Sem regressão.
+
 ## [4.2.4] — Tarefas de extração com planilha real (Mandarim → Inglês) — 2026-09-06
 
 ### ✨ Benchmark: novo módulo `tasks_extracao.py` (tasks 26-28)
