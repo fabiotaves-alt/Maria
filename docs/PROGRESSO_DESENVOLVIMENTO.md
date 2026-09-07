@@ -66,6 +66,7 @@
 | **4.2.5-dev (docs)** | 2026-09-06 | Correção da documentação do token de autenticação (`shared/.bridge_token` → `frontend-tauri/shared/.bridge_token`), inclusão do `/health` como rota aberta, referência de módulo `backend/main.py` → `backend/bridge/servidores.py` e exemplos autenticados em `Invoke-RestMethod`; remoção do arquivo obsoleto `shared/.bridge_token` | ✅ Concluída |
 
 | **4.2.5-dev (Item A — Task 26)** | 2026-09-07 | Validação de conteúdo real no arquivo gerado pela Task 26: checagem aditiva abre o `.xlsx` e exige a coluna `english description` preenchida em todas as linhas (`coluna_dados_obrigatoria`/`dados_arquivo_validos`; erro `DadosIncompletos`) — elimina o falso positivo de arquivo só-cabeçalho; **269 testes passando** (262 baseline + 7 novos) | ✅ Concluída |
+| **4.2.5-dev (Item B — colunas)** | 2026-09-07 | Validação por item em `colunas`: cada elemento deve ser `str` não-vazia — lista de dicts (modo de falha 2 do bug de `linhas`) agora levanta `ValueError` claro na validação, antes de estourar `InvalidIndexError` no pandas; **273 testes passando** (269 baseline + 4 novos) | ✅ Concluída |
 | **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -116,11 +117,17 @@
 - [x] Avaliação de desempenho integrada ao terminal da MARIA: menu de modo (Chat/Avaliação), escolha de modelo/tarefas/repetições, automação do llama-server em nova janela de console (logs do servidor; GGUF 3B/7B) e métricas de sistema + tempo de warmup no `report.md`/`log.json`
 - [x] Tarefas de extração/transformação/resumo no benchmark (26-28) com fixture real `produtos_mandarim.xlsx` (tradução Mandarim→Inglês, resumo de planilha e listar arquivos)
 - [x] Validação de conteúdo real no arquivo gerado pelo benchmark (Item A): Task 26 exige a coluna `english description` preenchida em todas as linhas — elimina o falso positivo de arquivo só-cabeçalho (`dados_arquivo_validos` + erro `DadosIncompletos`)
+- [x] Validação por item em `colunas` (Item B): cada elemento deve ser `str` não-vazia — lista de dicts é rejeitada com `ValueError` claro antes do `pandas` (elimina o `InvalidIndexError` genérico no modo de falha 2)
 - [ ] Cobertura formal de código (`pytest-cov`)
 
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.2.5-dev (Item B) — Validação por item em `colunas` (2026-09-07)
+- **Problema**: `validar_argumentos_obrigatorios` só checava `isinstance(colunas, list)`; lista de dicts (modo de falha 2 do bug de `linhas`) passava e estourava `pandas.errors.InvalidIndexError` na escrita (`criar/editar_planilha_real`).
+- **`tools_schema.py`**: `elif isinstance(colunas, list)` valida cada item (`str` não-vazia); inválidos → `ValueError` claro antes do pandas. Ramo string única e listas válidas inalterados.
+- **Testes**: +4 em `TestValidacaoArgumentos`; suíte `test_maria.py` **236→240**; suíte completa `backend/tests` **269→273**, sem regressão (`TestToolChaining`/`TestValidacaoDadosArquivoGerado` verdes).
 
 ### 4.2.5-dev (Item A) — Validação de conteúdo real na Task 26 (2026-09-07)
 - **Problema**: a Task 26 (tradução Mandarim→Inglês) era avaliada por `tool_correct`/`args_correct`/`keyword_match` sem abrir o `.xlsx` gerado — arquivo criado **só com cabeçalho** (sem traduções) passava como sucesso.

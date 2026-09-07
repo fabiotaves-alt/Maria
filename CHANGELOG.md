@@ -2,6 +2,19 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Validação por item em `colunas` (Item B) — 2026-09-07
+
+### 🎯 Validação de schema — Item B: bloqueia o modo de falha 2 antes do pandas
+- `validar_argumentos_obrigatorios` (`backend/core/tools_schema.py`) só checava `isinstance(colunas, list)` — uma lista de dicts (modo de falha 2 do bug de `linhas`) passava e estourava `pandas.errors.InvalidIndexError` na escrita (`criar/editar_planilha_real`), exceção genérica com mensagem confusa.
+- Novo ramo `elif isinstance(colunas, list)`: cada item deve ser `str` não-vazia; item inválido → `ValueError` claro (`'colunas' deve conter apenas strings não-vazias; item(ns) inválido(s): ...`) **antes** da escrita. Sem alteração para listas válidas nem para o ramo "colunas string única" (mensagem antiga preservada).
+
+### ✅ Testes
+- +4 em `TestValidacaoArgumentos`: item dict; item vazio/só espaços; lista válida (regressão explícita); lista de dicts inteira via `editar_planilha` (caso real do bug).
+- Suíte `test_maria.py`: **236 → 240 passed**; suíte completa `backend/tests`: **269 → 273 passed** — zero regressões (`TestToolChaining` e `TestValidacaoDadosArquivoGerado` intactos).
+
+### 🧪 Cobertura
+- Cobertura não re-medida nesta execução.
+
 ## [4.2.5-dev] — Validação de conteúdo real no arquivo gerado pela Task 26 (Item A) — 2026-09-07
 
 ### 🎯 Benchmark — Item A: fecha o falso positivo da Task 26

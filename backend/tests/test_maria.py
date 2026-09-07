@@ -503,6 +503,45 @@ class TestValidacaoArgumentos(unittest.TestCase):
             {"nome_arquivo": "relatorio", "titulo": "Relatório", "conteudo": "Texto"}
         )
 
+    def test_validar_argumentos_obrigatorios_colunas_com_item_dict_levanta_value_error(self):
+        """Item de 'colunas' que não é string deve ser rejeitado (validação por item)."""
+        with self.assertRaisesRegex(ValueError, "deve conter apenas strings"):
+            validar_argumentos_obrigatorios(
+                "criar_planilha",
+                {"nome_arquivo": "gastos", "colunas": ["Nome", {"a": 1}]}
+            )
+
+    def test_validar_argumentos_obrigatorios_colunas_com_item_vazio_levanta_value_error(self):
+        """Item string vazia/só espaços em 'colunas' deve ser rejeitado."""
+        for colunas_invalidas in (["Nome", ""], ["Nome", "   "]):
+            with self.assertRaisesRegex(ValueError, "deve conter apenas strings"):
+                validar_argumentos_obrigatorios(
+                    "criar_planilha",
+                    {"nome_arquivo": "gastos", "colunas": colunas_invalidas}
+                )
+
+    def test_validar_argumentos_obrigatorios_colunas_valida_nao_levanta_excecao(self):
+        """Lista de strings não-vazias em 'colunas' segue aceita (regressão)."""
+        validar_argumentos_obrigatorios(
+            "criar_planilha",
+            {"nome_arquivo": "gastos", "colunas": ["Nome", "Idade"]}
+        )
+
+    def test_validar_argumentos_obrigatorios_colunas_lista_de_dicts_levanta_value_error(self):
+        """Caso real do bug (modo de falha 2): lista de dicts em 'colunas' deve
+        ser rejeitada na validação, antes de chegar ao pandas.DataFrame."""
+        with self.assertRaisesRegex(ValueError, "deve conter apenas strings"):
+            validar_argumentos_obrigatorios(
+                "editar_planilha",
+                {
+                    "nome_arquivo": "produtos",
+                    "colunas": [
+                        {"Model": "QFY000013", "product": "produto A", "english description": "", "NCM": "4602"},
+                        {"Model": "QFY000014", "product": "produto B", "english description": "", "NCM": "6302"},
+                    ],
+                }
+            )
+
 
 class TestGerarNomeUnico(unittest.TestCase):
     """Testes para função gerar_nome_unico."""

@@ -372,6 +372,16 @@ def validar_argumentos_obrigatorios(nome_funcao: str, argumentos: dict) -> None:
         colunas = argumentos.get("colunas")
         if colunas is not None and not isinstance(colunas, list):
             problemas.append("'colunas' deve ser uma lista de strings, não uma string única.")
+        elif isinstance(colunas, list):
+            itens_invalidos = [
+                item for item in colunas
+                if not isinstance(item, str) or not item.strip()
+            ]
+            if itens_invalidos:
+                problemas.append(
+                    f"'colunas' deve conter apenas strings não-vazias; "
+                    f"item(ns) inválido(s): {itens_invalidos!r}."
+                )
 
     if nome_funcao in ("criar_planilha", "criar_documento", "editar_planilha"):
         nome_arquivo = argumentos.get("nome_arquivo")
