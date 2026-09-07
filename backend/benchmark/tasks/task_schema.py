@@ -34,6 +34,12 @@ class MariaTask:
     # ferramenta de escrita pendente).
     tools_obrigatorios: list[str] = field(default_factory=list)
     expected_args_subset: dict | None = None
+    # Nome da coluna (case-insensitive) que deve ter valor não-vazio em TODAS as
+    # linhas do arquivo gerado para a task ser considerada completa. Usado para
+    # tasks que dependem de dados preenchidos via transformação/tradução (ex.:
+    # Task 26) — sem isso, tool_correct/args_correct passam mesmo com o arquivo
+    # gerado só com cabeçalho, sem os dados esperados.
+    coluna_dados_obrigatoria: str | None = None
 
 
 @dataclass
@@ -110,6 +116,10 @@ class MariaTaskResult:
     placeholder_detectado: bool = False
     conteudo_curto: bool = False
     nome_com_extensao: bool = False
+    # False quando coluna_dados_obrigatoria foi definida na task e o arquivo
+    # gerado não a tem preenchida em todas as linhas (ou o arquivo não pôde ser
+    # lido). True por default — não afeta tasks sem essa validação.
+    dados_arquivo_validos: bool = True
 
 
 @dataclass

@@ -44,6 +44,7 @@ TASKS_EXTRACAO = [
             "nome_arquivo": "produtos_traduzidos",
             "colunas": ["model", "product", "english description", "NCM"],
         },
+        coluna_dados_obrigatoria="english description",
         context=[{
             "role": "assistant",
             "content": "A planilha produtos_mandarim.xlsx está disponível na pasta de arquivos.",

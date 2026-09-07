@@ -65,6 +65,58 @@ def _eh_erro_de_contexto(mensagem: str) -> bool:
     return any(marca in texto for marca in MARCAS_CONTEXTO)
 
 
+def _validar_coluna_preenchida(caminho_arquivo: str, nome_coluna: str) -> tuple[bool, str]:
+    """
+    Abre o .xlsx gerado e verifica se `nome_coluna` (case-insensitive) existe
+    e tem valor não-vazio em TODAS as linhas.
+
+    Retorna (True, "") se válido, ou (False, motivo) caso contrário. Nunca
+    levanta exceção — falha de leitura vira (False, motivo descritivo), para
+    não derrubar o runner do benchmark.
+    """
+    import pandas as pd
+
+    try:
+        df = pd.read_excel(caminho_arquivo)
+    except FileNotFoundError:
+        return False, f"arquivo '{caminho_arquivo}' não encontrado para validação."
+    except Exception as erro:
+        return False, f"falha ao ler '{caminho_arquivo}' para validação: {erro}"
+
+    colunas_lower = {c.lower(): c for c in df.columns}
+    coluna_real = colunas_lower.get(nome_coluna.lower())
+    if coluna_real is None:
+        return False, f"coluna '{nome_coluna}' não encontrada no arquivo gerado."
+
+    if df.empty:
+        return False, "arquivo gerado não tem nenhuma linha de dados."
+
+    vazios = df[coluna_real].isna() | (df[coluna_real].astype(str).str.strip() == "")
+    if vazios.any():
+        n_vazios = int(vazios.sum())
+        return False, f"coluna '{nome_coluna}' vazia em {n_vazios}/{len(df)} linha(s)."
+
+    return True, ""
+
+
+def _extrair_caminho_arquivo(mensagem: str) -> str | None:
+    """Extrai o caminho absoluto do arquivo da mensagem de sucesso do executor.
+
+    `executar_ferramenta_real` devolve mensagens no formato
+    'Planilha criada com sucesso: <path>' (ou 'Planilha atualizada...' /
+    'Documento criado...'). Como o separador ': ' não pode ocorrer em nomes de
+    arquivo do Windows (caracteres ':' e ' ' são sanitizados), o caminho é
+    tudo após o primeiro ': '. Retorna None se o formato não casar ou o
+    arquivo apontado não existir em disco.
+    """
+    if not mensagem or ": " not in mensagem:
+        return None
+    caminho_suposto = mensagem.split(": ", 1)[1]
+    if os.path.exists(caminho_suposto):
+        return caminho_suposto
+    return None
+
+
 class MariaRunner:
     """Executa tarefas MARIA sem passar pelo loop interativo da CLI."""
 
@@ -116,6 +168,7 @@ class MariaRunner:
         tool_call_fonte: str | None = None
         tool_nome_bruto: str | None = None
         fallbacks: list[str] = []
+        dados_arquivo_validos = True
 
         try:
             (
@@ -222,6 +275,23 @@ class MariaRunner:
                                 tool_call_final["name"], tool_call_final["arguments"]
                             )
                             resposta_textual = caminho
+                            # Item A: valida conteúdo real do arquivo gerado para
+                            # tasks com coluna_dados_obrigatoria (ex.: Task 26).
+                            # Aditivo — não altera tool_correct/args_correct/keyword_match.
+                            if task.coluna_dados_obrigatoria:
+                                # executar_ferramenta_real devolve a MENSAGEM de
+                                # sucesso ('Planilha criada com sucesso: <path>');
+                                # o caminho real do arquivo é extraído dela.
+                                caminho_arquivo = _extrair_caminho_arquivo(caminho)
+                                if caminho_arquivo:
+                                    dados_arquivo_validos, motivo_invalido = _validar_coluna_preenchida(
+                                        caminho_arquivo, task.coluna_dados_obrigatoria
+                                    )
+                                    if not dados_arquivo_validos:
+                                        errors.append({
+                                            "kind": "DadosIncompletos",
+                                            "message": motivo_invalido,
+                                        })
                             break
                         except TimeoutError:
                             raise
@@ -404,6 +474,7 @@ class MariaRunner:
             placeholder_detectado=semanticas["placeholder_detectado"],
             conteudo_curto=semanticas["conteudo_curto"],
             nome_com_extensao=semanticas["nome_com_extensao"],
+            dados_arquivo_validos=dados_arquivo_validos,
         )
 
     @staticmethod

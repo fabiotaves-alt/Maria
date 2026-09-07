@@ -2,6 +2,21 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Validação de conteúdo real no arquivo gerado pela Task 26 (Item A) — 2026-09-07
+
+### 🎯 Benchmark — Item A: fecha o falso positivo da Task 26
+- Antes, a Task 26 (tradução Mandarim→Inglês) era avaliada apenas por `tool_correct`/`args_correct`/`keyword_match` — um arquivo `produtos_traduzidos.xlsx` criado **só com cabeçalho** (sem as linhas traduzidas) passava como sucesso.
+- **`backend/benchmark/tasks/task_schema.py`**: novo campo `coluna_dados_obrigatoria` em `MariaTask` (default `None`, retrocompatível) e `dados_arquivo_validos` em `MariaTaskResult` (default `True`).
+- **`backend/benchmark/tasks/tasks_extracao.py`**: Task 26 passa a exigir `coluna_dados_obrigatoria="english description"`.
+- **`backend/benchmark/runners/maria_runner.py`**: checagem **aditiva** após a escrita confirmada — `_validar_coluna_preenchida()` abre o `.xlsx` gerado e verifica (case-insensitive) se a coluna existe e tem valor não-vazio em TODAS as linhas; `_extrair_caminho_arquivo()` extrai o path real da mensagem de sucesso do executor; falha registra `errors` com `kind="DadosIncompletos"` (→ `runtime_ok=False`). Sem alteração de `tool_correct`/`args_correct`/`keyword_match` nem de nenhuma outra task.
+
+### ✅ Testes
+- Nova classe `TestValidacaoDadosArquivoGerado` (**7 testes**): coluna preenchida; coluna vazia em alguma linha (contagem `n/N`); coluna inexistente; arquivo inexistente (sem exceção); case-insensitive; task sem o campo não chama a validação (regressão) e integração Task 26 com arquivo só-cabeçalho → `dados_arquivo_validos=False` + erro `DadosIncompletos`.
+- Suíte `test_maria.py`: **229 → 236 passed**; suíte completa `backend/tests`: **262 → 269 passed** — zero regressões.
+
+### 🧪 Cobertura
+- Cobertura não re-medida nesta execução (mudança aditiva em caminho coberto por testes diretos + integração mockada).
+
 ## [4.2.5-dev] — Correção da documentação do token de autenticação (.bridge_token) — 2026-09-06
 
 ### 📚 Documentação

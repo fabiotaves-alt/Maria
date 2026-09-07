@@ -3458,5 +3458,130 @@ class TestTarefa26Traducao(unittest.TestCase):
                 self.assertEqual(len(df2), 6)
 
 
+class TestValidacaoDadosArquivoGerado(unittest.TestCase):
+    """Item A: valida coluna obrigatória preenchida no .xlsx gerado (Task 26).
+
+    Cobre a função `_validar_coluna_preenchida` (casos diretos) e a integração
+    com o MariaRunner.run() — arquivo gerado só com cabeçalho agora resulta em
+    dados_arquivo_validos=False + erro "DadosIncompletos".
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+    def _escrever_xlsx(self, nome: str, dados: list[dict]) -> str:
+        caminho = os.path.join(self.tmp.name, nome)
+        pd.DataFrame(dados).to_excel(caminho, index=False)
+        return caminho
+
+    def test_coluna_preenchida_em_todas_as_linhas(self):
+        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        caminho = self._escrever_xlsx("preenchida.xlsx", [
+            {"english description": "Foo"},
+            {"english description": "Bar"},
+            {"english description": "Baz"},
+        ])
+        self.assertEqual(
+            _validar_coluna_preenchida(caminho, "english description"), (True, "")
+        )
+
+    def test_coluna_vazia_em_pelo_menos_uma_linha(self):
+        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        caminho = self._escrever_xlsx("com_vazia.xlsx", [
+            {"english description": "Foo"},
+            {"english description": None},
+            {"english description": "Baz"},
+        ])
+        valido, motivo = _validar_coluna_preenchida(caminho, "english description")
+        self.assertFalse(valido)
+        self.assertIn("1/3", motivo)
+
+    def test_coluna_inexistente_no_arquivo(self):
+        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        caminho = self._escrever_xlsx("sem_coluna.xlsx", [{"model": "QFY000013"}])
+        valido, motivo = _validar_coluna_preenchida(caminho, "english description")
+        self.assertFalse(valido)
+        self.assertIn("english description", motivo)
+
+    def test_arquivo_inexistente_retorna_false_sem_excecao(self):
+        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        caminho = os.path.join(self.tmp.name, "nao_existe.xlsx")
+        valido, motivo = _validar_coluna_preenchida(caminho, "english description")
+        self.assertFalse(valido)
+        self.assertIn("não encontrado", motivo)
+
+    def test_case_insensitive_na_coluna(self):
+        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        caminho = self._escrever_xlsx("case.xlsx", [
+            {"English Description": "Foo"},
+            {"English Description": "Bar"},
+        ])
+        self.assertEqual(
+            _validar_coluna_preenchida(caminho, "english description"), (True, "")
+        )
+
+    def test_task_sem_coluna_dados_obrigatoria_nao_valida_arquivo(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteTexto:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return ("Olá! Posso ajudar com planilhas e documentos.", None, 5, 2.0, 1.0)
+
+        task = MariaTask(
+            1, "Conversa simples", "Saudação sem ferramenta",
+            "Olá, como você pode me ajudar?",
+            category=MariaTaskCategory.CONVERSA,
+        )
+        runner = MariaRunner(cliente=ClienteTexto())
+        with patch("backend.benchmark.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", self.tmp.name):
+            with patch(
+                "backend.benchmark.runners.maria_runner._validar_coluna_preenchida",
+                return_value=(True, ""),
+            ) as mock_validar:
+                resultado = runner.run(task)
+        self.assertTrue(resultado.dados_arquivo_validos)
+        mock_validar.assert_not_called()
+
+    def test_runner_task_26_arquivo_somente_cabecalho_marca_dados_invalidos(self):
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteCriaPlanilha:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                # Modo de falha 1 do relatório: modelo manda as colunas certas
+                # sem `linhas` → arquivo é criado só com cabeçalho.
+                return ("", {
+                    "name": "criar_planilha",
+                    "arguments": {
+                        "nome_arquivo": "produtos_traduzidos",
+                        "colunas": ["model", "product", "english description", "NCM"],
+                    },
+                }, 5, 2.0, 1.0)
+
+        task = MariaTask(
+            26, "Tradução de planilha (Mandarim → Inglês)", "desc",
+            "Preencha a coluna english description da planilha produtos.",
+            expected_tool="criar_planilha",
+            confirm_sequence=["sim"],
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+            coluna_dados_obrigatoria="english description",
+        )
+        runner = MariaRunner(cliente=ClienteCriaPlanilha())
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("backend.benchmark.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", tmp):
+                resultado = runner.run(task)
+        self.assertFalse(resultado.dados_arquivo_validos)
+        kinds = [e["kind"] for e in resultado.errors]
+        self.assertIn("DadosIncompletos", kinds)
+        self.assertIn("linha", resultado.errors[0]["message"])
+        self.assertFalse(resultado.runtime_ok)
+
+
 if __name__ == "__main__":
     unittest.main()

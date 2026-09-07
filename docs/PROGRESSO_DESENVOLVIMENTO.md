@@ -3,7 +3,7 @@
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
 **Versão Atual:** v4.2.5  
-**Última alteração:** 2026-09-06  
+**Última alteração:** 2026-09-07  
 
 ---
 
@@ -65,6 +65,7 @@
 | **4.2.5-dev (Fase 1)** | 2026-09-06 | Fundação da profissionalização: migrations versionadas (`schema_migrations` + `PRAGMA user_version`, FTS5 tolerante), endpoint `GET /health` sem autenticação (checks llama/banco/disco, versão via `__version__`) e Protocol de injeção — Opção B (`tool_executor` no `MariaController`, `executar_leitura` opcional no `encadear_leitura_stream`); **262 testes passando** | ✅ Concluída |
 | **4.2.5-dev (docs)** | 2026-09-06 | Correção da documentação do token de autenticação (`shared/.bridge_token` → `frontend-tauri/shared/.bridge_token`), inclusão do `/health` como rota aberta, referência de módulo `backend/main.py` → `backend/bridge/servidores.py` e exemplos autenticados em `Invoke-RestMethod`; remoção do arquivo obsoleto `shared/.bridge_token` | ✅ Concluída |
 
+| **4.2.5-dev (Item A — Task 26)** | 2026-09-07 | Validação de conteúdo real no arquivo gerado pela Task 26: checagem aditiva abre o `.xlsx` e exige a coluna `english description` preenchida em todas as linhas (`coluna_dados_obrigatoria`/`dados_arquivo_validos`; erro `DadosIncompletos`) — elimina o falso positivo de arquivo só-cabeçalho; **269 testes passando** (262 baseline + 7 novos) | ✅ Concluída |
 | **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -114,11 +115,19 @@
 - [x] Benchmark: relatório/log com "ID modelo" (sem "Nome") e linha de resumo `rep X/Y` por execução (com descrição de erro)
 - [x] Avaliação de desempenho integrada ao terminal da MARIA: menu de modo (Chat/Avaliação), escolha de modelo/tarefas/repetições, automação do llama-server em nova janela de console (logs do servidor; GGUF 3B/7B) e métricas de sistema + tempo de warmup no `report.md`/`log.json`
 - [x] Tarefas de extração/transformação/resumo no benchmark (26-28) com fixture real `produtos_mandarim.xlsx` (tradução Mandarim→Inglês, resumo de planilha e listar arquivos)
+- [x] Validação de conteúdo real no arquivo gerado pelo benchmark (Item A): Task 26 exige a coluna `english description` preenchida em todas as linhas — elimina o falso positivo de arquivo só-cabeçalho (`dados_arquivo_validos` + erro `DadosIncompletos`)
 - [ ] Cobertura formal de código (`pytest-cov`)
 
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### 4.2.5-dev (Item A) — Validação de conteúdo real na Task 26 (2026-09-07)
+- **Problema**: a Task 26 (tradução Mandarim→Inglês) era avaliada por `tool_correct`/`args_correct`/`keyword_match` sem abrir o `.xlsx` gerado — arquivo criado **só com cabeçalho** (sem traduções) passava como sucesso.
+- **`task_schema.py`**: `MariaTask.coluna_dados_obrigatoria` e `MariaTaskResult.dados_arquivo_validos` (defaults retrocompatíveis).
+- **`tasks_extracao.py`**: Task 26 com `coluna_dados_obrigatoria="english description"`.
+- **`maria_runner.py`**: `_validar_coluna_preenchida()` (leitura via pandas, case-insensitive, nunca levanta exceção) + `_extrair_caminho_arquivo()` (path real a partir da mensagem de sucesso do executor); falha → `errors` com `kind="DadosIncompletos"`.
+- **Testes**: `TestValidacaoDadosArquivoGerado` (7); suíte `test_maria.py` **229→236**; suíte completa `backend/tests` **262→269**, sem regressão.
 
 ### 4.2.4 — Tarefas de extração com planilha real (2026-09-06)
 - **`tasks_extracao.py` (novo)**: Tasks 26-28 — tradução de planilha real (Mandarim→Inglês) com `tools_obrigatorios=["extrair_dados_planilha","criar_planilha"]` e `expected_args_subset` (`produtos_traduzidos`, colunas `model/product/english description/NCM`); resumo de planilha (termina em texto, sem escrita); listar arquivos (`listar_arquivos`).
