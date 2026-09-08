@@ -2,6 +2,27 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Baseline v5 do benchmark (B0.5) capturado — 2026-09-08
+
+### 📊 Benchmark baseline (B0.5)
+- Dois runs completos gravados e versionados em `backend/benchmark/results/`:
+  - `run_baseline_v5_3b/` — Qwen2.5-Omni-3B (Q4_K_M)
+  - `run_baseline_v5_7b/` — Qwen2.5-Omni-7B (Q4_K_M)
+- 28 tarefas × 2 repetições (56 execuções) por modelo; `report.md` + `log.json` preservados.
+- Comparativo documentado em `docs/dev_senior/baseline_v5_resultados.md`.
+
+### Resultados-chave
+- Tool calling: **3B 82,1%** vs **7B 96,4%** (latência 14,5 s vs 31,2 s).
+- Task 26 (tradução) falha em ambos os modelos — valida B4/B4.6.
+- 3B fraco em `criar_documento` (60%): campo `conteudo` ausente/camelCase.
+- `parse_suspeito = 20/56` em ambos — investigar em B3.
+
+### 🧪 Testes
+- Suíte não re-executada nesta etapa (captura de artefatos de benchmark; 262 testes seguem verdes da etapa anterior).
+
+---
+
+
 ## [4.2.5-dev] — Planejamento: fases B4.5 e B4.6 no plano mestre v5 — 2026-09-08
 
 ### 📋 Atualização de `docs/dev_senior/plano_mestre_v5.md` (somente planejamento)
