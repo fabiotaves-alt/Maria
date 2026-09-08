@@ -1,0 +1,261 @@
+Como estou em modo Plan, não posso criar arquivos. Vou apresentar o relatório completo abaixo para que você possa salvá-lo após a aprovação.
+
+---
+
+# RELATÓRIO DE ANÁLISE — Proposta de Arquitetura Hexagonal
+
+**Data:** 2026-09-07  
+**Analista:** Cline (modo Plan)  
+**Escopo:** Análise da proposta de reestruturação hexagonal do backend MARIA (Fase 4)
+
+---
+
+## 1. RESUMO EXECUTIVO
+
+A proposta de arquitetura hexagonal é **VIÁVEL e BENEFICIOSA**, mas precisa de ajustes significativos. O código atual já possui **~40% da estrutura hexagonal implementada** (protocols, injeção de dependência, separação database/), o que reduz o esforço de migração estimado.
+
+**Achados principais:**
+- ✅ Interfaces/Protocolos já existem e são usados (`LLMClientProtocol`, `ToolExecutorProtocol`, `SessionStorageProtocol`)
+- ✅ Injeção de dependência já implementada em `MariaController`
+- ✅ `database/` já é separado de `core/`
+- ⚠️ A proposta subestima a complexidade do `benchmark/` (fortemente acoplado ao `core/`)
+- ⚠️ A proposta não trata o problema do `system_prompt.txt` (regressão identificada no relatório anterior)
+- ⚠️ O cronograma de 12-18 horas é **otimista** — estimativa real: 20-30 horas
+
+---
+
+## 2. ANÁLISE DO ESTADO ATUAL vs PROPOSTO
+
+### 2.1 O que JÁ está no lugar (não precisa mover)
+
+| Componente | Local Atual | Status |
+|------------|-------------|--------|
+| `LLMClientProtocol` | `core/client_protocol.py` | ✅ Já existe |
+| `ToolExecutorProtocol` | `core/interfaces.py` | ✅ Já existe |
+| `SessionStorageProtocol` | `core/interfaces.py` | ✅ Já existe |
+| Injeção de dependência | `MariaController.__init__` | ✅ Já implementada |
+| `database/` separado | `backend/database/` | ✅ Já separado |
+| `confirmacao.py` | `core/confirmacao.py` | ✅ Lógica pura (sem externos) |
+
+### 2.2 O que PRECISA mover (conforme proposto)
+
+| Componente | Local Atual | Local Proposto | Complexidade |
+|------------|-------------|----------------|--------------|
+| `chat_session.py` | `core/` | `domain/` | 🟢 Baixa (1 dependência: config) |
+| `maria_controller.py` | `core/` | `application/` | 🟡 Média (6 dependências) |
+| `llama_client.py` | `core/` | `infrastructure/llm/` | 🟢 Baixa (já é adapter) |
+| `tools_schema.py` | `core/` | `infrastructure/tools/` | 🟡 Média (depende de handlers) |
+| `tool_call_textual_parser.py` | `core/` | `infrastructure/tools/` | 🟢 Baixa (sem externos) |
+| `tool_chaining.py` | `core/` | `application/` | 🟡 Média (depende de tools_schema) |
+| `router.py` | `core/` | `application/` | 🟢 Baixa (sem externos) |
+| `manual_redacao.py` | `core/` | `application/` | 🟡 Média (depende de sqlite3) |
+| `word_handler.py` | `core/` | `infrastructure/tools/` | 🟢 Baixa (já é adapter) |
+| `excel_handler.py` | `core/` | `infrastructure/tools/` | 🟢 Baixa (já é adapter) |
+| `file_utils.py` | `core/` | `infrastructure/tools/` | 🟢 Baixa (já é adapter) |
+
+### 2.3 O que a proposta NÃO tratou adequadamente
+
+| Componente | Problema |
+|------------|----------|
+| `benchmark/` | Fortemente acoplado ao `core/` — precisa de estratégia própria |
+| `bridge/comandos.py` | Importa `backend.database.connection` — precisa de adapter |
+| `ui_terminal.py` | Importa diretamente de `core/` — precisa de atualização |
+| `config.py` | Fica na raiz do backend — OK, mas precisa de documentação |
+| `confirmacao.py` | Deveria ir para `domain/` (lógica pura) |
+| `paths.py` | Deveria ir para `infrastructure/` ou `domain/` |
+
+---
+
+## 3. ANÁLISE DE DEPENDÊNCIAS EXTERNAS
+
+### 3.1 Módulos com dependências externas (DEVEM ficar em infrastructure/)
+
+| Módulo | Dependências Externas |
+|--------|----------------------|
+| `llama_client.py` | `requests` |
+| `excel_handler.py` | `pandas`, `openpyxl` |
+| `word_handler.py` | `docx` (python-docx) |
+| `manual_redacao.py` | `sqlite3` |
+| `database/connection.py` | `sqlite3` |
+| `database/migration_runner.py` | `sqlite3` |
+| `benchmark/runners/maria_runner.py` | `openpyxl` |
+
+### 3.2 Módulos SEM dependências externas (podem ficar em domain/application)
+
+| Módulo | Dependências |
+|--------|--------------|
+| `chat_session.py` | `config`, `confirmacao` |
+| `confirmacao.py` | Nenhuma (apenas `unicodedata`) |
+| `tool_call_textual_parser.py` | Nenhuma (apenas `ast`, `re`, `logging`) |
+| `router.py` | Nenhuma (apenas `re`, `typing`) |
+| `tool_chaining.py` | `config`, `tools_schema` |
+| `maria_controller.py` | Múltiplas (orquestração) |
+
+---
+
+## 4. PROBLEMAS IDENTIFICADOS NA PROPOSTA
+
+### 4.1 Problema 1: database/ já está separado
+
+A proposta sugere:
+```
+mv backend/database/ backend/infrastructure/database/
+```
+
+**Realidade:** `database/` já é um diretório separado de `core/`. Mover para `infrastructure/database/` é válido, mas é uma mudança cosmética que não agrega valor imediato.
+
+**Recomendação:** Manter `database/` no local atual na Fase 1, mover apenas quando a estrutura hexagonal estiver consolidada.
+
+### 4.2 Problema 2: benchmark/ fortemente acoplado
+
+O `benchmark/runners/maria_runner.py` importa diretamente:
+```python
+from core.chat_session import ChatSession
+from core.llama_client import LlamaClient
+from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real
+from core.tool_chaining import encadear_leitura_stream
+```
+
+E o `benchmark/run_benchmark.py` importa:
+```python
+from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL
+from core.llama_client import LlamaClient
+```
+
+**Recomendação:** O benchmark deve ser tratado como um "consumer" externo que usa apenas os Protocols. Na migração:
+1. Atualizar imports para usar `application/` e `interfaces/`
+2. Criar um `benchmark/conftest.py` com fixtures de teste
+3. Considerar mover `benchmark/` para a raiz do projeto (fora de `backend/`)
+
+### 4.3 Problema 3: system_prompt.txt em regressão
+
+O relatório anterior identificou que o `system_prompt.txt` está em estado de regressão (formato JSON incompatível com o parser). **A reestruturação hexagonal não resolve este problema** — ele precisa ser corrigido ANTES ou DURANTE a migração.
+
+**Recomendação:** Corrigir o `system_prompt.txt` (restaurar formato posicional) ANTES da migração hexagonal.
+
+### 4.4 Problema 4: confirmacao.py esquecido
+
+O `core/confirmacao.py` é lógica de negócio pura (sem dependências externas) e deveria ir para `domain/`. A proposta não menciona este arquivo.
+
+**Recomendação:** Mover `confirmacao.py` para `domain/confirmacao.py` na Fase 1.
+
+### 4.5 Problema 5: paths.py esquecido
+
+O `core/paths.py` define caminhos do monorepo. Deveria ir para `infrastructure/` ou `domain/`.
+
+**Recomendação:** Mover `paths.py` para `infrastructure/paths.py`.
+
+---
+
+## 5. CRONOGRAMA REVISADO
+
+### 5.1 Estimativa Original vs Real
+
+| Fase | Estimativa Original | Estimativa Real | Justificativa |
+|------|---------------------|-----------------|---------------|
+| Passo 1-3 (ChatSession + Controller) | 2-3h | 3-4h | Atualizar imports em 15+ arquivos |
+| Passo 4-5 (interfaces + LlamaClient) | 3-4h | 2-3h | Interfaces já existem |
+| Passo 6-7 (handlers + database) | 3-4h | 4-6h | Muitos imports para atualizar |
+| Passo 8-9 (schemas + main.py) | 2-3h | 3-4h | Schemas Pydantic são novos |
+| Passo 10 (testes) | 2-4h | 6-10h | @patch com caminhos antigos |
+| **Total** | **12-18h** | **20-30h** | **2.5-4 dias úteis** |
+
+### 5.2 Fases Recomendadas (Revisadas)
+
+**Fase 0 — Pré-migração (2-3h)**
+- [ ] Corrigir `system_prompt.txt` (restaurar formato posicional)
+- [ ] Criar pastas vazias com `__init__.py`
+- [ ] Documentar regras de dependência
+
+**Fase 1 — Domain (3-4h)**
+- [ ] Mover `chat_session.py` → `domain/`
+- [ ] Mover `confirmacao.py` → `domain/`
+- [ ] Atualizar imports em `maria_controller.py` e testes
+
+**Fase 2 — Interfaces (2-3h)**
+- [ ] Mover `client_protocol.py` → `interfaces/`
+- [ ] Mover `interfaces.py` → `interfaces/`
+- [ ] Atualizar imports em `maria_controller.py`, `tool_chaining.py`, `maria_runner.py`
+
+**Fase 3 — Application (3-4h)**
+- [ ] Mover `maria_controller.py` → `application/`
+- [ ] Mover `tool_chaining.py` → `application/`
+- [ ] Mover `router.py` → `application/`
+- [ ] Mover `manual_redacao.py` → `application/`
+- [ ] Atualizar imports em `main.py`, `servidores.py`, `ui_terminal.py`
+
+**Fase 4 — Infrastructure (4-6h)**
+- [ ] Mover `llama_client.py` → `infrastructure/llm/`
+- [ ] Mover `tools_schema.py` → `infrastructure/tools/`
+- [ ] Mover `tool_call_textual_parser.py` → `infrastructure/tools/`
+- [ ] Mover `word_handler.py` → `infrastructure/tools/`
+- [ ] Mover `excel_handler.py` → `infrastructure/tools/`
+- [ ] Mover `file_utils.py` → `infrastructure/tools/`
+- [ ] Mover `paths.py` → `infrastructure/`
+- [ ] Atualizar imports em `maria_controller.py`, `tool_chaining.py`
+
+**Fase 5 — Database (2-3h)**
+- [ ] Mover `database/` → `infrastructure/database/`
+- [ ] Atualizar imports em `manual_redacao.py`, `comandos.py`, `session_storage.py`
+
+**Fase 6 — Schemas Pydantic (3-4h)**
+- [ ] Criar `schemas/tool_calls.py`
+- [ ] Criar `schemas/health.py`
+- [ ] Integrar com `tools_schema.py`
+
+**Fase 7 — Testes e Benchmark (6-10h)**
+- [ ] Atualizar `@patch` em todos os testes
+- [ ] Atualizar imports no `benchmark/`
+- [ ] Rodar suíte completa
+- [ ] Corrigir regressões
+
+---
+
+## 6. RISCOS E MITIGAÇÕES
+
+| Risco | Probabilidade | Impacto | Mitigação |
+|-------|---------------|---------|-----------|
+| Imports quebrados durante migração | Alta | Médio | Mover em pequenos lotes, rodar testes após cada movimento |
+| Dependências circulares | Média | Alto | Seguir regra de dependência (domain → application → infrastructure) |
+| Testes falham por @patch com caminho antigo | Alta | Baixo | Usar `grep -r "core\." tests/` para encontrar todos |
+| Regressão de funcionalidade | Média | Alto | Rodar benchmark completo (28 tasks) após cada fase |
+| system_prompt.txt em regressão | Crítico | Crítico | Corrigir ANTES da migração |
+| benchmark/ acoplado demais | Alta | Médio | Tratar como consumer externo, atualizar imports |
+
+---
+
+## 7. RECOMENDAÇÕES FINAIS
+
+### 7.1 Aprovação com ajustes
+
+A proposta é **APROVADA** com os seguintes ajustes:
+
+1. **Adicionar Fase 0** — Corrigir `system_prompt.txt` antes de qualquer migração
+2. **Adicionar `confirmacao.py` e `paths.py`** ao mapeamento de migração
+3. **Revisar cronograma** — 20-30 horas (não 12-18)
+4. **Tratar benchmark/ como consumer externo** — não mover, apenas atualizar imports
+5. **Manter database/ no local atual na Fase 1** — mover apenas na Fase 5
+
+### 7.2 Benefícios Esperados (Revisados)
+
+| Benefício | Impacto | Como Medir |
+|-----------|---------|------------|
+| Testes unitários sem @patch | Alto | % de testes em tests/unit/ sem @patch |
+| Substituibilidade de implementações | Alto | Tempo para adicionar novo provedor LLM |
+| Manutenibilidade | Médio | Tempo médio para implementar nova ferramenta |
+| Cobertura de testes | Alto | pytest --cov=domain,application |
+
+### 7.3 Próximos passos
+
+1. ✅ Aprovar proposta com ajustes
+2. 🔄 Corrigir `system_prompt.txt` (urgente — bloqueia benchmark)
+3. 🔄 Executar Fase 0 (pré-migração)
+4. 🔄 Executar Fases 1-7 sequencialmente
+5. 🔄 Rodar benchmark completo após cada fase
+
+---
+
+**Fim do relatório.**
+
+---
+

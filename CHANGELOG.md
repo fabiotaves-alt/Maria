@@ -2,6 +2,29 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Análise da Arquitetura Hexagonal (Fase 4) — 2026-09-07
+
+### 📚 Documentação — Relatórios de análise técnica
+
+- **`docs/desenvolvedor_base/relatorio_arquitetura_hexagonal`** (novo): análise detalhada da proposta de reestruturação hexagonal do backend (domain/application/infrastructure/interfaces/schemas). Verifica viabilidade, identifica ~40% da estrutura já implementada (Protocols, injeção de dependência, database/ separado), revisa cronograma (12-18h → 20-30h) e define 8 fases de migração.
+- **`docs/desenvolvedor_base/relatório_dev_longcat_tools.md`** (novo): análise técnica da validação da literatura de 2026 sobre tool calling (few-shot, self-correction, case sensitivity, limite de capacidade). Identifica **regressão crítica** no `backend/core/system_prompt.txt` (formato JSON incompatível com o parser textual) e discrepância no diagnóstico da Task 26.
+
+### 🔍 Achados críticos identificados
+
+1. **Regressão no `system_prompt.txt`**: a working tree usa formato JSON (`{"ferramenta":...}`) que o parser (`tool_call_textual_parser.py`) não suporta — o benchmark `run_20260907_141158` (7B) teve 9/9 execuções com `tool_detected=None`. A versão HEAD (formato posicional `criar_planilha: [...]`) é funcional. Correção recomendada ANTES da migração hexagonal (Fase 0).
+2. **Discrepância no diagnóstico da Task 26**: o relatório de validação afirma que "o modelo chama extrair_dados_planilha corretamente em 5/5 execuções", mas os dados empíricos (`run_20260907_130658`, 3B) mostram `cadeia = ['criar_planilha']` — o modelo vai direto para `criar_planilha` sem chamar `extrair_dados_planilha`.
+3. **~40% da estrutura hexagonal já existe**: `LLMClientProtocol` (`core/client_protocol.py`), `ToolExecutorProtocol`/`SessionStorageProtocol` (`core/interfaces.py`) e injeção de dependência em `MariaController.__init__` já estão implementados.
+
+### ⏸️ Estado do projeto
+
+- Sistema **em migração/reestruturação** (Fase 4 — arquitetura hexagonal planejada, não iniciada).
+- Branch dedicado: `feat/arquitetura-hexagonal-fase4`.
+- Janela de reestruturação aberta: sistema não está em produção.
+
+### 🧪 Testes
+
+- Suíte atual: **234 passed / 6 failed** (`test_maria.py`) — 1 falha de system prompt (`test_system_prompt_contem_excecao_para_arquivo_ficticio`) e 5 de módulo ausente (`flask`).
+
 ## [4.2.5-dev] — Validação por item em `colunas` (Item B) — 2026-09-07
 
 ### 🎯 Validação de schema — Item B: bloqueia o modo de falha 2 antes do pandas

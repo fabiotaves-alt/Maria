@@ -4,6 +4,45 @@
 
 **Versão Atual:** v4.2.5  
 **Última alteração:** 2026-09-07  
+**Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** (Fase 4 — Arquitetura Hexagonal planejada)  
+**Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`
+
+---
+
+## 🏗️ Estado da Reestruturação (Fase 4 — Arquitetura Hexagonal)
+
+> **Contexto:** O sistema não está em produção — janela aberta para grandes reestruturações. A proposta de arquitetura hexagonal foi analisada e **aprovada com ajustes** (ver `docs/desenvolvedor_base/relatorio_arquitetura_hexagonal`).
+
+### Progresso da migração
+
+| Fase | Descrição | Status | Estimativa |
+|------|-----------|--------|------------|
+| **Fase 0** | Pré-migração (corrigir `system_prompt.txt`, criar pastas) | ⏳ Pendente (bloqueia Fases 1-7) | 2-3h |
+| **Fase 1** | Domain (`chat_session.py`, `confirmacao.py`) | ⏳ Pendente | 3-4h |
+| **Fase 2** | Interfaces (mover Protocols existentes) | ⏳ Pendente | 2-3h |
+| **Fase 3** | Application (controller, tool_chaining, router, manual_redacao) | ⏳ Pendente | 3-4h |
+| **Fase 4** | Infrastructure (llm/, tools/, handlers) | ⏳ Pendente | 4-6h |
+| **Fase 5** | Database (mover `database/` para `infrastructure/database/`) | ⏳ Pendente | 2-3h |
+| **Fase 6** | Schemas Pydantic (validação de tool calls) | ⏳ Pendente | 3-4h |
+| **Fase 7** | Testes e Benchmark (atualizar @patch, imports) | ⏳ Pendente | 6-10h |
+
+**Total estimado:** 20-30 horas (2.5-4 dias úteis) — estimativa revisada (proposta original: 12-18h).
+
+### O que já existe (não precisa mover)
+
+| Componente | Local Atual | Status |
+|------------|-------------|--------|
+| `LLMClientProtocol` | `core/client_protocol.py` | ✅ Implementado |
+| `ToolExecutorProtocol` | `core/interfaces.py` | ✅ Implementado |
+| `SessionStorageProtocol` | `core/interfaces.py` | ✅ Implementado |
+| Injeção de dependência | `MariaController.__init__` | ✅ Implementada |
+| `database/` separado | `backend/database/` | ✅ Já separado |
+
+### Bloqueios identificados (relatório de análise)
+
+1. **🔴 CRÍTICO — `system_prompt.txt` em regressão**: formato JSON (`{"ferramenta":...}`) incompatível com o parser textual; benchmark 7B (`run_20260907_141158`) com 9/9 execuções falhadas. Corrigir ANTES da migração (Fase 0).
+2. **🟡 Discrepância Task 26**: diagnóstico do relatório de validação diverge dos dados empíricos (modelo não chama `extrair_dados_planilha`).
+3. **🟡 `benchmark/` fortemente acoplado**: importa diretamente de `core/` — tratar como consumer externo.
 
 ---
 
@@ -23,6 +62,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev** | 2026-09-07 | Análise da Arquitetura Hexagonal (Fase 4): relatórios técnicos em `docs/desenvolvedor_base/`, migração planejada (8 fases, 20-30h), branch `feat/arquitetura-hexagonal-fase4` criado. Regressão crítica do `system_prompt.txt` identificada (Fase 0 obrigatória) | 🔄 Em migração |
 | **4.0.0** | 2026-08-28 | Migração base do frontend JavaFX para Tauri v2 + React | ✅ Concluída |
 | **4.0.1** | 2026-08-29 | Estabilização Tauri + React (P0–P2): bridge HTTP, schema SQLite, sidecar | ✅ Concluída |
 | **4.0.2** | 2026-08-30 | Documentação da v4.0 e manutenção de configurações (.gitignore) | ✅ Concluída |
