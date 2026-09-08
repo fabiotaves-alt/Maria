@@ -35,6 +35,7 @@ def encadear_leitura_stream(
     tools,
     apos_cada_chamada=None,
     executar_leitura: Callable[[str, dict], str] | None = None,
+    apos_cada_leitura: Callable[[str, dict], None] | None = None,
 ):
     """
     Generator que encadeia ferramentas de leitura a partir de uma tool call
@@ -60,6 +61,11 @@ def encadear_leitura_stream(
             leitura `(nome, argumentos) -> str`. Se None, usa a função
             global `executar_ferramenta_leitura` (comportamento atual).
             Permite injetar um executor fake nos testes (Opção B da Fase 1).
+        apos_cada_leitura: callback opcional `f(nome: str, argumentos: dict)`,
+            chamado logo ANTES de executar cada ferramenta de leitura (inclusive
+            a primeira iteração do loop). Permite ao chamador registrar quais
+            ferramentas foram chamadas durante o encadeamento, em ordem.
+            Se None, nenhuma ação adicional é executada.
 
     Yields:
         (chunk_texto | None, None) durante o streaming de texto; o último
@@ -75,6 +81,15 @@ def encadear_leitura_stream(
         and tool_call_atual.get("name") in FERRAMENTAS_LEITURA
         and passos < MAX_PASSOS_LEITURA
     ):
+        # Notifica o chamador sobre a ferramenta de leitura que será executada
+        # neste passo (inclusive a primeira iteração) — permite registrar na
+        # cadeia as ferramentas intermediárias do encadeamento.
+        if apos_cada_leitura is not None:
+            apos_cada_leitura(
+                tool_call_atual["name"],
+                tool_call_atual.get("arguments", {}),
+            )
+
         try:
             resultado_ferramenta = executor_leitura(
                 tool_call_atual["name"], tool_call_atual.get("arguments", {})

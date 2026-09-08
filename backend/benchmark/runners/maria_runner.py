@@ -212,9 +212,17 @@ class MariaRunner:
 
                 resposta_continuacao = ""
                 novo_tool_call_final = None
+
+                def _registrar_ferramenta_leitura(nome: str, argumentos: dict) -> None:
+                    """Registra na cadeia cada ferramenta de leitura executada no
+                    encadeamento (passos intermediários), além da inicial e da final."""
+                    if nome not in cadeia_ferramentas:
+                        cadeia_ferramentas.append(nome)
+
                 for chunk, tool_chunk in encadear_leitura_stream(
                     self.cliente, historico_continuacao, tool_call_final, TOOLS_SCHEMA,
                     apos_cada_chamada=_apos_chamada_de_continuacao,
+                    apos_cada_leitura=_registrar_ferramenta_leitura,
                 ):
                     if chunk is not None:
                         resposta_continuacao += chunk

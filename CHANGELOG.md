@@ -2,6 +2,19 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — FIX-4 · Registro de ferramentas intermediárias do encadeamento — 2026-09-08
+
+### 🐛 DEFEITO-2 resolvido (cadeia_ferramentas incompleta)
+- `encadear_leitura_stream` (`tool_chaining.py`) agora aceita callback opcional `apos_cada_leitura(nome, argumentos)`, chamado ANTES de cada ferramenta de leitura executada (inclusive a primeira iteração).
+- `maria_runner.py` passa `_registrar_ferramenta_leitura` — ferramentas intermediárias do encadeamento (ex.: paginação `extrair_dados_planilha`) agora entram em `cadeia_ferramentas`, não apenas a inicial (~linha 184) e a final (~linha 381).
+- Testes: `test_ferramenta_leitura_intermediaria_entra_na_cadeia` (fluxo `listar_arquivos` → `extrair_dados_planilha` → `criar_planilha`) + classe `TestEncadearLeituraStreamCallback` (callback com nome/args; retrocompatibilidade com `None`).
+
+### 🧪 Testes
+- Suíte: **265 passed** (262 base + 3 novos; sem regressão).
+
+---
+
+
 ## [4.2.5-dev] — Benchmark: correção do desenho da Task 26 (FIX-1/2/3) — 2026-09-08
 
 ### 🐛 Diagnóstico do benchmark (2026-09-08) — 4 defeitos de sistema na Task 26

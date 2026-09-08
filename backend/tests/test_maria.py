@@ -1440,6 +1440,143 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
         self.assertFalse(resultado.tool_correct)
         self.assertEqual(resultado.cadeia_ferramentas, [])
 
+    def test_ferramenta_leitura_intermediaria_entra_na_cadeia(self):
+        """FIX-4: ferramenta de leitura chamada DENTRO do encadear_leitura_stream
+        (passo intermediário) entra em cadeia_ferramentas — não apenas a inicial
+        (linha ~184) e a final (linha ~381). Fluxo simulado: listar_arquivos
+        (inicial) → extrair_dados_planilha (intermediária) → criar_planilha (final)."""
+        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+
+        class ClienteLeituraEscrita:
+            model = "modelo-teste"
+
+            def __init__(self):
+                self._chamadas_continuacao = 0
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                # Ferramenta INICIAL de leitura: dispara o encadeamento.
+                return (
+                    "",
+                    {"name": "listar_arquivos", "arguments": {"pasta": "arquivos_gerados"}},
+                    10, 5.0, 1.0,
+                )
+
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                # 1ª continuação → nova leitura (extrair_dados_planilha): passo
+                # INTERMEDIÁRIO do encadeamento.
+                # 2ª continuação → ferramenta de escrita (criar_planilha): fim.
+                self._chamadas_continuacao += 1
+                if self._chamadas_continuacao == 1:
+                    yield None, {
+                        "name": "extrair_dados_planilha",
+                        "arguments": {"nome_arquivo": "produtos_mandarim"},
+                    }
+                else:
+                    yield None, {
+                        "name": "criar_planilha",
+                        "arguments": {"nome_arquivo": "resultado", "colunas": ["A"]},
+                    }
+
+        task = MariaTask(
+            id=9020,
+            name="Leitura encadeada com passo intermediário",
+            description="desc",
+            user_message=(
+                "Liste os arquivos, leia produtos_mandarim e crie a planilha resultado."
+            ),
+            tools_obrigatorios=["extrair_dados_planilha", "criar_planilha"],
+            expected_tool="criar_planilha",
+            confirm_sequence=["sim"],
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+            expected_args_subset={"nome_arquivo": "resultado"},
+        )
+
+        with patch(
+            "backend.benchmark.runners.maria_runner.executar_ferramenta_real",
+            return_value="Planilha criada com sucesso: resultado.xlsx",
+        ), patch(
+            "backend.application.tool_chaining.executar_ferramenta_leitura",
+            return_value="arquivo1.xlsx",
+        ):
+            resultado = MariaRunner(cliente=ClienteLeituraEscrita()).run(task)
+
+        # extrair_dados_planilha (intermediária) só entra na cadeia POR CAUSA do
+        # callback apos_cada_leitura — sem o FIX-4, a cadeia seria inicial+final
+        # (["listar_arquivos", "criar_planilha"]) e tool_correct seria False.
+        self.assertEqual(
+            resultado.cadeia_ferramentas,
+            ["listar_arquivos", "extrair_dados_planilha", "criar_planilha"],
+        )
+        self.assertTrue(resultado.tool_correct)
+
+
+class TestEncadearLeituraStreamCallback(unittest.TestCase):
+    """FIX-4: o callback apos_cada_leitura é chamado com nome e argumentos de
+    cada ferramenta de leitura executada no encadeamento."""
+
+    def test_callback_chamado_para_cada_leitura(self):
+        from backend.application.tool_chaining import encadear_leitura_stream
+
+        chamadas = []
+
+        def callback_leitura(nome: str, argumentos: dict) -> None:
+            chamadas.append((nome, argumentos))
+
+        cliente = MagicMock()
+        # 1ª continuação: retorna outra leitura (listar_arquivos) → nova iteração.
+        # 2ª continuação: texto → encerra o encadeamento.
+        cliente.continuar_com_resultado_ferramenta_stream.side_effect = [
+            iter([
+                (None, {"name": "listar_arquivos", "arguments": {"pasta": "x"}}),
+            ]),
+            iter([("Resposta final.", None)]),
+        ]
+
+        tool_inicial = {"name": "listar_arquivos", "arguments": {"pasta": "arquivos_gerados"}}
+
+        with patch(
+            "backend.application.tool_chaining.executar_ferramenta_leitura",
+            return_value="arquivo1.xlsx",
+        ):
+            list(encadear_leitura_stream(
+                cliente=cliente,
+                historico_com_system=[],
+                tool_call_inicial=tool_inicial,
+                tools=[],
+                apos_cada_leitura=callback_leitura,
+            ))
+
+        self.assertTrue(chamadas, "callback nunca foi chamado")
+        nomes_chamados = [nome for nome, _ in chamadas]
+        self.assertIn("listar_arquivos", nomes_chamados)
+        # Argumentos repassados ao callback (da tool call inicial).
+        self.assertIn({"pasta": "arquivos_gerados"}, [args for _, args in chamadas])
+
+    def test_sem_callback_nao_levanta_excecao(self):
+        from backend.application.tool_chaining import encadear_leitura_stream
+
+        cliente = MagicMock()
+        cliente.continuar_com_resultado_ferramenta_stream.return_value = iter([
+            ("Resposta.", None),
+        ])
+
+        tool_inicial = {"name": "listar_arquivos", "arguments": {}}
+
+        with patch(
+            "backend.application.tool_chaining.executar_ferramenta_leitura",
+            return_value="ok",
+        ):
+            resultado = list(encadear_leitura_stream(
+                cliente=cliente,
+                historico_com_system=[],
+                tool_call_inicial=tool_inicial,
+                tools=[],
+                apos_cada_leitura=None,  # sem callback
+            ))
+
+        self.assertIsNotNone(resultado)
+
 
 class TestTarefas22E23EscritaInexistente(unittest.TestCase):
     """Tarefas 22 e 23: mensagem realista (não entrega a inexistência ao
@@ -3000,7 +3137,7 @@ class TestPreCheckContexto(unittest.TestCase):
 
         capturado = {}
 
-        def fake_encadear(cliente, historico, tool_call, schema, apos_cada_chamada=None):
+        def fake_encadear(cliente, historico, tool_call, schema, apos_cada_chamada=None, apos_cada_leitura=None):
             capturado["callback"] = apos_cada_chamada
             yield ("conteudo", None)
 
