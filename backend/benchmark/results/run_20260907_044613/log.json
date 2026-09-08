@@ -1,0 +1,539 @@
+{
+  "meta": {
+    "id_modelo": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+    "modelo_quantizacao": "Q4_K - Medium",
+    "data_execucao": "2026-09-07T04:50:07.826422",
+    "total_tarefas": 1,
+    "repeticoes_por_tarefa": 5,
+    "versao_benchmark": "2.0",
+    "system_prompt_hash": "222d0cafc974",
+    "system_prompt_completo": "Você é MARIA, assistente de escritório. Cria e edita planilhas Excel e documentos Word usando ferramentas. SEMPRE responda em português do Brasil.\n\n## Como chamar uma ferramenta\nPara criar ou editar arquivo, responda APENAS com a chamada, em UMA linha, sem texto antes ou depois, sem ponto final:\n- Planilha nova: criar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n- Documento novo: criar_documento: [\"nome_arquivo\", \"Título\", \"conteúdo\"]\n- Editar planilha: editar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n\nRegras: \"colunas\" é SEMPRE lista de strings; NÃO adicione explicações à chamada; nomes inseguros (\"/\", \"..\", \"*\") são corrigidos pelo sistema — chame normalmente; preencha TODOS os campos obrigatórios. A confirmação é automática após a tool call.\n\n## Quando NÃO chamar ferramenta\n- Cumprimentos, apresentações ou perguntas gerais: responda em texto curto.\n- Editar planilha JÁ CRIADA na conversa: ela EXISTE, chame \"editar_planilha\".\n- Editar planilha NÃO mencionada antes: chame \"listar_arquivos\" primeiro.\n- Arquivo mencionado que NÃO EXISTE: responda em texto dizendo que o arquivo não foi encontrado.\n- Se o usuário pedir para editar/criar um arquivo e você NÃO tiver certeza absoluta de que ele existe (foi mencionado antes na conversa), NÃO chame a ferramenta — responda em texto que o arquivo não foi encontrado.\n\n## Extrair dados de planilha existente\nAntes de criar_planilha ou editar_planilha para TRANSFORMAR, TRADUZIR, FILTRAR, CALCULAR ou REORGANIZAR dados que já existem em uma planilha, chame extrair_dados_planilha para obter os dados reais. NUNCA invente dados que deveriam vir de um arquivo existente.\n\nFormato da chamada (mesmo padrão das demais, em UMA linha, sem texto antes ou depois):\n- extrair_dados_planilha: [\"nome_arquivo\"]\n- extrair_dados_planilha: [\"nome_arquivo\", offset]  (offset começa em 0; omita ou use 0 na primeira chamada)\n\nFluxo:\n1. Chame extrair_dados_planilha com offset 0 (ou omitido).\n2. Se a resposta trouxer \"tem_mais\": true, chame de novo com offset igual ao \"proximo_offset\" recebido, repetindo até \"tem_mais\": false.\n3. Processe TODOS os dados extraídos e só então chame criar_planilha ou editar_planilha com o resultado em \"linhas\".\n\nPlanilhas grandes demais para uma única chamada de escrita: use o padrão \"salvar e continuar\" — cada chamada a editar_planilha SOBRESCREVE o arquivo inteiro, então inclua em \"linhas\" TODOS os dados já processados até aquele ponto (os anteriores + o novo lote), nunca apenas o lote mais recente.\n\n## Conteúdo de documento\nEm \"criar_documento\", se o usuário não deu o conteúdo completo, seja breve, coerente e razoável. Documento narrativo pode ser mais longo; demais respostas, CURTAS.\n\n## Correção de erro\nAo receber ERRO de chamada inválida (campo ausente, tipo incorreto, nome inválido), corrija SOMENTE o campo apontado e chame de novo na próxima resposta, sem desculpas nem perguntas.",
+    "llama_base_url": "http://localhost:8080",
+    "llama_num_ctx_config": 4096,
+    "ctx_size_detectado": 2048,
+    "ctx_fonte": "models",
+    "system_prompt_tokens": 838,
+    "fator_calibracao_tokens": 1.1590594744121716,
+    "timeout_por_chamada_s": 300,
+    "sampler_params": {
+      "temperature": 0.1,
+      "repeat_last_n": 128,
+      "repeat_penalty": 1.1,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "dry_multiplier": 0.8,
+      "dry_base": 1.75,
+      "dry_allowed_length": 2,
+      "dry_penalty_last_n": 64,
+      "top_k": 40,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "xtc_probability": 0.0,
+      "xtc_threshold": 0.1,
+      "typical_p": 1.0,
+      "top_n_sigma": -1.0
+    },
+    "warmup_duracao_s": 13.18,
+    "metricas_sistema": {
+      "timestamp": "2026-09-07T04:45:11.283046",
+      "plataforma": "Windows-11-10.0.26100-SP0",
+      "cpu_modelo": "Intel64 Family 6 Model 142 Stepping 9, GenuineIntel",
+      "cpu_nucleos_fisicos": 2,
+      "cpu_nucleos_logicos": 4,
+      "cpu_freq_mhz": 2900.0,
+      "cpu_uso_percent": 3.9,
+      "ram_total_gb": 7.89,
+      "ram_disponivel_gb": 5.63,
+      "ram_uso_percent": 28.6,
+      "gpu": []
+    }
+  },
+  "individual": [
+    {
+      "task_id": 26,
+      "task_name": "Tradução de planilha (Mandarim → Inglês)",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": false,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\produtos_mandarim_1.xlsx",
+      "latency_ms": 72059.39379998017,
+      "errors": [
+        {
+          "kind": "DadosIncompletos",
+          "message": "coluna 'english description' não encontrada no arquivo gerado."
+        }
+      ],
+      "raw_tool_args": {
+        "nome_arquivo": "produtos_mandarim.xlsx",
+        "colunas": [
+          "model",
+          "product",
+          "english_description",
+          "NCM"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 83,
+      "tokens_por_segundo": 0.9,
+      "args_correct": false,
+      "ttft_ms": 36023.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha produtos_mandarim.xlsx está disponível na pasta de arquivos."
+        },
+        {
+          "role": "user",
+          "content": "Tenho uma planilha chamada 'produtos_mandarim' com produtos descritos em Mandarim. Preencha a coluna 'english description' traduzindo a coluna 'product' para inglês e salve o resultado como 'produtos_traduzidos'."
+        }
+      ],
+      "resposta_bruta_modelo": "extrair_dados_planilha: ['produtos_mandarim', 0]\ncriar_planilha: ['produtos_traduzidos', [\"English description\", \"product\"]]\n- extrair_dados_planilha: [\"produtos_mandarim.xlsx\"]- criar_planilha: [\"produtos_mandarim.xlsx\", [\"model\", \"product\", \"english_description\", \"NCM\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 128,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "extrair_dados_planilha",
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "extrair_dados_planilha",
+        "arguments": {
+          "nome_arquivo": "produtos_mandarim",
+          "offset": 0,
+          "linha_cabecalho": null,
+          "limite_linhas": null
+        }
+      },
+      "tool_call_fonte": "parser_posicional",
+      "tool_nome_bruto": null,
+      "tool_nome_final": "criar_planilha",
+      "fallbacks": [],
+      "correcoes": [],
+      "titulo_conteudo_invertido": false,
+      "placeholder_detectado": false,
+      "conteudo_curto": false,
+      "nome_com_extensao": true,
+      "dados_arquivo_validos": false
+    },
+    {
+      "task_id": 26,
+      "task_name": "Tradução de planilha (Mandarim → Inglês)",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": false,
+      "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\produtos_mandarim.xlsx",
+      "latency_ms": 39638.72039999114,
+      "errors": [
+        {
+          "kind": "DadosIncompletos",
+          "message": "arquivo gerado não tem nenhuma linha de dados."
+        }
+      ],
+      "raw_tool_args": {
+        "nome_arquivo": "produtos_mandarim.xlsx",
+        "colunas": [
+          "model",
+          "product",
+          "english description",
+          "NCM"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 82,
+      "tokens_por_segundo": 3.0,
+      "args_correct": false,
+      "ttft_ms": 4979.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha produtos_mandarim.xlsx está disponível na pasta de arquivos."
+        },
+        {
+          "role": "user",
+          "content": "Tenho uma planilha chamada 'produtos_mandarim' com produtos descritos em Mandarim. Preencha a coluna 'english description' traduzindo a coluna 'product' para inglês e salve o resultado como 'produtos_traduzidos'."
+        }
+      ],
+      "resposta_bruta_modelo": "extrair_dados_planilha: ['produtos_mandarim', 0]\ncriar_planilha: ['produtos_traduzidos', [\"product\", \"english_description\"]]\n- extrair_dados_planilha: [\"produtos_mandarim\"]- editar_planilha: [\"produtos_mandarim.xlsx\", [\"model\", \"product\", \"english description\", \"NCM\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 128,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "extrair_dados_planilha",
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "extrair_dados_planilha",
+        "arguments": {
+          "nome_arquivo": "produtos_mandarim",
+          "offset": 0,
+          "linha_cabecalho": null,
+          "limite_linhas": null
+        }
+      },
+      "tool_call_fonte": "parser_posicional",
+      "tool_nome_bruto": null,
+      "tool_nome_final": "editar_planilha",
+      "fallbacks": [],
+      "correcoes": [],
+      "titulo_conteudo_invertido": false,
+      "placeholder_detectado": false,
+      "conteudo_curto": false,
+      "nome_com_extensao": false,
+      "dados_arquivo_validos": false
+    },
+    {
+      "task_id": 26,
+      "task_name": "Tradução de planilha (Mandarim → Inglês)",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": false,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\produtos_mandarim_1.xlsx",
+      "latency_ms": 39307.19170003431,
+      "errors": [
+        {
+          "kind": "DadosIncompletos",
+          "message": "arquivo gerado não tem nenhuma linha de dados."
+        }
+      ],
+      "raw_tool_args": {
+        "nome_arquivo": "produtos_mandarim",
+        "colunas": [
+          "model",
+          "product",
+          "english description",
+          "NCM"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 82,
+      "tokens_por_segundo": 3.1,
+      "args_correct": false,
+      "ttft_ms": 4997.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha produtos_mandarim.xlsx está disponível na pasta de arquivos."
+        },
+        {
+          "role": "user",
+          "content": "Tenho uma planilha chamada 'produtos_mandarim' com produtos descritos em Mandarim. Preencha a coluna 'english description' traduzindo a coluna 'product' para inglês e salve o resultado como 'produtos_traduzidos'."
+        }
+      ],
+      "resposta_bruta_modelo": "extrair_dados_planilha: ['produtos_mandarim', 0]\ncriar_planilha: ['produtos_traduzidos', [\"product\", \"english_description\"]]\n- extrair_dados_planilha: [\"produtos_mandarim.xlsx\"]- criar_planilha: [\"produtos_mandarim\", [\"model\", \"product\", \"english description\", \"NCM\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 128,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "extrair_dados_planilha",
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "extrair_dados_planilha",
+        "arguments": {
+          "nome_arquivo": "produtos_mandarim",
+          "offset": 0,
+          "linha_cabecalho": null,
+          "limite_linhas": null
+        }
+      },
+      "tool_call_fonte": "parser_posicional",
+      "tool_nome_bruto": null,
+      "tool_nome_final": "criar_planilha",
+      "fallbacks": [],
+      "correcoes": [],
+      "titulo_conteudo_invertido": false,
+      "placeholder_detectado": false,
+      "conteudo_curto": false,
+      "nome_com_extensao": false,
+      "dados_arquivo_validos": false
+    },
+    {
+      "task_id": 26,
+      "task_name": "Tradução de planilha (Mandarim → Inglês)",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": false,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\produtos_mandarim_1.xlsx",
+      "latency_ms": 44443.37839999935,
+      "errors": [
+        {
+          "kind": "DadosIncompletos",
+          "message": "arquivo gerado não tem nenhuma linha de dados."
+        }
+      ],
+      "raw_tool_args": {
+        "nome_arquivo": "produtos_mandarim",
+        "colunas": [
+          "model",
+          "product",
+          "english description",
+          "NCM"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 97,
+      "tokens_por_segundo": 3.1,
+      "args_correct": false,
+      "ttft_ms": 4983.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha produtos_mandarim.xlsx está disponível na pasta de arquivos."
+        },
+        {
+          "role": "user",
+          "content": "Tenho uma planilha chamada 'produtos_mandarim' com produtos descritos em Mandarim. Preencha a coluna 'english description' traduzindo a coluna 'product' para inglês e salve o resultado como 'produtos_traduzidos'."
+        }
+      ],
+      "resposta_bruta_modelo": "extrair_dados_planilha: ['produtos_mandarim', 0]\nCriar_planilha: ['produtos_traduzidos', [\"product\", \"english_description\"]]\n- extrair_dados_planilha: [\"produtos_mandarim\"]- extrair_dados_planilha: [\"produtos_mandarim\"]- criar_planilha: [\"produtos_mandarim\", [\"model\", \"product\", \"english description\", \"NCM\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 128,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "extrair_dados_planilha",
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "extrair_dados_planilha",
+        "arguments": {
+          "nome_arquivo": "produtos_mandarim",
+          "offset": 0,
+          "linha_cabecalho": null,
+          "limite_linhas": null
+        }
+      },
+      "tool_call_fonte": "parser_posicional",
+      "tool_nome_bruto": null,
+      "tool_nome_final": "criar_planilha",
+      "fallbacks": [],
+      "correcoes": [],
+      "titulo_conteudo_invertido": false,
+      "placeholder_detectado": false,
+      "conteudo_curto": false,
+      "nome_com_extensao": false,
+      "dados_arquivo_validos": false
+    },
+    {
+      "task_id": 26,
+      "task_name": "Tradução de planilha (Mandarim → Inglês)",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": false,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\produtos_mandarim_1.xlsx",
+      "latency_ms": 38444.48480004212,
+      "errors": [
+        {
+          "kind": "DadosIncompletos",
+          "message": "arquivo gerado não tem nenhuma linha de dados."
+        }
+      ],
+      "raw_tool_args": {
+        "nome_arquivo": "produtos_mandarim",
+        "colunas": [
+          "model",
+          "product",
+          "english description",
+          "NCM"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 78,
+      "tokens_por_segundo": 3.0,
+      "args_correct": false,
+      "ttft_ms": 4962.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha produtos_mandarim.xlsx está disponível na pasta de arquivos."
+        },
+        {
+          "role": "user",
+          "content": "Tenho uma planilha chamada 'produtos_mandarim' com produtos descritos em Mandarim. Preencha a coluna 'english description' traduzindo a coluna 'product' para inglês e salve o resultado como 'produtos_traduzidos'."
+        }
+      ],
+      "resposta_bruta_modelo": "extrair_dados_planilha: ['produtos_mandarim']\ncriar_planilha: ['produtos_traduzidos', [\"English description\", \"product\"]]\n- extrair_dados_planilha: [\"produtos_mandarim\"]- criar_planilha: [\"produtos_mandarim\", [\"model\", \"product\", \"english description\", \"NCM\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 128,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.8,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "extrair_dados_planilha",
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "extrair_dados_planilha",
+        "arguments": {
+          "nome_arquivo": "produtos_mandarim",
+          "offset": null,
+          "linha_cabecalho": null,
+          "limite_linhas": null
+        }
+      },
+      "tool_call_fonte": "parser_posicional",
+      "tool_nome_bruto": null,
+      "tool_nome_final": "criar_planilha",
+      "fallbacks": [],
+      "correcoes": [],
+      "titulo_conteudo_invertido": false,
+      "placeholder_detectado": false,
+      "conteudo_curto": false,
+      "nome_com_extensao": false,
+      "dados_arquivo_validos": false
+    }
+  ],
+  "agregado_por_tarefa": [
+    {
+      "task_id": 26,
+      "task_name": "Tradução de planilha (Mandarim → Inglês)",
+      "category": "criar_planilha",
+      "execucoes": 5,
+      "tool_accuracy": 0.8,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 0.0,
+      "avg_latency_ms": 46778.63382000942,
+      "stddev_latency_ms": 14325.057538506559,
+      "avg_tokens_por_segundo": 2.62,
+      "avg_tokens_gerados": 84.4
+    }
+  ]
+}

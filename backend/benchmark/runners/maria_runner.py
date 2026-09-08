@@ -415,9 +415,9 @@ class MariaRunner:
         # não de "modelo não chamou".
         parse_suspeito = False
         if tool_call_final is None and resposta_bruta_modelo:
-            from backend.core.tool_call_textual_parser import POSITIONAL_MAP
-            nomes = "|".join(re.escape(nome) for nome in POSITIONAL_MAP)
-            if re.search(rf"\b({nomes})\s*[:(]", resposta_bruta_modelo):
+            from backend.core.tools_schema import CAMPOS_OBRIGATORIOS
+            nomes = "|".join(re.escape(nome) for nome in CAMPOS_OBRIGATORIOS)
+            if re.search(rf"\b({nomes})\b|\"{{\s*\"ferramenta\"\s*:", resposta_bruta_modelo):
                 parse_suspeito = True
 
         # Motivo de falha por geração degenerada (loop de repetição): aparece

@@ -99,23 +99,23 @@ def formatar_avisos(result: MariaTaskResult) -> list[str]:
     Aparecem apenas quando o sistema usou um fallback para corrigir um
     comportamento inesperado do modelo:
     - Correção automática (sanitização): `⚠️ corrigido campo: "antes" → "depois"`.
-    - fallback_json: tool call vazada como JSON no content.
-    - nome_mapeado: nome legível mapeado para o canônico.
-    - lista_reparada: lista posicional truncada por max_tokens e reparada.
-    - colunas_normalizadas: colunas achatadas/string normalizadas.
+    - json_reparado: JSON truncado por max_tokens e reparado (T3).
+    - chaves_normalizadas: chaves de `linhas` renomeadas case-insensitive (V3).
+    - colunas_derivadas: `colunas` derivada das chaves de `linhas` (V5).
+    - linhas_truncadas_limite: `linhas` limitada ao teto de linhas por chamada (V7).
     """
     avisos = []
     for c in result.correcoes or []:
         avisos.append(f'⚠️ corrigido {c.get("campo")}: "{c.get("antes")}" → "{c.get("depois")}"')
     for fb in result.fallbacks or []:
-        if fb == "fallback_json":
-            avisos.append('⚠️ fallback JSON: tool call extraída do content')
-        elif fb == "nome_mapeado":
-            avisos.append(f'⚠️ nome mapeado: "{result.tool_nome_bruto}" → "{result.tool_nome_final or result.tool_detected}"')
-        elif fb == "lista_reparada":
-            avisos.append('⚠️ lista reparada (truncada por max_tokens)')
-        elif fb == "colunas_normalizadas":
-            avisos.append('⚠️ colunas normalizadas (achatadas/string)')
+        if fb == "json_reparado":
+            avisos.append('⚠️ JSON reparado (truncado por max_tokens)')
+        elif fb == "chaves_normalizadas":
+            avisos.append('⚠️ chaves normalizadas (case-insensitive)')
+        elif fb == "colunas_derivadas":
+            avisos.append('⚠️ colunas derivadas das chaves de linhas')
+        elif fb == "linhas_truncadas_limite":
+            avisos.append('⚠️ linhas truncadas pelo limite do modelo')
     return avisos
 
 
