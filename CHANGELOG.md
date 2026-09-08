@@ -2,6 +2,23 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Planejamento: fases B4.5 e B4.6 no plano mestre v5 — 2026-09-08
+
+### 📋 Atualização de `docs/dev_senior/plano_mestre_v5.md` (somente planejamento)
+- **Mapa de dependências (Seção 0):** ramos `B4.5` (intent classification / entity extraction) e `B4.6` (roteamento NLLB-200) dependentes de B4, independentes entre si e não bloqueantes de B5–B7, com nota de origem (análise de viabilidade 2026-09-08).
+- **Inventário de arquivos (Seção 1):** colunas `B4.5`/`B4.6` adicionadas entre `B4` e `B5`; 24 linhas existentes expandidas + 6 arquivos futuros mapeados (`domain/intent_classification.py`, `application/intent_router.py`, `infrastructure/tools/entity_extractor.py`, `infrastructure/translation/nllb_client.py`, `interfaces/translation_protocol.py`, `benchmark/tasks/tasks_intent.py` com tasks 29–32).
+- **Seções novas 8/9:** B4.5 (~10–14h) e B4.6 (~6–9h) com objetivo, escopo, restrição de não-duplicação do `validacao_tool_call.py` (evitar BUG-4) e critérios de aceite.
+- **B1.0:** seção "Reservas de namespace (fases futuras)" no `ARQUITETURA.md` — 5 módulos listados sem implementação.
+- **Renumeração sequencial 0–15** (B5→10, B6→11, B7→12, Critérios→13, Oportunidades→14, Riscos→15); linhas B4.5/B4.6 na tabela de critérios de aceite.
+- Cabeçalho: estimativa total atualizada para **58–80h** (42–57h + 16–23h das novas fases).
+- Nenhuma alteração de código.
+
+### 🧪 Testes
+- Suíte não executada — edição exclusivamente de documento de planejamento.
+
+---
+
+
 ## [4.2.5-dev] — Smoke test manual CLI com Qwen2.5-Omni-3B — 2026-09-08
 
 ### ✅ Validação end-to-end no chat (6 itens)

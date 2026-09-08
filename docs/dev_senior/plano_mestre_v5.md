@@ -2,7 +2,7 @@
 
 **Data:** 2026-09-08  
 **Escopo:** Decisões D1–D6 + Bugs BUG-1–5 + Inconsistências INCONS-1–4 + Oportunidades O1–O6 + revisões sênior  
-**Estimativa total:** 42–57h (B0–B7 revisados)
+**Estimativa total:** 58–80h (B0–B7 revisados + B4.5/B4.6 opcionais: 16–23h)
 
 ---
 
@@ -15,10 +15,14 @@ B0 (parser JSON + validação + prompt v4 + deletar posicional)
            └─► B2 (benchmark → ports; zero imports privados)
                 └─► B3 (SQLite WAL + report v2 + compare SQL)
                      └─► B4 (tasks v2: linhas_esperadas, multi-etapa, Task 26)
+                          ├─► B4.5 (intent classification / entity extraction — pré-processamento)
+                          ├─► B4.6 (roteamento para modelo especializado de tradução — NLLB-200)
                           └─► B5 (CLI completa)
                                └─► B6 (semântica + LLM-judge + response_format flag)
                                     └─► B7 (v5.0.0 final: docs + limpeza)
 ```
+
+> **Nota sobre B4.5/B4.6:** ambas as fases dependem de B4 (Task 26 redesenhada e infraestrutura de benchmark v2), mas são independentes entre si e não bloqueiam B5–B7. Podem ser executadas em paralelo entre si ou adiadas para depois do v5.0.0, a critério de priorização. Origem: análise de viabilidade de 2026-09-08 (`analise_viabilidade_intent_processor.md`) sobre a proposta de pré-processamento validada em `relatorio_validacao_intent_processing.md`.
 
 **Regra:** nenhuma fase começa sem a anterior 100% verde (suíte + critério de aceite específico).  
 **Exceção única:** B1 pode começar em paralelo com B0.5 **se e somente se** B0.5 não precisar tocar em `core/`.
@@ -27,32 +31,38 @@ B0 (parser JSON + validação + prompt v4 + deletar posicional)
 
 ## 1. Inventário de arquivos afetados (referência cruzada)
 
-| Arquivo | B0 | B1 | B2 | B3 | B4 | B5 | B6 | B7 |
-|---------|----|----|----|----|----|----|----|----|
-| `core/tool_call_textual_parser.py` | **DELETE** | — | — | — | — | — | — | — |
-| `core/tool_call_json_parser.py` | **NEW** | move→infra | — | — | — | — | — | — |
-| `core/validacao_tool_call.py` | **NEW** | move→domain | — | — | — | — | — | — |
-| `core/llama_client.py` | MODIFY | move→infra | — | — | — | — | — | — |
-| `core/tools_schema.py` | MODIFY | move→infra | — | — | — | — | — | — |
-| `core/excel_handler.py` | **MODIFY** | move→infra | — | — | — | — | — | — |
-| `core/system_prompt.txt` | **MODIFY** | — | — | — | — | — | — | — |
-| `core/chat_session.py` | — | move→domain | — | — | — | — | — | — |
-| `core/confirmacao.py` | — | move→domain | — | — | — | — | — | — |
-| `core/client_protocol.py` | — | move→iface | — | — | — | — | — | — |
-| `core/interfaces.py` | — | move→iface | — | — | — | — | — | — |
-| `core/maria_controller.py` | — | move→app | — | — | — | — | — | — |
-| `core/tool_chaining.py` | — | move→app | — | — | — | — | — | — |
-| `core/router.py` | — | move→app | — | — | — | — | — | — |
-| `core/manual_redacao.py` | — | move→app | — | — | — | — | — | — |
-| `core/word_handler.py` | — | move→infra | — | — | — | — | — | — |
-| `core/file_utils.py` | — | move→infra | — | — | — | — | — | — |
-| `core/paths.py` | — | move→infra | — | — | — | — | — | — |
-| `core/session_storage.py` | — | move→iface | — | — | — | — | — | — |
-| `benchmark/runners/maria_runner.py` | MODIFY | — | **REFACTOR** | MODIFY | MODIFY | — | MODIFY | — |
-| `benchmark/tasks/task_schema.py` | MODIFY | — | — | MODIFY | **MODIFY** | — | MODIFY | — |
-| `benchmark/tasks/tasks_*.py` | — | — | — | — | **MODIFY** | — | — | — |
-| `benchmark/run_benchmark.py` | — | — | MODIFY | MODIFY | — | MODIFY | MODIFY | — |
-| `tests/test_maria.py` | **MODIFY** | MODIFY | — | — | — | — | — | — |
+| Arquivo | B0 | B1 | B2 | B3 | B4 | B4.5 | B4.6 | B5 | B6 | B7 |
+|---------|----|----|----|----|----|------|------|----|----|-----|
+| `core/tool_call_textual_parser.py` | **DELETE** | — | — | — | — | — | — | — | — | — |
+| `core/tool_call_json_parser.py` | **NEW** | move→infra | — | — | — | — | — | — | — | — |
+| `core/validacao_tool_call.py` | **NEW** | move→domain | — | — | — | — | — | — | — | — |
+| `core/llama_client.py` | MODIFY | move→infra | — | — | — | — | — | — | — | — |
+| `core/tools_schema.py` | MODIFY | move→infra | — | — | — | — | — | — | — | — |
+| `core/excel_handler.py` | **MODIFY** | move→infra | — | — | — | — | — | — | — | — |
+| `core/system_prompt.txt` | **MODIFY** | — | — | — | — | — | — | — | — | — |
+| `core/chat_session.py` | — | move→domain | — | — | — | — | — | — | — | — |
+| `core/confirmacao.py` | — | move→domain | — | — | — | — | — | — | — | — |
+| `core/client_protocol.py` | — | move→iface | — | — | — | — | — | — | — | — |
+| `core/interfaces.py` | — | move→iface | — | — | — | — | — | — | — | — |
+| `core/maria_controller.py` | — | move→app | — | — | — | — | — | — | — | — |
+| `core/tool_chaining.py` | — | move→app | — | — | — | — | — | — | — | — |
+| `core/router.py` | — | move→app | — | — | — | — | — | — | — | — |
+| `core/manual_redacao.py` | — | move→app | — | — | — | — | — | — | — | — |
+| `core/word_handler.py` | — | move→infra | — | — | — | — | — | — | — | — |
+| `core/file_utils.py` | — | move→infra | — | — | — | — | — | — | — | — |
+| `core/paths.py` | — | move→infra | — | — | — | — | — | — | — | — |
+| `core/session_storage.py` | — | move→iface | — | — | — | — | — | — | — | — |
+| `benchmark/runners/maria_runner.py` | MODIFY | — | **REFACTOR** | MODIFY | MODIFY | — | — | — | MODIFY | — |
+| `benchmark/tasks/task_schema.py` | MODIFY | — | — | MODIFY | **MODIFY** | — | — | — | MODIFY | — |
+| `benchmark/tasks/tasks_*.py` | — | — | — | — | **MODIFY** | — | — | — | — | — |
+| `benchmark/run_benchmark.py` | — | — | MODIFY | MODIFY | — | — | — | MODIFY | MODIFY | — |
+| `tests/test_maria.py` | **MODIFY** | MODIFY | — | — | — | — | — | — | — | — |
+| `domain/intent_classification.py` | — | — | — | — | — | **NEW** | — | — | — | — |
+| `application/intent_router.py` | — | — | — | — | — | **NEW** | — | — | — | — |
+| `infrastructure/tools/entity_extractor.py` | — | — | — | — | — | **NEW** | — | — | — | — |
+| `infrastructure/translation/nllb_client.py` | — | — | — | — | — | — | **NEW** | — | — | — |
+| `interfaces/translation_protocol.py` | — | — | — | — | — | — | **NEW** | — | — | — |
+| `benchmark/tasks/tasks_intent.py` | — | — | — | — | — | **NEW** (tasks 29–32) | — | — | — | — |
 
 ---
 
@@ -316,7 +326,17 @@ backend/
 ### Ordem de execução dentro do B1
 
 ```
-B1.0: Criar pastas + __init__.py + ARQUITETURA.md com regras
+B1.0: Criar pastas + __init__.py + ARQUITETURA.md com regras.
+      Incluir em ARQUITETURA.md uma seção "Reservas de namespace (fases futuras)"
+      listando, sem implementar:
+        - domain/intent_classification.py       (a implementar em B4.5)
+        - application/intent_router.py          (a implementar em B4.5)
+        - infrastructure/tools/entity_extractor.py (a implementar em B4.5)
+        - interfaces/translation_protocol.py    (a implementar em B4.6)
+        - infrastructure/translation/nllb_client.py (a implementar em B4.6)
+      Cada item deve indicar a camada e a regra de dependência que já se aplica a
+      ela (ver regra de dependência entre camadas, já documentada nesta seção),
+      de modo que B4.5/B4.6, quando executadas, não exijam redesenho de fronteiras.
 B1.1: domain/ (chat_session, confirmacao) + atualizar imports
 B1.2: interfaces/ (client_protocol, interfaces, session_storage) + atualizar imports
 B1.3: application/ (maria_controller, tool_chaining, router, manual_redacao) + imports
@@ -437,7 +457,93 @@ Rodar benchmark com tasks de dados numéricos (3B e 7B). Se `Preco` como string 
 
 ---
 
-## 8. Fase B5 — CLI completa · ~3–4h
+## 8. Fase B4.5 — Intent Classification / Entity Extraction (pré-processamento) · ~10–14h
+
+> Depende de B4 (Task 26 redesenhada + infraestrutura de tasks v2). Não bloqueia B5–B7.
+> Origem: relatório de validação de literatura (2026-09-08) + análise de viabilidade
+> concluindo que a implementação deve ocorrer como fase própria, posterior a B4, para
+> evitar sobreposição com `validacao_tool_call.py` (B0.3) e com o redesenho da Task 26 (B4).
+
+### Objetivo
+
+Adicionar uma camada de middleware pré-LLM que classifica a intenção da mensagem do
+usuário e extrai entidades estruturadas (nome de arquivo, colunas, linhas de dados)
+antes de montar o prompt enviado ao modelo — reduzindo a dependência do LLM para
+tarefas de baixo risco e alta frequência (classificação, extração de dados já
+presentes na mensagem).
+
+### Escopo
+
+1. `domain/intent_classification.py` (novo): classificador heurístico em cascade —
+   regex/keywords (< 1ms) → embedding opcional → fallback LLM (temperatura 0) apenas
+   para casos ambíguos. Sem I/O, sem dependência de `application/` ou `infrastructure/`.
+2. `infrastructure/tools/entity_extractor.py` (novo): extração de entidades híbrida —
+   regex estruturado como padrão; fallback para LLM somente quando a heurística falhar.
+   Reutiliza a whitelist de ferramentas já centralizada em `CAMPOS_OBRIGATORIOS`
+   (mesma fonte usada por B0.2/B0.3 — não duplicar).
+3. `application/intent_router.py` (novo): orquestra classificação → extração →
+   construção do prompt; define thresholds de confiança por intenção (execução direta,
+   fallback LLM, ou pedido de esclarecimento ao usuário).
+4. `benchmark/tasks/tasks_intent.py` (novo): Tasks 29–32 (mensagem com dados embutidos,
+   mensagem ambígua, múltiplas intenções na mesma mensagem — tradução tratada em B4.6).
+
+### Restrição obrigatória (evitar regressão do tipo BUG-4)
+
+A extração de entidades **não deve reimplementar** a normalização de chaves de
+`linhas`/`colunas` já resolvida em `validacao_tool_call.py` (B0.3, validadores V3–V5).
+`entity_extractor.py` produz um rascunho de argumentos a partir do texto livre da
+mensagem; a validação/normalização final desses argumentos passa obrigatoriamente
+pelo mesmo `validacao_tool_call.py` usado no fluxo pós-parser do LLM — um único
+caminho de validação para os dois casos (dados extraídos pelo sistema ou gerados
+pelo modelo).
+
+### Critério de aceite
+
+- [ ] Suíte 100% verde, incluindo os novos testes de `intent_classification` e `entity_extractor`.
+- [ ] Tasks 29–31 (novas) executadas no benchmark v2 (SQLite, B3) com métrica `args_correct` registrada.
+- [ ] `grep -r "df.reindex\|k.lower() for k" domain/intent_classification.py infrastructure/tools/entity_extractor.py` → zero (garante que a normalização não foi duplicada fora de `validacao_tool_call.py`).
+- [ ] Nenhuma alteração em `core/validacao_tool_call.py` além de eventual exposição de função pública já existente para reuso.
+
+---
+
+## 9. Fase B4.6 — Roteamento para modelo especializado de tradução (NLLB-200) · ~6–9h
+
+> Depende de B4. Independente de B4.5 — pode ser executada em paralelo ou isoladamente.
+> Introduz uma dependência de infraestrutura nova (modelo de tradução dedicado);
+> tratada como fase própria por não fazer parte do pipeline principal de tool calling.
+
+### Objetivo
+
+Rotear tarefas de tradução para um modelo especializado (NLLB-200 ou equivalente,
+~600M parâmetros) em vez de sobrecarregar o modelo principal de tool calling
+(Qwen2.5-Omni 7B) com uma tarefa de qualidade linguística especializada.
+
+### Escopo
+
+1. `interfaces/translation_protocol.py` (novo): `TranslationProtocol` (Protocol) —
+   contrato estrutural mínimo (`traduzir(texto: str, idioma_origem: str, idioma_destino: str) -> str`).
+2. `infrastructure/translation/nllb_client.py` (novo): cliente HTTP/local para o
+   modelo de tradução, implementando `TranslationProtocol`. Falha de conexão/timeout
+   deve ter fallback explícito: se o serviço de tradução não estiver disponível,
+   devolver erro claro ao chamador (nunca traduzir "no escuro" via o modelo principal
+   sem sinalizar a substituição).
+3. Ponto de integração: `application/intent_router.py` (de B4.5) despacha para
+   `TranslationProtocol` quando a intenção classificada for `traduzir` — **este é o
+   único ponto de acoplamento entre B4.5 e B4.6**; nenhuma outra dependência cruzada.
+4. Task 26 original (tradução Mandarim→Inglês, marcada `limite_conhecido=True` em B4)
+   pode ser reavaliada com o roteamento ativo, mas isso é opcional e não é critério
+   de aceite desta fase.
+
+### Critério de aceite
+
+- [ ] Suíte 100% verde, incluindo testes de `nllb_client` com mock de indisponibilidade do serviço (timeout/conexão recusada) e fallback de erro claro.
+- [ ] `TranslationProtocol` documentado em `interfaces/` seguindo o mesmo padrão de `LLMClientProtocol` (B1).
+- [ ] Nenhuma chamada a `nllb_client.py` fora de `application/intent_router.py`.
+- [ ] Decisão explícita registrada no `CHANGELOG.md` sobre se o modelo de tradução roda local (novo download/binário) ou via serviço externo — pendência de decisão, não assumir.
+
+---
+
+## 10. Fase B5 — CLI completa · ~3–4h
 
 Subcomandos:
 ```
@@ -451,7 +557,7 @@ Overrides de sampler via flags: `--temperature`, `--ctx-size`, `--system-prompt`
 
 ---
 
-## 9. Fase B6 — Semântica + LLM-judge + response_format · ~5–8h
+## 11. Fase B6 — Semântica + LLM-judge + response_format · ~5–8h
 
 ### LLM-as-judge (O5)
 
@@ -478,7 +584,7 @@ Zero duplicação manual.
 
 ---
 
-## 10. Fase B7 — v5.0.0 final · ~2–3h
+## 12. Fase B7 — v5.0.0 final · ~2–3h
 
 - `README_benchmark.md` reescrito.
 - `docs/ARQUITETURA.md` finalizado com mapa de camadas.
@@ -489,7 +595,7 @@ Zero duplicação manual.
 
 ---
 
-## 11. Critérios de aceite por fase (resumo)
+## 13. Critérios de aceite por fase (resumo)
 
 | Fase | Critério binário |
 |------|-----------------|
@@ -499,13 +605,15 @@ Zero duplicação manual.
 | B2 | `grep "_montar_mensagens_com_reforco" benchmarks/` → 0; zero imports privados |
 | B3 | `compare_runs` 100% via SQL; report resumido < 200 linhas |
 | B4 | Task 26 nova: 0 execuções com coluna vazia; `linhas_esperadas` avaliadas |
+| B4.5 | Suíte 100% verde (testes de intent_classification/entity_extractor); Tasks 29–31 com `args_correct`; grep normalização duplicada → 0 |
+| B4.6 | Suíte 100% verde (`nllb_client` com mock de indisponibilidade); `TranslationProtocol` documentado; zero chamadas fora de `application/intent_router.py` |
 | B5 | `maria-bench run --help` funciona; todos os subcomandos executáveis |
 | B6 | Concordância LLM-judge ≥ 80% antes de entrar no report |
 | B7 | `import-linter` passa; `CHANGELOG.md` atualizado; `core/` vazio |
 
 ---
 
-## 12. Oportunidades de evitar retrabalho
+## 14. Oportunidades de evitar retrabalho
 
 | Oportunidade | Como aplicar | Quando |
 |---|---|---|
@@ -520,7 +628,7 @@ Zero duplicação manual.
 
 ---
 
-## 13. Riscos e mitigações
+## 15. Riscos e mitigações
 
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|--------------|---------|-----------|

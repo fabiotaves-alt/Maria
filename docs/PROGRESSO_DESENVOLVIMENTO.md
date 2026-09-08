@@ -62,6 +62,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (Planejamento B4.5/B4.6)** | 2026-09-08 | `plano_mestre_v5.md` atualizado com as fases B4.5 (intent classification/entity extraction) e B4.6 (roteamento NLLB-200): mapa de dependências, inventário, seções 8/9, reserva de namespace no B1.0 e critérios de aceite; renumeração 0–15; sem alteração de código | ✅ Commitada (branch `feat/arquitetura-hexagonal-fase4`) |
 | **4.2.5-dev (Etapa Fase 0–4)** | 2026-09-08 | Fechamento da etapa: parser JSON de tool calls + validação determinística (Fase 0), camadas hexagonal domain/application/infrastructure/interfaces + re-exports em `core/` (Fase 1-4), benchmark com vocabulário de telemetria atualizado; **262 testes passando**; smoke test manual CLI (Qwen2.5-Omni-3B) aprovado (6/6 itens) — 4 problemas P0-P2 documentados no backlog | ✅ Commitada (branch `feat/arquitetura-hexagonal-fase4`) |
 
 | **4.2.5-dev** | 2026-09-07 | Análise da Arquitetura Hexagonal (Fase 4): relatórios técnicos em `docs/desenvolvedor_base/`, migração planejada (8 fases, 20-30h), branch `feat/arquitetura-hexagonal-fase4` criado. Regressão crítica do `system_prompt.txt` identificada (Fase 0 obrigatória) | 🔄 Em migração |
