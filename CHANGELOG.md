@@ -2,6 +2,67 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Smoke test manual CLI com Qwen2.5-Omni-3B — 2026-09-08
+
+### ✅ Validação end-to-end no chat (6 itens)
+- **Carga do modelo multimodal**: Qwen2.5-Omni-3B via llama-server (mmproj Q8_0, 4 slots, `n_ctx_slot=2048`).
+- **`criar_planilha` real**: `gastos.xlsx` criado em `arquivos_gerados/` com 1 linha (colunas Data/Valor).
+- **Validador V3 (case-insensitive)**: chave `"valor"` de `linhas` normalizada para a coluna `"Valor"` (sem NaN) — confirma o fix B0.4/BUG-2/3 em runtime real.
+- **Fluxo de confirmação**: mensagem amigável → `sim` → execução da ferramenta real.
+- **Cancelamento**: `não` → "Ação cancelada." (sem efeitos colaterais).
+- **Parser JSON streaming**: detectou `criar_planilha` e `editar_planilha` (log `Tool call detectada via JSON parser`).
+
+### 🐛 Problemas observados (backlog para a próxima etapa)
+1. **P0 — Vazamento do JSON da tool call na UI**: o JSON bruto `{"ferramenta":...}` é exibido como resposta `MARIA:` e persistido no histórico da sessão antes da mensagem amigável de confirmação. Causa: `ui_terminal._processar_mensagem_normal` imprime chunks em streaming antes de o parser detectar a tool call.
+2. **P0 — Gap semântico "adicionar"**: `editar_planilha` sobrescreve (sem ferramenta de append); usuário cancelou corretamente. `editar_planilha_real` falha com arquivo inexistente (`contatos.xlsx`).
+3. **P1 — Fidelidade de dados**: `Data=2026-01-01` → `"2026-01"` (modelo truncou o dia); telefone `83 99555 5555` → `"8399555555"` (espaços removidos).
+4. **P2 — Banner**: `maria_opening.png` ausente → fallback de texto.
+
+### 🧪 Testes
+- Suíte automatizada: **262 passed** (16.55s) — validada antes dos commits de fechamento da etapa.
+- Smoke manual com llama-server real (Qwen2.5-Omni-3B), fluxo chat completo.
+
+---
+
+
+## [4.2.5-dev] — B0.4 + B0.7: remover `reindex` e atualizar vocabulário de telemetria — 2026-09-08
+
+### 🐛 B0.4 — remover BUG-2/BUG-3 (`df.reindex`)
+- `backend/infrastructure/tools/excel_handler.py`: removido `df = df.reindex(columns=colunas)` em `criar_planilha_real` e `editar_planilha_real`. O V3 do validador já normaliza as chaves case-insensitive upstream — o handler não precisa mais reindexar (era a fonte do NaN em `"peso"` vs `"Peso"`).
+
+### 📊 B0.7 — vocabulário de telemetria (INCONS-3)
+- `backend/benchmark/tasks/task_schema.py`: `tool_call_fonte` → `"delta"`/`"json"`; `fallbacks` → `json_reparado, chaves_normalizadas, colunas_derivadas, linhas_truncadas_limite`.
+- `backend/benchmark/analysis/report.py` (`formatar_avisos`): substituídos os avisos de `fallback_json`/`nome_mapeado`/`lista_reparada`/`colunas_normalizadas` pelos novos.
+- `backend/tests/test_maria.py` (`TestFormatarAvisos`): atualizados os testes; removido `test_mapeamento_de_nome_mostra_bruto_canonico` (`nome_mapeado` deixou de existir).
+
+### 🧪 Testes
+- Suíte completa: **262 passed** (1 teste removido).
+- Gates: `grep reindex` → 0; `grep fallback_json|parser_posicional|nome_mapeado|lista_reparada|colunas_normalizadas` → 0.
+
+---
+
+## [4.2.5-dev] — B0.6 + B1: destravar a suíte e restaurar re-exports da migração hexagonal — 2026-09-08
+
+### 🎯 (a) B0.6 — deletar parser posicional (D1)
+- `backend/tests/test_maria.py`: removidas as classes `TestMapeamentoNomeFerramenta` e `TestToolCallTextualParser` e o método `test_extrair_dados_planilha_no_positional_map` — testes legados do parser posicional já deletado (154 linhas).
+- `git grep "tool_call_textual_parser|extrair_tool_call_textual|POSITIONAL_MAP|NOME_CANONICO"` → **zero** referências em `.py`.
+
+### 🏗️ (b) B1 — restaurar re-exports/contratos (migração = "move puro")
+- `backend/core/llama_client.py` virou re-export limpo de `backend.infrastructure.llm.llama_client` (expondo explicitamente os privados `_detectar_degeneracao`, `_montar_mensagens_com_reforco`, `_sugere_composicao_de_documento`).
+- `backend/application/tool_chaining.py` ← restaurado do HEAD (recuperou `FERRAMENTAS_ESCRITA`, auto-sanitização de path traversal e o contrato original de `validar_e_corrigir_tool_call_stream`).
+- `backend/infrastructure/tools/tools_schema.py` e `excel_handler.py` ← restaurados do HEAD com imports ajustados para as novas camadas.
+- `backend/core/tools_schema.py`: exposto `_sanitizar_nome_seguro` (privado consumido).
+- Testes com `@patch` atualizados para os novos caminhos (`backend.application.*`, `backend.infrastructure.tools.*`).
+
+### 🐛 Fixes de integração (Etapa 1+2, pré-requisito)
+- `test_maria.py`: corrigido o teste `test_resolver_tool_call_final_aceita_json_plano` (colado sobre o posicional, `conteudo_acumulado` duplicado).
+- `maria_runner.py`: removido o import morto de `POSITIONAL_MAP` + `if` órfão (IndentationError).
+
+### 🧪 Testes
+- Suíte completa (`.venv\Scripts\python.exe`): **263 passed** (antes: 1 erro de coleta).
+
+---
+
 ## [4.2.5-dev] — Análise da Arquitetura Hexagonal (Fase 4) — 2026-09-07
 
 ### 📚 Documentação — Relatórios de análise técnica

@@ -3,8 +3,8 @@
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
 **Versão Atual:** v4.2.5  
-**Última alteração:** 2026-09-07  
-**Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** (Fase 4 — Arquitetura Hexagonal planejada)  
+**Última alteração:** 2026-09-08  
+**Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — Fase 0 (parser JSON + validação determinística) e Fase 1-4 (camadas domain/application/infrastructure/interfaces + re-exports) **commitadas** na branch; smoke test manual CLI (Qwen2.5-Omni-3B) **aprovado** (6/6 itens, `criar_planilha` real OK); 4 problemas documentados no backlog (P0 JSON na UI, P0 gap "adicionar", P1 fidelidade de dados, P2 banner); pendentes B0.9 smoke completo e B0.5 baseline (exigem llama-server); **suíte verde (262 passed)**  
 **Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`
 
 ---
@@ -17,14 +17,14 @@
 
 | Fase | Descrição | Status | Estimativa |
 |------|-----------|--------|------------|
-| **Fase 0** | Pré-migração (corrigir `system_prompt.txt`, criar pastas) | ⏳ Pendente (bloqueia Fases 1-7) | 2-3h |
-| **Fase 1** | Domain (`chat_session.py`, `confirmacao.py`) | ⏳ Pendente | 3-4h |
-| **Fase 2** | Interfaces (mover Protocols existentes) | ⏳ Pendente | 2-3h |
-| **Fase 3** | Application (controller, tool_chaining, router, manual_redacao) | ⏳ Pendente | 3-4h |
-| **Fase 4** | Infrastructure (llm/, tools/, handlers) | ⏳ Pendente | 4-6h |
+| **Fase 0** | Pré-migração (corrigir `system_prompt.txt`, criar pastas) | 🔄 Em andamento (B0.x: parser JSON + validação + prompt v4) | 2-3h |
+| **Fase 1** | Domain (`chat_session.py`, `confirmacao.py`) | ✅ Aplicado (working tree; suíte verde) | 3-4h |
+| **Fase 2** | Interfaces (mover Protocols existentes) | ✅ Aplicado (working tree; suíte verde) | 2-3h |
+| **Fase 3** | Application (controller, tool_chaining, router, manual_redacao) | ✅ Aplicado (working tree; suíte verde) | 3-4h |
+| **Fase 4** | Infrastructure (llm/, tools/, handlers) | ✅ Aplicado (working tree; suíte verde) | 4-6h |
 | **Fase 5** | Database (mover `database/` para `infrastructure/database/`) | ⏳ Pendente | 2-3h |
 | **Fase 6** | Schemas Pydantic (validação de tool calls) | ⏳ Pendente | 3-4h |
-| **Fase 7** | Testes e Benchmark (atualizar @patch, imports) | ⏳ Pendente | 6-10h |
+| **Fase 7** | Testes e Benchmark (atualizar @patch, imports) | 🔄 Parcial (patchs dos testes atualizados; benchmark→ports pendente = B2) | 6-10h |
 
 **Total estimado:** 20-30 horas (2.5-4 dias úteis) — estimativa revisada (proposta original: 12-18h).
 
@@ -62,6 +62,8 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (Etapa Fase 0–4)** | 2026-09-08 | Fechamento da etapa: parser JSON de tool calls + validação determinística (Fase 0), camadas hexagonal domain/application/infrastructure/interfaces + re-exports em `core/` (Fase 1-4), benchmark com vocabulário de telemetria atualizado; **262 testes passando**; smoke test manual CLI (Qwen2.5-Omni-3B) aprovado (6/6 itens) — 4 problemas P0-P2 documentados no backlog | ✅ Commitada (branch `feat/arquitetura-hexagonal-fase4`) |
+
 | **4.2.5-dev** | 2026-09-07 | Análise da Arquitetura Hexagonal (Fase 4): relatórios técnicos em `docs/desenvolvedor_base/`, migração planejada (8 fases, 20-30h), branch `feat/arquitetura-hexagonal-fase4` criado. Regressão crítica do `system_prompt.txt` identificada (Fase 0 obrigatória) | 🔄 Em migração |
 | **4.0.0** | 2026-08-28 | Migração base do frontend JavaFX para Tauri v2 + React | ✅ Concluída |
 | **4.0.1** | 2026-08-29 | Estabilização Tauri + React (P0–P2): bridge HTTP, schema SQLite, sidecar | ✅ Concluída |
