@@ -48,7 +48,7 @@ class TestInjecaoToolExecutor(unittest.TestCase):
             {"name": "criar_planilha", "arguments": {"nome_arquivo": "gastos"}}
         )
 
-        with mock.patch("backend.core.maria_controller.salvar_sessao") as salvar:
+        with mock.patch("backend.application.maria_controller.salvar_sessao") as salvar:
             status, mensagem = controller.processar_confirmacao("sim")
 
         self.assertTrue(status)
@@ -62,7 +62,7 @@ class TestInjecaoToolExecutor(unittest.TestCase):
 
 class TestInjecaoExecutarLeitura(unittest.TestCase):
     def test_encadear_leitura_stream_usa_executor_injetado(self):
-        from backend.core.tool_chaining import encadear_leitura_stream
+        from backend.application.tool_chaining import encadear_leitura_stream
 
         chamadas = []
 
@@ -90,8 +90,8 @@ class TestInjecaoExecutarLeitura(unittest.TestCase):
     def test_sem_executor_injetado_usa_fallback_global(self):
         from unittest.mock import patch as _patch
 
-        from backend.core import tool_chaining
-        from backend.core.tool_chaining import encadear_leitura_stream
+        from backend.application import tool_chaining
+        from backend.application.tool_chaining import encadear_leitura_stream
 
         chamadas = []
 

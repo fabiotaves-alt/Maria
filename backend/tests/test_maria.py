@@ -333,8 +333,8 @@ class TestBenchmarkMetrics(unittest.TestCase):
         metrics = calculate_maria_metrics(results)
         self.assertAlmostEqual(metrics.avg_tokens_por_segundo, 15.0)
 
-    def test_resolver_tool_call_final_aceita_array_posicional(self):
-        """O streaming do Qwen2.5-Omni-3B pode devolver tool calls em formato array posicional."""
+    def test_resolver_tool_call_final_aceita_json_plano(self):
+        """O streaming do modelo devolve tool calls no formato JSON plano."""
         from backend.core.llama_client import LlamaClient
 
         cliente = LlamaClient()
@@ -342,11 +342,11 @@ class TestBenchmarkMetrics(unittest.TestCase):
             tc_detectada_via_delta=False,
             tc_nome_acumulado="",
             tc_args_acumulado="",
-            conteudo_acumulado='criar_planilha: ["gastos", ["Data", "Valor"]]',
+            conteudo_acumulado='{"ferramenta": "criar_planilha", "nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}',
         )
 
         self.assertIsNotNone(tool_call)
-        self.assertEqual(fonte, "parser_posicional")
+        self.assertEqual(fonte, "json")
         self.assertEqual(fallbacks, [])
         self.assertEqual(tool_call["name"], "criar_planilha")
         self.assertEqual(tool_call["arguments"]["nome_arquivo"], "gastos")
@@ -1836,69 +1836,34 @@ class TestFormatarAvisos(unittest.TestCase):
         self.assertIn("../../teste", avisos[0])
         self.assertIn("teste", avisos[0])
 
-    def test_fallback_json_gera_aviso(self):
+    def test_json_reparado_gera_aviso(self):
         from backend.benchmark.analysis.report import formatar_avisos
         avisos = formatar_avisos(self._resultado(
             tool_detected="criar_planilha",
             tool_nome_final="criar_planilha",
-            fallbacks=["fallback_json"],
+            fallbacks=["json_reparado"],
         ))
-        self.assertTrue(any("fallback JSON" in a for a in avisos))
+        self.assertTrue(any("JSON reparado" in a for a in avisos))
 
-    def test_parser_posicional_limpo_nao_gera_aviso(self):
+    def test_json_limpo_nao_gera_aviso(self):
         from backend.benchmark.analysis.report import formatar_avisos
         avisos = formatar_avisos(self._resultado(
             tool_detected="criar_planilha",
             tool_nome_final="criar_planilha",
-            tool_call_fonte="parser_posicional",
+            tool_call_fonte="json",
             fallbacks=[],
         ))
         self.assertEqual(avisos, [])
 
-    def test_mapeamento_de_nome_mostra_bruto_canonico(self):
-        from backend.benchmark.analysis.report import formatar_avisos
-        avisos = formatar_avisos(self._resultado(
-            tool_detected="listar_arquivos",
-            tool_nome_final="listar_arquivos",
-            tool_nome_bruto="Listar arquivos",
-            fallbacks=["nome_mapeado"],
-        ))
-        self.assertTrue(any("Listar arquivos" in a and "listar_arquivos" in a for a in avisos))
-
-    def test_lista_reparada_e_colunas_normalizadas(self):
+    def test_chaves_normalizadas_e_colunas_derivadas(self):
         from backend.benchmark.analysis.report import formatar_avisos
         avisos = formatar_avisos(self._resultado(
             tool_detected="criar_planilha",
             tool_nome_final="criar_planilha",
-            fallbacks=["lista_reparada", "colunas_normalizadas"],
+            fallbacks=["chaves_normalizadas", "colunas_derivadas"],
         ))
-        self.assertTrue(any("lista reparada" in a for a in avisos))
-        self.assertTrue(any("colunas normalizadas" in a for a in avisos))
-
-
-class TestMapeamentoNomeFerramenta(unittest.TestCase):
-    """Testa o mapeamento de nome legível → canônico (case b)."""
-
-    def test_nome_legivel_mapeado_para_canonico(self):
-        from backend.core.tool_call_textual_parser import extrair_tool_call_textual
-        resultado = extrair_tool_call_textual('Listar arquivos: ["pasta"]')
-        self.assertIsNotNone(resultado)
-        self.assertEqual(resultado["name"], "listar_arquivos")
-        self.assertEqual(resultado["_nome_bruto"], "Listar arquivos")
-
-    def test_snake_case_sem_nome_bruto(self):
-        from backend.core.tool_call_textual_parser import extrair_tool_call_textual
-        resultado = extrair_tool_call_textual('criar_planilha: ["gastos", ["Data", "Valor"]]')
-        self.assertIsNotNone(resultado)
-        self.assertEqual(resultado["name"], "criar_planilha")
-        self.assertNotIn("_nome_bruto", resultado)
-
-    def test_colunas_achatadas_marca_normalizacao(self):
-        from backend.core.tool_call_textual_parser import extrair_tool_call_textual
-        resultado = extrair_tool_call_textual('criar_planilha: ["gastos", "Data", "Valor"]')
-        self.assertIsNotNone(resultado)
-        self.assertTrue(resultado.get("_colunas_normalizadas"))
-        self.assertEqual(resultado["arguments"]["colunas"], ["Data", "Valor"])
+        self.assertTrue(any("chaves normalizadas" in a for a in avisos))
+        self.assertTrue(any("colunas derivadas" in a for a in avisos))
 
 
 class TestChatStreamDegeneracao(unittest.TestCase):
@@ -1967,126 +1932,6 @@ class TestMariaRunnerDegeneracao(unittest.TestCase):
         self.assertIn("DegenerateGeneration", kinds)
         self.assertFalse(resultado.runtime_ok)
         self.assertEqual(resultado.finish_reason, "degenerate")
-
-
-class TestToolCallTextualParser(unittest.TestCase):
-    """Testa o parser de tool call textual (formato posicional do Qwen).
-
-    Cada caso reproduz uma falha observada no log real do benchmark
-    (run_20260903_190549), onde o modelo gerou a chamada correta mas o
-    parser antigo (regex ancorada) não a reconheceu.
-    """
-
-    def setUp(self):
-        from backend.core.tool_call_textual_parser import extrair_tool_call_textual
-        self.extrair = extrair_tool_call_textual
-
-    # --- Casos já suportados (contrato preservado) ---
-
-    def test_formato_basico_preservado(self):
-        resultado = self.extrair('criar_planilha: ["gastos", ["Data", "Valor"]]')
-        self.assertEqual(resultado, {
-            "name": "criar_planilha",
-            "arguments": {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]},
-        })
-
-    def test_formato_parenteses_preservado(self):
-        resultado = self.extrair('criar_documento(["pauta", "Título", "conteúdo"])')
-        self.assertEqual(resultado["name"], "criar_documento")
-        self.assertEqual(resultado["arguments"]["titulo"], "Título")
-
-    def test_texto_sem_tool_call_retorna_none(self):
-        self.assertIsNone(self.extrair("Olá! Posso ajudar com planilhas e documentos."))
-        self.assertIsNone(self.extrair(""))
-        self.assertIsNone(self.extrair(None))
-
-    # --- Falhas reais do log (run_20260903_190549) ---
-
-    def test_ponto_e_virgula_final_task_3_5_14(self):
-        resultado = self.extrair('criar_planilha: ["agenda", ["Dia", "Compromisso"]];')
-        self.assertIsNotNone(resultado)
-        self.assertEqual(resultado["name"], "criar_planilha")
-        self.assertEqual(resultado["arguments"]["colunas"], ["Dia", "Compromisso"])
-
-    def test_texto_explicativo_apos_a_chamada_task_4(self):
-        conteudo = (
-            'criar_planilha: ["despesas.xlsx", ["Data", "Descrição", "Categoria", "Valor"]]\n\n'
-            'Esta planilha será usada para registrar todas as despesas.'
-        )
-        resultado = self.extrair(conteudo)
-        self.assertIsNotNone(resultado)
-        self.assertEqual(resultado["arguments"]["nome_arquivo"], "despesas.xlsx")
-
-    def test_segunda_pseudo_chamada_ignorada_task_9(self):
-        conteudo = (
-            'criar_documento: ["relatorio_reuniao", "Relatório", "conteúdo da reunião."]\n\n'
-            'Listar arquivos: ["relatorio_reuniao"]'
-        )
-        resultado = self.extrair(conteudo)
-        self.assertIsNotNone(resultado)
-        self.assertEqual(resultado["name"], "criar_documento")
-
-    def test_lista_achatada_agrupada_em_colunas_task_3_14(self):
-        resultado = self.extrair('criar_planilha: ["gastos", "Data", "Valor"]')
-        self.assertIsNotNone(resultado)
-        self.assertEqual(resultado["arguments"]["colunas"], ["Data", "Valor"])
-
-    def test_string_virgula_vira_lista_de_colunas_task_14(self):
-        resultado = self.extrair('criar_planilha: ["agenda", "Dia, Compromisso"]')
-        self.assertIsNotNone(resultado)
-        self.assertEqual(resultado["arguments"]["colunas"], ["Dia", "Compromisso"])
-
-    def test_lista_truncada_reparada_task_8_10_15(self):
-        # Modelo cortado por max_tokens: último item sem aspas de fechamento.
-        conteudo = 'criar_documento: ["ata", "Ata", "Reunião realizada com sucesso. Próxima'
-        resultado = self.extrair(conteudo)
-        self.assertIsNotNone(resultado)
-        self.assertEqual(resultado["name"], "criar_documento")
-        self.assertEqual(resultado["arguments"]["nome_arquivo"], "ata")
-        self.assertEqual(resultado["arguments"]["titulo"], "Ata")
-        self.assertIn("Reunião", resultado["arguments"]["conteudo"])
-
-    def test_nome_desconhecido_nao_gera_dict_posicional(self):
-        # Sem nome conhecido, não deve retornar dict de índices numéricos.
-        self.assertIsNone(self.extrair('ferramenta_inventada: ["a", "b"]'))
-
-    def test_ponto_final_apos_lista_task_18(self):
-        resultado = self.extrair('editar_planilha: ["projetos.xlsx", ["Projeto", "Status"]].')
-        self.assertIsNotNone(resultado)
-        self.assertEqual(resultado["name"], "editar_planilha")
-        self.assertEqual(resultado["arguments"]["colunas"], ["Projeto", "Status"])
-
-    def test_extrai_dados_planilha_offset_omitido(self):
-        resultado = self.extrair('extrair_dados_planilha: ["vendas"]')
-        self.assertEqual(resultado["name"], "extrair_dados_planilha")
-        self.assertEqual(resultado["arguments"]["nome_arquivo"], "vendas")
-        self.assertIsNone(resultado["arguments"]["offset"])
-
-    def test_extrai_dados_planilha_com_offset_inteiro(self):
-        resultado = self.extrair('extrair_dados_planilha: ["vendas", 50]')
-        self.assertEqual(resultado["arguments"]["nome_arquivo"], "vendas")
-        self.assertEqual(resultado["arguments"]["offset"], 50)
-
-    def test_extrai_dados_planilha_offset_string_numerica_convertido(self):
-        resultado = self.extrair('extrair_dados_planilha: ["vendas", "50"]')
-        self.assertEqual(resultado["arguments"]["offset"], 50)
-        self.assertIsInstance(resultado["arguments"]["offset"], int)
-
-    def test_extrai_dados_planilha_linha_cabecalho_e_limite_linhas(self):
-        """v4.2.3: novos campos posicionais parseados como int (nativo e string)."""
-        resultado = self.extrair('extrair_dados_planilha: ["vendas", 0, 2, 5]')
-        self.assertEqual(resultado["name"], "extrair_dados_planilha")
-        self.assertEqual(resultado["arguments"]["nome_arquivo"], "vendas")
-        self.assertEqual(resultado["arguments"]["offset"], 0)
-        self.assertEqual(resultado["arguments"]["linha_cabecalho"], 2)
-        self.assertEqual(resultado["arguments"]["limite_linhas"], 5)
-
-        resultado_str = self.extrair('extrair_dados_planilha: ["vendas", "0", "2", "5"]')
-        self.assertIsInstance(resultado_str["arguments"]["offset"], int)
-        self.assertIsInstance(resultado_str["arguments"]["linha_cabecalho"], int)
-        self.assertIsInstance(resultado_str["arguments"]["limite_linhas"], int)
-        self.assertEqual(resultado_str["arguments"]["linha_cabecalho"], 2)
-        self.assertEqual(resultado_str["arguments"]["limite_linhas"], 5)
 
 
 class TestSanitizacaoNomeSeguro(unittest.TestCase):
@@ -2456,15 +2301,6 @@ class TestFerramentaConsultarManualRedacao(unittest.TestCase):
     def test_executar_ferramenta_leitura_ferramenta_desconhecida_ainda_falha(self):
         with self.assertRaises(ValueError):
             executar_ferramenta_leitura("ferramenta_inexistente", {})
-
-    def test_extrair_dados_planilha_no_positional_map(self):
-        from backend.core.tool_call_textual_parser import POSITIONAL_MAP
-        self.assertIn("extrair_dados_planilha", POSITIONAL_MAP)
-        self.assertEqual(
-            POSITIONAL_MAP["extrair_dados_planilha"],
-            ["nome_arquivo", "offset", "linha_cabecalho", "limite_linhas"],
-        )
-
 
 class TestObterMetadadosModelo(unittest.TestCase):
     """Testa a extração de metadados do llama-server via /v1/models (mock, sem servidor)."""
@@ -3216,7 +3052,7 @@ class TestCriarPlanilhaComLinhas(unittest.TestCase):
         from backend.core.excel_handler import criar_planilha_real
         from openpyxl import load_workbook
         linhas = [{"Nome": "Ana", "Valor": 1}]
-        with self.assertLogs("backend.core.excel_handler", level="WARNING") as logs:
+        with self.assertLogs("backend.infrastructure.tools.excel_handler", level="WARNING") as logs:
             caminho = criar_planilha_real(
                 "descricao_ignorada", ["Nome", "Valor"],
                 descricao="Propósito da planilha",
@@ -3314,8 +3150,8 @@ class TestExtrairDadosPlanilha(unittest.TestCase):
         # truncaria as 15 linhas na criação (default 50) e a paginação nunca
         # veria tem_mais=True.
         limite = 10
-        with patch("backend.core.excel_handler.get_max_linhas_por_chamada", return_value=50), \
-             patch("backend.core.excel_handler.get_max_linhas_extracao", return_value=limite):
+        with patch("backend.infrastructure.tools.excel_handler.get_max_linhas_por_chamada", return_value=50), \
+             patch("backend.infrastructure.tools.excel_handler.get_max_linhas_extracao", return_value=limite):
             linhas = [{"Col": i} for i in range(limite + 5)]
             caminho = criar_planilha_real("paginada", ["Col"], linhas=linhas)
             nome = os.path.splitext(os.path.basename(caminho))[0]
@@ -3397,8 +3233,8 @@ class TestExtrairDadosPlanilha(unittest.TestCase):
     def test_limite_linhas_extracao(self):
         """v4.2.3: limite_linhas reduz o lote, mas o teto do modelo prevalece."""
         from backend.core.excel_handler import criar_planilha_real, extrair_dados_planilha_real
-        with patch("backend.core.excel_handler.get_max_linhas_por_chamada", return_value=50), \
-             patch("backend.core.excel_handler.get_max_linhas_extracao", return_value=10):
+        with patch("backend.infrastructure.tools.excel_handler.get_max_linhas_por_chamada", return_value=50), \
+             patch("backend.infrastructure.tools.excel_handler.get_max_linhas_extracao", return_value=10):
             linhas = [{"Col": i} for i in range(15)]
             caminho = criar_planilha_real("limitada", ["Col"], linhas=linhas)
             nome = os.path.splitext(os.path.basename(caminho))[0]

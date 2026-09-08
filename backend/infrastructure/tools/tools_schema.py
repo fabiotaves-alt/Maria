@@ -1,0 +1,580 @@
+"""
+Módulo de definição de ferramentas (function calling) para o assistente MARIA.
+
+Descrição unificada
+====================
+Este módulo concentra a especificação das ferramentas que o modelo de linguagem
+(Qwen2.5-Omni) pode solicitar por meio de *function calling*. As ferramentas
+estão divididas em duas categorias:
+
+1. **Ferramentas de escrita** (modificam o sistema de arquivos, exigem confirmação):
+   - ``criar_planilha``: cria um novo arquivo Excel com colunas definidas.
+   - ``criar_documento``: cria um novo documento Word com conteúdo narrativo.
+   - ``editar_planilha``: sobrescreve uma planilha existente com nova estrutura.
+
+2. **Ferramentas de leitura** (somente leitura, executadas sem confirmação):
+   - ``listar_arquivos``: lista arquivos em uma pasta permitida.
+   - ``resumir_documento``: lê um documento e disponibiliza o conteúdo para resumo/análise.
+   - ``consultar_manual_redacao``: consulta o Manual de Redação da Presidência da República.
+
+Fluxo de utilização
+-------------------
+O modelo recebe as definições das ferramentas (``TOOLS_SCHEMA``) e, ao detectar uma
+intenção compatível, retorna uma *tool call* com o nome da função e os argumentos.
+O backend então executa a ferramenta correspondente através das funções
+``executar_ferramenta_real`` (para escrita) ou ``executar_ferramenta_leitura`` (para leitura).
+Antes da execução, os argumentos obrigatórios são validados pela função
+``validar_argumentos_obrigatorios``.
+
+Campos obrigatórios
+-------------------
+A tabela a seguir resume os campos exigidos para cada ferramenta:
+
++---------------------------+--------------------------------------+
+| Ferramenta                | Campos obrigatórios                  |
++===========================+======================================+
+| criar_planilha            | nome_arquivo, colunas                |
++---------------------------+--------------------------------------+
+| criar_documento           | nome_arquivo, titulo, conteudo       |
++---------------------------+--------------------------------------+
+| editar_planilha           | nome_arquivo, colunas                |
++---------------------------+--------------------------------------+
+| listar_arquivos           | (nenhum)                             |
++---------------------------+--------------------------------------+
+| resumir_documento         | nome_arquivo                         |
++---------------------------+--------------------------------------+
+| consultar_manual_redacao  | tipo_documento                       |
++---------------------------+--------------------------------------+
+
+Notas
+-----
+- As constantes ``FERRAMENTA_*`` seguem o formato exigido pela API (OpenAI-compatível)
+  (``type: function`` e ``function`` com ``name``, ``description`` e ``parameters``).
+- A lista ``TOOLS_SCHEMA`` agrega todas as definições para envio ao modelo.
+- O conjunto ``FERRAMENTAS_LEITURA`` identifica as funções que não exigem confirmação.
+"""
+
+import logging
+import re
+
+# Configurar logger do módulo
+logger = logging.getLogger(__name__)
+
+# -----------------------------------------------------------------------------
+# Campos obrigatórios por ferramenta (usados na validação antes da execução)
+# -----------------------------------------------------------------------------
+CAMPOS_OBRIGATORIOS = {
+    # Escrita
+    "criar_planilha": ["nome_arquivo", "colunas"],
+    "criar_documento": ["nome_arquivo", "titulo", "conteudo"],
+    "editar_planilha": ["nome_arquivo", "colunas"],
+    # Leitura
+    "listar_arquivos": [],  # nenhum campo obrigatório
+    "resumir_documento": ["nome_arquivo"],
+    "extrair_dados_planilha": ["nome_arquivo"],
+    "consultar_manual_redacao": ["tipo_documento"],
+}
+
+# -----------------------------------------------------------------------------
+# Definições das ferramentas (schemas para function calling)
+# -----------------------------------------------------------------------------
+FERRAMENTA_CRIAR_PLANILHA = {
+    "type": "function",
+    "function": {
+        "name": "criar_planilha",
+        "description": """Cria uma nova planilha Excel com colunas estruturadas em linhas e colunas.
+Use PARA: dados tabulares, controle financeiro, listas com múltiplas colunas, relatórios numéricos, inventários, orçamentos.
+Exemplos de frases-gatilho:
+- "crie uma planilha de gastos"
+- "quero uma tabela com colunas para nome, idade e salário"
+- "preciso de um arquivo Excel para controle de estoque"
+NÃO use para textos corridos ou documentos narrativos.
+
+IMPORTANTE: O campo 'colunas' deve ser uma LISTA DE STRINGS, não uma string única.
+Exemplo correto: {"nome_arquivo": "gastos", "colunas": ["Data", "Descrição", "Valor", "Categoria"]}
+Exemplo INCORRETO: {"nome_arquivo": "gastos", "conteudo": "Data,Valor"} - NÃO use 'conteudo' para planilhas!""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "nome_arquivo": {
+                    "type": "string",
+                    "description": "Nome do arquivo da planilha (sem extensão). Ex: 'controle_gastos'"
+                },
+                "colunas": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "LISTA DE STRINGS com os nomes das colunas. Ex: ['Data', 'Descrição', 'Valor', 'Categoria']. NUNCA use uma string única com separadores!"
+                },
+                "descricao": {
+                    "type": "string",
+                    "description": "Descrição breve do propósito da planilha. Se 'linhas' for fornecido, esta descrição é ignorada (use apenas para planilhas sem dados iniciais)."
+                },
+                "linhas": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": (
+                        "Lista opcional de linhas de dados. Cada item é um objeto cujas chaves "
+                        "são os nomes das colunas. Ex: [{\"Data\": \"2026-01-01\", \"Valor\": 100}]. "
+                        "Use para criar planilha já com dados. Omita para criar só com cabeçalho."
+                    )
+                }
+            },
+            "required": ["nome_arquivo", "colunas"]
+        }
+    }
+}
+
+FERRAMENTA_CRIAR_DOCUMENTO = {
+    "type": "function",
+    "function": {
+        "name": "criar_documento",
+        "description": """Cria um novo documento de texto (Word) com conteúdo narrativo completo, gerado pelo próprio modelo.
+Use PARA: textos corridos, cartas, relatórios narrativos, comunicados, mensagens formais.
+O campo 'conteudo' deve conter o texto completo e coerente do documento, com parágrafos separados por uma linha em branco (\\n\\n).
+Exemplos de frases-gatilho:
+- "crie um texto sobre reunião"
+- "quero um documento com uma carta de apresentação"
+- "preciso de um relatório em formato de texto"
+NÃO use para dados estruturados em colunas ou tabelas.
+Se o documento for um ofício, exposição de motivos, mensagem oficial ou e-mail institucional, chame consultar_manual_redacao ANTES desta ferramenta e siga o padrão exigido pelo Manual de Redação.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "nome_arquivo": {
+                    "type": "string",
+                    "description": "Nome do arquivo do documento (sem extensão). Ex: 'relatorio_mensal'"
+                },
+                "titulo": {
+                    "type": "string",
+                    "description": "Título principal do documento. Campo obrigatório: se o usuário não indicar um título explícito, gere um título curto e apropriado com base no conteúdo. Ex: 'Relatório de Vendas - Janeiro 2025', ou 'Carta de Apresentação' para uma carta sem título informado."
+                },
+                "conteudo": {
+                    "type": "string",
+                    "description": "Texto completo e coerente do documento, com parágrafos separados por uma linha em branco (\\n\\n)."
+                }
+            },
+            "required": ["nome_arquivo", "titulo", "conteudo"]
+        }
+    }
+}
+
+FERRAMENTA_EDITAR_PLANILHA = {
+    "type": "function",
+    "function": {
+        "name": "editar_planilha",
+        "description": """Substitui completamente uma planilha existente por uma nova estrutura de colunas e, opcionalmente, linhas de dados. O arquivo original é sobrescrito.
+Use PARA: corrigir colunas, adicionar/remover campos ou atualizar dados de uma planilha já criada.
+NÃO use se a planilha ainda não existir — nesse caso use criar_planilha.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "nome_arquivo": {
+                    "type": "string",
+                    "description": "Nome exato do arquivo sem extensão a ser sobrescrito."
+                },
+                "colunas": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Nova lista de nomes de colunas."
+                },
+                "linhas": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": (
+                        "Linhas opcionais com dados. Chaves devem corresponder aos nomes das colunas. "
+                        "Colunas ausentes ficam vazias; chaves extras são ignoradas. "
+                        "Omita para sobrescrever mantendo só o cabeçalho."
+                    )
+                },
+                "descricao": {
+                    "type": "string",
+                    "description": "Descrição opcional da planilha."
+                }
+            },
+            "required": ["nome_arquivo", "colunas"]
+        }
+    }
+}
+
+FERRAMENTA_LISTAR_ARQUIVOS = {
+    "type": "function",
+    "function": {
+        "name": "listar_arquivos",
+        "description": """Lista os arquivos existentes em uma pasta permitida (somente leitura, não modifica nada).
+Use PARA: responder o que existe em uma pasta ou diretório.
+Exemplos de frases-gatilho:
+- "que arquivos tem na pasta docs?"
+- "o que já foi criado na pasta de arquivos gerados?"
+NÃO use para criar, editar ou apagar arquivos.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pasta": {
+                    "type": "string",
+                    "description": "Nome ou caminho relativo da pasta dentro das permitidas. Deixe vazio para a pasta padrão."
+                }
+            },
+            "required": []
+        }
+    }
+}
+
+FERRAMENTA_RESUMIR_DOCUMENTO = {
+    "type": "function",
+    "function": {
+        "name": "resumir_documento",
+        "description": """Lê um documento de texto (.txt, .md, .csv, .log, .docx) de uma pasta permitida e disponibiliza o conteúdo para você resumir, analisar ou extrair informações. Somente leitura, não modifica nada.
+Use PARA: resumir, analisar ou extrair trechos de um documento já existente.
+Exemplos de frases-gatilho:
+- "resuma o arquivo notas_reuniao.txt"
+- "do que trata o documento ata.docx?"
+NÃO use para criar um documento novo — nesse caso use criar_documento.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "nome_arquivo": {
+                    "type": "string",
+                    "description": "Nome do arquivo a ler. Ex.: 'relatorio.txt', 'ata.docx'"
+                },
+                "instrucoes": {
+                    "type": "string",
+                    "description": "O que fazer com o conteúdo. Ex.: 'resuma em 5 tópicos'"
+                }
+            },
+            "required": ["nome_arquivo"]
+        }
+    }
+}
+
+FERRAMENTA_EXTRAIR_DADOS_PLANILHA = {
+    "type": "function",
+    "function": {
+        "name": "extrair_dados_planilha",
+        "description": """Lê os dados de uma planilha Excel existente em lotes paginados, retornando um JSON estruturado (colunas, linhas, total_linhas, tem_mais, proximo_offset). Somente leitura, não modifica nada.
+Use PARA: processar, transformar, traduzir, filtrar ou analisar dados de uma planilha já existente antes de criar ou editar outra.
+Exemplos de frases-gatilho:
+- "traduza a planilha vendas para inglês"
+- "adicione uma coluna calculada na planilha estoque"
+- "quais são os dados da planilha clientes?"
+Se a resposta indicar "tem_mais": true, chame esta ferramenta novamente com offset=proximo_offset até obter todos os dados, ANTES de criar ou editar a planilha de destino.
+NÃO use para apenas listar arquivos (use listar_arquivos) nem para obter um resumo textual simples (use resumir_documento).""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "nome_arquivo": {
+                    "type": "string",
+                    "description": "Nome do arquivo da planilha a ler (com ou sem .xlsx). Ex.: 'vendas'"
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Índice (a partir de 0) da primeira linha de dados a retornar. Omita ou use 0 para começar do início. Use o valor de 'proximo_offset' da resposta anterior para continuar a leitura em lotes."
+                },
+                "linha_cabecalho": {
+                    "type": "integer",
+                    "description": "Número da linha (0-indexado) onde estão os cabeçalhos. Se omitido, a ferramenta detecta automaticamente (linha 1 ou 3).",
+                    "minimum": 0
+                },
+                "limite_linhas": {
+                    "type": "integer",
+                    "description": "Número máximo de linhas a retornar nesta chamada (respeita o limite máximo do modelo).",
+                    "minimum": 1
+                }
+            },
+            "required": ["nome_arquivo"]
+        }
+    }
+}
+
+FERRAMENTA_CONSULTAR_MANUAL_REDACAO = {
+    "type": "function",
+    "function": {
+        "name": "consultar_manual_redacao",
+        "description": """Consulta o Manual de Redação da Presidência da República para obter estrutura, formatação e exemplos de documentos oficiais. Somente leitura, não modifica nada.
+Use SEMPRE antes de criar_documento quando o usuário pedir um ofício, aviso, memorando (todos unificados em "ofício" desde a 3a edição do Manual), exposição de motivos, mensagem oficial (ao Congresso Nacional, veto, etc.) ou e-mail institucional.
+Exemplos de frases-gatilho:
+- "redija um ofício para..."
+- "crie uma exposição de motivos sobre..."
+- "escreva um e-mail institucional informando..."
+NÃO use para documentos narrativos comuns (cartas informais, relatórios internos sem padrão oficial).""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "tipo_documento": {
+                    "type": "string",
+                    "enum": ["oficio", "exposicao_motivos", "mensagem", "email", "geral"],
+                    "description": "Tipo de documento oficial. Use 'oficio' também para o que seria aviso ou memorando (termos abolidos pelo Manual)."
+                },
+                "termo_busca": {
+                    "type": "string",
+                    "description": "Palavras-chave opcionais para refinar a busca. Ex.: 'fecho', 'vocativo', 'pronome de tratamento'."
+                }
+            },
+            "required": ["tipo_documento"]
+        }
+    }
+}
+
+# -----------------------------------------------------------------------------
+# Conjunto de ferramentas de leitura (executadas sem confirmação)
+# -----------------------------------------------------------------------------
+FERRAMENTAS_LEITURA = {"listar_arquivos", "resumir_documento", "extrair_dados_planilha", "consultar_manual_redacao"}
+
+# Lista de todas as ferramentas disponíveis para envio ao modelo
+TOOLS_SCHEMA = [
+    FERRAMENTA_CRIAR_PLANILHA,
+    FERRAMENTA_CRIAR_DOCUMENTO,
+    FERRAMENTA_EDITAR_PLANILHA,
+    FERRAMENTA_LISTAR_ARQUIVOS,
+    FERRAMENTA_RESUMIR_DOCUMENTO,
+    FERRAMENTA_EXTRAIR_DADOS_PLANILHA,
+    FERRAMENTA_CONSULTAR_MANUAL_REDACAO,
+]
+
+
+# -----------------------------------------------------------------------------
+# Funções auxiliares
+# -----------------------------------------------------------------------------
+def validar_argumentos_obrigatorios(nome_funcao: str, argumentos: dict) -> None:
+    """
+    Valida se todos os campos obrigatórios da ferramenta estão presentes
+    e não vazios em `argumentos`.
+
+    Args:
+        nome_funcao: Nome da função (deve existir em ``CAMPOS_OBRIGATORIOS``).
+        argumentos: Dicionário com os argumentos recebidos na tool call.
+
+    Raises:
+        ValueError: se algum campo obrigatório estiver ausente, None,
+            string vazia/só espaços, ou lista vazia.
+    """
+    campos = CAMPOS_OBRIGATORIOS.get(nome_funcao, [])
+    faltando = []
+    for campo in campos:
+        valor = argumentos.get(campo)
+        if valor is None:
+            faltando.append(campo)
+        elif isinstance(valor, str) and not valor.strip():
+            faltando.append(campo)
+        elif isinstance(valor, list) and len(valor) == 0:
+            faltando.append(campo)
+    if faltando:
+        raise ValueError(
+            f"Não foi possível executar '{nome_funcao}': "
+            f"campo(s) obrigatório(s) ausente(s) ou vazio(s): {', '.join(faltando)}."
+        )
+
+    # --- Validações adicionais de tipo e sanitização (somente schema;
+    # NÃO verifica existência de arquivo em disco) ---
+    problemas = []
+    if nome_funcao in ("criar_planilha", "editar_planilha"):
+        colunas = argumentos.get("colunas")
+        if colunas is not None and not isinstance(colunas, list):
+            problemas.append("'colunas' deve ser uma lista de strings, não uma string única.")
+        elif isinstance(colunas, list):
+            itens_invalidos = [
+                item for item in colunas
+                if not isinstance(item, str) or not item.strip()
+            ]
+            if itens_invalidos:
+                problemas.append(
+                    f"'colunas' deve conter apenas strings não-vazias; "
+                    f"item(ns) inválido(s): {itens_invalidos!r}."
+                )
+
+    if nome_funcao in ("criar_planilha", "criar_documento", "editar_planilha"):
+        nome_arquivo = argumentos.get("nome_arquivo")
+        if isinstance(nome_arquivo, str) and nome_arquivo.strip():
+            try:
+                _sanitizar_nome_arquivo(nome_arquivo)
+            except ValueError as erro_sanitizacao:
+                problemas.append(str(erro_sanitizacao))
+
+    if problemas:
+        raise ValueError(
+            f"Não foi possível executar '{nome_funcao}': {' '.join(problemas)}"
+        )
+
+
+def simular_execucao_ferramenta(nome_funcao: str, argumentos: dict) -> str:
+    """
+    Simula a execução de uma ferramenta (utilitário de debug/teste).
+    Não faz parte do fluxo principal, que usa ``executar_ferramenta_real``.
+
+    Args:
+        nome_funcao: Nome da função a ser executada.
+        argumentos: Dicionário com os argumentos da chamada.
+
+    Returns:
+        String descrevendo a simulação da execução.
+    """
+    logger.debug(f"Chamada de ferramenta detectada: {nome_funcao}({argumentos})")
+
+    if nome_funcao == "criar_planilha":
+        return (f"[SIMULAÇÃO] Planilha '{argumentos.get('nome_arquivo', 'desconhecido')}' "
+                f"seria criada com {len(argumentos.get('colunas', []))} colunas.")
+    elif nome_funcao == "criar_documento":
+        return (f"[SIMULAÇÃO] Documento '{argumentos.get('nome_arquivo', 'desconhecido')}' "
+                f"seria criado com o título '{argumentos.get('titulo', 'Sem título')}'.")
+    else:
+        return f"[SIMULAÇÃO] Função '{nome_funcao}' desconhecida."
+
+
+def _sanitizar_nome_arquivo(nome: str) -> str:
+    """Remove path traversal, caracteres inseguros e normaliza o nome.
+
+    Rejeita nomes que tentam sair do diretório permitido.
+    """
+    if not nome:
+        raise ValueError("nome_arquivo não pode ser vazio.")
+
+    nome = nome.strip()
+    if ".." in nome or nome.startswith("/") or nome.startswith("\\") or nome.startswith("."):
+        raise ValueError(f"nome_arquivo contém path traversal: {nome!r}")
+
+    # Remove caracteres de controle e path separators
+    nome = re.sub(r'[\\/:*?"<>|]', "", nome)
+    nome = nome.strip(".")
+
+    # Rejeita sequências de path traversal residual após a limpeza
+    if ".." in nome or nome.startswith("/") or nome.startswith("\\") or nome.startswith("."):
+        raise ValueError(f"nome_arquivo contém path traversal: {nome!r}")
+    if not nome:
+        raise ValueError("nome_arquivo inválido após sanitização.")
+    return nome
+
+
+def _sanitizar_nome_seguro(nome: str) -> str:
+    """Remove caracteres inseguros silenciosamente (auto-correcao do benchmark).
+
+    Diferente de `_sanitizar_nome_arquivo` (que rejeita path traversal com
+    ValueError), esta versao apenas limpa o nome para torna-lo seguro, sem
+    levantar excecao. Usada em `executar_ferramenta_real` ANTES da validacao
+    para que nomes como "../../teste_seguro" sejam corrigidos para "teste_seguro"
+    em vez de abortarem a tarefa.
+    """
+    if not nome:
+        return "arquivo_sem_nome"
+    nome = re.sub(r'[\\/:*?"<>|]', "", nome.strip())
+    nome = nome.strip(".")
+    return nome if nome else "arquivo_sem_nome"
+
+
+def executar_ferramenta_real(nome_funcao: str, argumentos: dict) -> str:
+    """
+    Executa realmente uma ferramenta de escrita, criando ou modificando arquivos.
+
+    Args:
+        nome_funcao: Nome da função a ser executada (deve ser uma ferramenta de escrita).
+        argumentos: Dicionário com os argumentos da chamada.
+
+    Returns:
+        Caminho absoluto do arquivo criado/modificado ou mensagem de erro.
+
+    Raises:
+        ValueError: se a função não for reconhecida ou se argumentos obrigatórios faltarem.
+    """
+    logger.info(f"Executando ferramenta real: {nome_funcao}({argumentos})")
+    # Auto-sanitizacao silenciosa do nome ANTES da validacao: nomes inseguros
+    # (ex.: "../../teste_seguro") sao corrigidos em vez de rejeitados, mantendo
+    # a seguranca (caracteres perigosos sao removidos) sem abortar a tarefa.
+    argumentos["nome_arquivo"] = _sanitizar_nome_seguro(argumentos.get("nome_arquivo", ""))
+    validar_argumentos_obrigatorios(nome_funcao, argumentos)
+    # Sanitizacao redundante mantida por legibilidade (nome ja esta seguro)
+    nome_raw = argumentos.get("nome_arquivo", "")
+    nome_seguro = _sanitizar_nome_arquivo(nome_raw)
+
+    if nome_funcao == "criar_planilha":
+        from backend.infrastructure.tools.excel_handler import criar_planilha_real
+        caminho = criar_planilha_real(
+            nome_arquivo=nome_seguro,
+            colunas=argumentos.get("colunas", []),
+            descricao=argumentos.get("descricao", ""),
+            linhas=argumentos.get("linhas"),          # novo
+        )
+        return f"Planilha criada com sucesso: {caminho}"
+
+    elif nome_funcao == "criar_documento":
+        from backend.infrastructure.tools.word_handler import criar_documento_real
+        caminho = criar_documento_real(
+            nome_arquivo=nome_seguro,
+            titulo=argumentos.get("titulo", "Sem título"),
+            conteudo=argumentos.get("conteudo", "")
+        )
+        return f"Documento criado com sucesso: {caminho}"
+
+    elif nome_funcao == "editar_planilha":
+        from backend.infrastructure.tools.excel_handler import editar_planilha_real
+        caminho = editar_planilha_real(
+            nome_arquivo=nome_seguro,
+            colunas=argumentos.get("colunas", []),
+            linhas=argumentos.get("linhas"),
+            descricao=argumentos.get("descricao", "")
+        )
+        return f"Planilha atualizada com sucesso: {caminho}"
+
+    else:
+        raise ValueError(f"Ferramenta de escrita desconhecida: {nome_funcao}")
+
+
+def executar_ferramenta_leitura(nome_funcao: str, argumentos: dict) -> str:
+    """
+    Executa uma ferramenta de LEITURA (não modifica arquivos) e retorna o
+    resultado como texto, pronto para ser devolvido ao modelo.
+
+    Args:
+        nome_funcao: Nome da função (listar_arquivos, resumir_documento, consultar_manual_redacao).
+        argumentos: Argumentos da tool call.
+
+    Returns:
+        Texto com o resultado da leitura.
+
+    Raises:
+        ValueError: se a ferramenta não for reconhecida ou se argumentos obrigatórios faltarem.
+    """
+    logger.info(f"Executando ferramenta de leitura: {nome_funcao}({argumentos})")
+    # Valida argumentos obrigatórios também para ferramentas de leitura
+    validar_argumentos_obrigatorios(nome_funcao, argumentos)
+
+    if nome_funcao == "listar_arquivos":
+        from backend.infrastructure.tools.file_utils import listar_arquivos
+        itens = listar_arquivos(argumentos.get("pasta", ""))
+        if not itens:
+            return "A pasta está vazia (nenhum arquivo encontrado)."
+        linhas = "\n".join(f"- {i['nome']} ({i['tamanho_kb']} KB)" for i in itens)
+        return f"Arquivos encontrados:\n{linhas}"
+
+    elif nome_funcao == "resumir_documento":
+        from backend.infrastructure.tools.file_utils import ler_documento
+        doc = ler_documento(argumentos.get("nome_arquivo", ""))
+        aviso = ""
+        if doc["truncado"]:
+            aviso = (f"\n[Atenção: conteúdo truncado em {len(doc['texto'])} de "
+                     f"{doc['total_chars']} caracteres; considere apenas a parte inicial.]")
+        cabecalho = f"Conteúdo do arquivo {doc['nome']}:"
+        instrucoes = argumentos.get("instrucoes", "")
+        if instrucoes:
+            cabecalho += f"\nPedido do usuário: {instrucoes}"
+        return f"{cabecalho}{aviso}\n\n{doc['texto']}"
+
+    elif nome_funcao == "extrair_dados_planilha":
+        import json
+        from backend.infrastructure.tools.excel_handler import extrair_dados_planilha_real
+        resultado = extrair_dados_planilha_real(
+            nome_arquivo=argumentos.get("nome_arquivo", ""),
+            offset=argumentos.get("offset", 0) or 0,
+            linha_cabecalho=argumentos.get("linha_cabecalho"),
+            limite_linhas=argumentos.get("limite_linhas"),
+        )
+        return json.dumps(resultado, ensure_ascii=False)
+
+    elif nome_funcao == "consultar_manual_redacao":
+        from backend.application.manual_redacao import consultar_manual
+        return consultar_manual(
+            tipo_documento=argumentos.get("tipo_documento"),
+            termo_busca=argumentos.get("termo_busca"),
+        )
+
+    else:
+        raise ValueError(f"Ferramenta de leitura desconhecida: {nome_funcao}")
