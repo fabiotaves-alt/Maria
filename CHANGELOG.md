@@ -2,6 +2,21 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Benchmark: correção do desenho da Task 26 (FIX-1/2/3) — 2026-09-08
+
+### 🐛 Diagnóstico do benchmark (2026-09-08) — 4 defeitos de sistema na Task 26
+- **DEFEITO-1 (crítico):** `user_message` da Task 26 instruía `editar_planilha` ("Preencha a coluna...") — reformulada para "**Leia** os dados... e **crie uma nova planilha**", sem verbos de edição.
+- **DEFEITO-2:** `cadeia_ferramentas` não registra ferramentas intermediárias do `encadear_leitura_stream` — **débito técnico FIX-4 registrado** (correção robusta em ciclo separado).
+- **DEFEITO-3 (moderado):** `context` pré-declarava o arquivo como disponível (eliminava o incentivo de chamar `extrair_dados_planilha`) — removido (`context=[]`).
+- **DEFEITO-4:** `expected_args_subset` exigia set exato de colunas (comparação case-sensitive) — simplificado para apenas `{"nome_arquivo": "produtos_traduzidos"}`; qualidade real fica com `coluna_dados_obrigatoria="english description"`.
+
+### 🧪 Testes
+- Suíte: **262 passed** (idêntico ao baseline; sem regressão).
+- `TestTarefa26Traducao::test_estrutura_da_task_26` atualizado (novo `expected_args_subset`) + asserts de regressão (wording sem "preencha a coluna"/"edite", `context=[]`).
+
+---
+
+
 ## [4.2.5-dev] — Baseline v5 do benchmark (B0.5) capturado — 2026-09-08
 
 ### 📊 Benchmark baseline (B0.5)

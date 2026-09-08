@@ -30,9 +30,11 @@ TASKS_EXTRACAO = [
         ),
         user_message=(
             "Tenho uma planilha chamada 'produtos_mandarim' com produtos "
-            "descritos em Mandarim. Preencha a coluna 'english description' "
-            "traduzindo a coluna 'product' para inglês e salve o resultado "
-            "como 'produtos_traduzidos'."
+            "descritos em Mandarim e a coluna 'english description' vazia. "
+            "Leia os dados dessa planilha, traduza a coluna 'product' para inglês "
+            "e crie uma nova planilha chamada 'produtos_traduzidos' com as colunas "
+            "model, product, english description e NCM, preenchendo a coluna "
+            "'english description' com as traduções."
         ),
         expected_tool="criar_planilha",
         expected_keywords=["traduzida", "traduzidos", "criada", "sucesso", "english"],
@@ -42,13 +44,9 @@ TASKS_EXTRACAO = [
         tools_obrigatorios=["extrair_dados_planilha", "criar_planilha"],
         expected_args_subset={
             "nome_arquivo": "produtos_traduzidos",
-            "colunas": ["model", "product", "english description", "NCM"],
         },
         coluna_dados_obrigatoria="english description",
-        context=[{
-            "role": "assistant",
-            "content": "A planilha produtos_mandarim.xlsx está disponível na pasta de arquivos.",
-        }],
+        context=[],
     ),
 
     # ------------------------------------------------------------------

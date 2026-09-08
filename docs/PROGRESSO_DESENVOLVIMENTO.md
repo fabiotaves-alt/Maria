@@ -5,7 +5,8 @@
 **Versão Atual:** v4.2.5  
 **Última alteração:** 2026-09-08  
 **Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — Fase 0 (parser JSON + validação determinística) e Fase 1-4 (camadas domain/application/infrastructure/interfaces + re-exports) **commitadas** na branch; smoke test manual CLI (Qwen2.5-Omni-3B) **aprovado** (6/6 itens, `criar_planilha` real OK); 4 problemas documentados no backlog (P0 JSON na UI, P0 gap "adicionar", P1 fidelidade de dados, P2 banner); B0.5 baseline capturado (3B e 7B, 28 tasks); pendente B0.9 smoke completo; **suíte verde (262 passed)**  
-**Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`
+**Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`  
+**Débito técnico (FIX-4 / DEFEITO-2, diagnóstico 2026-09-08):** `cadeia_ferramentas` só registra a tool call inicial (maria_runner.py:184) e a final (maria_runner.py:380-382) — ferramentas de leitura intermediárias chamadas dentro de `encadear_leitura_stream` não entram na cadeia. Correção robusta prevista p/ ciclo separado: callback `apos_cada_leitura(nome, argumentos)` em `tool_chaining.py` + registro no `maria_runner.py` + atualização dos testes de cadeia.
 
 ---
 
@@ -62,6 +63,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (Fix Task 26 — FIX-1/2/3)** | 2026-09-08 | Diagnóstico 2026-09-08 do benchmark: Task 26 reescrita para "ler → criar planilha nova" (sem "preencha a coluna"/"edite"), `context=[]` e `expected_args_subset` apenas com `nome_arquivo`; **262 testes passando**; débito FIX-4 (cadeia incompleta) registrado | ✅ Commitada (branch `fix/task26-benchmark-diagnostico`) |
 | **4.2.5-dev (Baseline v5 — B0.5)** | 2026-09-08 | Captura do baseline do benchmark: runs 3B (`run_baseline_v5_3b`) e 7B (`run_baseline_v5_7b`), 28 tasks × 2 reps; tool calling 82,1% (3B) vs 96,4% (7B); Task 26 falha em ambos; comparativo em `docs/dev_senior/baseline_v5_resultados.md` | ✅ Commitada (branch `feat/arquitetura-hexagonal-fase4`) |
 | **4.2.5-dev (Planejamento B4.5/B4.6)** | 2026-09-08 | `plano_mestre_v5.md` atualizado com as fases B4.5 (intent classification/entity extraction) e B4.6 (roteamento NLLB-200): mapa de dependências, inventário, seções 8/9, reserva de namespace no B1.0 e critérios de aceite; renumeração 0–15; sem alteração de código | ✅ Commitada (branch `feat/arquitetura-hexagonal-fase4`) |
 | **4.2.5-dev (Etapa Fase 0–4)** | 2026-09-08 | Fechamento da etapa: parser JSON de tool calls + validação determinística (Fase 0), camadas hexagonal domain/application/infrastructure/interfaces + re-exports em `core/` (Fase 1-4), benchmark com vocabulário de telemetria atualizado; **262 testes passando**; smoke test manual CLI (Qwen2.5-Omni-3B) aprovado (6/6 itens) — 4 problemas P0-P2 documentados no backlog | ✅ Commitada (branch `feat/arquitetura-hexagonal-fase4`) |

@@ -3291,11 +3291,20 @@ class TestTarefa26Traducao(unittest.TestCase):
         self.assertEqual(task.confirm_sequence, ["sim"])
         self.assertEqual(
             task.expected_args_subset,
-            {
-                "nome_arquivo": "produtos_traduzidos",
-                "colunas": ["model", "product", "english description", "NCM"],
-            },
+            {"nome_arquivo": "produtos_traduzidos"},
         )
+        # FIX-1/FIX-2/FIX-3 (diagnóstico 2026-09-08): a user_message não pode
+        # sugerir edição ("preencha a coluna"/"edite") e o context não pode
+        # pré-declarar o arquivo disponível — o modelo deve LÊ-LO via
+        # extrair_dados_planilha antes de criar a planilha nova.
+        msg_lower = task.user_message.lower()
+        self.assertNotIn("preencha a coluna", msg_lower)
+        self.assertNotIn("edite", msg_lower)
+        self.assertTrue(
+            "crie" in msg_lower or "nova planilha" in msg_lower,
+            "user_message deve instruir a criação de arquivo novo",
+        )
+        self.assertEqual(task.context, [])
 
     def test_fixture_produtos_mandarim_copiada(self):
         """A fixture produtos_mandarim.xlsx é copiada do diretório real de
