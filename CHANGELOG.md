@@ -2,6 +2,16 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Registro de teste: auto-correção genérica do 3B com harness corrigido — 2026-09-09
+
+### 🧪 Teste empírico isolado (llama-server, `Qwen2.5-Omni-3B` Q4_K_M) — docs-only
+- Harness versionado `docs/dev_base/teste_auto_correcao_3b.ps1` (UTF-8 c/ BOM p/ PowerShell 5.1) + relatório `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`.
+- Cenário: system prompt MARIA + pedido de planilha com tradução Mandarim→PT + resposta anterior **com bug** (`peso` minúsculo vs coluna `Peso`) + instrução genérica de revisão (auto-auditoria sem pista do bug).
+- **Fix no harness:** o veredito original usava `-in`/`-notin` do PowerShell (**case-insensitive**) → `'Peso' -in @('peso',...)` = `True`, ou seja, reportaria `CORRIGIU` mesmo com o bug presente (falso positivo de critério). Substituído por `-cnotcontains` (case-sensitive) + conjunto de referência com as colunas pedidas pelo usuário (`Produto`, `Preço`, `Peso`).
+- Resultado **3/3 determinístico** (temperatura 0.1, 173 tokens, `finish=stop`): JSON válido, porém **AUTO-CONSISTENTE mas DIVERGENTE do pedido** — o modelo rebaixou a coluna `Peso`→`peso` (e `Preço`→`Preco`) em vez de corrigir as linhas. Reforça D2 do relatório v5: instrução genérica é insegura como mecanismo de auto-correção.
+- Auditoria de tradução: 2/5 corretas (Bola, carro de brinquedo), 2 aproximadas (boneca; "caixa de lápis"→estojo), 1 **errada mantida** (`笔记本`→"livro", correto: caderno/notebook) — o turno de revisão não detectou o erro semântico. Alinha à pendência D6 (nova Task 26 de tradução).
+- Nenhum código de produção alterado; suíte **274 passed inalterada**.
+
 ## [4.2.5-dev] — B4: linhas_esperadas + limite_conhecido + fechamento INCONS-1 — 2026-09-09
 
 ### 🧩 Schema de tasks v2 (fase B4 do plano mestre v5)

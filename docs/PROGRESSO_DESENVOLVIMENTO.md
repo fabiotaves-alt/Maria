@@ -11,6 +11,7 @@
 **Débito técnico FIX-4 — ✅ RESOLVIDO (ciclo 2026-09-08):** `encadear_leitura_stream` agora aceita o callback `apos_cada_leitura(nome, argumentos)` (chamado antes de cada leitura) e o `maria_runner` registra as ferramentas intermediárias em `cadeia_ferramentas` — commit na branch `fix/fix4-cadeia-ferramentas-encadeamento`; 3 testes novos; suíte 265.
 **B3 (2026-09-09):** storage SQLite + report v2 na branch `feat/b3-storage-report-v2` — fecha o débito B2 (LLAMA_NUM_CTX) e entrega report v2; suíte 265.
 **B4 (2026-09-09):** Fase B4 do `plano_mestre_v5.md` (Seção 7), **escopo reduzido**, na branch `feat/b4-tasks-v2`: schema `linhas_esperadas` + `limite_conhecido`, `_verificar_linhas_esperadas` (nunca lança), Task 26 marcada `limite_conhecido=True`, fechamento INCONS-1 (fix do acoplamento em `maria_runner.py` + teste de integração ponta-a-ponta via `run()`); suíte 274. **D6 (nova Task 26) e V6 (coerção numérica) adiados — fora desta entrega.**
+**Registro de teste — auto-correção 3B (2026-09-09):** harness corrigido versionado em `docs/dev_base/teste_auto_correcao_3b.ps1` (veredito **case-sensitive** + conjunto de referência com o pedido do usuário — o original usava `-in`, case-insensitive, e produzia falso positivo) + relatório `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`; resultado 3/3 AUTO-CONSISTENTE mas DIVERGENTE (o modelo rebaixou a coluna `Peso`→`peso` em vez de corrigir as linhas) e tradução `笔记本`→"livro" errada mantida; docs-only (suíte 274 inalterada); ver entrada do `CHANGELOG.md`.
 
 ---
 
@@ -67,6 +68,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (Registro teste auto-correção 3B)** | 2026-09-09 | Harness versionado `docs/dev_base/teste_auto_correcao_3b.ps1` (UTF-8 c/ BOM p/ PS 5.1) com veredito corrigido (case-sensitive `-cnotcontains` + referência do pedido) e relatório `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`; resultado **3/3 AUTO-CONSISTENTE mas DIVERGENTE** (modelo rebaixou coluna `Peso`→`peso` em vez de corrigir as linhas); tradução `笔记本`→"livro" errada mantida (reforça D2/D6); **docs-only — suíte 274 inalterada** | ✅ Commitada (branch chore/registro-teste-auto-correcao-3b) |
 | **4.2.5-dev (B4 — linhas_esperadas + INCONS-1)** | 2026-09-09 | Fase B4 do plano_mestre_v5.md (Seção 7), **escopo reduzido**: `linhas_esperadas` e `limite_conhecido` em MariaTask/MariaTaskResult; `_verificar_linhas_esperadas` (nunca lança, case-insensitive); Task 26 original `limite_conhecido=True` (fora do denominador de métricas); fix do acoplamento em `maria_runner.py` (captura de `caminho_arquivo_gerado` desacoplada de `coluna_dados_obrigatoria`); teste de integração ponta-a-ponta via `run()`; **274 testes passando** (272 baseline + 2 novos). **D6 (nova Task 26) e V6 (coerção numérica) ADIADOS — fora desta entrega** | ✅ Commitada (branch feat/b4-tasks-v2) |
 | **4.2.5-dev (B3 — storage + report v2)** | 2026-09-09 | Fase B3 do plano_mestre_v5.md (Seção 6): storage.py (schema runs/results, WAL, índices); persistência defensiva nos 2 fluxos do run_benchmark.py; LLAMA_NUM_CTX via benchmark_config (fecha débito B2); generate_report(detail=...) omitindo detalhes por padrão; compare_runs.py híbrido mantido; 265 testes passando | ✅ Commitada (branch feat/b3-storage-report-v2) |
 | **4.2.5-dev (Auditoria docs)** | 2026-09-09 | Arquivamento de 4 legados em `docs/arquivo/` + atualização de 8 docs (versão, 265 testes, paths `maria_bench`, `uv`, `--host 127.0.0.1`) + relatório `RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; **265 testes passando** | ✅ Concluída |
@@ -208,6 +210,14 @@
 - **Key learning (INCONS-1):** a captura de `caminho_arquivo_gerado` estava DENTRO de `if task.coluna_dados_obrigatoria:` — uma checagem aditiva virou acoplamento: uma task que declarasse apenas `linhas_esperadas` nunca capturaria o caminho e reprovaria sempre (falso negativo) — armadilha pronta para explodir no D6. Fix: captura movida para fora do guard, no ponto único de execução da ferramenta (comportamento das tasks com coluna inalterado). Lição: checagem pós-execução que depende do artefato gerado deve capturar o artefato no ponto único de execução, não condicionada a outra checagem.
 - Testes: `TestLinhasEsperadasIntegracaoRun` (2, ponta-a-ponta via `run()` com o padrão de mock real de `TestValidacaoDadosArquivoGerado` + `linhas` na tool call); suíte **274 passed** (272 baseline + 2 novos), sem regressão.
 - Pendências explícitas (NÃO fazem parte desta entrega): **D6** (nova Task 26 com dados embutidos na mensagem, avaliada via `linhas_esperadas`) e **V6** (coerção numérica) — adiadas.
+
+### Registro de teste — Auto-correção genérica do 3B com harness corrigido (2026-09-09)
+
+- Registro reproduzível (docs + harness) do teste de auto-correção por turno extra de revisão no 3B (`docs/dev_base/teste_auto_correcao_3b.ps1` + `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`).
+- **Correção de critério no harness:** o veredito original usava `-in`/`-notin` do PowerShell (case-insensitive) → `'Peso' -in @('peso',...)` = `True`, produzindo `CORRIGIU` mesmo com o bug presente (falso positivo). Corrigido para `-cnotcontains` (case-sensitive) + conjunto de referência com as colunas do pedido (`Produto`, `Preço`, `Peso`).
+- **Resultado 3/3 determinístico (temp 0.1, 173 tokens, ~37s):** JSON válido, mas **AUTO-CONSISTENTE mas DIVERGENTE do pedido** — o modelo rebaixou a coluna `Peso`→`peso` (e `Preço`→`Preco`) para casar com o erro nas linhas. Reforça D2 do relatório v5: instrução genérica é insegura como mecanismo de auto-correção.
+- **Tradução:** auditoria da saída final — 2/5 corretas, 2 aproximadas, 1 errada mantida (`笔记本`→"livro"; correto: caderno/notebook). O turno de revisão não detectou erro semântico; alinhado à pendência D6.
+- Docs-only: nenhum código de produção alterado; suíte **274 passed inalterada**.
 
 ### ⚠️ Risco de processo — prompt fora do fluxo de aprovação (2026-09-09)
 
