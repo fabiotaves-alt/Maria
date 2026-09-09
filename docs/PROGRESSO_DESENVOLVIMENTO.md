@@ -25,7 +25,7 @@
 | **Fase 4** | Infrastructure (llm/, tools/, handlers) | ✅ Aplicado (working tree; suíte verde) | 4-6h |
 | **Fase 5** | Database (mover `database/` para `infrastructure/database/`) | ⏳ Pendente | 2-3h |
 | **Fase 6** | Schemas Pydantic (validação de tool calls) | ⏳ Pendente | 3-4h |
-| **Fase 7** | Testes e Benchmark (atualizar @patch, imports) | 🔄 Parcial (patchs dos testes atualizados; benchmark→ports pendente = B2) | 6-10h |
+| **Fase 7** | Testes e Benchmark (atualizar @patch, imports) | ✅ Imports/ports concluídos (B2: `backend/benchmark/` → `backend/benchmarks/maria_bench/`, sem `core.*`/`sys.path.insert`); **débito:** `analysis/report.py` e `servidor_llama.py` ainda importam `backend.core.*` | 6-10h |
 
 **Total estimado:** 20-30 horas (2.5-4 dias úteis) — estimativa revisada (proposta original: 12-18h).
 
@@ -63,6 +63,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (B2 — benchmark ports)** | 2026-09-08 | Fase B2 do `plano_mestre_v5.md` (Seção 5): move `backend/benchmark/` → `backend/benchmarks/maria_bench/` (D4 ajustado — mantido sob `backend/`, namespace `backend.*` preservado); `montar_mensagens_com_reforco` (público); `LLAMA_NUM_CTX` absorvido em `benchmark_config.py`; imports do benchmark reescritos p/ `backend.domain/interfaces/infrastructure/application.*` sem `sys.path.insert`; **265 testes passando**; débito `backend.core.*` em `report.py`/`servidor_llama.py` registrado | ✅ Commitada (branch `feat/b2-benchmark-ports`) |
 | **4.2.5-dev (FIX-4 — cadeia de ferramentas)** | 2026-09-08 | DEFEITO-2 do diagnóstico resolvido: `encadear_leitura_stream` expõe callback `apos_cada_leitura(nome, argumentos)`; `maria_runner` registra ferramentas de leitura intermediárias em `cadeia_ferramentas`; 3 testes novos; **265 testes passando** | ✅ Commitada (branch `fix/fix4-cadeia-ferramentas-encadeamento`) |
 | **4.2.5-dev (Fix Task 26 — FIX-1/2/3)** | 2026-09-08 | Diagnóstico 2026-09-08 do benchmark: Task 26 reescrita para "ler → criar planilha nova" (sem "preencha a coluna"/"edite"), `context=[]` e `expected_args_subset` apenas com `nome_arquivo`; **262 testes passando**; débito FIX-4 (cadeia incompleta) registrado | ✅ Commitada (branch `fix/task26-benchmark-diagnostico`) |
 | **4.2.5-dev (Baseline v5 — B0.5)** | 2026-09-08 | Captura do baseline do benchmark: runs 3B (`run_baseline_v5_3b`) e 7B (`run_baseline_v5_7b`), 28 tasks × 2 reps; tool calling 82,1% (3B) vs 96,4% (7B); Task 26 falha em ambos; comparativo em `docs/dev_senior/baseline_v5_resultados.md` | ✅ Commitada (branch `feat/arquitetura-hexagonal-fase4`) |
@@ -170,6 +171,16 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### B2 — Benchmark → Ports (2026-09-08)
+
+- Fase B2 do `plano_mestre_v5.md` (Seção 5) executada na branch `feat/b2-benchmark-ports`.
+- Move: `backend/benchmark/` → `backend/benchmarks/maria_bench/` (D4 ajustado: mantido sob `backend/` para preservar o namespace `backend.*` — 255 refs em código).
+- `maria_runner.py`: `_montar_mensagens_com_reforco` → `montar_mensagens_com_reforco`; imports p/ camadas hexagonais; sem `sys.path.insert`.
+- `benchmark_config.py`: `LLAMA_NUM_CTX` absorvido (env, default 4096).
+- `run_benchmark.py`: import de `core.llama_client` corrigido; sem `sys.path.insert`.
+- Gates da Seção 13: vazios; suíte **265 passed**.
+- Débito técnico: `analysis/report.py` e `servidor_llama.py` ainda importam `backend.core.*`.
 
 ### 4.2.5-dev (Item B) — Validação por item em `colunas` (2026-09-07)
 - **Problema**: `validar_argumentos_obrigatorios` só checava `isinstance(colunas, list)`; lista de dicts (modo de falha 2 do bug de `linhas`) passava e estourava `pandas.errors.InvalidIndexError` na escrita (`criar/editar_planilha_real`).

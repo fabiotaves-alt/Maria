@@ -11,25 +11,21 @@ from typing import Any
 
 from openpyxl import Workbook
 
-# Os módulos da aplicação são módulos locais, não um pacote instalado.
-MARIA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if MARIA_ROOT not in sys.path:
-    sys.path.insert(0, MARIA_ROOT)
-
-from core.chat_session import ChatSession, interpretar_confirmacao
-from core.config import LLAMA_NUM_CTX
-from core.llama_client import (
+from backend.domain.chat_session import ChatSession
+from backend.domain.confirmacao import interpretar_confirmacao
+from backend.infrastructure.llm.llama_client import (
     LlamaClient,
     LlamaClientError,
     LlamaTimeoutError,
-    _montar_mensagens_com_reforco,
     montar_sampler_params,
+    montar_mensagens_com_reforco,
 )
-from core.client_protocol import LLMClientProtocol
-from core.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real, FERRAMENTAS_LEITURA
-from core.tool_chaining import encadear_leitura_stream, validar_e_corrigir_tool_call_stream, FERRAMENTAS_ESCRITA
+from backend.interfaces.client_protocol import LLMClientProtocol
+from backend.infrastructure.tools.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real, FERRAMENTAS_LEITURA
+from backend.application.tool_chaining import encadear_leitura_stream, validar_e_corrigir_tool_call_stream, FERRAMENTAS_ESCRITA
 
 from ..benchmark_config import (
+    LLAMA_NUM_CTX,
     BENCHMARK_ARQUIVOS_DIR,
     BENCHMARK_MAX_RETRIES,
     BENCHMARK_RETRY_BACKOFF_SECONDS,
@@ -423,7 +419,7 @@ class MariaRunner:
         # não de "modelo não chamou".
         parse_suspeito = False
         if tool_call_final is None and resposta_bruta_modelo:
-            from backend.core.tools_schema import CAMPOS_OBRIGATORIOS
+            from backend.infrastructure.tools.tools_schema import CAMPOS_OBRIGATORIOS
             nomes = "|".join(re.escape(nome) for nome in CAMPOS_OBRIGATORIOS)
             if re.search(rf"\b({nomes})\b|\"{{\s*\"ferramenta\"\s*:", resposta_bruta_modelo):
                 parse_suspeito = True
@@ -645,8 +641,8 @@ class MariaRunner:
             try:
                 historico = sessao.get_historico_com_system()
                 # Prompt EXATAMENTE como será enviado ao modelo (mesma montagem
-                # de chat_com_tools_stream_com_metricas via _montar_mensagens_com_reforco).
-                prompt_enviado = _montar_mensagens_com_reforco(historico, task.user_message)
+                # de chat_com_tools_stream_com_metricas via montar_mensagens_com_reforco).
+                prompt_enviado = montar_mensagens_com_reforco(historico, task.user_message)
                 # Pre-check: evita desperdiçar uma execução com prompt que não cabe.
                 self._verificar_contexto_disponivel(prompt_enviado)
                 inicio_tentativa = time.monotonic()

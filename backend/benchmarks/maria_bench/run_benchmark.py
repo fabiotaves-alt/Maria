@@ -26,11 +26,6 @@ from .utils import (
 from .runners.maria_runner import MariaRunner
 from .tasks import load_all_maria_tasks
 
-# llama_client é um módulo local da raiz do projeto, não um pacote instalado.
-MARIA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if MARIA_ROOT not in sys.path:
-    sys.path.insert(0, MARIA_ROOT)
-
 import re
 import requests
 
@@ -39,7 +34,7 @@ import requests
 _requests = requests
 
 from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, LLAMA_NUM_CTX, MARIA_SYSTEM_PROMPT
-from core.llama_client import (
+from backend.infrastructure.llm.llama_client import (
     LlamaClient,
     LlamaClientError,
     montar_sampler_params,

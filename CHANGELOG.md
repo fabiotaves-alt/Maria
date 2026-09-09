@@ -2,6 +2,21 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — B2: Benchmark → Ports (zero acoplamento) — 2026-09-08
+
+### 🏗️ Fase B2 do plano mestre v5 (Seção 5)
+- **Move do pacote (D4, escopo ajustado):** `backend/benchmark/` → `backend/benchmarks/maria_bench/`. Decisão registrada: manter sob `backend/` (em vez da raiz do monorepo) para preservar o namespace `backend.*` usado em 255 referências de código (`test_maria.py`/`ui_terminal.py`) — ver nota de escopo do prompt de execução.
+- **`maria_runner.py`:** `_montar_mensagens_com_reforco` → símbolo público `montar_mensagens_com_reforco`; imports reescritos para `backend.domain.*`, `backend.interfaces.*`, `backend.infrastructure.*`, `backend.application.*`; removidos `sys.path.insert` + `MARIA_ROOT`; `CAMPOS_OBRIGATORIOS` via `backend.infrastructure.tools.tools_schema`.
+- **`benchmark_config.py`:** `LLAMA_NUM_CTX` absorvido (leitura de env, default 4096 — mesmo default do config da aplicação).
+- **`run_benchmark.py`:** import de `core.llama_client` → `backend.infrastructure.llm.llama_client`; removidos `sys.path.insert` + `MARIA_ROOT`.
+- Referências externas (`test_maria.py`, `ui_terminal.py`) e `.gitignore` atualizados para o novo caminho.
+
+### 🧪 Testes
+- Suíte: **265 passed** (gates da Seção 13 vazios; sem regressão).
+
+---
+
+
 ## [4.2.5-dev] — FIX-4 · Registro de ferramentas intermediárias do encadeamento — 2026-09-08
 
 ### 🐛 DEFEITO-2 resolvido (cadeia_ferramentas incompleta)

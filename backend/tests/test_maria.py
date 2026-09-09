@@ -34,9 +34,9 @@ from backend.core.file_utils import (
     ler_documento,
 )
 from backend.core.session_storage import salvar_sessao, listar_sessoes_salvas, carregar_sessao
-from backend.benchmark.analysis.language_check import resposta_em_portugues
-from backend.benchmark.analysis.metrics import calculate_maria_metrics
-from backend.benchmark.tasks.task_schema import MariaTaskResult
+from backend.benchmarks.maria_bench.analysis.language_check import resposta_em_portugues
+from backend.benchmarks.maria_bench.analysis.metrics import calculate_maria_metrics
+from backend.benchmarks.maria_bench.tasks.task_schema import MariaTaskResult
 
 
 class TestChatSession(unittest.TestCase):
@@ -369,7 +369,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
             raw_tool_args={},
             language_ok=True,
         )
-        from backend.benchmark.analysis.report import _diagnosticar_falha
+        from backend.benchmarks.maria_bench.analysis.report import _diagnosticar_falha
         self.assertEqual(_diagnosticar_falha(result), "Tool call incorreto ou ferramenta inesperada")
 
     def test_diagnostico_falha_por_idioma_incorreto(self):
@@ -389,7 +389,7 @@ class TestBenchmarkMetrics(unittest.TestCase):
             raw_tool_args={},
             language_ok=False,
         )
-        from backend.benchmark.analysis.report import _diagnosticar_falha
+        from backend.benchmarks.maria_bench.analysis.report import _diagnosticar_falha
         self.assertEqual(_diagnosticar_falha(result), "Resposta em idioma incorreto")
 
     def test_editar_planilha_real_arquivo_inexistente_levanta_value_error(self):
@@ -626,8 +626,8 @@ class TestRegressao(unittest.TestCase):
     
     def test_timeout_de_streaming_nao_faz_retry(self):
         """Testa que timeout de geração é propagado sem nova tentativa."""
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask
         from backend.core.llama_client import LlamaTimeoutError
 
         class ClienteComTimeout:
@@ -905,17 +905,17 @@ class TestAcuraciaDeArgumentos(unittest.TestCase):
     """Testes para a comparação de argumentos do benchmark (MariaRunner)."""
 
     def test_argumentos_compativeis_sem_criterio_retorna_true(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
         self.assertTrue(MariaRunner._argumentos_compativeis({"a": 1}, None))
 
     def test_argumentos_compativeis_subconjunto_correto(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
         obtidos = {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"], "descricao": "extra"}
         esperados = {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}
         self.assertTrue(MariaRunner._argumentos_compativeis(obtidos, esperados))
 
     def test_argumentos_incompativeis_detecta_divergencia(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
         obtidos = {"nome_arquivo": "gastos_errado", "colunas": ["Data", "Valor"]}
         esperados = {"nome_arquivo": "gastos", "colunas": ["Data", "Valor"]}
         self.assertFalse(MariaRunner._argumentos_compativeis(obtidos, esperados))
@@ -1068,8 +1068,8 @@ class TestMariaRunnerEncadeamento(unittest.TestCase):
     """Testa que o MariaRunner encadeia leitura -> escrita (Fix A)."""
 
     def test_runner_encadeia_listar_arquivos_ate_editar_planilha(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteFalso:
             model = "modelo-teste"
@@ -1097,8 +1097,8 @@ class TestMariaRunnerEncadeamento(unittest.TestCase):
 
     def test_runner_corrige_tool_call_escrita_invalida(self):
         """Tarefa com tool call de escrita inválida (schema) deve registrar correction_attempts > 0."""
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteCorrige:
             model = "modelo-teste"
@@ -1172,8 +1172,8 @@ class TestMariaRunnerSomaTokensDaContinuacao(unittest.TestCase):
     ao total reportado (Item B)."""
 
     def test_tokens_gerados_inclui_continuacao(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteFalso:
             model = "modelo-teste"
@@ -1206,8 +1206,8 @@ class TestRunRepeatedComCallback(unittest.TestCase):
     após cada execução individual (Item C)."""
 
     def test_apos_cada_execucao_e_chamado_para_cada_repeticao(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteFalso:
             model = "modelo-teste"
@@ -1249,8 +1249,8 @@ class TestMariaRunnerNegaEAmbiguidade(unittest.TestCase):
         return ClienteFalso()
 
     def test_negacao_anula_tool_call(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         task = MariaTask(
             9004, "Negação teste", "desc",
@@ -1268,8 +1268,8 @@ class TestMariaRunnerNegaEAmbiguidade(unittest.TestCase):
         self.assertEqual(resultado.final_message, "Ação cancelada.")
 
     def test_ambiguidade_anula_tool_call(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         task = MariaTask(
             9005, "Ambiguidade teste", "desc",
@@ -1293,8 +1293,8 @@ class TestMariaRunnerMensagemDeErro(unittest.TestCase):
     resposta do modelo vira a mensagem final — não é erro de tarefa."""
 
     def test_value_error_edicao_inexistente_devolvido_ao_modelo(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         continuacao_vista = {}
 
@@ -1340,7 +1340,7 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
         """Garante a pasta de arquivos do benchmark vazia: as tarefas sob teste
         exigem que o arquivo NÃO exista para a ferramenta falhar em runtime."""
         import shutil
-        from backend.benchmark.benchmark_config import BENCHMARK_ARQUIVOS_DIR
+        from backend.benchmarks.maria_bench.benchmark_config import BENCHMARK_ARQUIVOS_DIR
         if os.path.isdir(BENCHMARK_ARQUIVOS_DIR):
             for item in os.listdir(BENCHMARK_ARQUIVOS_DIR):
                 item_path = os.path.join(BENCHMARK_ARQUIVOS_DIR, item)
@@ -1353,7 +1353,7 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
                     pass
 
     def _task(self, **kwargs):
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         base = dict(
             id=9010,
@@ -1369,7 +1369,7 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
         return MariaTask(**base)
 
     def test_erro_da_ferramenta_devolvido_ao_modelo_que_responde_em_texto_conta_como_correta(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
 
         continuacao_vista = {}
 
@@ -1402,7 +1402,7 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
         self.assertIn("não existe", resultado.final_message)
 
     def test_rechamada_da_ferramenta_apos_erro_conta_como_incorreta(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
 
         class ClienteTeimoso:
             model = "modelo-teste"
@@ -1427,7 +1427,7 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
         self.assertEqual(resultado.cadeia_ferramentas, ["editar_planilha"])
 
     def test_resposta_em_texto_sem_chamar_ferramenta_conta_como_incorreta(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
 
         class ClienteNaoChama:
             model = "modelo-teste"
@@ -1445,8 +1445,8 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
         (passo intermediário) entra em cadeia_ferramentas — não apenas a inicial
         (linha ~184) e a final (linha ~381). Fluxo simulado: listar_arquivos
         (inicial) → extrair_dados_planilha (intermediária) → criar_planilha (final)."""
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteLeituraEscrita:
             model = "modelo-teste"
@@ -1493,7 +1493,7 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
         )
 
         with patch(
-            "backend.benchmark.runners.maria_runner.executar_ferramenta_real",
+            "backend.benchmarks.maria_bench.runners.maria_runner.executar_ferramenta_real",
             return_value="Planilha criada com sucesso: resultado.xlsx",
         ), patch(
             "backend.application.tool_chaining.executar_ferramenta_leitura",
@@ -1584,7 +1584,7 @@ class TestTarefas22E23EscritaInexistente(unittest.TestCase):
     ausente, devolvendo o erro ao modelo) e responder em texto."""
 
     def test_desenho_das_tarefas_22_e_23(self):
-        from backend.benchmark.tasks import load_all_maria_tasks
+        from backend.benchmarks.maria_bench.tasks import load_all_maria_tasks
 
         tarefas = {t.id: t for t in load_all_maria_tasks()}
         for tid in (22, 23):
@@ -1874,7 +1874,7 @@ class TestAnaliseSemantica(unittest.TestCase):
     """Testa a análise semântica heurística da tool call final (Fase 2)."""
 
     def _analisar(self, tool_call):
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
         return MariaRunner._analisar_semantica(tool_call)
 
     def test_titulo_conteudo_invertido_detectado(self):
@@ -1929,8 +1929,8 @@ class TestAnaliseSemantica(unittest.TestCase):
         self.assertFalse(any(flags.values()))
 
     def test_calculate_maria_metrics_com_semantica(self):
-        from backend.benchmark.analysis.metrics import calculate_maria_metrics
-        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        from backend.benchmarks.maria_bench.analysis.metrics import calculate_maria_metrics
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTaskResult
         base = dict(task_name="t", category="c", model="m", tool_detected=None,
                     tool_correct=True, confirmation_completed=True,
                     keyword_match=True, runtime_ok=True, final_message="",
@@ -1951,7 +1951,7 @@ class TestFormatarAvisos(unittest.TestCase):
     """Testa a lista de avisos (⚠️ ...) exibida em linhas separadas."""
 
     def _resultado(self, **kwargs):
-        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTaskResult
         base = dict(task_id=1, task_name="t", category="c", model="m",
                     tool_detected=None, tool_correct=True,
                     confirmation_completed=True, keyword_match=True,
@@ -1960,11 +1960,11 @@ class TestFormatarAvisos(unittest.TestCase):
         return MariaTaskResult(**base)
 
     def test_sem_avisos_retorna_vazio(self):
-        from backend.benchmark.analysis.report import formatar_avisos
+        from backend.benchmarks.maria_bench.analysis.report import formatar_avisos
         self.assertEqual(formatar_avisos(self._resultado()), [])
 
     def test_correcao_gera_aviso_antes_depois(self):
-        from backend.benchmark.analysis.report import formatar_avisos
+        from backend.benchmarks.maria_bench.analysis.report import formatar_avisos
         avisos = formatar_avisos(self._resultado(correcoes=[
             {"campo": "nome_arquivo", "antes": "../../teste", "depois": "teste"},
         ]))
@@ -1974,7 +1974,7 @@ class TestFormatarAvisos(unittest.TestCase):
         self.assertIn("teste", avisos[0])
 
     def test_json_reparado_gera_aviso(self):
-        from backend.benchmark.analysis.report import formatar_avisos
+        from backend.benchmarks.maria_bench.analysis.report import formatar_avisos
         avisos = formatar_avisos(self._resultado(
             tool_detected="criar_planilha",
             tool_nome_final="criar_planilha",
@@ -1983,7 +1983,7 @@ class TestFormatarAvisos(unittest.TestCase):
         self.assertTrue(any("JSON reparado" in a for a in avisos))
 
     def test_json_limpo_nao_gera_aviso(self):
-        from backend.benchmark.analysis.report import formatar_avisos
+        from backend.benchmarks.maria_bench.analysis.report import formatar_avisos
         avisos = formatar_avisos(self._resultado(
             tool_detected="criar_planilha",
             tool_nome_final="criar_planilha",
@@ -1993,7 +1993,7 @@ class TestFormatarAvisos(unittest.TestCase):
         self.assertEqual(avisos, [])
 
     def test_chaves_normalizadas_e_colunas_derivadas(self):
-        from backend.benchmark.analysis.report import formatar_avisos
+        from backend.benchmarks.maria_bench.analysis.report import formatar_avisos
         avisos = formatar_avisos(self._resultado(
             tool_detected="criar_planilha",
             tool_nome_final="criar_planilha",
@@ -2048,8 +2048,8 @@ class TestMariaRunnerDegeneracao(unittest.TestCase):
     """Testa que geração degenerada vira erro descritivo no resultado."""
 
     def test_degeneracao_gera_erro_descritivo(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask
 
         class ClienteDegenerado:
             model = "modelo-teste"
@@ -2443,7 +2443,7 @@ class TestObterMetadadosModelo(unittest.TestCase):
     """Testa a extração de metadados do llama-server via /v1/models (mock, sem servidor)."""
 
     def test_obter_metadados_resposta_valida(self):
-        from backend.benchmark.run_benchmark import _obter_metadados_modelo
+        from backend.benchmarks.maria_bench.run_benchmark import _obter_metadados_modelo
         mock_response = MagicMock(status_code=200)
         mock_response.json.return_value = {
             "data": [{
@@ -2453,7 +2453,7 @@ class TestObterMetadadosModelo(unittest.TestCase):
                          "size": 2098976768, "ftype": 14},
             }]
         }
-        with patch("backend.benchmark.run_benchmark._requests.get", return_value=mock_response):
+        with patch("backend.benchmarks.maria_bench.run_benchmark._requests.get", return_value=mock_response):
             m = _obter_metadados_modelo()
         self.assertIsNotNone(m)
         self.assertEqual(m["quantizacao"], "Q4_K_M")
@@ -2462,17 +2462,17 @@ class TestObterMetadadosModelo(unittest.TestCase):
 
     def test_obter_metadados_servidor_offline(self):
         import requests as req
-        from backend.benchmark.run_benchmark import _obter_metadados_modelo
+        from backend.benchmarks.maria_bench.run_benchmark import _obter_metadados_modelo
 
-        with patch("backend.benchmark.run_benchmark._requests.get",
+        with patch("backend.benchmarks.maria_bench.run_benchmark._requests.get",
                    side_effect=req.exceptions.ConnectionError()):
             self.assertIsNone(_obter_metadados_modelo())
 
     def test_obter_metadados_status_500(self):
-        from backend.benchmark.run_benchmark import _obter_metadados_modelo
+        from backend.benchmarks.maria_bench.run_benchmark import _obter_metadados_modelo
 
         mock_response = MagicMock(status_code=500)
-        with patch("backend.benchmark.run_benchmark._requests.get", return_value=mock_response):
+        with patch("backend.benchmarks.maria_bench.run_benchmark._requests.get", return_value=mock_response):
             self.assertIsNone(_obter_metadados_modelo())
 
 
@@ -2480,23 +2480,23 @@ class TestDerivarRotuloModelo(unittest.TestCase):
     """Testa a derivação de rótulo legível a partir de n_params e n_vocab."""
 
     def test_qwen25_3b(self):
-        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        from backend.benchmarks.maria_bench.run_benchmark import _derivar_rotulo_modelo
         self.assertEqual(_derivar_rotulo_modelo(3397103616, 151936), "Qwen2.5 3B")
 
     def test_qwen25_7b(self):
-        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        from backend.benchmarks.maria_bench.run_benchmark import _derivar_rotulo_modelo
         self.assertEqual(_derivar_rotulo_modelo(7615616512, 151936), "Qwen2.5 7B")
 
     def test_qwen25_14b(self):
-        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        from backend.benchmarks.maria_bench.run_benchmark import _derivar_rotulo_modelo
         self.assertEqual(_derivar_rotulo_modelo(14771111936, 151936), "Qwen2.5 14B")
 
     def test_vocab_desconhecido(self):
-        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        from backend.benchmarks.maria_bench.run_benchmark import _derivar_rotulo_modelo
         self.assertEqual(_derivar_rotulo_modelo(3397103616, 99999), "3B")
 
     def test_sem_params(self):
-        from backend.benchmark.run_benchmark import _derivar_rotulo_modelo
+        from backend.benchmarks.maria_bench.run_benchmark import _derivar_rotulo_modelo
         self.assertEqual(_derivar_rotulo_modelo(0, 151936), "")
 
 
@@ -2504,23 +2504,23 @@ class TestPareceCaminhoLocal(unittest.TestCase):
     """Testa a detecção de caminhos locais/blobs."""
 
     def test_blob_local(self):
-        from backend.benchmark.run_benchmark import _parece_caminho_local
+        from backend.benchmarks.maria_bench.run_benchmark import _parece_caminho_local
         self.assertTrue(_parece_caminho_local("C:\\blob\\sha256-2bada8a"))
 
     def test_hash_puro(self):
-        from backend.benchmark.run_benchmark import _parece_caminho_local
+        from backend.benchmarks.maria_bench.run_benchmark import _parece_caminho_local
         self.assertTrue(_parece_caminho_local("2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730"))
 
     def test_gguf(self):
-        from backend.benchmark.run_benchmark import _parece_caminho_local
+        from backend.benchmarks.maria_bench.run_benchmark import _parece_caminho_local
         self.assertTrue(_parece_caminho_local("models/qwen2.gguf"))
 
     def test_nome_simples(self):
-        from backend.benchmark.run_benchmark import _parece_caminho_local
+        from backend.benchmarks.maria_bench.run_benchmark import _parece_caminho_local
         self.assertFalse(_parece_caminho_local("qwen2.5-omni-3b"))
 
     def test_vazio(self):
-        from backend.benchmark.run_benchmark import _parece_caminho_local
+        from backend.benchmarks.maria_bench.run_benchmark import _parece_caminho_local
         self.assertFalse(_parece_caminho_local(""))
         self.assertFalse(_parece_caminho_local(None))
 
@@ -2532,7 +2532,7 @@ class TestAlertaNaoDisparaParaBlob(unittest.TestCase):
     def test_sem_alerta_para_blob_mesmo_modelo(self):
         import io
         from contextlib import redirect_stdout
-        from backend.benchmark.run_benchmark import _warmup_model
+        from backend.benchmarks.maria_bench.run_benchmark import _warmup_model
 
         metadados = {
             "id": "C:\\blob\\sha256-2bada8a",
@@ -2546,9 +2546,9 @@ class TestAlertaNaoDisparaParaBlob(unittest.TestCase):
                 return "ok"
 
         buf = io.StringIO()
-        with patch("backend.benchmark.run_benchmark._obter_metadados_modelo", return_value=metadados), \
-             patch("backend.benchmark.run_benchmark._contar_tokens_exatos", return_value=820), \
-             patch("backend.benchmark.run_benchmark.LlamaClient", return_value=FakeClient()):
+        with patch("backend.benchmarks.maria_bench.run_benchmark._obter_metadados_modelo", return_value=metadados), \
+             patch("backend.benchmarks.maria_bench.run_benchmark._contar_tokens_exatos", return_value=820), \
+             patch("backend.benchmarks.maria_bench.run_benchmark.LlamaClient", return_value=FakeClient()):
             with redirect_stdout(buf):
                 meta = _warmup_model()
 
@@ -2562,8 +2562,8 @@ class TestAvisoNctx(unittest.TestCase):
     def test_relatorio_contem_aviso_nctx(self):
         import tempfile
         from unittest.mock import patch as _patch
-        from backend.benchmark.analysis.report import generate_report
-        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        from backend.benchmarks.maria_bench.analysis.report import generate_report
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTaskResult
 
         results = [
             MariaTaskResult(
@@ -2581,7 +2581,7 @@ class TestAvisoNctx(unittest.TestCase):
             "tamanho_legivel": "1.95 GiB",
         }
 
-        with _patch("backend.benchmark.analysis.report.LLAMA_NUM_CTX", 8192):
+        with _patch("backend.benchmarks.maria_bench.analysis.report.LLAMA_NUM_CTX", 8192):
             with tempfile.TemporaryDirectory() as tmpdir:
                 generate_report(
                     results,
@@ -2610,15 +2610,15 @@ class TestFtypeParaNome(unittest.TestCase):
     """Testa a conversão de ftype (enum GGML) para nome legível."""
 
     def test_q4_k_m(self):
-        from backend.benchmark.run_benchmark import _ftype_para_nome
+        from backend.benchmarks.maria_bench.run_benchmark import _ftype_para_nome
         self.assertEqual(_ftype_para_nome(14), "Q4_K_M")
 
     def test_string_passa_direto(self):
-        from backend.benchmark.run_benchmark import _ftype_para_nome
+        from backend.benchmarks.maria_bench.run_benchmark import _ftype_para_nome
         self.assertEqual(_ftype_para_nome("Q8_0"), "Q8_0")
 
     def test_none(self):
-        from backend.benchmark.run_benchmark import _ftype_para_nome
+        from backend.benchmarks.maria_bench.run_benchmark import _ftype_para_nome
         self.assertEqual(_ftype_para_nome(None), "")
 
 
@@ -2688,7 +2688,7 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
         self.assertNotIn("temperature", payload)
 
     def test_maria_task_result_campos_novos_com_default(self):
-        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTaskResult
         result = MariaTaskResult(
             task_id=1, task_name="T", category="conversa", model="m",
             tool_detected=None, tool_correct=True, confirmation_completed=True,
@@ -2700,8 +2700,8 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
         self.assertEqual(result.sampler_params, {})
 
     def test_runner_preenche_prompt_e_resposta_bruta(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteFalso:
             model = "modelo-teste"
@@ -2735,9 +2735,9 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
     def test_report_contem_parametros_e_detalhes_por_execucao(self):
         import tempfile
         from unittest.mock import MagicMock
-        from backend.benchmark.analysis.report import generate_report
+        from backend.benchmarks.maria_bench.analysis.report import generate_report
         from backend.core.llama_client import montar_sampler_params
-        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTaskResult
 
         results = [
             MariaTaskResult(
@@ -2784,22 +2784,22 @@ class TestExtrairNomeExibicao(unittest.TestCase):
     """Testa a extração de nome amigável a partir do ID cru do modelo."""
 
     def test_id_completo(self):
-        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        from backend.benchmarks.maria_bench.run_benchmark import _extrair_nome_exibicao
         self.assertEqual(
             _extrair_nome_exibicao("ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M"),
             "Qwen2.5 Omni 3B",
         )
 
     def test_id_simples_com_hifens(self):
-        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        from backend.benchmarks.maria_bench.run_benchmark import _extrair_nome_exibicao
         self.assertEqual(_extrair_nome_exibicao("qwen2.5-omni-3b"), "qwen2.5 omni 3b")
 
     def test_id_com_underscores(self):
-        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        from backend.benchmarks.maria_bench.run_benchmark import _extrair_nome_exibicao
         self.assertEqual(_extrair_nome_exibicao("Qwen2.5_Omni_3B"), "Qwen2.5 Omni 3B")
 
     def test_id_vazio(self):
-        from backend.benchmark.run_benchmark import _extrair_nome_exibicao
+        from backend.benchmarks.maria_bench.run_benchmark import _extrair_nome_exibicao
         self.assertEqual(_extrair_nome_exibicao(""), "")
 
 
@@ -2807,13 +2807,13 @@ class TestExtrairQuantizacao(unittest.TestCase):
     """Testa a extração da quantização a partir do ID do modelo."""
 
     def test_extrai_do_sufixo(self):
-        from backend.benchmark.run_benchmark import _extrair_quantizacao
+        from backend.benchmarks.maria_bench.run_benchmark import _extrair_quantizacao
         self.assertEqual(
             _extrair_quantizacao("ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M"), "Q4_K_M"
         )
 
     def test_sem_sufixo_retorna_desconhecida(self):
-        from backend.benchmark.run_benchmark import _extrair_quantizacao
+        from backend.benchmarks.maria_bench.run_benchmark import _extrair_quantizacao
         self.assertEqual(_extrair_quantizacao("qwen2.5-omni-3b"), "desconhecida")
 
 
@@ -2821,7 +2821,7 @@ class TestContextoOk(unittest.TestCase):
     """Testa o campo contexto_ok no resultado e nas métricas do benchmark."""
 
     def test_default_true_no_resultado(self):
-        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTaskResult
         result = MariaTaskResult(
             task_id=1, task_name="T", category="conversa", model="m",
             tool_detected=None, tool_correct=True, confirmation_completed=True,
@@ -2831,8 +2831,8 @@ class TestContextoOk(unittest.TestCase):
         self.assertTrue(result.contexto_ok)
 
     def test_contexto_ok_rate_nas_metricas(self):
-        from backend.benchmark.analysis.metrics import calculate_maria_metrics
-        from backend.benchmark.tasks.task_schema import MariaTaskResult
+        from backend.benchmarks.maria_bench.analysis.metrics import calculate_maria_metrics
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTaskResult
         base = dict(
             task_name="T", category="conversa", model="m",
             tool_detected=None, tool_correct=True, confirmation_completed=True,
@@ -2846,8 +2846,8 @@ class TestContextoOk(unittest.TestCase):
 
     def test_runner_detecta_erro_de_contexto(self):
         from unittest.mock import patch as _patch
-        from backend.benchmark.runners.maria_runner import MariaRunner, LlamaClientError
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner, LlamaClientError
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteErroContexto:
             model = "modelo-teste"
@@ -2862,7 +2862,7 @@ class TestContextoOk(unittest.TestCase):
             9107, "Contexto", "desc", "Crie uma planilha grande.",
             category=MariaTaskCategory.CRIAR_PLANILHA,
         )
-        with _patch("backend.benchmark.runners.maria_runner.time.sleep"):
+        with _patch("backend.benchmarks.maria_bench.runners.maria_runner.time.sleep"):
             resultado = MariaRunner(cliente=ClienteErroContexto()).run(task)
 
         self.assertFalse(resultado.contexto_ok)
@@ -2872,8 +2872,8 @@ class TestContextoOk(unittest.TestCase):
 
     def test_runner_erro_generico_mantem_contexto_ok(self):
         from unittest.mock import patch as _patch
-        from backend.benchmark.runners.maria_runner import MariaRunner, LlamaClientError
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner, LlamaClientError
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteErroRede:
             model = "modelo-teste"
@@ -2885,7 +2885,7 @@ class TestContextoOk(unittest.TestCase):
             9108, "Erro rede", "desc", "Crie uma planilha.",
             category=MariaTaskCategory.CRIAR_PLANILHA,
         )
-        with _patch("backend.benchmark.runners.maria_runner.time.sleep"):
+        with _patch("backend.benchmarks.maria_bench.runners.maria_runner.time.sleep"):
             resultado = MariaRunner(cliente=ClienteErroRede()).run(task)
 
         self.assertTrue(resultado.contexto_ok)
@@ -2898,15 +2898,15 @@ class TestEstimarTokens(unittest.TestCase):
     """Testa a estimativa rápida de tokens (~4 caracteres por token)."""
 
     def test_texto_vazio_retorna_zero(self):
-        from backend.benchmark.utils import estimar_tokens
+        from backend.benchmarks.maria_bench.utils import estimar_tokens
         self.assertEqual(estimar_tokens(""), 0)
 
     def test_400_caracteres_retorna_100(self):
-        from backend.benchmark.utils import estimar_tokens
+        from backend.benchmarks.maria_bench.utils import estimar_tokens
         self.assertEqual(estimar_tokens("a" * 400), 100)
 
     def test_texto_curto_retorna_no_minimo_um(self):
-        from backend.benchmark.utils import estimar_tokens
+        from backend.benchmarks.maria_bench.utils import estimar_tokens
         self.assertEqual(estimar_tokens("ok"), 1)
 
 
@@ -2915,31 +2915,31 @@ class TestCalibracaoDeTokens(unittest.TestCase):
 
     def setUp(self):
         # O warmup de outros testes define o fator global; cada teste parte de 1.0.
-        from backend.benchmark import utils
+        from backend.benchmarks.maria_bench import utils
         utils._fator_calibracao = 1.0
 
     def tearDown(self):
-        from backend.benchmark import utils
+        from backend.benchmarks.maria_bench import utils
         utils._fator_calibracao = 1.0
 
     def test_fator_medido_e_aplicado(self):
-        from backend.benchmark import utils
+        from backend.benchmarks.maria_bench import utils
         fator = utils.definir_fator_calibracao(800, "a" * 400)
         self.assertEqual(fator, 8.0)
         self.assertEqual(utils.estimar_tokens_calibrado("a" * 400), 800)
 
     def test_sem_calibracao_estimativa_pura(self):
-        from backend.benchmark import utils
+        from backend.benchmarks.maria_bench import utils
         self.assertEqual(utils.obter_fator_calibracao(), 1.0)
         self.assertEqual(utils.estimar_tokens_calibrado("a" * 400), 100)
 
     def test_texto_vazio_retorna_zero_mesmo_com_fator(self):
-        from backend.benchmark import utils
+        from backend.benchmarks.maria_bench import utils
         utils.definir_fator_calibracao(800, "a" * 400)
         self.assertEqual(utils.estimar_tokens_calibrado(""), 0)
 
     def test_fator_ignorado_se_estimativa_zero(self):
-        from backend.benchmark import utils
+        from backend.benchmarks.maria_bench import utils
         utils.definir_fator_calibracao(800, "")
         self.assertEqual(utils.obter_fator_calibracao(), 1.0)
 
@@ -2950,16 +2950,16 @@ class TestWarmupCtxSize(unittest.TestCase):
     def _executar_warmup(self, metadados, contar_tokens):
         import io
         from contextlib import redirect_stdout
-        from backend.benchmark import run_benchmark
+        from backend.benchmarks.maria_bench import run_benchmark
 
         class FakeClient:
             def enviar_mensagem(self, *a, **kw):
                 return "ok"
 
         buf = io.StringIO()
-        with patch("backend.benchmark.run_benchmark._obter_metadados_modelo", return_value=metadados), \
-             patch("backend.benchmark.run_benchmark._contar_tokens_exatos", side_effect=contar_tokens), \
-             patch("backend.benchmark.run_benchmark.LlamaClient", return_value=FakeClient()):
+        with patch("backend.benchmarks.maria_bench.run_benchmark._obter_metadados_modelo", return_value=metadados), \
+             patch("backend.benchmarks.maria_bench.run_benchmark._contar_tokens_exatos", side_effect=contar_tokens), \
+             patch("backend.benchmarks.maria_bench.run_benchmark.LlamaClient", return_value=FakeClient()):
             with redirect_stdout(buf):
                 meta = run_benchmark._warmup_model()
         return meta, buf.getvalue()
@@ -2971,7 +2971,7 @@ class TestWarmupCtxSize(unittest.TestCase):
         self.assertEqual(meta["ctx_fonte"], "models")
 
     def test_fallback_para_llama_num_ctx_com_aviso(self):
-        from backend.benchmark.run_benchmark import LLAMA_NUM_CTX
+        from backend.benchmarks.maria_bench.run_benchmark import LLAMA_NUM_CTX
         metadados = {"id": "m", "id_exibicao": "m"}  # sem n_ctx
         meta, saida = self._executar_warmup(metadados, lambda *a: None)
         self.assertEqual(meta["ctx_size"], LLAMA_NUM_CTX)
@@ -2990,7 +2990,7 @@ class TestWarmupCtxSize(unittest.TestCase):
 
     def tearDown(self):
         # Evita vazar o fator de calibração global para outros testes.
-        from backend.benchmark import utils
+        from backend.benchmarks.maria_bench import utils
         utils._fator_calibracao = 1.0
 
 
@@ -3080,11 +3080,11 @@ class TestPreCheckContexto(unittest.TestCase):
     """Testa o pre-check de contexto e o timeout por chamada no MariaRunner."""
 
     def _task(self, mensagem="Olá"):
-        from backend.benchmark.tasks.task_schema import MariaTask
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask
         return MariaTask(999, "PreCheck", "Teste", mensagem)
 
     def test_prompt_gigante_bloqueado_sem_retry(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
 
         class ClienteConta:
             def __init__(self):
@@ -3106,7 +3106,7 @@ class TestPreCheckContexto(unittest.TestCase):
         )
 
     def test_prompt_normal_e_enviado(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
 
         class ClienteNormal:
             def __init__(self):
@@ -3125,8 +3125,8 @@ class TestPreCheckContexto(unittest.TestCase):
         self.assertEqual(cliente.chamadas, 1)
 
     def test_callback_de_continuacao_usa_timeout_por_chamada(self):
-        from backend.benchmark.runners import maria_runner as modulo
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.runners import maria_runner as modulo
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
 
         class ClienteLeitura:
             def __init__(self):
@@ -3411,10 +3411,10 @@ class TestExtrairDadosPlanilha(unittest.TestCase):
 class TestTarefa26Traducao(unittest.TestCase):
     """v4.2.2: Task 26 do benchmark — tradução mandarim → inglês de planilha
     real (produtos). Valida o desenho da tarefa e a cópia da fixture real
-    (backend/benchmark/fixtures/produtos_mandarim.xlsx)."""
+    (backend/benchmarks/maria_bench/fixtures/produtos_mandarim.xlsx)."""
 
     def test_estrutura_da_task_26(self):
-        from backend.benchmark.tasks import load_all_maria_tasks
+        from backend.benchmarks.maria_bench.tasks import load_all_maria_tasks
 
         tarefas = {t.id: t for t in load_all_maria_tasks()}
         self.assertIn(26, tarefas)
@@ -3445,11 +3445,11 @@ class TestTarefa26Traducao(unittest.TestCase):
 
     def test_fixture_produtos_mandarim_copiada(self):
         """A fixture produtos_mandarim.xlsx é copiada do diretório real de
-        fixtures (backend/benchmark/fixtures/), não gerada programaticamente."""
+        fixtures (backend/benchmarks/maria_bench/fixtures/), não gerada programaticamente."""
         import pandas as pd
         from unittest.mock import patch
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
-        from backend.benchmark.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
 
         task = MariaTask(
             id=26,
@@ -3461,7 +3461,7 @@ class TestTarefa26Traducao(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             with patch(
-                "backend.benchmark.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", tmp
+                "backend.benchmarks.maria_bench.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", tmp
             ):
                 MariaRunner._garantir_planilha_existente(task)
                 caminho = os.path.join(tmp, "produtos_mandarim.xlsx")
@@ -3497,7 +3497,7 @@ class TestValidacaoDadosArquivoGerado(unittest.TestCase):
         return caminho
 
     def test_coluna_preenchida_em_todas_as_linhas(self):
-        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        from backend.benchmarks.maria_bench.runners.maria_runner import _validar_coluna_preenchida
         caminho = self._escrever_xlsx("preenchida.xlsx", [
             {"english description": "Foo"},
             {"english description": "Bar"},
@@ -3508,7 +3508,7 @@ class TestValidacaoDadosArquivoGerado(unittest.TestCase):
         )
 
     def test_coluna_vazia_em_pelo_menos_uma_linha(self):
-        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        from backend.benchmarks.maria_bench.runners.maria_runner import _validar_coluna_preenchida
         caminho = self._escrever_xlsx("com_vazia.xlsx", [
             {"english description": "Foo"},
             {"english description": None},
@@ -3519,21 +3519,21 @@ class TestValidacaoDadosArquivoGerado(unittest.TestCase):
         self.assertIn("1/3", motivo)
 
     def test_coluna_inexistente_no_arquivo(self):
-        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        from backend.benchmarks.maria_bench.runners.maria_runner import _validar_coluna_preenchida
         caminho = self._escrever_xlsx("sem_coluna.xlsx", [{"model": "QFY000013"}])
         valido, motivo = _validar_coluna_preenchida(caminho, "english description")
         self.assertFalse(valido)
         self.assertIn("english description", motivo)
 
     def test_arquivo_inexistente_retorna_false_sem_excecao(self):
-        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        from backend.benchmarks.maria_bench.runners.maria_runner import _validar_coluna_preenchida
         caminho = os.path.join(self.tmp.name, "nao_existe.xlsx")
         valido, motivo = _validar_coluna_preenchida(caminho, "english description")
         self.assertFalse(valido)
         self.assertIn("não encontrado", motivo)
 
     def test_case_insensitive_na_coluna(self):
-        from backend.benchmark.runners.maria_runner import _validar_coluna_preenchida
+        from backend.benchmarks.maria_bench.runners.maria_runner import _validar_coluna_preenchida
         caminho = self._escrever_xlsx("case.xlsx", [
             {"English Description": "Foo"},
             {"English Description": "Bar"},
@@ -3543,8 +3543,8 @@ class TestValidacaoDadosArquivoGerado(unittest.TestCase):
         )
 
     def test_task_sem_coluna_dados_obrigatoria_nao_valida_arquivo(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteTexto:
             model = "modelo-teste"
@@ -3558,9 +3558,9 @@ class TestValidacaoDadosArquivoGerado(unittest.TestCase):
             category=MariaTaskCategory.CONVERSA,
         )
         runner = MariaRunner(cliente=ClienteTexto())
-        with patch("backend.benchmark.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", self.tmp.name):
+        with patch("backend.benchmarks.maria_bench.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", self.tmp.name):
             with patch(
-                "backend.benchmark.runners.maria_runner._validar_coluna_preenchida",
+                "backend.benchmarks.maria_bench.runners.maria_runner._validar_coluna_preenchida",
                 return_value=(True, ""),
             ) as mock_validar:
                 resultado = runner.run(task)
@@ -3568,8 +3568,8 @@ class TestValidacaoDadosArquivoGerado(unittest.TestCase):
         mock_validar.assert_not_called()
 
     def test_runner_task_26_arquivo_somente_cabecalho_marca_dados_invalidos(self):
-        from backend.benchmark.runners.maria_runner import MariaRunner
-        from backend.benchmark.tasks.task_schema import MariaTask, MariaTaskCategory
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTask, MariaTaskCategory
 
         class ClienteCriaPlanilha:
             model = "modelo-teste"
@@ -3595,7 +3595,7 @@ class TestValidacaoDadosArquivoGerado(unittest.TestCase):
         )
         runner = MariaRunner(cliente=ClienteCriaPlanilha())
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("backend.benchmark.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", tmp):
+            with patch("backend.benchmarks.maria_bench.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR", tmp):
                 resultado = runner.run(task)
         self.assertFalse(resultado.dados_arquivo_validos)
         kinds = [e["kind"] for e in resultado.errors]
