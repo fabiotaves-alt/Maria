@@ -3459,6 +3459,7 @@ class TestTarefa26Traducao(unittest.TestCase):
             user_message="Preencha a columna english description da planilha produtos.",
             fixtures=["produtos_mandarim"],
             category=MariaTaskCategory.CRIAR_PLANILHA,
+            limite_conhecido=True,
         )
         with tempfile.TemporaryDirectory() as tmp:
             with patch(
@@ -3593,6 +3594,7 @@ class TestValidacaoDadosArquivoGerado(unittest.TestCase):
             confirm_sequence=["sim"],
             category=MariaTaskCategory.CRIAR_PLANILHA,
             coluna_dados_obrigatoria="english description",
+            limite_conhecido=True,
         )
         runner = MariaRunner(cliente=ClienteCriaPlanilha())
         with tempfile.TemporaryDirectory() as tmp:
@@ -3603,6 +3605,158 @@ class TestValidacaoDadosArquivoGerado(unittest.TestCase):
         self.assertIn("DadosIncompletos", kinds)
         self.assertIn("linha", resultado.errors[0]["message"])
         self.assertFalse(resultado.runtime_ok)
+
+
+class TestLinhasEsperadas(unittest.TestCase):
+    """B4: valida linhas_esperadas no .xlsx gerado (conteúdo real das linhas).
+
+    Cobre MariaRunner._verificar_linhas_esperadas e a exclusão de tasks com
+    limite_conhecido=True das métricas agregadas de aceite.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+    def _escrever_xlsx(self, nome: str, dados: list[dict]) -> str:
+        caminho = os.path.join(self.tmp.name, nome)
+        pd.DataFrame(dados).to_excel(caminho, index=False)
+        return caminho
+
+    def test_linhas_esperadas_none_retorna_true(self):
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        self.assertTrue(MariaRunner._verificar_linhas_esperadas(None, None))
+
+    def test_linhas_esperadas_caminho_none_retorna_false(self):
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        self.assertFalse(MariaRunner._verificar_linhas_esperadas(None, [{"a": "b"}]))
+
+    def test_linhas_esperadas_match_case_insensitive(self):
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        caminho = self._escrever_xlsx("case.xlsx", [{"Nome": "MARIA", "valor": "X"}])
+        self.assertTrue(MariaRunner._verificar_linhas_esperadas(
+            caminho, [{"nome": "maria", "valor": "x"}]
+        ))
+
+    def test_linhas_esperadas_nao_encontrada(self):
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        caminho = self._escrever_xlsx("ausente.xlsx", [{"col": "valor_a"}])
+        self.assertFalse(MariaRunner._verificar_linhas_esperadas(
+            caminho, [{"col": "valor_b"}]
+        ))
+
+    def test_linhas_esperadas_arquivo_inexistente_nao_lanca(self):
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+        caminho = os.path.join(self.tmp.name, "nao_existe.xlsx")
+        self.assertFalse(MariaRunner._verificar_linhas_esperadas(
+            caminho, [{"col": "valor"}]
+        ))
+
+    def test_metricas_excluem_limite_conhecido(self):
+        from backend.benchmarks.maria_bench.analysis.metrics import calculate_maria_metrics
+        from backend.benchmarks.maria_bench.tasks.task_schema import MariaTaskResult
+        base = dict(
+            task_name="t", category="c", model="m", tool_detected=None,
+            confirmation_completed=True, keyword_match=True, runtime_ok=True,
+            final_message="f", latency_ms=100.0,
+        )
+        normal = MariaTaskResult(task_id=1, tool_correct=True, **base)
+        limitada = MariaTaskResult(task_id=2, tool_correct=False, limite_conhecido=True, **base)
+        metrics = calculate_maria_metrics([normal, limitada])
+        self.assertEqual(metrics.tool_accuracy, 1.0)
+        self.assertEqual(metrics.total_tasks, 1)
+
+    def test_task_26_marcada_limite_conhecido(self):
+        from backend.benchmarks.maria_bench.tasks.tasks_extracao import TASKS_EXTRACAO
+        task26 = next(t for t in TASKS_EXTRACAO if t.id == 26)
+        self.assertTrue(task26.limite_conhecido)
+
+
+class TestLinhasEsperadasIntegracaoRun(unittest.TestCase):
+    """INCONS-1: fluxo ponta-a-ponta de linhas_esperadas via MariaRunner.run().
+
+    Replica o padrão de mock de TestValidacaoDadosArquivoGerado (cliente fake
+    que devolve uma tool call de criar_planilha), com a diferença de que o
+    tool call inclui `linhas` — o arquivo real gerado sai com linhas de dados.
+    A task declara APENAS linhas_esperadas (sem coluna_dados_obrigatoria),
+    provando que o recurso funciona de forma independente após a correção do
+    acoplamento em maria_runner.py (captura de caminho_arquivo_gerado movida
+    para fora do guard de coluna_dados_obrigatoria).
+
+    Valores usados são não-numéricos ("R$ 2.500,00") para evitar coerção float
+    do pandas ao gravar o .xlsx, que quebraria o match de string.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+    def _run_criando_planilha(self, linhas_criadas, task):
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+
+        class ClienteCriaPlanilhaComDados:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return ("", {
+                    "name": "criar_planilha",
+                    "arguments": {
+                        "nome_arquivo": "produtos_esperados",
+                        "colunas": ["produto", "preco"],
+                        "linhas": linhas_criadas,
+                    },
+                }, 5, 2.0, 1.0)
+
+        runner = MariaRunner(cliente=ClienteCriaPlanilhaComDados())
+        with patch(
+            "backend.benchmarks.maria_bench.runners.maria_runner.BENCHMARK_ARQUIVOS_DIR",
+            self.tmp.name,
+        ):
+            return runner.run(task)
+
+    def _task_somente_linhas_esperadas(self, linhas_esperadas):
+        from backend.benchmarks.maria_bench.tasks.task_schema import (
+            MariaTask,
+            MariaTaskCategory,
+        )
+        return MariaTask(
+            26, "Tradução de planilha (Mandarim → Inglês)", "desc",
+            "Preencha a planilha com as linhas esperadas.",
+            expected_tool="criar_planilha",
+            confirm_sequence=["sim"],
+            category=MariaTaskCategory.CRIAR_PLANILHA,
+            linhas_esperadas=linhas_esperadas,
+        )
+
+    def test_linhas_esperadas_presentes_resulta_em_runtime_ok(self):
+        task = self._task_somente_linhas_esperadas(
+            [{"produto": "Notebook", "preco": "R$ 2.500,00"}]
+        )
+        resultado = self._run_criando_planilha(
+            [
+                {"produto": "Notebook", "preco": "R$ 2.500,00"},
+                {"produto": "Mouse", "preco": "R$ 89,90"},
+            ],
+            task,
+        )
+        self.assertTrue(resultado.linhas_esperadas_ok)
+        self.assertTrue(resultado.runtime_ok)
+        self.assertFalse(
+            any(e["kind"] == "LinhasEsperadasNaoEncontradas" for e in resultado.errors)
+        )
+
+    def test_linhas_esperadas_ausentes_resulta_em_runtime_ok_false(self):
+        task = self._task_somente_linhas_esperadas(
+            [{"produto": "Notebook", "preco": "R$ 2.500,00"}]
+        )
+        resultado = self._run_criando_planilha(
+            [{"produto": "Teclado", "preco": "R$ 199,00"}],
+            task,
+        )
+        self.assertFalse(resultado.linhas_esperadas_ok)
+        self.assertFalse(resultado.runtime_ok)
+        kinds = [e["kind"] for e in resultado.errors]
+        self.assertIn("LinhasEsperadasNaoEncontradas", kinds)
 
 
 if __name__ == "__main__":

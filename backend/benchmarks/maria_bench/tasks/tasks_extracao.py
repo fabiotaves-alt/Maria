@@ -46,6 +46,7 @@ TASKS_EXTRACAO = [
             "nome_arquivo": "produtos_traduzidos",
         },
         coluna_dados_obrigatoria="english description",
+        limite_conhecido=True,
         context=[],
     ),
 

@@ -10,6 +10,7 @@
 **Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`  
 **Débito técnico FIX-4 — ✅ RESOLVIDO (ciclo 2026-09-08):** `encadear_leitura_stream` agora aceita o callback `apos_cada_leitura(nome, argumentos)` (chamado antes de cada leitura) e o `maria_runner` registra as ferramentas intermediárias em `cadeia_ferramentas` — commit na branch `fix/fix4-cadeia-ferramentas-encadeamento`; 3 testes novos; suíte 265.
 **B3 (2026-09-09):** storage SQLite + report v2 na branch `feat/b3-storage-report-v2` — fecha o débito B2 (LLAMA_NUM_CTX) e entrega report v2; suíte 265.
+**B4 (2026-09-09):** Fase B4 do `plano_mestre_v5.md` (Seção 7), **escopo reduzido**, na branch `feat/b4-tasks-v2`: schema `linhas_esperadas` + `limite_conhecido`, `_verificar_linhas_esperadas` (nunca lança), Task 26 marcada `limite_conhecido=True`, fechamento INCONS-1 (fix do acoplamento em `maria_runner.py` + teste de integração ponta-a-ponta via `run()`); suíte 274. **D6 (nova Task 26) e V6 (coerção numérica) adiados — fora desta entrega.**
 
 ---
 
@@ -66,6 +67,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (B4 — linhas_esperadas + INCONS-1)** | 2026-09-09 | Fase B4 do plano_mestre_v5.md (Seção 7), **escopo reduzido**: `linhas_esperadas` e `limite_conhecido` em MariaTask/MariaTaskResult; `_verificar_linhas_esperadas` (nunca lança, case-insensitive); Task 26 original `limite_conhecido=True` (fora do denominador de métricas); fix do acoplamento em `maria_runner.py` (captura de `caminho_arquivo_gerado` desacoplada de `coluna_dados_obrigatoria`); teste de integração ponta-a-ponta via `run()`; **274 testes passando** (272 baseline + 2 novos). **D6 (nova Task 26) e V6 (coerção numérica) ADIADOS — fora desta entrega** | ✅ Commitada (branch feat/b4-tasks-v2) |
 | **4.2.5-dev (B3 — storage + report v2)** | 2026-09-09 | Fase B3 do plano_mestre_v5.md (Seção 6): storage.py (schema runs/results, WAL, índices); persistência defensiva nos 2 fluxos do run_benchmark.py; LLAMA_NUM_CTX via benchmark_config (fecha débito B2); generate_report(detail=...) omitindo detalhes por padrão; compare_runs.py híbrido mantido; 265 testes passando | ✅ Commitada (branch feat/b3-storage-report-v2) |
 | **4.2.5-dev (Auditoria docs)** | 2026-09-09 | Arquivamento de 4 legados em `docs/arquivo/` + atualização de 8 docs (versão, 265 testes, paths `maria_bench`, `uv`, `--host 127.0.0.1`) + relatório `RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; **265 testes passando** | ✅ Concluída |
 | **4.2.5-dev (B2 — benchmark ports)** | 2026-09-08 | Fase B2 do `plano_mestre_v5.md` (Seção 5): move `backend/benchmark/` → `backend/benchmarks/maria_bench/` (D4 ajustado — mantido sob `backend/`, namespace `backend.*` preservado); `montar_mensagens_com_reforco` (público); `LLAMA_NUM_CTX` absorvido em `benchmark_config.py`; imports do benchmark reescritos p/ `backend.domain/interfaces/infrastructure/application.*` sem `sys.path.insert`; **265 testes passando**; débito `backend.core.*` em `report.py`/`servidor_llama.py` registrado | ✅ Commitada (branch `feat/b2-benchmark-ports`) |
@@ -196,6 +198,22 @@
 - compare_runs.py: versão híbrida (SQL-first + fallback log.json) mantida por decisão do tech lead.
 - Traduções espanhol → português em report.py/compare_runs.py.
 - Suíte 265 passed, sem regressão.
+
+### B4 — Tasks v2: linhas_esperadas + limite_conhecido + fechamento INCONS-1 (2026-09-09)
+
+- Fase B4 do plano_mestre_v5.md (Seção 7), **escopo reduzido**, executada na branch feat/b4-tasks-v2 (criada a partir da feat/b3-storage-report-v2).
+- task_schema.py: `linhas_esperadas` (MariaTask) + `linhas_esperadas_ok` (MariaTaskResult); `limite_conhecido` em ambos (defaults retrocompatíveis).
+- maria_runner.py: `_verificar_linhas_esperadas` (estático, nunca lança; arquivo ausente/corrompido → False; match case-insensitive por chave/valor); resultado alimenta `errors` (`LinhasEsperadasNaoEncontradas`) → `runtime_ok = not errors`.
+- tasks_extracao.py: Task 26 original marcada `limite_conhecido=True`; metrics.py: filtro exclui essas tasks do denominador das métricas agregadas de aceite.
+- **Key learning (INCONS-1):** a captura de `caminho_arquivo_gerado` estava DENTRO de `if task.coluna_dados_obrigatoria:` — uma checagem aditiva virou acoplamento: uma task que declarasse apenas `linhas_esperadas` nunca capturaria o caminho e reprovaria sempre (falso negativo) — armadilha pronta para explodir no D6. Fix: captura movida para fora do guard, no ponto único de execução da ferramenta (comportamento das tasks com coluna inalterado). Lição: checagem pós-execução que depende do artefato gerado deve capturar o artefato no ponto único de execução, não condicionada a outra checagem.
+- Testes: `TestLinhasEsperadasIntegracaoRun` (2, ponta-a-ponta via `run()` com o padrão de mock real de `TestValidacaoDadosArquivoGerado` + `linhas` na tool call); suíte **274 passed** (272 baseline + 2 novos), sem regressão.
+- Pendências explícitas (NÃO fazem parte desta entrega): **D6** (nova Task 26 com dados embutidos na mensagem, avaliada via `linhas_esperadas`) e **V6** (coerção numérica) — adiadas.
+
+### ⚠️ Risco de processo — prompt fora do fluxo de aprovação (2026-09-09)
+
+- Registro: um episódio de degeneração de resposta de modelo introduziu um prompt de execução ("Fase B4 adaptada") fora do fluxo padrão de aprovação nesta fase.
+- Escopo executado foi auditado e corrigido (INCONS-1 fechado nesta mesma entrada); nenhum código órfão detectado após varredura (git status limpo; diff HEAD~1..HEAD restrito aos 7 arquivos do commit; nenhum arquivo solto criado após o commit).
+- Mitigação adotada: todo prompt de execução deve ser rastreável à sua origem (autor + branch + momento) antes de ser executado.
 
 ### 4.2.5-dev (Item B) — Validação por item em `colunas` (2026-09-07)
 - **Problema**: `validar_argumentos_obrigatorios` só checava `isinstance(colunas, list)`; lista de dicts (modo de falha 2 do bug de `linhas`) passava e estourava `pandas.errors.InvalidIndexError` na escrita (`criar/editar_planilha_real`).

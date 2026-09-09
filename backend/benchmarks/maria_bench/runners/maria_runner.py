@@ -165,6 +165,8 @@ class MariaRunner:
         tool_nome_bruto: str | None = None
         fallbacks: list[str] = []
         dados_arquivo_validos = True
+        caminho_arquivo_gerado: str | None = None
+        linhas_esperadas_ok = True
 
         try:
             (
@@ -279,23 +281,20 @@ class MariaRunner:
                                 tool_call_final["name"], tool_call_final["arguments"]
                             )
                             resposta_textual = caminho
-                            # Item A: valida conteúdo real do arquivo gerado para
-                            # tasks com coluna_dados_obrigatoria (ex.: Task 26).
-                            # Aditivo — não altera tool_correct/args_correct/keyword_match.
-                            if task.coluna_dados_obrigatoria:
-                                # executar_ferramenta_real devolve a MENSAGEM de
-                                # sucesso ('Planilha criada com sucesso: <path>');
-                                # o caminho real do arquivo é extraído dela.
-                                caminho_arquivo = _extrair_caminho_arquivo(caminho)
-                                if caminho_arquivo:
-                                    dados_arquivo_validos, motivo_invalido = _validar_coluna_preenchida(
-                                        caminho_arquivo, task.coluna_dados_obrigatoria
-                                    )
-                                    if not dados_arquivo_validos:
-                                        errors.append({
-                                            "kind": "DadosIncompletos",
-                                            "message": motivo_invalido,
-                                        })
+                            # Extrai o caminho real do arquivo gerado (devolvido na
+                            # mensagem de sucesso do executor) para as checagens de
+                            # conteúdo pós-execução: coluna_dados_obrigatoria (Item A)
+                            # e linhas_esperadas (B4/INCONS-1).
+                            caminho_arquivo_gerado = _extrair_caminho_arquivo(caminho)
+                            if task.coluna_dados_obrigatoria and caminho_arquivo_gerado:
+                                dados_arquivo_validos, motivo_invalido = _validar_coluna_preenchida(
+                                    caminho_arquivo_gerado, task.coluna_dados_obrigatoria
+                                )
+                                if not dados_arquivo_validos:
+                                    errors.append({
+                                        "kind": "DadosIncompletos",
+                                        "message": motivo_invalido,
+                                    })
                             break
                         except TimeoutError:
                             raise
@@ -440,6 +439,16 @@ class MariaRunner:
         # além da validação estrutural de args_correct).
         semanticas = MariaRunner._analisar_semantica(tool_call_final)
 
+        linhas_esperadas_ok = MariaRunner._verificar_linhas_esperadas(
+            caminho_arquivo_gerado,
+            task.linhas_esperadas,
+        )
+        if not linhas_esperadas_ok:
+            errors.append({
+                "kind": "LinhasEsperadasNaoEncontradas",
+                "detalhe": "Uma ou mais linhas esperadas não foram encontradas no arquivo gerado.",
+            })
+
         return MariaTaskResult(
             task_id=task.id,
             task_name=task.name,
@@ -479,6 +488,8 @@ class MariaRunner:
             conteudo_curto=semanticas["conteudo_curto"],
             nome_com_extensao=semanticas["nome_com_extensao"],
             dados_arquivo_validos=dados_arquivo_validos,
+            linhas_esperadas_ok=linhas_esperadas_ok,
+            limite_conhecido=task.limite_conhecido,
         )
 
     @staticmethod
@@ -578,6 +589,74 @@ class MariaRunner:
 
         return True
 
+    @staticmethod
+    def _verificar_linhas_esperadas(
+        caminho_arquivo: str | None,
+        linhas_esperadas: list[dict] | None,
+    ) -> bool:
+        """Verifica se o arquivo .xlsx gerado contém, para cada dict em
+        linhas_esperadas, uma linha correspondente (match case-insensitive de
+        chave e valor). Retorna True se linhas_esperadas for None (checagem
+        desativada) ou se todas as linhas esperadas forem encontradas.
+
+        Nunca levanta exceção: falhas de leitura (arquivo ausente, corrompido,
+        BadZipFile/InvalidFileException) resultam em False.
+        """
+        if linhas_esperadas is None:
+            return True
+        if not caminho_arquivo:
+            return False
+        try:
+            import openpyxl
+            import zipfile
+            from openpyxl.utils.exceptions import InvalidFileException
+
+            wb = openpyxl.load_workbook(caminho_arquivo, read_only=True, data_only=True)
+            ws = wb.active
+            linhas_planilha = list(ws.iter_rows(values_only=False))
+            wb.close()
+        except (OSError, ValueError, KeyError, zipfile.BadZipFile, InvalidFileException) as exc:
+            logger.warning(
+                "Falha ao ler %s para verificação de linhas_esperadas: %s",
+                caminho_arquivo,
+                exc,
+            )
+            return False
+
+        if not linhas_planilha:
+            return False
+
+        cabecalho = [
+            str(c.value).strip().lower() if c.value is not None else ""
+            for c in linhas_planilha[0]
+        ]
+        linhas_dados = []
+        for row in linhas_planilha[1:]:
+            registro = {}
+            for idx, cel in enumerate(row):
+                if idx < len(cabecalho) and cabecalho[idx]:
+                    valor = cel.value
+                    registro[cabecalho[idx]] = (
+                        str(valor).strip().lower() if valor is not None else ""
+                    )
+            linhas_dados.append(registro)
+
+        for esperada in linhas_esperadas:
+            esperada_norm = {
+                str(k).strip().lower(): str(v).strip().lower()
+                for k, v in esperada.items()
+            }
+            encontrada = any(
+                all(
+                    linha_dados.get(k) == v
+                    for k, v in esperada_norm.items()
+                )
+                for linha_dados in linhas_dados
+            )
+            if not encontrada:
+                return False
+
+        return True
     @staticmethod
     def _garantir_planilha_existente(task: MariaTask) -> None:
         """Cria as fixtures declaradas em `task.fixtures`, se necessário."""
