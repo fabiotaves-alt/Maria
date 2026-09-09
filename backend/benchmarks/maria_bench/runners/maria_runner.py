@@ -21,7 +21,7 @@ from backend.infrastructure.llm.llama_client import (
     montar_mensagens_com_reforco,
 )
 from backend.interfaces.client_protocol import LLMClientProtocol
-from backend.infrastructure.tools.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real, FERRAMENTAS_LEITURA
+from backend.infrastructure.tools.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real, FERRAMENTAS_LEITURA, gerar_response_format_schema
 from backend.application.tool_chaining import encadear_leitura_stream, validar_e_corrigir_tool_call_stream, FERRAMENTAS_ESCRITA
 
 from ..benchmark_config import (
@@ -123,6 +123,8 @@ class MariaRunner:
         temperature: float | None = None,
         modelo_carregado: str | None = None,
         ctx_size: int | None = None,
+        avaliar_com_judge: bool = False,
+        response_format_schema: bool = False,
     ):
         self.cliente = cliente or LlamaClient(num_predict=num_predict, temperature=temperature)
         # Usa o modelo efetivamente carregado no llama-server se disponível,
@@ -134,6 +136,14 @@ class MariaRunner:
         self.ctx_size = int(ctx_size) if ctx_size else LLAMA_NUM_CTX
         # Snapshot único dos parâmetros de sampler efetivos (config atual).
         self.sampler_params = montar_sampler_params()
+        # B6/O5 (experimental, opt-in --judge): LLM-as-judge em-processo com
+        # temperatura 0.0. UM único cliente reutilizado por runner (criado lazy
+        # no primeiro run com a flag ligada) evita N reconexões por task.
+        self.avaliar_com_judge = avaliar_com_judge
+        # B6/D3 (experimental, opt-in --response-format-schema): aplica o schema
+        # gerado de TOOLS_SCHEMA na PRIMEIRA chamada de tasks com expected_tool.
+        self.response_format_schema = response_format_schema
+        self._cliente_judge: LlamaClient | None = None
 
     def run(self, task: MariaTask) -> MariaTaskResult:
         original_pasta = os.environ.get("PASTA_ARQUIVOS_GERADOS")
@@ -168,6 +178,7 @@ class MariaRunner:
         dados_arquivo_validos = True
         caminho_arquivo_gerado: str | None = None
         linhas_esperadas_ok = True
+        judge_veredito: dict | None = None
 
         try:
             (
@@ -440,6 +451,39 @@ class MariaRunner:
         # além da validação estrutural de args_correct).
         semanticas = MariaRunner._analisar_semantica(tool_call_final)
 
+        # B6/O5 (experimental, NAO CALIBRADO): LLM-as-judge em-processo logo
+        # após a análise semântica heurística. Neste ponto o MariaTaskResult
+        # ainda NÃO existe (é construído UMA vez no retorno) — o judge recebe as
+        # variáveis locais via dict leve e o veredito entra no construtor final.
+        # Falhas do judge NUNCA contaminam errors/runtime_ok/latency_ms/tokens.
+        if self.avaliar_com_judge:
+            from ..analysis.llm_judge import avaliar_execucao
+            if self._cliente_judge is None:
+                self._cliente_judge = LlamaClient(temperature=0.0)
+            try:
+                judge_veredito = avaliar_execucao(
+                    task,
+                    {
+                        "tool_detected": detected_name,
+                        "raw_tool_args": (tool_call_final or {}).get("arguments", {}),
+                        "final_message": resposta_textual,
+                    },
+                    cliente=self._cliente_judge,
+                )
+            except Exception as error:  # noqa: BLE001 - defesa extra
+                logger.warning(
+                    "Falha inesperada do LLM-as-judge na tarefa %s: %s", task.id, error
+                )
+                # Estrutura plana do veredito (eixos "erro"), igual a _veredito_erro.
+                judge_veredito = {
+                    eixo: "erro"
+                    for eixo in ("tool_correta", "args_completos", "conteudo_coerente", "idioma")
+                }
+                judge_veredito["justificativa"] = f"falha_interna: {error}"
+                judge_veredito["experimental"] = True
+                judge_veredito["calibrado"] = False
+
+
         linhas_esperadas_ok = MariaRunner._verificar_linhas_esperadas(
             caminho_arquivo_gerado,
             task.linhas_esperadas,
@@ -491,6 +535,7 @@ class MariaRunner:
             dados_arquivo_validos=dados_arquivo_validos,
             linhas_esperadas_ok=linhas_esperadas_ok,
             limite_conhecido=task.limite_conhecido,
+            judge_veredito=judge_veredito,
         )
 
     @staticmethod
@@ -729,12 +774,22 @@ class MariaRunner:
                 metodo_metricas = getattr(self.cliente, "chat_com_tools_stream_com_metricas", None)
                 if callable(metodo_metricas):
                     extras: dict = {}
+                    # B6/D3 (experimental): força o schema JSON da ferramenta
+                    # esperada APENAS na primeira chamada de tasks com
+                    # expected_tool e apenas quando a flag está ligada. Nenhum
+                    # kwarg extra é passado no caminho default (fakes intactos).
+                    kwargs_extras: dict = {}
+                    if self.response_format_schema and task.expected_tool:
+                        schema_rf = gerar_response_format_schema(task.expected_tool)
+                        if schema_rf is not None:
+                            kwargs_extras["response_format"] = schema_rf
                     resposta_textual, tool_call_final, tokens_gerados, tokens_por_segundo, ttft_ms = (
                         metodo_metricas(
                             mensagem_usuario=task.user_message,
                             historico=historico,
                             tools=TOOLS_SCHEMA,
                             extras_saida=extras,
+                            **kwargs_extras,
                         )
                     )
                     self._verificar_timeout_por_chamada(inicio_tentativa)

@@ -187,6 +187,7 @@ class LlamaClient:
         incluir_temperatura: bool = False,
         num_predict_override: int | None = None,
         temperatura_override: float | None = None,
+        response_format: dict | None = None,
     ) -> dict:
         max_tokens = (
             num_predict_override
@@ -209,6 +210,10 @@ class LlamaClient:
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
+        # B6/D3 (experimental): restrição de amostragem via JSON Schema — só é
+        # enviada quando o chamador declara o schema (benchmark com expected_tool).
+        if response_format:
+            payload["response_format"] = response_format
         return payload
 
     def _make_request(self, payload: dict, stream: bool = False) -> requests.Response:
@@ -341,7 +346,9 @@ class LlamaClient:
 
         payload = self._montar_payload(
             mensagens, tools, stream=False,
-            incluir_temperatura=bool(tools),
+            # Temperatura explícita (ex.: LLM-as-judge com temperature=0.0) é
+            # enviada mesmo sem tools — determinismo pedido pelo chamador.
+            incluir_temperatura=bool(tools) or (self.temperature is not None),
             num_predict_override=num_predict_override,
         )
         response = self._make_request(payload, stream=False)
@@ -365,6 +372,7 @@ class LlamaClient:
         image_path: str | None = None,
         audio_path: str | None = None,
         metricas_saida: dict | None = None,
+        response_format: dict | None = None,
     ) -> Generator[tuple[str | None, dict | None], None, None]:
         mensagens = _aplicar_midia_na_ultima_mensagem(messages, image_path, audio_path)
 
@@ -375,8 +383,9 @@ class LlamaClient:
 
         payload = self._montar_payload(
             mensagens, tools, stream=True,
-            incluir_temperatura=bool(tools),
+            incluir_temperatura=bool(tools) or (self.temperature is not None),
             num_predict_override=num_predict_override,
+            response_format=response_format,
         )
         inicio = time.monotonic()
         response = self._make_request(payload, stream=True)
@@ -498,13 +507,16 @@ class LlamaClient:
         historico: list[dict[str, str]] | None = None,
         tools: list[dict] | None = None,
         extras_saida: dict | None = None,
+        response_format: dict | None = None,
     ) -> tuple[str, dict | None, int, float, float | None]:
         mensagens = montar_mensagens_com_reforco(historico, mensagem_usuario)
         metricas: dict = {}
         partes_texto: list[str] = []
         tool_call_final: dict | None = None
 
-        for chunk, tool_chunk in self.chat_stream(mensagens, tools=tools, metricas_saida=metricas):
+        for chunk, tool_chunk in self.chat_stream(
+            mensagens, tools=tools, metricas_saida=metricas, response_format=response_format
+        ):
             if chunk is not None:
                 partes_texto.append(chunk)
             if tool_chunk is not None:

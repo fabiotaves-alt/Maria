@@ -137,6 +137,10 @@ class MariaTaskResult:
     # Espelha MariaTask.limite_conhecido; usado para excluir a execução das
     # métricas agregadas de aceite sem removê-la do relatório individual.
     limite_conhecido: bool = False
+    # B6/O5 (experimental, NAO CALIBRADO): veredito do LLM-as-judge (rubrica 4
+    # eixos). None quando a flag --judge está desligada. É apenas diagnóstico:
+    # NUNCA afeta runtime_ok/tool_correct/args_correct nem as métricas de aceite.
+    judge_veredito: dict | None = None
 
 
 @dataclass

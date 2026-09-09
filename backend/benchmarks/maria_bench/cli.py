@@ -8,8 +8,10 @@ Uso:
     python -m backend.benchmarks.maria_bench.cli compare <run_a> <run_b>
     python -m backend.benchmarks.maria_bench.cli report <run_dir> --detail
 
-Escopo adiado (ver PROGRESSO_DESENVOLVIMENTO.md): --ctx-size, --system-prompt,
-empacotamento e subcomando `judge` (B6). `report` opera sobre run_* (log.json).
+Escopo adiado (ver PROGRESSO_DESENVOLVIMENTO.md): --ctx-size e --system-prompt.
+`judge` e `response_format` (B6) entram como flags EXPERIMENTAIS do subcomando
+`run` (--judge e --response-format-schema), não como subcomando próprio.
+`report` opera sobre run_* (log.json).
 """
 import argparse
 import sys
@@ -33,6 +35,10 @@ def _cmd_run(args: argparse.Namespace) -> int:
         argv += ["--num-predict", str(args.num_predict)]
     if args.temperature is not None:
         argv += ["--temperature", str(args.temperature)]
+    if args.judge:
+        argv += ["--judge"]
+    if args.response_format_schema:
+        argv += ["--response-format-schema"]
     if args.detail:
         argv += ["--detail"]
 
@@ -102,6 +108,12 @@ def _adicionar_args_run(p_run):
     p_run.add_argument("--repeticoes", type=int, default=None, help="Repetições por tarefa")
     p_run.add_argument("--num-predict", type=int, default=None, help="Override de max_tokens")
     p_run.add_argument("--temperature", type=float, default=None, help="Override de temperatura")
+    p_run.add_argument("--judge", action="store_true",
+                       help="B6/O5 (EXPERIMENTAL, NAO CALIBRADO): LLM-as-judge em-processo "
+                            "(temperatura 0.0) após a análise semântica de cada execução.")
+    p_run.add_argument("--response-format-schema", action="store_true",
+                       help="B6/D3 (EXPERIMENTAL): força response_format (JSON Schema derivado "
+                            "de TOOLS_SCHEMA) na primeira chamada das tasks com expected_tool.")
     p_run.add_argument("--detail", action="store_true", help="Report detalhado")
 
 
