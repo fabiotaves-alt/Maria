@@ -120,10 +120,11 @@ class MariaRunner:
         self,
         cliente: LLMClientProtocol | None = None,
         num_predict: int | None = None,
+        temperature: float | None = None,
         modelo_carregado: str | None = None,
         ctx_size: int | None = None,
     ):
-        self.cliente = cliente or LlamaClient(num_predict=num_predict)
+        self.cliente = cliente or LlamaClient(num_predict=num_predict, temperature=temperature)
         # Usa o modelo efetivamente carregado no llama-server se disponível,
         # caso contrário fallback para o model do cliente ou LLAMA_MODEL.
         self.modelo_efetivo = modelo_carregado or getattr(cliente, "model", None)

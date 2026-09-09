@@ -54,16 +54,24 @@ def _formatar_diferenca(field_name: str, before: float | None, after: float | No
     return f"{(after - before) * _multiplicador(field_name):+.1f}{_sufixo(field_name)}"
 
 
-def _load_metrics(run_dir: str):
+def carregar_resultados_de_log(run_dir: str) -> list[MariaTaskResult]:
+    """Lê o log.json de um diretório run_* e devolve os resultados individuais.
+
+    Suporta ambos os formatos históricos: novo (dict com "individual") e
+    antigo (lista plana). Fonte única de leitura de log.json — reutilizada por
+    compare_runs (modo diretório) e pela CLI unificada (`cli report <run_dir>`).
+    """
     with open(os.path.join(run_dir, "log.json"), encoding="utf-8") as log_file:
         dados = json.load(log_file)
-    # Suporta ambos os formatos: novo (dict com "individual") e antigo (lista plana)
     if isinstance(dados, dict):
         resultados_raw = dados.get("individual", [])
     else:
         resultados_raw = dados
-    results = [MariaTaskResult(**item) for item in resultados_raw]
-    return calculate_maria_metrics(results)
+    return [MariaTaskResult(**item) for item in resultados_raw]
+
+
+def _load_metrics(run_dir: str):
+    return calculate_maria_metrics(carregar_resultados_de_log(run_dir))
 
 
 def _eh_run_id(valor: str) -> bool:

@@ -156,11 +156,13 @@ class LlamaClient:
         model: str = LLAMA_MODEL,
         timeout: int = LLAMA_TIMEOUT,
         num_predict: int | None = None,
+        temperature: float | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
         self.num_predict = num_predict
+        self.temperature = temperature
         self._session = requests.Session()
         self._connection_checked = False
         self._num_ctx_respeitado: bool | None = None
@@ -202,6 +204,8 @@ class LlamaClient:
             payload.update(montar_sampler_params())
             if temperatura_override is not None:
                 payload["temperature"] = temperatura_override
+            elif self.temperature is not None:
+                payload["temperature"] = self.temperature
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"

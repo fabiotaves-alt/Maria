@@ -69,6 +69,7 @@
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
 | **4.2.5-dev (Registro teste auto-correção 3B)** | 2026-09-09 | Harness versionado `docs/dev_base/teste_auto_correcao_3b.ps1` (UTF-8 c/ BOM p/ PS 5.1) com veredito corrigido (case-sensitive `-cnotcontains` + referência do pedido) e relatório `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`; resultado **3/3 AUTO-CONSISTENTE mas DIVERGENTE** (modelo rebaixou coluna `Peso`→`peso` em vez de corrigir as linhas); tradução `笔记本`→"livro" errada mantida (reforça D2/D6); **docs-only — suíte 274 inalterada** | ✅ Commitada (branch chore/registro-teste-auto-correcao-3b) |
+| **4.2.5-dev (B5 — CLI unificada)** | 2026-09-09 | Fase B5 do plano_mestre_v5.md (Seção 10): `cli.py` (novo, wrapper fino run/report/compare); override `--temperature` com precedência retry→self→default; `report <run_dir>` via log.json (`carregar_resultados_de_log` extraído de compare_runs, DRY); integração SQLite↔report adiada; 4 itens adiados registrados (judge/B6, --ctx-size, --system-prompt, empacotamento); **280 testes passando** (274 + 6) | ✅ Commitada (branch feat/b5-cli-unificada) |
 | **4.2.5-dev (B4 — linhas_esperadas + INCONS-1)** | 2026-09-09 | Fase B4 do plano_mestre_v5.md (Seção 7), **escopo reduzido**: `linhas_esperadas` e `limite_conhecido` em MariaTask/MariaTaskResult; `_verificar_linhas_esperadas` (nunca lança, case-insensitive); Task 26 original `limite_conhecido=True` (fora do denominador de métricas); fix do acoplamento em `maria_runner.py` (captura de `caminho_arquivo_gerado` desacoplada de `coluna_dados_obrigatoria`); teste de integração ponta-a-ponta via `run()`; **274 testes passando** (272 baseline + 2 novos). **D6 (nova Task 26) e V6 (coerção numérica) ADIADOS — fora desta entrega** | ✅ Commitada (branch feat/b4-tasks-v2) |
 | **4.2.5-dev (B3 — storage + report v2)** | 2026-09-09 | Fase B3 do plano_mestre_v5.md (Seção 6): storage.py (schema runs/results, WAL, índices); persistência defensiva nos 2 fluxos do run_benchmark.py; LLAMA_NUM_CTX via benchmark_config (fecha débito B2); generate_report(detail=...) omitindo detalhes por padrão; compare_runs.py híbrido mantido; 265 testes passando | ✅ Commitada (branch feat/b3-storage-report-v2) |
 | **4.2.5-dev (Auditoria docs)** | 2026-09-09 | Arquivamento de 4 legados em `docs/arquivo/` + atualização de 8 docs (versão, 265 testes, paths `maria_bench`, `uv`, `--host 127.0.0.1`) + relatório `RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; **265 testes passando** | ✅ Concluída |
@@ -224,6 +225,22 @@
 - Registro: um episódio de degeneração de resposta de modelo introduziu um prompt de execução ("Fase B4 adaptada") fora do fluxo padrão de aprovação nesta fase.
 - Escopo executado foi auditado e corrigido (INCONS-1 fechado nesta mesma entrada); nenhum código órfão detectado após varredura (git status limpo; diff HEAD~1..HEAD restrito aos 7 arquivos do commit; nenhum arquivo solto criado após o commit).
 - Mitigação adotada: todo prompt de execução deve ser rastreável à sua origem (autor + branch + momento) antes de ser executado.
+
+### B5 — CLI unificada (2026-09-09) — trabalho concluído, aguardando commit/autorização
+
+- `cli.py` (novo): wrapper fino com subcomandos `run`/`report`/`compare` (`python -m backend.benchmarks.maria_bench.cli`); `run` delega a `run_benchmark.main()` via argv sintético; `compare` usa `generate_comparison`; `report` regenera `report.md` de um diretório run_* (log.json) via `generate_report` — sem duplicar lógica.
+- `compare_runs.py`: carregador de log.json extraído (`carregar_resultados_de_log`), reutilizado por compare e report (DRY).
+- Override `--temperature` no padrão de `--num-predict` (`LlamaClient(temperature=...)`, propagado por `MariaRunner` e `run_benchmark`/CLI); payload usa `self.temperature` (ramo `elif` após `temperatura_override`; `montar_sampler_params` inalterado).
+- Testes: `backend/tests/test_cli.py` (6) — parser + despacho com mocks, isolado do `test_maria.py`. Suíte **280 passed**.
+- **Key learning (DRY):** o subcomando `report` reutiliza `carregar_resultados_de_log` (extraído de compare_runs.py) em vez de duplicar a leitura do log.json — fonte única de leitura compartilhada entre a comparação e a CLI, sem lógica duplicada.
+- **`report <run_dir>` e SQLite↔report**: o subcomando `report` opera sobre diretório run_* (lê `log.json`, regrava `report.md` no próprio diretório), NÃO sobre run_id SQLite. Integração SQLite↔report fica como pendência explícita: `storage.py` não mapeia run_id→diretório e a tabela `results` guarda colunas parciais — sem caso de uso real puxando, não compensa resolver agora.
+
+### ⚠️ B5 — itens adiados (registro formal, com motivo)
+
+- **`judge`**: adiado para a B6 — depende da lógica de julgamento (LLM-as-judge) que ainda não existe.
+- **`--ctx-size`**: adiado — hoje o `ctx_size` vem do servidor real (`/v1/models`) como fonte única de verdade para os pre-checks de estouro de contexto; uma flag de override entraria em conflito com essa proteção (redesenho fora do escopo da B5).
+- **`--system-prompt`**: adiado — troca em runtime afeta o `system_prompt_hash` (rastreabilidade de runs) e o carregamento vive em `backend/core/config.py`, fora do pacote de benchmark.
+- **Empacotamento (`[project.scripts]`/comando `maria-bench`)**: adiado — bloqueado por `[tool.uv] package = false` (backend não é instalado como pacote); mantém-se `python -m backend.benchmarks.maria_bench.cli`.
 
 ### 4.2.5-dev (Item B) — Validação por item em `colunas` (2026-09-07)
 - **Problema**: `validar_argumentos_obrigatorios` só checava `isinstance(colunas, list)`; lista de dicts (modo de falha 2 do bug de `linhas`) passava e estourava `pandas.errors.InvalidIndexError` na escrita (`criar/editar_planilha_real`).
