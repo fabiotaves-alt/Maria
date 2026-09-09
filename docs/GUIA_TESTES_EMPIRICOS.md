@@ -1,8 +1,9 @@
-# Guia de Testes Empíricos — MARIA v4.1.1
+# Guia de Testes Empíricos — MARIA v4.2.5-dev
 
-**Versão:** v4.1.1  
-**Última atualização:** 2026-09-06  
+**Versão:** v4.2.5-dev  
+**Última atualização:** 2026-09-09  
 **Escopo:** Backend Python (Flask bridge HTTP + LlamaClient) + Frontend Tauri v2/React + Sidecar PyInstaller  
+**Baseline:** suíte verde **265 passed** (2026-09-08) — ver `CHANGELOG.md`
 
 Este guia descreve, passo a passo, como **construir** e **executar** os testes do sistema MARIA, do build inicial ao teste de ponta a ponta em máquina limpa. Os comandos são para **PowerShell no Windows** (ambiente de referência do projeto).
 
@@ -28,9 +29,9 @@ Este guia descreve, passo a passo, como **construir** e **executar** os testes d
 ### 0.1 Backend Python
 
 ```powershell
-# Na raiz do monorepo
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+# Na raiz do monorepo (gerenciador canônico: uv + pyproject.toml)
+# Fallback sem uv: pip install -r requirements.txt
+uv sync --extra dev
 ```
 
 Teste rápido de sintaxe e importação do backend:
@@ -84,7 +85,7 @@ Cobre lógica determinística: `ChatSession`, `tools_schema`, `excel_handler`, `
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_maria.py -v
 ```
 
-**Resultado esperado:** `120 passed` no final, sem falhas.
+**Resultado esperado:** `265 passed` no final, sem falhas (baseline 2026-09-08).
 
 ### 1.2 Rust (Tauri)
 
@@ -185,19 +186,19 @@ Invoke-RestMethod -Uri http://localhost:8081/chat -Method Post `
 > **Pré-requisito:** llama-server rodando na porta 8080 com `qwen2.5-omni-3b`.
 
 ```powershell
-# Executar as 25 tarefas do benchmark
-.\.venv\Scripts\python.exe -m backend.benchmark.run_benchmark --tasks 25
+# Executar as tarefas do benchmark (caminho canônico pós-B2)
+.\.venv\Scripts\python.exe -m backend.benchmarks.maria_bench.run_benchmark --tasks 25
 
 # Executar tarefas de uma categoria específica
-.\.venv\Scripts\python.exe -m backend.benchmark.run_benchmark --category criar_planilha
+.\.venv\Scripts\python.exe -m backend.benchmarks.maria_bench.run_benchmark --category criar_planilha
 
 # Comparar duas execuções
-.\.venv\Scripts\python.exe -m backend.benchmark.compare_runs `
-  --before backend\benchmark\results\run_AAA `
-  --after backend\benchmark\results\run_BBB
+.\.venv\Scripts\python.exe -m backend.benchmarks.maria_bench.compare_runs `
+  --before backend\benchmarks\maria_bench\results\run_AAA `
+  --after backend\benchmarks\maria_bench\results\run_BBB
 ```
 
-**Resultados gerados em:** `backend\benchmark\results\run_<timestamp>\report.md` e `log.json`.
+**Resultados gerados em:** `backend\benchmarks\maria_bench\results\run_<timestamp>\report.md` e `log.json`.
 
 ---
 

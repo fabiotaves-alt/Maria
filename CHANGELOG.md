@@ -2,6 +2,27 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Auditoria da documentação (arquivamento + atualização) — 2026-09-09
+
+### 📁 Arquivamento (git mv, histórico preservado)
+- `docs/GUIA_DESENVOLVIMENTO.md` → `docs/arquivo/GUIA_DESENVOLVIMENTO_v1_legado.md` (superado pelo canônico `GUIA_DESENVOLVIMENTO_v2_canonico.md`).
+- `docs/MELHORIAS_RELATORIO.md` → `docs/arquivo/MELHORIAS_RELATORIO_v411_legado.md` (backlog MEL-01..10 de v4.1.1 fechado; vivo: `TODO_MELHORIAS_BACKEND.md` + `plano_mestre_v5.md`).
+- `docs/RELATORIO_BENCHMARK_DIAGNOSTICO.md` → `docs/arquivo/RELATORIO_BENCHMARK_DIAGNOSTICO_20260904.md` (snapshot pré-B0 da era do parser posicional, removido em D1).
+- `TO DO.txt` (raiz) → `docs/arquivo/TO_DO_legacy_raiz.txt` (brainstorm era JavaFX + ASCII-art + bug 2026-08-12 superado).
+- Banners de arquivamento inseridos no topo dos 4 arquivos.
+
+### 📝 Atualizações (referências quebradas/desatualizadas)
+- `README.md`: versão v4.2.3→v4.2.5-dev, status Estável→EM MIGRAÇÃO, 115+→265 testes, links `INSTALL_GUIDE`/`INSTALACAO_WHISPER`→`GUIA_INSTALACAO`/`REGRAS_OPERACAO_LLAMA_SERVER`, árvore `backend/benchmark/`→`backend/benchmarks/maria_bench/`, `textual_parser`→`json_parser`, roadmap router→B4.5/B4.6.
+- `docs/GUIA_TESTES_EMPIRICOS.md`: v4.1.1→v4.2.5-dev, 120→265 passed, `backend.benchmark`→`backend.benchmarks.maria_bench`, setup `uv sync --extra dev`.
+- `docs/ARQUITETURA_SISTEMA.md`, `docs/GUIA_INSTALACAO.md` (headers + `uv`), `docs/REGRAS_OPERACAO_LLAMA_SERVER.md` (2 paths `maria_bench`), `docs/GUIA_DESENVOLVIMENTO_v2_canonico.md` (§6.2), `docs/PROGRESSO_DESENVOLVIMENTO.md` (path `dev_base`).
+- `docs/install-dependencies.ps1`: `--host 0.0.0.0`→`127.0.0.1` (violava `REGRAS_OPERACAO_LLAMA_SERVER.md`).
+- Novo: `docs/RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md` (tabela MANTER/ARQUIVAR, links corrigidos, débitos).
+
+### 🧪 Testes
+- Suíte: **265 passed** (`pytest backend/tests`; sem regressão — alterações restritas a `.md`/`.ps1`/`.txt`).
+
+---
+
 ## [4.2.5-dev] — B2: Benchmark → Ports (zero acoplamento) — 2026-09-08
 
 ### 🏗️ Fase B2 do plano mestre v5 (Seção 5)

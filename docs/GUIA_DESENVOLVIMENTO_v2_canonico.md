@@ -322,7 +322,7 @@ Distribuição-alvo (não medida formalmente até o momento — `pytest-cov` ain
 
 ### 6.2 Benchmark de Tool Calling
 
-Sistema próprio de avaliação (`backend/benchmark/`). O número de tasks **não deve ser fixado neste documento** — consulte `backend/benchmark/tasks/` como fonte viva (a Task 26 está sendo redesenhada e novas tasks 29–32 estão previstas na Fase B4.5).
+Sistema próprio de avaliação (`backend/benchmarks/maria_bench/` — movido em B2; referências antigas a `backend/benchmark/` são legadas). O número de tasks **não deve ser fixado neste documento** — consulte `backend/benchmarks/maria_bench/tasks/` como fonte viva (a Task 26 está sendo redesenhada e novas tasks 29–32 estão previstas na Fase B4.5).
 
 | Métrica | Definição | Meta |
 |---|---|---|

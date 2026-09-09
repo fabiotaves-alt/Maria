@@ -1,8 +1,8 @@
 # Arquitetura do Sistema — MARIA
 
-**Versão:** v4.1.1
-**Última atualização:** 2026-09-03
-**Status:** ✅ Estável (Frontend Tauri v2 + React, Backend Python bridge HTTP/Sidecar, SQLite FTS5)
+**Versão:** v4.2.5-dev
+**Última atualização:** 2026-09-09
+**Status:** 🔄 EM MIGRAÇÃO (arquitetura hexagonal Fase 0–4 + benchmark v5) — fontes vivas: `CHANGELOG.md`, `docs/PROGRESSO_DESENVOLVIMENTO.md`, `docs/dev_senior/plano_mestre_v5.md`
 
 Este documento descreve a arquitetura real e atual do sistema MARIA, refletindo o modelo LLM configurado (`qwen2.5-omni-3b` via llama-server como padrão em produção) e a estrutura implementada no monorepo. Consulte `backend/core/config.py` como fonte da verdade para configurações de modelo.
 
@@ -171,10 +171,10 @@ Definido no arquivo [`shared/schema.sql`](../shared/schema.sql):
 | Frontend Tauri (Rust) | ✅ Funcional | App compila e inicia; comandos rusqlite e sidecar configurados |
 | Frontend React (UI) | ✅ Funcional | Interface com Glassmorphism, Aura rosa, TopBar, Sidebar e Chat |
 | Frontend Persistência | ✅ rusqlite | Compartilha `shared/maria.db` com o backend |
-| Testes Backend | ✅ 120/120 | pytest passando |
+| Testes Backend | ✅ 265 passed (baseline 2026-09-08) | pytest (`uv run pytest`) |
 | Testes Frontend (TS) | ✅ Passando | `npm run test` (Vitest) |
 | Testes Frontend (Rust) | ✅ Passando | `cargo test` |
-| Documentação | ✅ Atualizada | v4.1.1; referências históricas organizadas |
+| Documentação | 🔄 Em auditoria (2026-09-09) | v4.2.5-dev; legados em `docs/arquivo/` |
 
 ---
 

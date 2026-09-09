@@ -15,7 +15,7 @@ A API HTTP **não** aceita apelidos curtos (`qwen2.5-omni-3b` → `400 model not
 | `qwen2.5-omni-3b` | `ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M` |
 | `qwen2.5-omni-7b` | `ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M` |
 
-> Mapeamento interno em `backend/benchmark/servidor_llama.py` (`MODELOS_HF`).
+> Mapeamento interno em `backend/benchmarks/maria_bench/servidor_llama.py` (`MODELOS_HF`).
 
 ## Tamanho dos GGUF em cache (Q4_K_M)
 | Modelo | Arquivo | Tamanho |
@@ -38,7 +38,7 @@ A API HTTP **não** aceita apelidos curtos (`qwen2.5-omni-3b` → `400 model not
 - Sempre `--host 127.0.0.1`; **nunca** `0.0.0.0` (não expor à rede).
 
 ## Comando canônico de lançamento
-Fonte: `backend/benchmark/servidor_llama.py` (`_abrir_janela_servidor`).
+Fonte: `backend/benchmarks/maria_bench/servidor_llama.py` (`_abrir_janela_servidor`).
 
 ```powershell
 <llama-server.exe> -hf <repo:quant> -c 2048 -t 4 -b 1024 -ub 256 --port 8080 -lv 1 --host 127.0.0.1

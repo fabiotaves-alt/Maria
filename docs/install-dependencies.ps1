@@ -277,8 +277,8 @@ Para rodar o modelo de IA localmente, você precisa do llama.cpp:
 3. Baixe o modelo Qwen2.5-Omni 3B:
    wget -O models/qwen2_5-omni-3b-q4_k_m.gguf https://huggingface.co/ggml-org/Qwen2.5-Omni-3B-GGUF/resolve/main/qwen2_5-omni-3b-q4_k_m.gguf
 
-4. Inicie o servidor:
-   ./build/bin/llama-server -m models/qwen2_5-omni-3b-q4_k_m.gguf -ngl 99 -c 8192 --flash-attn --host 0.0.0.0 --port 8080
+4. Inicie o servidor (loopback apenas — nunca 0.0.0.0; ver docs/REGRAS_OPERACAO_LLAMA_SERVER.md):
+   ./build/bin/llama-server -m models/qwen2_5-omni-3b-q4_k_m.gguf -ngl 99 -c 8192 --flash-attn --host 127.0.0.1 --port 8080
 
 "@ -ForegroundColor White
 

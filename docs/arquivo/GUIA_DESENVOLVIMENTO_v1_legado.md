@@ -1,3 +1,7 @@
+> ⚠️ **ARQUIVADO em 2026-09-09** — documento legado v4.1.1 (v1.1.1). Superado pelo canônico [`../GUIA_DESENVOLVIMENTO_v2_canonico.md`](../GUIA_DESENVOLVIMENTO_v2_canonico.md). Mantido apenas para histórico (auditoria de documentação 2026-09-09). Não usar como referência de setup — fonte viva: `README.md` + `GUIA_DESENVOLVIMENTO_v2_canonico.md` + `CHANGELOG.md`.
+>
+> ---
+
 # Guia de Desenvolvimento — MARIA
 
 **Versão:** v4.1.1

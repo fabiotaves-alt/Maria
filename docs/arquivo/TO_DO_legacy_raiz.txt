@@ -1,3 +1,5 @@
+> ⚠️ ARQUIVADO em 2026-09-09 — brainstorm legado da raiz (era JavaFX, ASCII-art, bug arquivos_gerados de 2026-08-12). Ideias válidas migradas para Roadmap (README) e plano_mestre_v5. Mantido apenas para histórico.
+
 TO DO
 
 Memória que se organiza ao desligar, salva prefeferencias, guarda referencias, organiza "castelo mental"

@@ -3,8 +3,9 @@
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
 **Versão Atual:** v4.2.5  
-**Última alteração:** 2026-09-08  
+**Última alteração:** 2026-09-09  
 **Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — Fase 0 (parser JSON + validação determinística) e Fase 1-4 (camadas domain/application/infrastructure/interfaces + re-exports) **commitadas** na branch; smoke test manual CLI (Qwen2.5-Omni-3B) **aprovado** (6/6 itens, `criar_planilha` real OK); 4 problemas documentados no backlog (P0 JSON na UI, P0 gap "adicionar", P1 fidelidade de dados, P2 banner); B0.5 baseline capturado (3B e 7B, 28 tasks); pendente B0.9 smoke completo; **suíte verde (265 passed)**  
+**Auditoria de documentação (2026-09-09):** 4 legados arquivados em `docs/arquivo/` (GUIA_DESENVOLVIMENTO v1, MELHORIAS_RELATORIO v4.1.1, RELATORIO_BENCHMARK_DIAGNOSTICO 2026-09-04, TO DO.txt da raiz) + 8 docs atualizados (README, GUIA_TESTES, ARQUITETURA, GUIA_INSTALACAO, REGRAS_LLAMA, v2 canônico, install-dependencies.ps1 `--host 127.0.0.1`) + relatório `docs/RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; ver entrada do `CHANGELOG.md`.
 **Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`  
 **Débito técnico FIX-4 — ✅ RESOLVIDO (ciclo 2026-09-08):** `encadear_leitura_stream` agora aceita o callback `apos_cada_leitura(nome, argumentos)` (chamado antes de cada leitura) e o `maria_runner` registra as ferramentas intermediárias em `cadeia_ferramentas` — commit na branch `fix/fix4-cadeia-ferramentas-encadeamento`; 3 testes novos; suíte 265.
 
@@ -12,7 +13,7 @@
 
 ## 🏗️ Estado da Reestruturação (Fase 4 — Arquitetura Hexagonal)
 
-> **Contexto:** O sistema não está em produção — janela aberta para grandes reestruturações. A proposta de arquitetura hexagonal foi analisada e **aprovada com ajustes** (ver `docs/desenvolvedor_base/relatorio_arquitetura_hexagonal`).
+> **Contexto:** O sistema não está em produção — janela aberta para grandes reestruturações. A proposta de arquitetura hexagonal foi analisada e **aprovada com ajustes** (ver `docs/dev_base/relatorio_arquitetura_hexagonal`).
 
 ### Progresso da migração
 
@@ -63,6 +64,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (Auditoria docs)** | 2026-09-09 | Arquivamento de 4 legados em `docs/arquivo/` + atualização de 8 docs (versão, 265 testes, paths `maria_bench`, `uv`, `--host 127.0.0.1`) + relatório `RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; **265 testes passando** | ✅ Concluída |
 | **4.2.5-dev (B2 — benchmark ports)** | 2026-09-08 | Fase B2 do `plano_mestre_v5.md` (Seção 5): move `backend/benchmark/` → `backend/benchmarks/maria_bench/` (D4 ajustado — mantido sob `backend/`, namespace `backend.*` preservado); `montar_mensagens_com_reforco` (público); `LLAMA_NUM_CTX` absorvido em `benchmark_config.py`; imports do benchmark reescritos p/ `backend.domain/interfaces/infrastructure/application.*` sem `sys.path.insert`; **265 testes passando**; débito `backend.core.*` em `report.py`/`servidor_llama.py` registrado | ✅ Commitada (branch `feat/b2-benchmark-ports`) |
 | **4.2.5-dev (FIX-4 — cadeia de ferramentas)** | 2026-09-08 | DEFEITO-2 do diagnóstico resolvido: `encadear_leitura_stream` expõe callback `apos_cada_leitura(nome, argumentos)`; `maria_runner` registra ferramentas de leitura intermediárias em `cadeia_ferramentas`; 3 testes novos; **265 testes passando** | ✅ Commitada (branch `fix/fix4-cadeia-ferramentas-encadeamento`) |
 | **4.2.5-dev (Fix Task 26 — FIX-1/2/3)** | 2026-09-08 | Diagnóstico 2026-09-08 do benchmark: Task 26 reescrita para "ler → criar planilha nova" (sem "preencha a coluna"/"edite"), `context=[]` e `expected_args_subset` apenas com `nome_arquivo`; **262 testes passando**; débito FIX-4 (cadeia incompleta) registrado | ✅ Commitada (branch `fix/task26-benchmark-diagnostico`) |

@@ -1,4 +1,8 @@
-﻿# Relatório de Melhorias & Backlog Técnico — Projeto MARIA
+﻿> ⚠️ **ARQUIVADO em 2026-09-09** — backlog MEL-01..MEL-10 fechado em v4.1.1 (2026-08-31). Backlog vivo: [`../TODO_MELHORIAS_BACKEND.md`](../TODO_MELHORIAS_BACKEND.md) + [`../dev_senior/plano_mestre_v5.md`](../dev_senior/plano_mestre_v5.md). Mantido apenas para histórico.
+>
+> ---
+
+# Relatório de Melhorias & Backlog Técnico — Projeto MARIA
 
 **Versão:** v4.1.1  
 **Última atualização:** 2026-08-31  

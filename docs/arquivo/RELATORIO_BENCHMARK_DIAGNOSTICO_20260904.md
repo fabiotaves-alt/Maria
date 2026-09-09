@@ -1,3 +1,7 @@
+> ⚠️ **ARQUIVADO em 2026-09-09** — snapshot diagnóstico de 2026-09-04 (era do parser posicional, removido na decisão D1 do plano v5). Baseline canônico atual: `docs/dev_senior/baseline_v5_resultados.md` + plano `docs/dev_senior/plano_mestre_v5.md`. Mantido apenas para histórico.
+>
+> ---
+
 # Relatório de Diagnóstico do Benchmark MARIA
 
 **Data:** 2026-09-04
