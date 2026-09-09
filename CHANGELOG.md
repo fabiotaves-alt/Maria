@@ -2,6 +2,16 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Relatório integração backend→frontend + Desempenho — 2026-09-09
+
+### 📄 Novo documento (planejamento, sem código)
+- `docs/RELATORIO_INTEGRACAO_FRONTEND_POS_REFATORACAO_2026-09-09.md` (172 linhas): inventário dos 21 comandos bridge, matriz F1–F5 de integração, spec da nova seção Análise de Desempenho (3 comandos `executar/status/resultado_benchmark` + `PerformanceView` + polling), contratos JSON, riscos e plano 30–44 h.
+
+### 🧪 Testes
+- Suíte: **265 passed** (sem regressão — só adição de doc).
+
+---
+
 ## [4.2.5-dev] — Auditoria da documentação (arquivamento + atualização) — 2026-09-09
 
 ### 📁 Arquivamento (git mv, histórico preservado)
