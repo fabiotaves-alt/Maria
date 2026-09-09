@@ -4,6 +4,7 @@ import json
 import os
 
 from .analysis.metrics import calculate_maria_metrics
+from .benchmark_config import BENCHMARK_RESULTS_DIR
 from .tasks.task_schema import MariaTaskResult
 
 
@@ -65,7 +66,13 @@ def _load_metrics(run_dir: str):
     return calculate_maria_metrics(results)
 
 
-def generate_comparison(before_dir: str, after_dir: str) -> str:
+def _eh_run_id(valor: str) -> bool:
+    """True quando o argumento é um run_id numérico do SQLite (fase B3)."""
+    return isinstance(valor, str) and valor.isdigit()
+
+
+def _generate_comparison_dir(before_dir: str, after_dir: str) -> str:
+    """Comparação legada lendo `log.json` de dois diretórios run_*."""
     before = _load_metrics(before_dir)
     after = _load_metrics(after_dir)
     lines = [
@@ -91,10 +98,74 @@ def generate_comparison(before_dir: str, after_dir: str) -> str:
     return comparison_path
 
 
+def _generate_comparison_sql(before_id: int, after_id: int) -> str:
+    """Comparação via SQL: GROUP BY modelo, task_id, tool_call_fonte (spec B3).
+
+    O3 do spec: a comparação histórica se resolve com agregações da
+    tabela `results` em vez de carregar dois log.json gigantes na memória.
+    """
+    from .storage import agrupar_por_modelo_task_fonte
+
+    antes = agrupar_por_modelo_task_fonte(before_id)
+    depois = agrupar_por_modelo_task_fonte(after_id)
+
+    def _tabla(filas: list[dict]) -> str:
+        header = [
+            "| Modelo | Tarefa | Fonte | Execuções | Acertos | Lat. média (ms) |",
+            "|---|---|---:|---:|---:|---:|",
+        ]
+        filas_md = []
+        for row in filas:
+            filas_md.append(
+                f"| {row['model'] or 'N/D'} | {row['task_id']} "
+                f"({row['task_name']}) | {row['tool_call_fonte'] or 'None'} | "
+                f"{row['execucoes']} | {row['acertos']} | "
+                f"{row['latencia_media_ms']:.0f} |"
+            )
+        return "\n".join(header + filas_md)
+
+    lines = [
+        "# Comparação de execuções do benchmark MARIA (via SQL)",
+        "",
+        f"Antes: run `{before_id}`",
+        f"Depois: run `{after_id}`",
+        "",
+        "> GROUP BY modelo, task_id, tool_call_fonte sobre `results` (fase B3).",
+        "",
+        "## Antes",
+        "",
+        _tabla(antes),
+        "",
+        "## Depois",
+        "",
+        _tabla(depois),
+        "",
+    ]
+    comparison_path = os.path.join(
+        BENCHMARK_RESULTS_DIR, f"comparison_{before_id}_{after_id}.md"
+    )
+    with open(comparison_path, "w", encoding="utf-8") as comparison_file:
+        comparison_file.write("\n".join(lines) + "\n")
+    return comparison_path
+
+
+def generate_comparison(before: str, after: str) -> str:
+    if _eh_run_id(before) and _eh_run_id(after):
+        return _generate_comparison_sql(int(before), int(after))
+    if not _eh_run_id(before) and not _eh_run_id(after):
+        return _generate_comparison_dir(before, after)
+    raise SystemExit(
+        "Argumentos mistos: `--before`/`--after` devem ser ambos run_id (SQLite) "
+        "ou ambos diretórios run_* (log.json)."
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compara dois runs do benchmark MARIA")
-    parser.add_argument("--before", required=True, help="Diretório do run anterior")
-    parser.add_argument("--after", required=True, help="Diretório do run posterior")
+    parser.add_argument("--before", required=True,
+                        help="Run anterior: diretório run_* (log.json) ou run_id numérico (SQLite, fase B3)")
+    parser.add_argument("--after", required=True,
+                        help="Run posterior: diretório run_* (log.json) ou run_id numérico (SQLite, fase B3)")
     args = parser.parse_args()
     print(generate_comparison(args.before, args.after))
     return 0

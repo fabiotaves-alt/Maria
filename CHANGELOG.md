@@ -2,6 +2,29 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — B3: Storage SQLite + report v2 (correções pós-verificação) — 2026-09-09
+
+### 🗄️ Storage SQLite (fase B3 do plano mestre v5)
+- storage.py (novo): schema runs + results (D5 aprovado), PRAGMA journal_mode=WAL, índices run_id/task_id, type hints, docstring em português e sem BOM. Funções: inicializar_schema, registrar_run, registrar_resultados, agrupar_por_modelo_task_fonte.
+- run_benchmark.py: persistência defensiva (try/except + logger.warning) nos 2 fluxos (CLI e programático); config= grava o meta completo do run; modelo= com fallback (id_modelo → id → modelo → desconhecido).
+
+### 🔧 Fechamento de débito do B2 (DRY)
+- LLAMA_NUM_CTX passa a vir de benchmark_config.py (import relativo) em run_benchmark.py e analysis/report.py — elimina o import de backend.core.config no pacote de benchmark.
+- Adicionado logger = logging.getLogger(__name__) em run_benchmark.py (o except da persistência usava logger.warning sem o logger estar definido no módulo).
+
+### 📄 Report v2
+- generate_report(...): include_details → detail (default False); seção de detalhes por execução é omitida quando detail=False (_montar_resumen_ejecucion removida).
+- CLI propaga detail=args.detail.
+
+### 🔍 compare_runs.py
+- Versão híbrida mantida (SQL-first com fallback para log.json) — decisão do tech lead; sem reescrita para SQL puro.
+
+### 🌐 Traduções (espanhol → português)
+- analysis/report.py e compare_runs.py: docstrings, strings de saída e identificadores em espanhol traduzidos (ex.: _montar_secao_fuente_deteccion → _montar_secao_fonte_deteccao, _es_run_id → _eh_run_id).
+
+### 🧪 Testes
+- Suíte: 265 passed (pytest backend/tests -q), sem regressão. Teste test_report_contem_parametros_e_detalhes_por_execucao ajustado para detail=True.
+
 ## [4.2.5-dev] — Relatório integração backend→frontend + Desempenho — 2026-09-09
 
 ### 📄 Novo documento (planejamento, sem código)

@@ -1,9 +1,10 @@
 """Geração de relatório Markdown do benchmark MARIA."""
 import json
 import os
+from collections import Counter
 from datetime import datetime
 
-from backend.core.config import LLAMA_NUM_CTX
+from ..benchmark_config import LLAMA_NUM_CTX
 
 from .metrics import MariaBenchmarkMetrics
 from ..tasks.task_schema import MariaTaskResult
@@ -328,6 +329,41 @@ def _montar_secao_sistema(metricas_sistema: dict, warmup_duracao_s: float | None
     return "\n".join(linhas) + "\n"
 
 
+def _montar_secao_fonte_deteccao(results: list[MariaTaskResult]) -> str:
+    """O4: taxa de `tool_call_fonte` por run (delta vs json vs None)."""
+    if not results:
+        return ""
+    contador = Counter(r.tool_call_fonte for r in results)
+    total = len(results)
+    linhas = [
+        "## Detecção de tool call (tool_call_fonte)",
+        "",
+        "| Fonte | Execuções | % |",
+        "|---|---:|---:|",
+    ]
+    for fonte in ("delta", "json", None):
+        n = contador.get(fonte, 0)
+        etiqueta = "None (sem tool call)" if fonte is None else fonte
+        pct = (n / total * 100) if total else 0.0
+        linhas.append(f"| {etiqueta} | {n} | {pct:.1f}% |")
+    return "\n".join(linhas) + "\n"
+
+
+def _alerta_parse_suspeito(metrics: MariaBenchmarkMetrics, total: int) -> str:
+    """O4: alerta se a taxa de `parse_suspeito` supera o limiar (5%)."""
+    try:
+        n = int(getattr(metrics, "parse_suspeito_count", 0) or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if total and n / total > 0.05:
+        return (
+            f"\n> ⚠️ **Alerta `parse_suspeito`**: {n}/{total} execuções "
+            f"({n / total * 100:.1f}%) mostram padrão de tool call sem detecção "
+            "— possível falha do parser textual.\n"
+        )
+    return ""
+
+
 def generate_report(
     results: list[MariaTaskResult],
     metrics: MariaBenchmarkMetrics,
@@ -337,6 +373,7 @@ def generate_report(
     log_final: dict | None = None,
     metricas_sistema: dict | None = None,
     warmup_duracao_s: float | None = None,
+    detail: bool = False,
 ) -> str:
     os.makedirs(output_dir, exist_ok=True)
     generated_at = datetime.now().isoformat(timespec="seconds")
@@ -409,7 +446,9 @@ def generate_report(
 
     secao_sampler = _montar_secacao_sampler(sampler_params)
     secao_sistema = _montar_secao_sistema(metricas_sistema, warmup_duracao_s)
-    secao_detalhes = _montar_detalhes_execucao(results)
+    secao_detalhes = _montar_detalhes_execucao(results) if detail else ""
+    secao_fonte = _montar_secao_fonte_deteccao(results)
+    alerta_parse = _alerta_parse_suspeito(metrics, len(results))
     secao_semantica = _montar_secao_semantica(metrics)
 
     _taxa_eleg = metrics.confirmation_success_rate_elegiveis
@@ -448,6 +487,7 @@ Gerado em: {generated_at}
 | Qualidade semântica | {metrics.semantic_quality_rate * 100:.1f}% |
 
 {secao_semantica}
+{alerta_parse}
 ## Métricas por categoria
 
 | Categoria | Total | Acurácia de tool calling |
@@ -457,6 +497,8 @@ Gerado em: {generated_at}
         report += f"| {category} | {int(values['total'])} | {values['tool_accuracy'] * 100:.1f}% |\n"
 
     report += "\n## Distribuição de erros\n\n" + _format_errors(metrics.error_distribution)
+    if secao_fonte:
+        report += "\n\n" + secao_fonte
     if secao_detalhes:
         report += "\n\n" + secao_detalhes
     report += "\n\n## Tarefas com falha\n\n"

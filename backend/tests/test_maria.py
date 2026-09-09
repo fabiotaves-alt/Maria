@@ -2768,6 +2768,7 @@ class TestSamplerParamsBenchmark(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             generate_report(
                 results, metrics, tmpdir, sampler_params=montar_sampler_params(),
+                detail=True,
             )
             with open(os.path.join(tmpdir, "report.md"), encoding="utf-8") as f:
                 report = f.read()

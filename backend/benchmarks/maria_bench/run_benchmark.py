@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import logging
 import os
 import sys
 import time
@@ -33,7 +34,10 @@ import requests
 # import local dentro de funções.
 _requests = requests
 
-from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, LLAMA_NUM_CTX, MARIA_SYSTEM_PROMPT
+logger = logging.getLogger(__name__)
+
+from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, MARIA_SYSTEM_PROMPT
+from .benchmark_config import LLAMA_NUM_CTX
 from backend.infrastructure.llm.llama_client import (
     LlamaClient,
     LlamaClientError,
@@ -52,6 +56,9 @@ def _parse_args() -> argparse.Namespace:
                         help="Número de repetições por tarefa (padrão: BENCHMARK_REPETICOES)")
     parser.add_argument("--num-predict", type=int, default=None,
                         help="Override do número de tokens previstos pelo modelo no benchmark")
+    parser.add_argument("--detail", action="store_true",
+                        help="Report v2: incluir prompt_enviado e resposta_bruta por execução "
+                             "(default: resumido < 200 linhas)")
     return parser.parse_args()
 
 
@@ -475,6 +482,18 @@ def main() -> int:
     with open(log_path, "w", encoding="utf-8") as log_file:
         json.dump(log_final, log_file, ensure_ascii=False, indent=2)
 
+    # B3: persistir run + resultados individuais no storage SQLite (fase B3).
+    try:
+        from .storage import registrar_run, registrar_resultados
+        _run_id = registrar_run(
+            modelo=(metadados_modelo or {}).get("id_modelo") or (metadados_modelo or {}).get("id") or (metadados_modelo or {}).get("modelo") or "desconhecido",
+            prompt_hash=log_final.get("meta", {}).get("system_prompt_hash"),
+            config=log_final.get("meta", {}),
+        )
+        registrar_resultados(_run_id, resultados_individuais_todas_tarefas)
+    except Exception as exc:
+        logger.warning("Falha ao gravar resultados no SQLite do benchmark: %s", exc)
+
     metricas_finais = calculate_maria_metrics(resultados_individuais_todas_tarefas)
 
     generate_report(resultados_individuais_todas_tarefas,
@@ -482,7 +501,8 @@ def main() -> int:
                     run_dir,
                     metadados_modelo=metadados_modelo,
                     sampler_params=montar_sampler_params(),
-                    log_final=log_final)
+                    log_final=log_final,
+                    detail=args.detail)
 
     print("\nResumo")
     print(f"Tarefas: {metricas_finais.total_tasks}")
@@ -524,6 +544,7 @@ def _run_benchmark_programatico(
         delay=0.0,
         repeticoes=repeticoes,
         num_predict=None,
+        detail=False,
     )
 
     # Sobrescreve o modelo no config em runtime (sem alterar ENV permanentemente)
@@ -637,6 +658,18 @@ def _run_benchmark_programatico(
     with open(log_path, "w", encoding="utf-8") as log_file:
         json.dump(log_final, log_file, ensure_ascii=False, indent=2)
 
+    # B3: persistir run + resultados individuais no storage SQLite (fase B3).
+    try:
+        from .storage import registrar_run, registrar_resultados
+        _run_id = registrar_run(
+            modelo=(metadados_modelo or {}).get("id_modelo") or (metadados_modelo or {}).get("id") or (metadados_modelo or {}).get("modelo") or "desconhecido",
+            prompt_hash=log_final.get("meta", {}).get("system_prompt_hash"),
+            config=log_final.get("meta", {}),
+        )
+        registrar_resultados(_run_id, resultados_individuais_todas_tarefas)
+    except Exception as exc:
+        logger.warning("Falha ao gravar resultados no SQLite do benchmark: %s", exc)
+
     metricas_finais = calculate_maria_metrics(resultados_individuais_todas_tarefas)
 
     generate_report(
@@ -648,6 +681,7 @@ def _run_benchmark_programatico(
         log_final=log_final,
         metricas_sistema=metricas_sistema,
         warmup_duracao_s=duracao_warmup_s,
+        detail=args.detail,
     )
 
     print("\nResumo")

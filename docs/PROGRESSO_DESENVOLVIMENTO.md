@@ -9,6 +9,7 @@
 **Auditoria de documentação (2026-09-09):** 4 legados arquivados em `docs/arquivo/` (GUIA_DESENVOLVIMENTO v1, MELHORIAS_RELATORIO v4.1.1, RELATORIO_BENCHMARK_DIAGNOSTICO 2026-09-04, TO DO.txt da raiz) + 8 docs atualizados (README, GUIA_TESTES, ARQUITETURA, GUIA_INSTALACAO, REGRAS_LLAMA, v2 canônico, install-dependencies.ps1 `--host 127.0.0.1`) + relatório `docs/RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; ver entrada do `CHANGELOG.md`.
 **Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`  
 **Débito técnico FIX-4 — ✅ RESOLVIDO (ciclo 2026-09-08):** `encadear_leitura_stream` agora aceita o callback `apos_cada_leitura(nome, argumentos)` (chamado antes de cada leitura) e o `maria_runner` registra as ferramentas intermediárias em `cadeia_ferramentas` — commit na branch `fix/fix4-cadeia-ferramentas-encadeamento`; 3 testes novos; suíte 265.
+**B3 (2026-09-09):** storage SQLite + report v2 na branch `feat/b3-storage-report-v2` — fecha o débito B2 (LLAMA_NUM_CTX) e entrega report v2; suíte 265.
 
 ---
 
@@ -65,6 +66,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (B3 — storage + report v2)** | 2026-09-09 | Fase B3 do plano_mestre_v5.md (Seção 6): storage.py (schema runs/results, WAL, índices); persistência defensiva nos 2 fluxos do run_benchmark.py; LLAMA_NUM_CTX via benchmark_config (fecha débito B2); generate_report(detail=...) omitindo detalhes por padrão; compare_runs.py híbrido mantido; 265 testes passando | ✅ Commitada (branch feat/b3-storage-report-v2) |
 | **4.2.5-dev (Auditoria docs)** | 2026-09-09 | Arquivamento de 4 legados em `docs/arquivo/` + atualização de 8 docs (versão, 265 testes, paths `maria_bench`, `uv`, `--host 127.0.0.1`) + relatório `RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; **265 testes passando** | ✅ Concluída |
 | **4.2.5-dev (B2 — benchmark ports)** | 2026-09-08 | Fase B2 do `plano_mestre_v5.md` (Seção 5): move `backend/benchmark/` → `backend/benchmarks/maria_bench/` (D4 ajustado — mantido sob `backend/`, namespace `backend.*` preservado); `montar_mensagens_com_reforco` (público); `LLAMA_NUM_CTX` absorvido em `benchmark_config.py`; imports do benchmark reescritos p/ `backend.domain/interfaces/infrastructure/application.*` sem `sys.path.insert`; **265 testes passando**; débito `backend.core.*` em `report.py`/`servidor_llama.py` registrado | ✅ Commitada (branch `feat/b2-benchmark-ports`) |
 | **4.2.5-dev (FIX-4 — cadeia de ferramentas)** | 2026-09-08 | DEFEITO-2 do diagnóstico resolvido: `encadear_leitura_stream` expõe callback `apos_cada_leitura(nome, argumentos)`; `maria_runner` registra ferramentas de leitura intermediárias em `cadeia_ferramentas`; 3 testes novos; **265 testes passando** | ✅ Commitada (branch `fix/fix4-cadeia-ferramentas-encadeamento`) |
@@ -184,6 +186,16 @@
 - `run_benchmark.py`: import de `core.llama_client` corrigido; sem `sys.path.insert`.
 - Gates da Seção 13: vazios; suíte **265 passed**.
 - Débito técnico: `analysis/report.py` e `servidor_llama.py` ainda importam `backend.core.*`.
+
+### B3 — Storage SQLite + report v2 (2026-09-09)
+- Fase B3 do plano_mestre_v5.md (Seção 6) executada na branch feat/b3-storage-report-v2.
+- storage.py (novo): schema D5 aprovado (runs + results), WAL, índices run_id/task_id, type hints, sem BOM. Funções inicializar_schema/registrar_run/registrar_resultados/agrupar_por_modelo_task_fonte.
+- run_benchmark.py: persistência defensiva (try/except Exception + logger.warning) nos 2 fluxos; config= grava o meta completo; modelo= com fallback id_modelo → id → modelo → desconhecido.
+- Débito B2 fechado: LLAMA_NUM_CTX via benchmark_config (import relativo) em run_benchmark.py/report.py.
+- report.py: generate_report(detail=False) omite a seção de detalhes; _montar_resumen_ejecucion removida; CLI propaga detail=args.detail.
+- compare_runs.py: versão híbrida (SQL-first + fallback log.json) mantida por decisão do tech lead.
+- Traduções espanhol → português em report.py/compare_runs.py.
+- Suíte 265 passed, sem regressão.
 
 ### 4.2.5-dev (Item B) — Validação por item em `colunas` (2026-09-07)
 - **Problema**: `validar_argumentos_obrigatorios` só checava `isinstance(colunas, list)`; lista de dicts (modo de falha 2 do bug de `linhas`) passava e estourava `pandas.errors.InvalidIndexError` na escrita (`criar/editar_planilha_real`).
