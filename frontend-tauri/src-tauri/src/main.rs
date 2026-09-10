@@ -69,26 +69,10 @@ async fn get_status() -> Result<Value, String> {
             // Tenta parsear a resposta como JSON
             match serde_json::from_str::<Value>(&response) {
                 Ok(status) => Ok(status),
-                Err(_) => {
-                    // Se não for JSON válido, retorna status mockado
-                    Ok(serde_json::json!({
-                        "cpu": 18.0,
-                        "ram": 42.0,
-                        "gpu": 11.0,
-                        "modelo": "Qwen 2.5 3B"
-                    }))
-                }
+                Err(e) => Err(format!("Resposta inválida do backend: {}", e)),
             }
         }
-        Err(_) => {
-            // Backend offline, retorna valores padrão
-            Ok(serde_json::json!({
-                "cpu": 0.0,
-                "ram": 0.0,
-                "gpu": 0.0,
-                "modelo": "Qwen 2.5 3B"
-            }))
-        }
+        Err(e) => Err(format!("Backend offline: {}", e)),
     }
 }
 

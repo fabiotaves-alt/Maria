@@ -2,6 +2,30 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — P0: correção de 3 bugs visíveis (demo ao investidor) — 2026-09-10
+
+### 🐞 Bug 1 — Vazamento de JSON bruto da tool call na UI
+- **Causa raiz:** no fallback textual (caminho ativo para o Qwen2.5-Omni), `chat_stream` (`backend/infrastructure/llm/llama_client.py`) emite cada `chunk` de texto verbatim — incluindo o JSON da tool call que o modelo escreve como texto. Esse texto acumula em `resposta_acumulada` dentro de `_cmd_chat` e era concatenado na `mensagem` enviada ao frontend, aparecendo na UI antes da pergunta de confirmação.
+- **`backend/bridge/comandos.py` — `_remover_span_tool_call` (novo):** remove o span JSON da tool call do texto acumulado, reaproveitando `extrair_tool_call_json` (existente e testado) para deteção + varredura balanceada de chaves (segura para strings/escapes). Aplicado **só** no ramo de geração normal (`resposta_acumulada`); o ramo ambíguo (`resposta_texto`) não é alterado.
+- **`frontend-tauri/src/hooks/useMariaBridge.ts` — `normalizarResposta` endurecida (defesa em profundidade):** reestruturada para preservar texto puro (`JSON.parse` falha → devolve `raw`) e **nunca vazar JSON bruto** (JSON válido sem `mensagem` string → `resposta: ''`). Exportada para testes.
+
+### 🐞 Bug 2 — Mock silencioso de status mascarando backend offline
+- **`frontend-tauri/src-tauri/src/main.rs` — `get_status`:** os dois ramos `Err` passam a propagar `Err` real (`Resposta inválida do backend: …` / `Backend offline: …`), eliminando o mock fabricado `cpu:18/ram:42/gpu:11` e os zeros silenciosos. Assinatura inalterada (`Result<Value, String>`).
+- **`frontend-tauri/src/hooks/useMariaBridge.ts`:** campo `online?: boolean` adicionado a `SystemStatus`; `getSystemStatus` devolve `online: true` no sucesso e `online: false` no `catch`.
+- **`frontend-tauri/src/components/ChatPanel/index.tsx`:** badge de estado passa a usar `setBackendOnline(status.online !== false)`, refletindo o estado real do backend.
+
+### 🐞 Bug 3 — Nomes de modelo inconsistentes
+- **`frontend-tauri/src/components/Sidebar/index.tsx`:** `'Qwen 2.5 3B'` → `'qwen2.5-omni-3b'` (identificador canónico).
+- **`frontend-tauri/src-tauri/src/main.rs`:** resíduos `"Qwen 2.5 3B"` eliminados pelo fixe do Bug 2 (grep de confirmação: 0).
+
+### 🧪 Testes
+- **`frontend-tauri/src/hooks/useMariaBridge.test.ts`:** +5 testes de regressão (`normalizarResposta`: envelope OK / JSON sem `mensagem` não vaza / texto puro intacto; `getSystemStatus`: `online:true` online, `online:false` offline) — total **6 passed**.
+- **Backend:** **288 passed** (baseline 288, 0 falhas) — sem regressão.
+
+### 📋 Itens fora de escopo (registados)
+- Limitação conhecida (não bloqueante): `_remover_span_tool_call` usa `extrair_tool_call_json` como deteção; como o parser devolve `None` para nomes de ferramenta desconhecidos, um tool call com nome inválido não é removido. Coberto para as ferramentas conhecidas.
+- Mantêm-se em aberto: F1.2 (timeout `reqwest` + paths `current_dir()` frágeis) e F1.3 (`read_file`/`save_file` sem validação de path).
+
 ## [4.2.5-dev] — Arrumação do repositório: consolidação de branches + preservação de trabalho órfão — 2026-09-10
 
 ### 🌿 Consolidação de branches (Frente 1)
