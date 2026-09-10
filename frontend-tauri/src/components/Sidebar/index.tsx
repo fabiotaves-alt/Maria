@@ -41,7 +41,7 @@ const resources: ResourceMetric[] = [
 export function Sidebar() {
   const [activeItem, setActiveItem] = useState('conversar');
   const [systemStatus, setSystemStatus] = useState<ResourceMetric[]>(resources);
-  const [modeloAtivo, setModeloAtivo] = useState('Qwen 2.5 3B');
+  const [modeloAtivo, setModeloAtivo] = useState('qwen2.5-omni-3b');
 
   // Carrega status real do sistema a cada 2 segundos
   useEffect(() => {

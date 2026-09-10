@@ -237,6 +237,58 @@ def _cmd_transcrever_audio(controller, payload):
         logger.error(f"Erro ao transcrever áudio: {error}")
         return "erro", None, str(error)
 
+def _remover_span_tool_call(texto: str) -> str:
+    """
+    Remove o bloco JSON de tool call do texto acumulado do modelo,
+    usando a mesma função de extração já existente para localizar o span exato.
+    Retorna o texto limpo. Seguro para texto sem tool call (devolve o original).
+    """
+    from backend.infrastructure.tools.tool_call_json_parser import extrair_tool_call_json
+
+    if not texto:
+        return texto
+
+    resultado = extrair_tool_call_json(texto)
+    if resultado is None:
+        return texto
+
+    # Localizar e remover o span JSON do texto original:
+    # encontrar o primeiro '{' e percorrer até fechar o objeto raiz.
+    inicio = texto.find('{')
+    if inicio == -1:
+        return texto
+
+    profundidade = 0
+    dentro_string = False
+    escape = False
+    fim = inicio
+
+    for i, c in enumerate(texto[inicio:], start=inicio):
+        if escape:
+            escape = False
+            continue
+        if c == '\\' and dentro_string:
+            escape = True
+            continue
+        if c == '"' and not escape:
+            dentro_string = not dentro_string
+            continue
+        if dentro_string:
+            continue
+        if c == '{':
+            profundidade += 1
+        elif c == '}':
+            profundidade -= 1
+            if profundidade == 0:
+                fim = i
+                break
+
+    texto_sem_json = (texto[:inicio] + texto[fim + 1:]).strip()
+    # Remover linhas que ficaram vazias após a remoção
+    linhas = [l for l in texto_sem_json.splitlines() if l.strip()]
+    return "\n".join(linhas).strip()
+
+
 def _cmd_chat(controller, payload: dict) -> tuple:
     """
     Fluxo unificado de chat e confirmação.
@@ -287,8 +339,9 @@ def _cmd_chat(controller, payload: dict) -> tuple:
 
         if tem_pendente:
             # Preserva texto narrado pelo modelo + pergunta de confirmação
+            texto_base = _remover_span_tool_call(resposta_acumulada)
             texto_confirmacao = (
-                resposta_acumulada.strip() + "\n\n" + controller.get_mensagem_confirmacao()
+                texto_base + ("\n\n" if texto_base else "") + controller.get_mensagem_confirmacao()
             ).strip()
             acao = controller.sessao.acao_pendente
             return "ok", {

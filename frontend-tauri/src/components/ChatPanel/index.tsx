@@ -48,7 +48,7 @@ export function ChatPanel() {
           setMessages(history.map((m: any) => ({ ...m, id: String(m.id) })));
         }
         const status = await getSystemStatus();
-        setBackendOnline(true);
+        setBackendOnline(status.online !== false);
         setModeloAtivo(status.modelo);
       } catch {
         setBackendOnline(false);

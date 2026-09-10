@@ -9,6 +9,7 @@ export interface SystemStatus {
   gpu: number;
   modelo: string;
   versao?: string;
+  online?: boolean;
 }
 
 /**
@@ -18,22 +19,36 @@ export interface SystemStatus {
  * O backend devolve string pura para respostas textuais simples e
  * objeto JSON para respostas com confirmacao_pendente.
  */
-function normalizarResposta(raw: string): ChatResponse {
+export function normalizarResposta(raw: string): ChatResponse {
+  let parsed: unknown;
   try {
-    const parsed: ChatBackendResponse = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && 'mensagem' in parsed) {
-      return {
-        resposta: parsed.mensagem,
-        modelo_usado: 'qwen2.5-omni-3b',
-        tempo_processamento: 0,
-        confirmacao_pendente: parsed.confirmacao_pendente,
-      };
-    }
+    parsed = JSON.parse(raw);
   } catch {
-    // não é JSON — string pura
+    // não é JSON — string pura, devolve intacta
+    return {
+      resposta: raw,
+      modelo_usado: 'qwen2.5-omni-3b',
+      tempo_processamento: 0,
+    };
   }
+
+  if (
+    parsed &&
+    typeof parsed === 'object' &&
+    typeof (parsed as ChatBackendResponse).mensagem === 'string'
+  ) {
+    const envelope = parsed as ChatBackendResponse;
+    return {
+      resposta: envelope.mensagem,
+      modelo_usado: 'qwen2.5-omni-3b',
+      tempo_processamento: 0,
+      confirmacao_pendente: envelope.confirmacao_pendente,
+    };
+  }
+
+  // JSON válido mas sem o envelope esperado — nunca vazar o JSON bruto na UI
   return {
-    resposta: raw,
+    resposta: '',
     modelo_usado: 'qwen2.5-omni-3b',
     tempo_processamento: 0,
   };
@@ -60,9 +75,10 @@ export async function getSystemStatus(): Promise<SystemStatus> {
       gpu: Number(status.gpu) || 0,
       modelo: String(status.modelo || status.model || 'qwen2.5-omni-3b'),
       versao: status.versao ? String(status.versao) : undefined,
+      online: true,
     };
   } catch {
-    return { cpu: 0, ram: 0, gpu: 0, modelo: 'qwen2.5-omni-3b' };
+    return { cpu: 0, ram: 0, gpu: 0, modelo: 'qwen2.5-omni-3b', online: false };
   }
 }
 
