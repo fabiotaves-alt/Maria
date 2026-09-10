@@ -82,27 +82,26 @@ Fontes vivas de verdade, em ordem de precedência para "o que existe agora":
 3. `plano_mestre_v5.md` (e execuções `execucao_*.md`) — o que está em progresso e o que é meta futura.
 4. Este documento — diretrizes e fundamentação; não é fonte de estado de implementação.
 
-## 5. Arquitetura — Estado Atual (backend `core/`)
+## 5. Arquitetura — Estado Atual (backend)
 
-Estrutura real hoje (Python 3.11+, Flask + flask-cors, llama-server via HTTP, SQLite com FTS5):
+Estrutura real hoje (Python 3.11+, Flask + flask-cors, llama-server via HTTP, SQLite com FTS5), após a migração hexagonal (Fases B0–B1):
 
 ```
 backend/
 ├── main.py                    ← entry point fino (CLI / --bridge / --bridge-http)
 ├── bridge/                    ← transporte (servidores.py) + protocolo (comandos.py)
-├── core/                      ← lógica de negócio, ferramentas, RAG (parcialmente migrado)
-│   ├── config.py, maria_controller.py, llama_client.py, chat_session.py
-│   ├── tools_schema.py, tool_chaining.py, manual_redacao.py
-│   ├── word_handler.py, excel_handler.py, file_utils.py
-├── application/                ← parcialmente restaurado (B1 em andamento): tool_chaining.py
-├── infrastructure/             ← parcialmente restaurado (B1 em andamento): tools_schema.py, excel_handler.py
+├── domain/                    ← entidades/validação pura: chat_session.py, confirmacao.py, validacao_tool_call.py
+├── interfaces/                ← ports (typing.Protocol): client_protocol.py, interfaces.py, session_storage.py
+├── application/               ← casos de uso: maria_controller.py, tool_chaining.py, router.py, manual_redacao.py
+├── infrastructure/            ← implementações: llm/llama_client.py, tools/ (tools_schema, excel_handler, ...)
+├── core/                      ← config.py + system_prompt.txt + re-exports de compatibilidade (transição)
 ├── ui_terminal.py
 ├── database/                  ← connection.py, schema.py, migrations/
-├── tests/                     ← suíte pytest
-└── benchmark/                 ← framework de avaliação de tool calling
+├── tests/                     ← suíte pytest (269 testes)
+└── benchmarks/maria_bench/    ← framework de avaliação de tool calling
 ```
 
-**Nota:** `application/` e `infrastructure/` já existem parcialmente (ver `execucao_b0_6_b1_re_exports.md`), mas `domain/` e `interfaces/` completos, no formato descrito na Parte II Seção 7.1, **ainda não existem** — são a arquitetura-alvo da Fase B1 do `plano_mestre_v5.md`.
+**Nota:** a migração hexagonal (Fases B0–B1) já está aplicada no tronco — `domain/`, `interfaces/`, `application/` e `infrastructure/` são a fonte real; `core/` mantém apenas `config.py`, `system_prompt.txt` e re-exports de compatibilidade (esvaziamento definitivo na Fase B7a). Ver `execucao_b0_6_b1_re_exports.md`.
 
 ## 6. Arquitetura — Frontend (Tauri v2 + React)
 

@@ -3,7 +3,7 @@
 **Versão:** v4.2.5-dev  
 **Última atualização:** 2026-09-09  
 **Escopo:** Backend Python (Flask bridge HTTP + LlamaClient) + Frontend Tauri v2/React + Sidecar PyInstaller  
-**Baseline:** suíte verde **265 passed** (2026-09-08) — ver `CHANGELOG.md`
+**Baseline:** suíte verde **269 passed** (2026-09-09) — ver `CHANGELOG.md`
 
 Este guia descreve, passo a passo, como **construir** e **executar** os testes do sistema MARIA, do build inicial ao teste de ponta a ponta em máquina limpa. Os comandos são para **PowerShell no Windows** (ambiente de referência do projeto).
 
@@ -85,7 +85,7 @@ Cobre lógica determinística: `ChatSession`, `tools_schema`, `excel_handler`, `
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_maria.py -v
 ```
 
-**Resultado esperado:** `265 passed` no final, sem falhas (baseline 2026-09-08).
+**Resultado esperado:** `269 passed` no final, sem falhas (baseline 2026-09-09).
 
 ### 1.2 Rust (Tauri)
 

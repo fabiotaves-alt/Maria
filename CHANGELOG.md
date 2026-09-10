@@ -2,6 +2,23 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Auditoria de estado + bugs imediatos + renome do guia canónico — 2026-09-10
+
+### 🐛 Bugs imediatos corrigidos
+- **BUG-2 — módulos divergentes (testes × produção):** `test_tool_call_json_parser.py` e `test_validacao_tool_call.py` passam a importar os módulos canónicos (`backend.infrastructure.tools.tool_call_json_parser` e `backend.domain.validacao_tool_call`) em vez das cópias obsoletas de `core/`. As cópias divergentes `core/tool_call_json_parser.py` e `core/validacao_tool_call.py` foram convertidas em re-export shims — a suíte agora valida exatamente o código que a produção executa.
+- **BUG-4 — contagem de testes inconsistente:** `docs/ARQUITETURA_SISTEMA.md` e `docs/GUIA_TESTES_EMPIRICOS.md` reconciliados para **269 passed** (baseline 2026-09-09).
+- **BUG-5 — comandos do bridge:** `docs/ARQUITETURA_SISTEMA.md` corrigido de 19 → **20 comandos** (contagem real de `_COMANDOS` em `backend/bridge/comandos.py`).
+
+### 📝 Documentação
+- **Renome do guia canónico:** `docs/GUIA_DESENVOLVIMENTO_v2_canonico.md` → `docs/GUIA_DESENVOLVIMENTO.md` (`git mv`, histórico preservado); referências vivas atualizadas (`README.md` árvore + tabela; banner do legado `arquivo/GUIA_DESENVOLVIMENTO_v1_legado.md`).
+- **Guia §5 reescrito** (LACUNA-1): removida a afirmação desatualizada de que `domain/`/`interfaces/` "ainda não existem"; árvore atualizada para a arquitetura hexagonal real (B0–B1 aplicadas).
+- **`ARQUITETURA_SISTEMA.md`:** organização modular aponta `application/` (não `core/maria_controller.py`); 20 comandos; 269 testes.
+- **`README.md`:** removido cabeçalho `# CHANGELOG` órfão no fim do ficheiro; contagem 265→269; diagrama e árvore de pastas refletem as camadas hexagonais; roadmap com `v4.2.1–v4.2.4` e `v4.2.5-dev`.
+- **Novo:** `docs/RELATORIO_AUDITORIA_ESTADO_2026-09-10.md` — figura do estado do projeto (branches/integração), processo de documentação e auditoria dos últimos commits.
+
+### 🧪 Testes
+- Suíte completa: **269 passed** — sem regressão (BUG-2 apontou os testes para os módulos canónicos sem alterar comportamento).
+
 ## [4.2.5-dev] — F1.1: Card de confirmação + wiring backend — 2026-09-09
 
 ### 🎯 Card de ação pendente no frontend (F1.1 do relatório de integração)
