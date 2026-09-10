@@ -1,7 +1,7 @@
 # Guia de Revisão Externa — Projeto MARIA
 
 **Repositório:** https://github.com/fabiotaves-alt/Maria
-**Branch principal de desenvolvimento:** [`develop`](https://github.com/fabiotaves-alt/Maria/tree/develop) — é aqui que está o trabalho mais recente e verde. `main` é a linha de releases estáveis (avança apenas em bumps de versão formais).
+**Branch principal de desenvolvimento:** [`develop`](https://github.com/fabiotaves-alt/Maria/tree/develop) — é aqui que está o trabalho mais recente e verde. `main` é a linha de releases estáveis (avança apenas em bumps de versão formais; **ainda sem release tagueada** — `main` avança no primeiro bump formal).
 **Versão atual:** v4.2.5-dev · **Suíte de testes:** 288 passed
 **Data deste guia:** 2026-09-10
 
@@ -57,7 +57,7 @@ Ciclo de refatoração hexagonal do backend (fases B0 a B7a do `docs/dev_senior/
 
 ## Segurança e transparência
 
-Ver [`docs/SEGURANCA.md`](https://github.com/fabiotaves-alt/Maria/blob/develop/docs/SEGURANCA.md), §5 — inclui o registro transparente de um token de sessão (gerado dinamicamente a cada execução, sem valor persistente) que esteve em commits históricos do repositório. Avaliação de impacto e decisão de não reescrever o histórico (para preservar a integridade de hashes/rastreabilidade) estão documentadas ali.
+Ver [`docs/SEGURANCA.md`](https://github.com/fabiotaves-alt/Maria/blob/develop/docs/SEGURANCA.md), §5.1 — inclui o registro transparente de um token de sessão (gerado dinamicamente a cada execução, sem valor persistente) que esteve em commits históricos do repositório. Avaliação de impacto e decisão de não reescrever o histórico (para preservar a integridade de hashes/rastreabilidade) estão documentadas ali.
 
 ---
 
