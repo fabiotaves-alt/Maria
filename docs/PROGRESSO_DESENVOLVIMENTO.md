@@ -11,6 +11,7 @@
 **Débito técnico FIX-4 — ✅ RESOLVIDO (ciclo 2026-09-08):** `encadear_leitura_stream` agora aceita o callback `apos_cada_leitura(nome, argumentos)` (chamado antes de cada leitura) e o `maria_runner` registra as ferramentas intermediárias em `cadeia_ferramentas` — commit na branch `fix/fix4-cadeia-ferramentas-encadeamento`; 3 testes novos; suíte 265.
 **B3 (2026-09-09):** storage SQLite + report v2 na branch `feat/b3-storage-report-v2` — fecha o débito B2 (LLAMA_NUM_CTX) e entrega report v2; suíte 265.
 **B4 (2026-09-09):** Fase B4 do `plano_mestre_v5.md` (Seção 7), **escopo reduzido**, na branch `feat/b4-tasks-v2`: schema `linhas_esperadas` + `limite_conhecido`, `_verificar_linhas_esperadas` (nunca lança), Task 26 marcada `limite_conhecido=True`, fechamento INCONS-1 (fix do acoplamento em `maria_runner.py` + teste de integração ponta-a-ponta via `run()`); suíte 274. **D6 (nova Task 26) e V6 (coerção numérica) adiados — fora desta entrega.**
+**B6 (2026-09-09):** Fase B6 do `plano_mestre_v5.md` (judge experimental + `response_format` por ferramenta) na branch `feat/b6-judge-response-format`; judge opt-in (`--judge`, temperatura 0.0, rubrica 4 eixos `ok/falha`, degradação graciosa, nunca calibrado) + harness `calibracao_judge.py` para uso manual futuro; suíte **283**; pendências: calibração manual (~30 execuções rotuladas) e validação live contra llama-server real; ver entrada do `CHANGELOG.md`.
 **Registro de teste — auto-correção 3B (2026-09-09):** harness corrigido versionado em `docs/dev_base/teste_auto_correcao_3b.ps1` (veredito **case-sensitive** + conjunto de referência com o pedido do usuário — o original usava `-in`, case-insensitive, e produzia falso positivo) + relatório `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`; resultado 3/3 AUTO-CONSISTENTE mas DIVERGENTE (o modelo rebaixou a coluna `Peso`→`peso` em vez de corrigir as linhas) e tradução `笔记本`→"livro" errada mantida; docs-only (suíte 274 inalterada); ver entrada do `CHANGELOG.md`.
 
 ---
@@ -125,6 +126,7 @@
 
 | **4.2.5-dev (Item A — Task 26)** | 2026-09-07 | Validação de conteúdo real no arquivo gerado pela Task 26: checagem aditiva abre o `.xlsx` e exige a coluna `english description` preenchida em todas as linhas (`coluna_dados_obrigatoria`/`dados_arquivo_validos`; erro `DadosIncompletos`) — elimina o falso positivo de arquivo só-cabeçalho; **269 testes passando** (262 baseline + 7 novos) | ✅ Concluída |
 | **4.2.5-dev (Item B — colunas)** | 2026-09-07 | Validação por item em `colunas`: cada elemento deve ser `str` não-vazia — lista de dicts (modo de falha 2 do bug de `linhas`) agora levanta `ValueError` claro na validação, antes de estourar `InvalidIndexError` no pandas; **273 testes passando** (269 baseline + 4 novos) | ✅ Concluída |
+| **4.2.5-dev (B6 — judge experimental + response_format)** | 2026-09-09 | LLM-as-judge em-processo opt-in (`--judge`, temperatura 0.0, rubrica 4 eixos `ok`/`falha`, degradação graciosa, nunca calibrado) + harness de calibração manual (`calibracao_judge.py`) + `response_format` por ferramenta opt-in (`--response-format-schema`, schema derivado de `TOOLS_SCHEMA`) + `LlamaClient.chat` aceita `temperature=0` sem tools; **283 testes passando** | ✅ Concluída |
 | **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -234,6 +236,19 @@
 - Testes: `backend/tests/test_cli.py` (6) — parser + despacho com mocks, isolado do `test_maria.py`. Suíte **280 passed**.
 - **Key learning (DRY):** o subcomando `report` reutiliza `carregar_resultados_de_log` (extraído de compare_runs.py) em vez de duplicar a leitura do log.json — fonte única de leitura compartilhada entre a comparação e a CLI, sem lógica duplicada.
 - **`report <run_dir>` e SQLite↔report**: o subcomando `report` opera sobre diretório run_* (lê `log.json`, regrava `report.md` no próprio diretório), NÃO sobre run_id SQLite. Integração SQLite↔report fica como pendência explícita: `storage.py` não mapeia run_id→diretório e a tabela `results` guarda colunas parciais — sem caso de uso real puxando, não compensa resolver agora.
+
+### B6 — LLM-as-judge experimental + response_format por ferramenta (2026-09-09)
+
+- Fase B6 do plano_mestre_v5.md (Seção 11), com os 3 desvios aprovados pelo tech lead, executada na branch `feat/b6-judge-response-format` (criada a partir de `feat/b5-cli-unificada` @ `74e0bc1`).
+- `analysis/llm_judge.py` (novo): avaliação em-processo, temperatura 0.0, rubrica 4 eixos (`tool_correta`, `args_completos`, `conteudo_coerente`, `idioma`), veredito plano `ok`/`falha`, parsing determinístico e degradação graciosa (`_veredito_erro`, eixos `erro`). **EXPERIMENTAL e NAO CALIBRADO** — decisão de virar métrica é humana.
+- `MariaRunner(avaliar_com_judge=False)` (opt-in `--judge`): chamado logo após `_analisar_semantica`, antes da construção única do `MariaTaskResult`, recebendo dict leve dos locals (`tool_detected`, `raw_tool_args`, `final_message`); veredito entra em `MariaTaskResult.judge_veredito` (default `None`, retrocompatível); chamada envolta em try/except + logger.warning.
+- **Key learning:** a degradação graciosa do judge deve **NUNCA contaminar** `errors`/`runtime_ok`/`tool_correct` da task — falha do judge vira veredito `erro` isolado no campo diagnóstico (`judge_veredito`), mesmo princípio do storage defensivo da B3 (try/except Exception + logger.warning). A avaliação auxiliar é aditiva ao resultado, nunca corretiva dele.
+- `analysis/calibracao_judge.py` (novo): `calcular_concordancia(rotulos_humanos, vereditos_judge)` (concordância geral + por eixo + n) e CLI com 2 JSONs; imprime aviso quando < 80%. Testes: `TestCalibracaoJudge` (3).
+- `response_format` experimental por ferramenta: `gerar_response_format_schema(nome)` em `tools_schema.py` (derivado de `TOOLS_SCHEMA`, não-global — OMISSÃO-3); opt-in `--response-format-schema` (env `LLAMA_RESPONSE_FORMAT_SCHEMA=1`); aplicado apenas em tasks com `expected_tool`; plumbing `_montar_payload`/`chat_stream`/`chat_com_tools_stream_com_metricas` sem tocar o parser do streaming (regra de parada do T4 não disparada).
+- `LlamaClient.chat()`/`chat_stream()`: `incluir_temperatura = bool(tools) or (self.temperature is not None)` — habilita `temperature=0` sem tools (determinismo do judge) sem mudar o comportamento default.
+- Report: seção `## LLM-as-Judge (EXPERIMENTAL, NAO CALIBRADO)` renderizada só quando há `judge_veredito`, com contagem `ok`/`falha`/`erro` por eixo.
+- Suíte: **283 passed** (280 baseline B5 + 3 calibração), sem regressão.
+- Pendências explícitas (fora desta entrega): **calibração manual** do judge (~30 execuções rotuladas, decisão humana documentada) e **validação live** de judge/`response_format` contra llama-server real.
 
 ### ⚠️ B5 — itens adiados (registro formal, com motivo)
 

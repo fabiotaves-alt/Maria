@@ -336,6 +336,33 @@ TOOLS_SCHEMA = [
 # -----------------------------------------------------------------------------
 # Funções auxiliares
 # -----------------------------------------------------------------------------
+def gerar_response_format_schema(nome: str) -> dict | None:
+    """Gera o objeto ``response_format`` (json_schema) da ferramenta ``nome``.
+
+    B6/D3 (experimental): o schema é derivado EXCLUSIVAMENTE do bloco
+    'parameters' que a própria ferramenta já expõe em ``TOOLS_SCHEMA`` (O1 —
+    fonte única de verdade; zero duplicação manual). Retorna None quando a
+    ferramenta não existe em ``TOOLS_SCHEMA`` — nesse caso a flag
+    ``--response-format-schema`` simplesmente não força formato na chamada.
+
+    O valor retornado é o que deve ir em ``payload["response_format"]`` no
+    formato da API compatível com OpenAI:
+        {"type": "json_schema", "json_schema": {"name": ..., "schema": parameters}}
+    """
+    for definicao in TOOLS_SCHEMA:
+        funcao = (definicao or {}).get("function") or {}
+        if funcao.get("name") == nome:
+            parameters = funcao.get("parameters") or {}
+            return {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": nome,
+                    "schema": parameters,
+                },
+            }
+    return None
+
+
 def validar_argumentos_obrigatorios(nome_funcao: str, argumentos: dict) -> None:
     """
     Valida se todos os campos obrigatórios da ferramenta estão presentes

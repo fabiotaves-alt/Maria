@@ -2,6 +2,29 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — B6: LLM-as-judge (experimental) + response_format por ferramenta — 2026-09-09
+
+### ⚖️ LLM-as-judge experimental (fase B6, O5 — desvios aprovados)
+- `analysis/llm_judge.py` (novo): avaliação em-processo com temperatura 0.0, rubrica de 4 eixos (`tool_correta`, `args_completos`, `conteudo_coerente`, `idioma`), veredito plano `ok`/`falha` + `justificativa`, parsing determinístico (tolera code fences) e **degradação graciosa** (`_veredito_erro` — eixos `erro`). **NUNCA calibrado**: nenhuma linha deste módulo afirma concordância com avaliação humana.
+- **Opt-in `--judge`** (`cli.py` → `run_benchmark.py` → `MariaRunner(avaliar_com_judge=False)`): default desligado — nenhum run existente muda. Veredito gravado em `MariaTaskResult.judge_veredito` (novo campo, default `None`) e chamado em-processo logo após `_analisar_semantica`, isolado de `errors`/`runtime_ok`/`tool_correct`.
+- `analysis/calibracao_judge.py` (novo): harness de calibração pronto para **uso manual futuro** — `calcular_concordancia(rotulos, vereditos)` (concordância geral + por eixo) e CLI `python -m backend.benchmarks.maria_bench.analysis.calibracao_judge <rotulos.json> <vereditos.json>`; imprime aviso quando < 80%. Promover o judge a métrica oficial é **decisão humana** (rotulagem manual ~30 execuções), documentada no CHANGELOG quando acontecer.
+
+### 📐 `response_format` experimental por ferramenta (fase B6, D3 / OMISSÃO-3)
+- `gerar_response_format_schema(nome)` em `tools_schema.py`: JSON Schema **por ferramenta específica** derivado de `TOOLS_SCHEMA` (não-global — evita alucinação estrutural de campos de outras ferramentas); retorna `None` para ferramenta inexistente.
+- **Opt-in `--response-format-schema`** (env `LLAMA_RESPONSE_FORMAT_SCHEMA=1`): aplicado apenas quando a task declara `expected_tool`, via parâmetro extra em `_montar_payload`/`chat_stream`/`chat_com_tools_stream_com_metricas` — o pipeline de streaming não foi reescrito (regra de parada do T4 não disparada).
+
+### 🔧 LlamaClient
+- `chat()`/`chat_stream()`: `incluir_temperatura = bool(tools) or (self.temperature is not None)` — habilita `temperature=0` **sem** `tools` (determinismo exigido pelo judge); comportamento default (sem temperatura explícita) inalterado.
+
+### 📄 Report
+- Seção `## LLM-as-Judge (EXPERIMENTAL, NAO CALIBRADO)` com o aviso literal de não-calibração e tabela de contagem `ok`/`falha`/`erro` por eixo — renderizada apenas quando há `judge_veredito` em algum resultado.
+
+### 🧪 Testes
+- Suíte: **283 passed** (`pytest backend/tests`, 280 baseline B5 + 3 novos da calibração), 0 falhas.
+
+### 🔧 Ambiente (nota separada — NÃO faz parte da feature)
+- Venv restaurado com dependências já declaradas em `requirements.txt` e ausentes no venv: `flask`, `flask-cors` e `psutil` (quebravam `test_health_http.py`/`TestSegurancaApiHttp` por `ModuleNotFoundError`). Sem mudança de código.
+
 ## [4.2.5-dev] — Registro de teste: auto-correção genérica do 3B com harness corrigido — 2026-09-09
 
 ### 🧪 Teste empírico isolado (llama-server, `Qwen2.5-Omni-3B` Q4_K_M) — docs-only

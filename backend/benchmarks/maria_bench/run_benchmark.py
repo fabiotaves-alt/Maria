@@ -58,6 +58,14 @@ def _parse_args() -> argparse.Namespace:
                         help="Override do número de tokens previstos pelo modelo no benchmark")
     parser.add_argument("--temperature", type=float, default=None,
                         help="Override de temperatura para as chamadas com tools (default: LLAMA_TEMPERATURE_TOOLS).")
+    parser.add_argument("--judge", action="store_true",
+                        help="B6/O5 (EXPERIMENTAL, NAO CALIBRADO): LLM-as-judge em-processo "
+                             "(temperatura 0.0) após a análise semântica de cada execução.")
+    parser.add_argument("--response-format-schema", action="store_true",
+                        default=(os.environ.get("LLAMA_RESPONSE_FORMAT_SCHEMA", "0") == "1"),
+                        help="B6/D3 (EXPERIMENTAL): força response_format (JSON Schema derivado de "
+                             "TOOLS_SCHEMA) na primeira chamada das tasks com expected_tool. "
+                             "Default via env LLAMA_RESPONSE_FORMAT_SCHEMA=1.")
     parser.add_argument("--detail", action="store_true",
                         help="Report v2: incluir prompt_enviado e resposta_bruta por execução "
                              "(default: resumido < 200 linhas)")
@@ -404,6 +412,8 @@ def main() -> int:
         temperature=args.temperature,
         modelo_carregado=modelo_carregado,
         ctx_size=(metadados_modelo or {}).get("ctx_size"),
+        avaliar_com_judge=args.judge,
+        response_format_schema=args.response_format_schema,
     )
     resultados_individuais_todas_tarefas = []
     agregados_todas_tarefas = []
@@ -549,6 +559,8 @@ def _run_benchmark_programatico(
         num_predict=None,
         temperature=None,
         detail=False,
+        judge=False,
+        response_format_schema=False,
     )
 
     # Sobrescreve o modelo no config em runtime (sem alterar ENV permanentemente)
@@ -585,6 +597,8 @@ def _run_benchmark_programatico(
         temperature=args.temperature,
         modelo_carregado=modelo_carregado,
         ctx_size=(metadados_modelo or {}).get("ctx_size"),
+        avaliar_com_judge=args.judge,
+        response_format_schema=args.response_format_schema,
     )
     resultados_individuais_todas_tarefas = []
     agregados_todas_tarefas = []

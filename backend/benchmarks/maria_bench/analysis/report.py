@@ -364,6 +364,47 @@ def _alerta_parse_suspeito(metrics: MariaBenchmarkMetrics, total: int) -> str:
     return ""
 
 
+def _montar_secao_judge(results: list[MariaTaskResult]) -> str:
+    """B6/O5 (EXPERIMENTAL, NAO CALIBRADO): seção do LLM-as-judge no report.
+
+    Renderizada SOMENTE quando alguma execução carrega judge_veredito (flag
+    --judge ligada). A seção é diagnóstica: nunca alimenta métricas de aceite e
+    o rótulo (experimental, não calibrado) é mantido até a calibração manual
+    (concordância >= 80% contra ~30 execuções rotuladas).
+    """
+    vereditos = [
+        r for r in results
+        if isinstance(getattr(r, "judge_veredito", None), dict)
+    ]
+    if not vereditos:
+        return ""
+
+    eixos = ["tool_correta", "args_completos", "conteudo_coerente", "idioma"]
+    contagem: dict[str, Counter] = {eixo: Counter() for eixo in eixos}
+    for r in vereditos:
+        veredito = r.judge_veredito or {}
+        for eixo in eixos:
+            valor = veredito.get(eixo)
+            if isinstance(valor, str):
+                contagem[eixo][valor] += 1
+
+    linhas = [
+        "## LLM-as-Judge (EXPERIMENTAL, NAO CALIBRADO)",
+        "",
+        "> Este veredito nao passou por calibracao com avaliacao humana. "
+        "Nao trate como metrica oficial.",
+        "",
+        "| Eixo | ok | falha | erro |",
+        "|---|---:|---:|---:|",
+    ]
+    for eixo in eixos:
+        c = contagem[eixo]
+        linhas.append(
+            f"| {eixo} | {c.get('ok', 0)} | {c.get('falha', 0)} | {c.get('erro', 0)} |"
+        )
+    return "\n".join(linhas) + "\n"
+
+
 def generate_report(
     results: list[MariaTaskResult],
     metrics: MariaBenchmarkMetrics,
@@ -450,6 +491,7 @@ def generate_report(
     secao_fonte = _montar_secao_fonte_deteccao(results)
     alerta_parse = _alerta_parse_suspeito(metrics, len(results))
     secao_semantica = _montar_secao_semantica(metrics)
+    secao_judge = _montar_secao_judge(results)
 
     _taxa_eleg = metrics.confirmation_success_rate_elegiveis
     taxa_elegiveis = (
@@ -488,6 +530,7 @@ Gerado em: {generated_at}
 
 {secao_semantica}
 {alerta_parse}
+{secao_judge}
 ## Métricas por categoria
 
 | Categoria | Total | Acurácia de tool calling |
