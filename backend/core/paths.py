@@ -1,6 +1,10 @@
-"""Caminhos centrais do monorepo MARIA."""
+"""Re-export para compatibilidade temporária."""
+import warnings
 
-from pathlib import Path
+warnings.warn(
+    "backend.core.paths esta deprecated; use a camada real diretamente.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-# Raiz do monorepo (3 níveis acima de backend/core/).
-RAIZ_MONOREPO = str(Path(__file__).resolve().parent.parent.parent)
+from backend.infrastructure.paths import *

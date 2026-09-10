@@ -399,7 +399,7 @@ def _menu_avaliacao() -> dict:
         print(rgb(ROSA, "Opção inválida. Digite 1 ou 2."))
 
     # --- Escolha de tarefas ---
-    from backend.benchmark.tasks import load_all_maria_tasks
+    from backend.benchmarks.maria_bench.tasks import load_all_maria_tasks
     todas = load_all_maria_tasks()
     print()
     linhas_tarefas = [f"  0. Todas as tarefas ({len(todas)} tarefas)"]
@@ -418,7 +418,7 @@ def _menu_avaliacao() -> dict:
             task_ids = None
 
     # --- Repetições ---
-    from backend.benchmark.benchmark_config import BENCHMARK_REPETICOES
+    from backend.benchmarks.maria_bench.benchmark_config import BENCHMARK_REPETICOES
     while True:
         print()
         entrada_rep = input(
@@ -444,7 +444,7 @@ def _executar_avaliacao(config: dict, metricas_sistema: dict):
     Trata SystemExit (erros fatais do benchmark, ex: llama-server offline).
     """
     try:
-        from backend.benchmark.run_benchmark import run_benchmark_programatico
+        from backend.benchmarks.maria_bench.run_benchmark import run_benchmark_programatico
         run_benchmark_programatico(
             modelo=config["modelo"],
             task_ids=config["task_ids"],

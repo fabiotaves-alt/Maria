@@ -17,7 +17,7 @@ try:
 except ImportError:
     psutil = None
 
-from backend.core.config import LLAMA_MODEL
+from backend.config import LLAMA_MODEL
 from backend.core.paths import RAIZ_MONOREPO
 from backend.database.connection import get_connection
 
@@ -237,25 +237,128 @@ def _cmd_transcrever_audio(controller, payload):
         logger.error(f"Erro ao transcrever áudio: {error}")
         return "erro", None, str(error)
 
-def _cmd_chat(controller, payload):
-    mensagem = payload.get("mensagem", "")
+def _remover_span_tool_call(texto: str) -> str:
+    """
+    Remove o bloco JSON de tool call do texto acumulado do modelo,
+    usando a mesma função de extração já existente para localizar o span exato.
+    Retorna o texto limpo. Seguro para texto sem tool call (devolve o original).
+    """
+    from backend.infrastructure.tools.tool_call_json_parser import extrair_tool_call_json
+
+    if not texto:
+        return texto
+
+    resultado = extrair_tool_call_json(texto)
+    if resultado is None:
+        return texto
+
+    # Localizar e remover o span JSON do texto original:
+    # encontrar o primeiro '{' e percorrer até fechar o objeto raiz.
+    inicio = texto.find('{')
+    if inicio == -1:
+        return texto
+
+    profundidade = 0
+    dentro_string = False
+    escape = False
+    fim = inicio
+
+    for i, c in enumerate(texto[inicio:], start=inicio):
+        if escape:
+            escape = False
+            continue
+        if c == '\\' and dentro_string:
+            escape = True
+            continue
+        if c == '"' and not escape:
+            dentro_string = not dentro_string
+            continue
+        if dentro_string:
+            continue
+        if c == '{':
+            profundidade += 1
+        elif c == '}':
+            profundidade -= 1
+            if profundidade == 0:
+                fim = i
+                break
+
+    texto_sem_json = (texto[:inicio] + texto[fim + 1:]).strip()
+    # Remover linhas que ficaram vazias após a remoção
+    linhas = [l for l in texto_sem_json.splitlines() if l.strip()]
+    return "\n".join(linhas).strip()
+
+
+def _cmd_chat(controller, payload: dict) -> tuple:
+    """
+    Fluxo unificado de chat e confirmação.
+
+    Se o controller tiver ação pendente, roteia a entrada para
+    processar_confirmacao (qualquer mensagem conta como resposta;
+    2 ambiguidades consecutivas cancelam a ação).
+
+    Caso contrário, executa o fluxo normal de geração de resposta.
+
+    Retorno:
+    - String simples quando não há ação pendente ao final.
+    - Objeto {"mensagem", "confirmacao_pendente", "cadeia_ferramentas"}
+      quando o modelo solicitou uma ação ou quando a resposta é ambígua
+      e ainda há ação pendente.
+    """
+    mensagem = payload.get("mensagem", "").strip()
     if not mensagem:
         return "erro", None, "Campo 'mensagem' vazio."
-    try:
-        stream = controller.enviar_mensagem(mensagem)
-        texto_final = ""
-        for chunk, tool_chunk in stream:
-            if chunk is not None:
-                texto_final += chunk
-            controller.processar_chunk(chunk, tool_chunk)
 
-        tem_tool, info = controller.finalizar_mensagem()
-        if tem_tool:
-            texto_final += "\n\n" + controller.get_mensagem_confirmacao()
-        return "ok", texto_final, None
-    except Exception as error:
-        logger.error(f"Erro no comando chat: {error}")
-        return "erro", None, str(error)
+    try:
+        # ── Ramo de confirmação ───────────────────────────────────────────
+        if controller.tem_acao_pendente():
+            resultado, resposta_texto = controller.processar_confirmacao(mensagem)
+            # resultado: True (executou), False (cancelou), None (ambíguo)
+            if resultado is True or resultado is False:
+                # Ação executada ou cancelada — limpa pendente, devolve string
+                return "ok", resposta_texto, None
+            # resultado is None — ambíguo, ação ainda pendente
+            acao = controller.sessao.acao_pendente
+            return "ok", {
+                "mensagem": resposta_texto,
+                "confirmacao_pendente": {
+                    "ferramenta": acao.get("name", ""),
+                    "argumentos": acao.get("arguments", {}),
+                },
+                "cadeia_ferramentas": [],
+            }, None
+
+        # ── Ramo normal de geração ────────────────────────────────────────
+        resposta_acumulada = ""
+        for chunk, tool_chunk in controller.enviar_mensagem(mensagem):
+            if chunk is not None:
+                resposta_acumulada += chunk
+            controller.processar_chunk(chunk, tool_chunk)  # preenche _tool_call_final
+
+        tem_pendente, _ = controller.finalizar_mensagem()
+
+        if tem_pendente:
+            # Preserva texto narrado pelo modelo + pergunta de confirmação
+            texto_base = _remover_span_tool_call(resposta_acumulada)
+            texto_confirmacao = (
+                texto_base + ("\n\n" if texto_base else "") + controller.get_mensagem_confirmacao()
+            ).strip()
+            acao = controller.sessao.acao_pendente
+            return "ok", {
+                "mensagem": texto_confirmacao,
+                "confirmacao_pendente": {
+                    "ferramenta": acao.get("name", ""),
+                    "argumentos": acao.get("arguments", {}),
+                },
+                "cadeia_ferramentas": [],
+            }, None
+
+        # Resposta textual simples — compatibilidade com clientes que esperam string
+        return "ok", resposta_acumulada or "(sem resposta)", None
+
+    except Exception as e:
+        logger.error(f"Erro no comando chat: {e}")
+        return "erro", None, f"Erro ao processar mensagem: {e}"
 
 
 def _cmd_encerrar(controller, payload):

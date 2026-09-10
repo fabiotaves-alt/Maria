@@ -1,0 +1,721 @@
+From 5f4e9b67a7a3f07d9405aeef880dbdaf6380101a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?F=C3=A1bio=20Adriano=20Queirolo=20Taves?=
+ <fabio.taves@dcx.ufpb.br>
+Date: Wed, 2 Sep 2026 17:13:40 -0300
+Subject: [PATCH] feat(benchmark): fixtures reais de planilha, language check
+ robusto e warmup estendido
+
+---
+ CHANGELOG.md                                  |  27 +++
+ backend/benchmark/analysis/language_check.py  |  49 ++++-
+ .../arquivos_gerados_benchmark/gastos_32.xlsx | Bin 0 -> 4903 bytes
+ .../arquivos_gerados_benchmark/gastos_33.xlsx | Bin 0 -> 4902 bytes
+ backend/benchmark/run_benchmark.py            |  46 +++--
+ backend/benchmark/runners/maria_runner.py     |  41 +++--
+ backend/benchmark/tasks/task_schema.py        |   4 +
+ backend/benchmark/tasks/tasks_core.py         |   6 +-
+ backend/tests/test_maria.py                   | 173 ++++++++++++++++++
+ docs/PROGRESSO_DESENVOLVIMENTO.md             |  13 +-
+ 10 files changed, 320 insertions(+), 39 deletions(-)
+ create mode 100644 backend/benchmark/results/arquivos_gerados_benchmark/gastos_32.xlsx
+ create mode 100644 backend/benchmark/results/arquivos_gerados_benchmark/gastos_33.xlsx
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 3209a4c..d965d6f 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,33 @@
+ 
+ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
+ 
++## [4.1.8] — Fixtures reais de planilha, language check robusto e warmup estendido — 2026-09-02
++
++### ✨ Nova funcionalidade
++
++- **Campo `fixture_planilha` no `MariaTask`** (`backend/benchmark/tasks/task_schema.py`):
++  declaração determinística de fixtures de planilha — `{'nome', 'colunas', 'linhas'}` — criadas pelo runner antes da execução. Retrocompatível (default `None`).
++- **Tarefas 11-13 com fixtures reais** (`backend/benchmark/tasks/tasks_core.py`):
++  gastos (Data/Valor + 2 linhas), estoque (Produto/SKU/Quantidade/Custo/Fornecedor + 2 linhas) e contatos (Nome/Email/Telefone + 2 linhas). As planilhas editadas têm estrutura real, não mais dummy.
++- **Warmup estendido: 3 chamadas variadas** (`backend/benchmark/run_benchmark.py`):
++  "ok" (latência pura), pergunta factual (geração de texto) e instrução de criação de planilha (caminho de tool call) — estabiliza clock/temperatura de GPU antes das tarefas. Duração impressa por chamada (`warmup i/3`); `SystemExit` identifica a chamada falha (`chamada 2/3`). Toda a estrutura da v4.1.7 (metadados → ctx real → tokenize/calibração → verificação de prompt) preservada.
++- **`--delay` agora é aplicado** (`backend/benchmark/run_benchmark.py`):
++  o argumento era parseado mas nunca usado; agora `time.sleep(args.delay)` ao final de cada tarefa — controle de thermal throttling em sessões longas.
++
++### 🔧 Correções / Refatoração
++
++- **`_garantir_planilha_existente()` determinístico** (`backend/benchmark/runners/maria_runner.py`):
++  usa `fixture_planilha` em vez de regex sobre o context; cria header em **negrito** (`openpyxl.styles.Font`) + linhas reais; skip se o arquivo existe. **Contrato novo**: context que apenas menciona "já foi criada" NÃO cria mais planilha — somente fixture declarada (testado). Remove a planilha dummy "Fixture do benchmark".
++- **Detector de idioma robusto** (`backend/benchmark/analysis/language_check.py`):
++  lista de palavras funcionais em inglês expandida de 15 para ~115; texto normalizado (minúsculas + NFKD sem acentos) antes da comparação; limiar 3% → 4%. **Correção crítica ao enunciado**: removidas da lista as formas que também são portuguesas frequentes — `'a'`, `'do'`, `'no'`, `'so'` ("só"), `'me'` — que gerariam falsos positivos massivos (ex.: "A planilha foi salva **no** diretório **do** usuário" seria marcado como inglês). Opção langdetect documentada no código para referência futura.
++
++### 🧪 Testes
++
++- **183/183 testes passaram** (`python -m pytest backend/tests/test_maria.py`), + 33 subtests.
++- **11 testes novos**: `TestGarantirPlanilhaFixture` (4 — estrutura real com header negrito, não recria, sem fixture, context sem fixture), `TestLanguageCheckRobusto` (4 — artigos portugueses ambíguos, acentos, inglês grosso, limiar exato de 4%), `TestWarmupEstendido` (2 — 3 chamadas, falha com índice) e `TestFixturesTarefas` (1 — consistência das fixtures das tarefas 11-13).
++
++---
++
+ ## [4.1.7] — Verificação de contexto, timeouts por chamada e num_ctx adaptativo — 2026-09-02
+ 
+ ### ✨ Nova funcionalidade
+diff --git a/backend/benchmark/analysis/language_check.py b/backend/benchmark/analysis/language_check.py
+index 81ccc0a..b5d5a38 100644
+--- a/backend/benchmark/analysis/language_check.py
++++ b/backend/benchmark/analysis/language_check.py
+@@ -1,24 +1,59 @@
+ """Verifica se a resposta final está em português, detectando vazamento para inglês."""
+ import re
++import unicodedata
+ 
+-# Palavras funcionais comuns em inglês que não aparecem em português nesse contexto
++# Palavras funcionais comuns em inglês que não aparecem em português nesse contexto.
++# IMPORTANTE: excluídas de propósito as formas que TAMBÉM são portuguesas
++# frequentes — contá-las geraria falsos positivos massivos:
++#   'a'  (artigo fem.: "a planilha"), 'do' ("o arquivo do usuário"),
++#   'no' ("salvo no diretório"), 'so' ("só" sem acento), 'me' ("me informe").
+ _PALAVRAS_INGLES = {
+-    "the", "please", "could", "provide", "would", "should", "sure",
+-    "here", "your", "what", "when", "with", "this", "that", "and",
++    "the", "an", "is", "are", "was", "were", "be", "been", "being",
++    "have", "has", "had", "does", "did", "will", "would", "shall",
++    "should", "may", "might", "can", "could", "must", "ought", "need",
++    "dare", "used", "i", "you", "he", "she", "it", "we", "they",
++    "him", "her", "us", "them", "my", "your", "his", "its", "our",
++    "their", "mine", "yours", "hers", "ours", "theirs", "this", "that",
++    "these", "those", "here", "there", "where", "when", "why", "how",
++    "what", "which", "who", "whom", "whose", "all", "each", "every",
++    "both", "few", "more", "most", "other", "some", "such", "nor",
++    "not", "only", "own", "same", "than", "too", "very", "just",
++    "please", "provide", "sure", "with", "and", "or", "but", "if",
++    "then", "else", "because", "until", "while", "about", "above",
++    "across", "after", "against", "along", "among", "around", "at",
++    "before", "behind", "below", "beneath", "beside", "between",
++    "beyond", "by", "down", "during", "except", "for", "from", "in",
++    "inside", "into", "near", "of", "off", "on", "onto", "out",
++    "outside", "over", "past", "to", "toward", "under", "up", "upon",
++    "within", "without",
+ }
+ 
++# Opção B (mais precisa, referência futura): substituir a heurística por
++# `langdetect` (pip install langdetect) — detect(texto[:500]) in ('pt', 'gl'),
++# com fallback para esta heurística quando a lib não estiver instalada.
++
+ 
+ def resposta_em_portugues(texto: str) -> bool:
+-    """Retorna False se a resposta contiver vazamento significativo de inglês."""
++    """Retorna False se a resposta contiver vazamento significativo de inglês.
++
++    Normaliza o texto (minúsculas + remoção de acentos via NFKD) antes de
++    comparar, evitando falsos negativos como 'não'/'nao'. Resposta vazia não
++    é considerada vazamento.
++    """
+     if not texto or not texto.strip():
+         return True  # resposta vazia não é considerada vazamento de idioma
+ 
+-    palavras = re.findall(r"[a-zA-ZÀ-ÿ]+", texto.lower())
++    texto_norm = texto.lower()
++    texto_norm = unicodedata.normalize("NFKD", texto_norm)
++    texto_norm = "".join(c for c in texto_norm if not unicodedata.combining(c))
++
++    palavras = re.findall(r"[a-zA-Z]+", texto_norm)
+     if not palavras:
+         return True
+ 
+     ocorrencias_ingles = sum(1 for p in palavras if p in _PALAVRAS_INGLES)
+     proporcao = ocorrencias_ingles / len(palavras)
+ 
+-    # Limiar: mais de 3% de palavras de função em inglês indica vazamento
+-    return proporcao <= 0.03
++    # Limiar: mais de 4% de palavras de função em inglês indica vazamento
++    # (aumentado de 3% para 4% porque a lista agora é mais abrangente).
++    return proporcao <= 0.04
+diff --git a/backend/benchmark/results/arquivos_gerados_benchmark/gastos_32.xlsx b/backend/benchmark/results/arquivos_gerados_benchmark/gastos_32.xlsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..1b0a81ea006aa3f8b9167ab5901dcd98bf0db22f
+GIT binary patch
+literal 4903
+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
+RfEa%(;=}mF&p8<2{{a5_W?=vT
+
+literal 0
+HcmV?d00001
+
+diff --git a/backend/benchmark/results/arquivos_gerados_benchmark/gastos_33.xlsx b/backend/benchmark/results/arquivos_gerados_benchmark/gastos_33.xlsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..1a33b31f7aaeaa845a9d5238fa8bf48900d9918a
+GIT binary patch
+literal 4902
+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
+P!k+TjG(P!r3<mf=xa4B=
+
+literal 0
+HcmV?d00001
+
+diff --git a/backend/benchmark/run_benchmark.py b/backend/benchmark/run_benchmark.py
+index e486bac..e4f89a9 100644
+--- a/backend/benchmark/run_benchmark.py
++++ b/backend/benchmark/run_benchmark.py
+@@ -352,21 +352,32 @@ def _warmup_model() -> dict:
+         f"de {ctx_size} tokens (margem: {limite_prompt - prompt_tokens})."
+     )
+ 
+-    # --- WARMUP ---
+-    try:
+-        cliente_warmup = OllamaClient(timeout=BENCHMARK_WARMUP_TIMEOUT)
+-        resposta = cliente_warmup.enviar_mensagem(
+-            mensagens=[{"role": "user", "content": "Responda apenas com a palavra ok."}],
+-            tools=None,
+-            stream=False,
+-        )
+-    except OllamaClientError as error:
+-        raise SystemExit(
+-            "Falha no warmup do modelo: não foi possível obter resposta do llama-server.\n"
+-            f"Detalhes: {error}\n"
+-            "Verifique se o llama-server está rodando (`llama-server -m <modelo.gguf> --port 8080`) "
+-            f"e o modelo {LLAMA_MODEL} está carregado antes de rodar o benchmark."
+-        ) from error
++    # --- WARMUP ESTENDIDO (3 chamadas variadas para estabilizar clock/temperatura) ---
++    cliente_warmup = OllamaClient(timeout=BENCHMARK_WARMUP_TIMEOUT)
++    mensagens_warmup = [
++        {"role": "user", "content": "Responda apenas com a palavra ok."},
++        {"role": "user", "content": "Qual é a capital do Brasil?"},
++        {"role": "user", "content": "Crie uma planilha chamada teste com a coluna Nome."},
++    ]
++    for i, msg_warmup in enumerate(mensagens_warmup, 1):
++        t0 = time.monotonic()
++        try:
++            resposta = cliente_warmup.enviar_mensagem(
++                mensagens=[msg_warmup],
++                tools=None,
++                stream=False,
++            )
++        except OllamaClientError as error:
++            raise SystemExit(
++                f"Falha no warmup do modelo (chamada {i}/3): não foi possível obter "
++                "resposta do llama-server.\n"
++                f"Detalhes: {error}\n"
++                "Verifique se o llama-server está rodando "
++                "(`llama-server -m <modelo.gguf> --port 8080`) "
++                f"e o modelo {LLAMA_MODEL} está carregado antes de rodar o benchmark."
++            ) from error
++        duracao_chamada = time.monotonic() - t0
++        print(f"  warmup {i}/3: {duracao_chamada:.1f}s -> {resposta.strip()!r}")
+ 
+     duracao_s = time.monotonic() - inicio
+     print(f"Modelo aquecido em {duracao_s:.1f}s. Resposta de teste: {resposta.strip()!r}")
+@@ -432,6 +443,11 @@ def main() -> int:
+             f"latência média={metricas_parciais.avg_latency_ms / 1000:.1f}s"
+         )
+ 
++        # --delay: pausa entre tarefas para estabilizar temperatura da GPU
++        # (útil contra thermal throttling em sessões longas).
++        if args.delay > 0:
++            time.sleep(args.delay)
++
+     # log.json final com estrutura individual + agregado_por_tarefa + meta.
+     # Escrita feita SOMENTE aqui (fonte única), com metadados completos do
+     # modelo real e hash do system prompt para rastreabilidade.
+diff --git a/backend/benchmark/runners/maria_runner.py b/backend/benchmark/runners/maria_runner.py
+index 6c802aa..6d2b012 100644
+--- a/backend/benchmark/runners/maria_runner.py
++++ b/backend/benchmark/runners/maria_runner.py
+@@ -8,6 +8,7 @@ import unicodedata
+ from typing import Any
+ 
+ from openpyxl import Workbook
++from openpyxl.styles import Font
+ 
+ # Os módulos da aplicação são módulos locais, não um pacote instalado.
+ MARIA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+@@ -302,27 +303,43 @@ class MariaRunner:
+ 
+     @staticmethod
+     def _garantir_planilha_existente(task: MariaTask) -> None:
+-        """Cria fixtures declaradas pelo contexto da tarefa, se necessário."""
+-        match = re.search(r"planilha\s+([^\s]+)\.xlsx\s+já foi criada", " ".join(
+-            message["content"] for message in task.context
+-        ), re.IGNORECASE)
+-        if not match:
++        """Cria fixtures declaradas pelo campo `fixture_planilha` da tarefa.
++
++        Determinístico: se a tarefa não declara fixture, nada é criado —
++        contextos que apenas MENCIONAM uma planilha ("já foi criada") não
++        disparam mais criação via regex (o método antigo era frágil e gerava
++        planilhas dummy sem estrutura real).
++        """
++        if task.fixture_planilha is None:
+             return
+ 
+-        # Extrair nome do arquivo sem extensão para evitar duplicação
+-        nome_arquivo = match.group(1)
+-        if nome_arquivo.endswith('.xlsx'):
+-            nome_arquivo = nome_arquivo[:-5]
+-        
+-        caminho = os.path.join(BENCHMARK_ARQUIVOS_DIR, nome_arquivo + ".xlsx")
++        fixture = task.fixture_planilha
++        nome = fixture["nome"]
++        colunas = fixture.get("colunas", [])
++        linhas = fixture.get("linhas", [])
++
++        caminho = os.path.join(BENCHMARK_ARQUIVOS_DIR, nome + ".xlsx")
+         if os.path.exists(caminho):
+             return
+ 
+         workbook = Workbook()
+         worksheet = workbook.active
+         worksheet.title = "Dados"
+-        worksheet.cell(row=1, column=1, value="Fixture do benchmark")
++        # Header em negrito
++        for col_idx, col_nome in enumerate(colunas, start=1):
++            cell = worksheet.cell(row=1, column=col_idx, value=col_nome)
++            cell.font = Font(bold=True)
++        # Dados reais
++        for row_idx, linha in enumerate(linhas, start=2):
++            for col_idx, valor in enumerate(linha, start=1):
++                worksheet.cell(row=row_idx, column=col_idx, value=valor)
+         workbook.save(caminho)
++        logger.info(
++            "Fixture criada: %s (%d colunas, %d linhas)",
++            caminho,
++            len(colunas),
++            len(linhas),
++        )
+ 
+     @staticmethod
+     def _verificar_timeout_por_chamada(inicio_tentativa: float) -> None:
+diff --git a/backend/benchmark/tasks/task_schema.py b/backend/benchmark/tasks/task_schema.py
+index 54aaef3..0e213e4 100644
+--- a/backend/benchmark/tasks/task_schema.py
++++ b/backend/benchmark/tasks/task_schema.py
+@@ -27,6 +27,10 @@ class MariaTask:
+     category: MariaTaskCategory = MariaTaskCategory.CONVERSA
+     tools_aceitos: list[str | None] | None = None
+     expected_args_subset: dict | None = None
++    # Fixture determinística de planilha para tarefas de edição:
++    # {'nome': 'gastos', 'colunas': ['Data', 'Valor'], 'linhas': [['2026-01-01', 150.0]]}
++    # Criada por MariaRunner._garantir_planilha_existente antes da execução.
++    fixture_planilha: dict | None = None
+ 
+ 
+ @dataclass
+diff --git a/backend/benchmark/tasks/tasks_core.py b/backend/benchmark/tasks/tasks_core.py
+index 0925b4f..1d1da8d 100644
+--- a/backend/benchmark/tasks/tasks_core.py
++++ b/backend/benchmark/tasks/tasks_core.py
+@@ -13,9 +13,9 @@ TASKS_CORE = [
+     MariaTask(8, "Documento carta", "Carta formal narrativa", "Crie uma carta de apresentação em documento Word, com texto completo e formal.", expected_tool="criar_documento", expected_keywords=["documento"], confirm_sequence=["sim"], category=MariaTaskCategory.CRIAR_DOCUMENTO),
+     MariaTask(9, "Documento relatório", "Relatório narrativo longo", "Crie um documento word com um relatório sobre a reunião de hoje com introdução, decisões e próximos passos em texto corrido. Na reunião foi discutida a expansão da empresa com aporte de 25 por cento do capital social atual da empresa, dividido igualmente entre os sócios, a proposta foi aceita.", expected_tool="criar_documento", expected_keywords=["documento"], confirm_sequence=["sim"], category=MariaTaskCategory.CRIAR_DOCUMENTO),
+     MariaTask(10, "Documento comunicado", "Comunicado de tamanho médio", "Crie um comunicado formal informando a equipe sobre a mudança do horário de atendimento.", expected_tool="criar_documento", expected_keywords=["documento"], confirm_sequence=["sim"], category=MariaTaskCategory.CRIAR_DOCUMENTO),
+-    MariaTask(11, "Editar gastos", "Editar planilha existente", "Edite a planilha gastos para incluir as colunas Data, Valor e Categoria.", expected_tool="editar_planilha", expected_keywords=["atualizada"], confirm_sequence=["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, context=[{"role": "assistant", "content": "A planilha gastos.xlsx já foi criada."}], expected_args_subset={"nome_arquivo": "gastos", "colunas": ["Data", "Valor", "Categoria"]}),
+-    MariaTask(12, "Editar estoque", "Atualizar planilha existente", "Atualize a planilha estoque com Produto, Quantidade e Estoque mínimo.", expected_tool="editar_planilha", expected_keywords=["atualizada"], confirm_sequence=["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, context=[{"role": "assistant", "content": "A planilha estoque.xlsx já foi criada."}]),
+-    MariaTask(13, "Editar contatos", "Remover e adicionar colunas", "Corrija a planilha contatos para conter Nome, Email e Empresa.", expected_tool="editar_planilha", expected_keywords=["atualizada"], confirm_sequence=["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, context=[{"role": "assistant", "content": "A planilha contatos.xlsx já foi criada."}]),
++    MariaTask(11, "Editar gastos", "Editar planilha existente", "Edite a planilha gastos para incluir as colunas Data, Valor e Categoria.", expected_tool="editar_planilha", expected_keywords=["atualizada"], confirm_sequence=["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, context=[{"role": "assistant", "content": "A planilha gastos.xlsx já foi criada."}], expected_args_subset={"nome_arquivo": "gastos", "colunas": ["Data", "Valor", "Categoria"]}, fixture_planilha={"nome": "gastos", "colunas": ["Data", "Valor"], "linhas": [["2026-01-01", 150.00], ["2026-01-02", 230.50]]}),
++    MariaTask(12, "Editar estoque", "Atualizar planilha existente", "Atualize a planilha estoque com Produto, Quantidade e Estoque mínimo.", expected_tool="editar_planilha", expected_keywords=["atualizada"], confirm_sequence=["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, context=[{"role": "assistant", "content": "A planilha estoque.xlsx já foi criada."}], fixture_planilha={"nome": "estoque", "colunas": ["Produto", "SKU", "Quantidade", "Custo", "Fornecedor"], "linhas": [["Caneta", "SKU001", 100, 1.50, "Fornecedor A"], ["Caderno", "SKU002", 50, 15.00, "Fornecedor B"]]}),
++    MariaTask(13, "Editar contatos", "Remover e adicionar colunas", "Corrija a planilha contatos para conter Nome, Email e Empresa.", expected_tool="editar_planilha", expected_keywords=["atualizada"], confirm_sequence=["sim"], category=MariaTaskCategory.EDITAR_PLANILHA, context=[{"role": "assistant", "content": "A planilha contatos.xlsx já foi criada."}], fixture_planilha={"nome": "contatos", "colunas": ["Nome", "Email", "Telefone"], "linhas": [["Joao Silva", "joao@email.com", "11999990001"], ["Maria Souza", "maria@email.com", "11999990002"]]}),
+     MariaTask(14, "Confirmação de criação", "Confirmação afirmativa explícita", "Crie uma planilha chamada agenda com as colunas Dia e Compromisso.", expected_tool="criar_planilha", expected_keywords=["sucesso"], confirm_sequence=["sim"], category=MariaTaskCategory.CONFIRMACAO),
+     MariaTask(15, "Confirmação de documento", "Confirmação afirmativa de Word", "Crie um documento de ata com título Ata e conteúdo completo sobre uma reunião.", expected_tool="criar_documento", expected_keywords=["sucesso"], confirm_sequence=["sim"], category=MariaTaskCategory.CONFIRMACAO),
+ ]
+\ No newline at end of file
+diff --git a/backend/tests/test_maria.py b/backend/tests/test_maria.py
+index 8f42f40..229b457 100644
+--- a/backend/tests/test_maria.py
++++ b/backend/tests/test_maria.py
+@@ -2982,5 +2982,178 @@ class TestPreCheckContexto(unittest.TestCase):
+         callback(1, 7)
+ 
+ 
++class TestGarantirPlanilhaFixture(unittest.TestCase):
++    """Testa o _garantir_planilha_existente determinístico (fixture_planilha)."""
++
++    def _task_com_fixture(self):
++        from backend.benchmark.tasks.task_schema import MariaTask
++        return MariaTask(
++            999, "Fixture", "Teste", "Edite a planilha gastos",
++            fixture_planilha={
++                "nome": "gastos",
++                "colunas": ["Data", "Valor"],
++                "linhas": [["2026-01-01", 150.0]],
++            },
++        )
++
++    def test_cria_fixture_com_estrutura_real(self):
++        import tempfile
++        from openpyxl import load_workbook
++        from backend.benchmark.runners import maria_runner as modulo
++        from backend.benchmark.runners.maria_runner import MariaRunner
++
++        with tempfile.TemporaryDirectory() as tmpdir:
++            with patch.object(modulo, "BENCHMARK_ARQUIVOS_DIR", tmpdir):
++                MariaRunner._garantir_planilha_existente(self._task_com_fixture())
++
++                caminho = os.path.join(tmpdir, "gastos.xlsx")
++                self.assertTrue(os.path.exists(caminho))
++                wb = load_workbook(caminho)
++                ws = wb.active
++                self.assertEqual(ws["A1"].value, "Data")
++                self.assertEqual(ws["B1"].value, "Valor")
++                self.assertTrue(ws["A1"].font.bold)  # header em negrito
++                self.assertEqual(ws["A2"].value, "2026-01-01")
++                self.assertEqual(ws["B2"].value, 150.0)
++
++    def test_nao_recria_se_arquivo_ja_existe(self):
++        import tempfile
++        from openpyxl import load_workbook
++        from backend.benchmark.runners import maria_runner as modulo
++        from backend.benchmark.runners.maria_runner import MariaRunner
++
++        with tempfile.TemporaryDirectory() as tmpdir:
++            with patch.object(modulo, "BENCHMARK_ARQUIVOS_DIR", tmpdir):
++                caminho = os.path.join(tmpdir, "gastos.xlsx")
++                MariaRunner._garantir_planilha_existente(self._task_com_fixture())
++                primeira = load_workbook(caminho)
++                MariaRunner._garantir_planilha_existente(self._task_com_fixture())
++                segunda = load_workbook(caminho)
++
++                self.assertEqual(
++                    segunda.active["A2"].value, primeira.active["A2"].value
++                )
++
++    def test_sem_fixture_nada_e_criado(self):
++        import tempfile
++        from backend.benchmark.tasks.task_schema import MariaTask
++        from backend.benchmark.runners import maria_runner as modulo
++        from backend.benchmark.runners.maria_runner import MariaRunner
++
++        with tempfile.TemporaryDirectory() as tmpdir:
++            with patch.object(modulo, "BENCHMARK_ARQUIVOS_DIR", tmpdir):
++                MariaRunner._garantir_planilha_existente(
++                    MariaTask(998, "Sem fixture", "Teste", "Olá")
++                )
++                self.assertEqual(os.listdir(tmpdir), [])
++
++    def test_context_mencionando_planilha_sem_fixture_nada_cria(self):
++        """Contrato novo: context que menciona 'já foi criada' NÃO cria mais
++        planilha via regex — somente fixture_planilha declarada cria."""
++        import tempfile
++        from backend.benchmark.tasks.task_schema import MariaTask
++        from backend.benchmark.runners import maria_runner as modulo
++        from backend.benchmark.runners.maria_runner import MariaRunner
++
++        task = MariaTask(
++            997, "Menciona", "Teste", "Edite a planilha projetos",
++            context=[{"role": "assistant", "content": "A planilha projetos.xlsx já foi criada."}],
++        )
++        with tempfile.TemporaryDirectory() as tmpdir:
++            with patch.object(modulo, "BENCHMARK_ARQUIVOS_DIR", tmpdir):
++                MariaRunner._garantir_planilha_existente(task)
++                self.assertEqual(os.listdir(tmpdir), [])
++
++
++class TestLanguageCheckRobusto(unittest.TestCase):
++    """Testa o detector robusto de idioma (lista expandida + normalização)."""
++
++    def test_artigos_e_contrações_portuguesas_nao_contam_como_ingles(self):
++        self.assertTrue(resposta_em_portugues("A planilha foi salva no diretório do usuário."))
++        self.assertTrue(resposta_em_portugues("Só me diga o resultado."))
++
++    def test_acentos_sao_normalizados(self):
++        self.assertTrue(resposta_em_portugues("A informação está atualizada."))
++        self.assertFalse(resposta_em_portugues("The file não existe."))  # 'the' em inglês
++
++    def test_ingles_significativo_e_rejeitado(self):
++        self.assertFalse(resposta_em_portugues("Sure, I can help you with that."))
++        self.assertFalse(resposta_em_portugues("The file was created successfully."))
++
++    def test_limiar_de_proporcao(self):
++        # 1/25 = 4% -> dentro do limiar (<= 0.04)
++        self.assertTrue(resposta_em_portugues(" ".join(["please"] + ["palavra"] * 24)))
++        # 1/24 ≈ 4.2% -> acima do limiar
++        self.assertFalse(resposta_em_portugues(" ".join(["please"] + ["palavra"] * 23)))
++
++
++class TestWarmupEstendido(unittest.TestCase):
++    """Testa o warmup estendido (3 chamadas variadas)."""
++
++    def _executar(self, cliente_fake):
++        import io
++        from contextlib import redirect_stdout
++        from backend.benchmark import run_benchmark
++
++        metadados = {"id": "m", "id_exibicao": "m", "n_ctx": 2048}
++        buf = io.StringIO()
++        with patch("backend.benchmark.run_benchmark._obter_metadados_modelo", return_value=metadados), \
++             patch("backend.benchmark.run_benchmark._contar_tokens_exatos", return_value=820), \
++             patch("backend.benchmark.run_benchmark.OllamaClient", return_value=cliente_fake):
++            with redirect_stdout(buf):
++                meta = run_benchmark._warmup_model()
++        return meta, buf.getvalue()
++
++    def test_warmup_faz_tres_chamadas(self):
++        class FakeClient:
++            def __init__(self):
++                self.chamadas = 0
++
++            def enviar_mensagem(self, *a, **kw):
++                self.chamadas += 1
++                return "ok"
++
++        cliente = FakeClient()
++        meta, saida = self._executar(cliente)
++        self.assertEqual(cliente.chamadas, 3)
++        self.assertIn("warmup 1/3", saida)
++        self.assertIn("warmup 3/3", saida)
++
++    def test_falha_na_segunda_chamada_identifica_o_indice(self):
++        # Import pelo MESMO módulo que o run_benchmark captura ('core.', não
++        # 'backend.core.' — sys.path do benchmark registra os dois caminhos).
++        from core.llama_client import LlamaClientError
++
++        class FakeClientFalho:
++            def __init__(self):
++                self.chamadas = 0
++
++            def enviar_mensagem(self, *a, **kw):
++                self.chamadas += 1
++                if self.chamadas == 2:
++                    raise LlamaClientError("conexão perdida")
++                return "ok"
++
++        with self.assertRaises(SystemExit) as ctx:
++            self._executar(FakeClientFalho())
++        self.assertIn("chamada 2/3", str(ctx.exception))
++
++
++class TestFixturesTarefas(unittest.TestCase):
++    """Testa que as tarefas de edição (11-13) declaram fixtures consistentes."""
++
++    def test_tarefas_11_a_13_tem_fixture_planilha(self):
++        from backend.benchmark.tasks import load_all_maria_tasks
++
++        tarefas = {t.id: t for t in load_all_maria_tasks()}
++        for task_id, nome_esperado in ((11, "gastos"), (12, "estoque"), (13, "contatos")):
++            task = tarefas[task_id]
++            self.assertIsNotNone(task.fixture_planilha, f"Tarefa {task_id} sem fixture")
++            fixture = task.fixture_planilha
++            self.assertEqual(fixture["nome"], nome_esperado)
++            self.assertTrue(fixture.get("colunas"))
++            self.assertTrue(fixture.get("linhas"))
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/docs/PROGRESSO_DESENVOLVIMENTO.md b/docs/PROGRESSO_DESENVOLVIMENTO.md
+index c8caaf2..3b9f2c3 100644
+--- a/docs/PROGRESSO_DESENVOLVIMENTO.md
++++ b/docs/PROGRESSO_DESENVOLVIMENTO.md
+@@ -2,7 +2,7 @@
+ 
+ > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
+ 
+-**Versão Atual:** v4.1.7  
++**Versão Atual:** v4.1.8  
+ **Última alteração:** 2026-09-02  
+ 
+ ---
+@@ -34,6 +34,7 @@
+ | **4.1.5** | 2026-09-02 | Normalização de chaves JSON de tool calls + validação flexível de argumentos e keywords no benchmark | ✅ Concluída |
+ | **4.1.6** | 2026-09-02 | Metadados reais do modelo via /v1/models (aborta sem endpoint), log.json v2.0 com hash do system prompt, métrica contexto_ok e relatório enxuto sem coluna "Configurado" | ✅ Concluída |
+ | **4.1.7** | 2026-09-02 | Verificação de contexto real (warmup + pre-check por tarefa), timeout por chamada (120s), contagem exata do system prompt via /tokenize com calibração e num_ctx adaptativo | ✅ Concluída |
++| **4.1.8** | 2026-09-02 | Fixtures reais de planilha (fixture_planilha nas tarefas 11-13), language check robusto (~115 palavras + normalização de acentos), warmup estendido (3 chamadas) e --delay aplicado | ✅ Concluída |
+ | **4.2.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
+ 
+ ---
+@@ -70,7 +71,7 @@
+ - [ ] Validação de instalação *one-click* em máquina limpa (sem dependência de Python instalado)
+ 
+ ### Fase 5 — Qualidade, Testes & Benchmark
+-- [x] Suíte de testes unitários do backend (172 testes passando via `pytest`)
++- [x] Suíte de testes unitários do backend (183 testes passando via `pytest`)
+ - [x] Testes unitários do frontend TypeScript (Vitest) e da camada Rust (`cargo test`)
+ - [x] Framework de benchmark de tool calling com relatório e log JSON
+ - [x] Metadados do modelo no benchmark: nome real via `/v1/models` + parámetros (quantização, n_params, n_ctx, tamanho) em `log.json` e `report.md`
+@@ -80,12 +81,20 @@
+ - [x] Normalização no benchmark: chaves de argumentos em minúsculas, `nome_arquivo` com/sem extensão equivalente, listas como conjuntos e keyword match sem falsos negativos por acento
+ - [x] Metadados do modelo como fonte única de verdade: warmup aborta sem `/v1/models`, relatório exibe apenas dados reais (sem coluna "Configurado"), `log.json` v2.0 com hash do system prompt e métrica `contexto_ok` para estouro de contexto
+ - [x] Verificação de contexto em camadas: warmup valida ctx real + system prompt (contagem exata via `/tokenize` com calibração), runner faz pre-check por tarefa sem retry inútil, timeout por chamada (120s) separado do timeout total (400s) e `num_ctx` adaptativo no `LlamaClient`
++- [x] Fixtures determinísticas (`fixture_planilha` nas tarefas 11-13, header em negrito), language check robusto (lista expandida sem falsos positivos com artigos portugueses, acentos normalizados), warmup estendido (3 chamadas) e `--delay` entre tarefas
+ - [ ] Cobertura formal de código (`pytest-cov`)
+ 
+ ---
+ 
+ ## 🔁 Notas das Iterações Recentes
+ 
++### 4.1.8 — Fixtures Reais, Language Check e Warmup Estendido (2026-09-02)
++- **Fixtures determinísticas**: `MariaTask.fixture_planilha` declara nome/colunas/linhas; `_garantir_planilha_existente()` cria a planilha com header em negrito e dados reais (sem regex sobre o context, sem planilha dummy). Tarefas 11-13 (gastos, estoque, contatos) declaram fixtures; contrato novo testado: context que apenas menciona "já foi criada" não cria arquivo.
++- **Language check robusto**: lista expandida de 15 → ~115 palavras funcionais em inglês, texto normalizado (minúsculas + NFKD), limiar 4%. Correção crítica: removidas `a`/`do`/`no`/`so`/`me` da lista — são artigos/pronomes portugueses comuns e gerariam falsos positivos massivos ("A planilha foi salva **no** diretório **do** usuário" seria rejeitado). langdetect documentado como opção futura.
++- **Warmup estendido**: 3 chamadas variadas (latência pura, geração de texto, caminho de tool call) estabilizam clock/temperatura; duração por chamada impressa e `SystemExit` identifica a chamada falha (`chamada i/3`).
++- **`--delay` funcional**: pausa entre tarefas via `time.sleep(args.delay)` (antes era parseado e ignorado).
++- **Testes**: 183/183 passando (11 novos) + 33 subtests.
++
+ ### 4.1.7 — Contexto, Timeouts e num_ctx Adaptativo (2026-09-02)
+ - **Contexto real em camadas**: warmup lê `meta.n_ctx` de `/v1/models` (fonte única — a sonda com payload `num_ctx` do enunciado original foi descartada porque o llama.cpp ignora campos desconhecidos e responderia 200 sempre); warmup aborta com `SystemExit` se o system prompt (contagem **exata** via 1 chamada `POST /tokenize`) não couber em `ctx − 512`; runner recebe `ctx_size` real e faz pre-check por tarefa (`ctx × 0.7`) **sem retry** para estouro (determinístico), classificando `contexto_ok=False`.
+ - **Calibração de tokens**: fator = tokens reais ÷ estimativa chars/4 medido no system prompt no warmup; pre-check por tarefa usa estimativa calibrada (erro ~±10%, zero HTTP extra). Cenário real validado: system prompt 546 tokens estimados vs limite 1536 em ctx 2048 → `[OK]`.
+-- 
+2.53.0.windows.2
+

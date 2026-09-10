@@ -1,73 +1,89 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { ChatResponse, ChatBackendResponse, ConfirmacaoPendente } from '../types';
+
+export type { ChatResponse, ConfirmacaoPendente };
 
 export interface SystemStatus {
   cpu: number;
   ram: number;
   gpu: number;
   modelo: string;
-}
-
-export interface ChatResponse {
-  resposta: string;
-  modelo_usado: 'qwen3b' | 'llama7b';
-  tempo_processamento: number;
+  versao?: string;
+  online?: boolean;
 }
 
 /**
- * Envia uma mensagem para o backend Python e retorna a resposta do LLM
+ * Normaliza a resposta do backend (string pura ou envelope objeto)
+ * para o contrato ChatResponse consumido pelo ChatPanel.
+ *
+ * O backend devolve string pura para respostas textuais simples e
+ * objeto JSON para respostas com confirmacao_pendente.
+ */
+export function normalizarResposta(raw: string): ChatResponse {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // não é JSON — string pura, devolve intacta
+    return {
+      resposta: raw,
+      modelo_usado: 'qwen2.5-omni-3b',
+      tempo_processamento: 0,
+    };
+  }
+
+  if (
+    parsed &&
+    typeof parsed === 'object' &&
+    typeof (parsed as ChatBackendResponse).mensagem === 'string'
+  ) {
+    const envelope = parsed as ChatBackendResponse;
+    return {
+      resposta: envelope.mensagem,
+      modelo_usado: 'qwen2.5-omni-3b',
+      tempo_processamento: 0,
+      confirmacao_pendente: envelope.confirmacao_pendente,
+    };
+  }
+
+  // JSON válido mas sem o envelope esperado — nunca vazar o JSON bruto na UI
+  return {
+    resposta: '',
+    modelo_usado: 'qwen2.5-omni-3b',
+    tempo_processamento: 0,
+  };
+}
+
+/**
+ * Envia mensagem ao backend (chat normal ou resposta de confirmação 'sim'/'não').
+ * O backend decide internamente o ramo com base em tem_acao_pendente().
  */
 export async function sendMessage(text: string): Promise<ChatResponse> {
-  try {
-    const raw = await invoke<string>('send_message', { message: text });
-    
-    // Tenta parsear a resposta como JSON (formato padronizado do backend)
-    try {
-      const parsed = JSON.parse(raw);
-      return {
-        resposta: parsed.resposta || parsed.response || raw,
-        modelo_usado: parsed.modelo_usado || 'qwen3b',
-        tempo_processamento: parsed.tempo_processamento || 0,
-      };
-    } catch {
-      // Se não for JSON, retorna como texto puro
-      return {
-        resposta: raw,
-        modelo_usado: 'qwen3b',
-        tempo_processamento: 0,
-      };
-    }
-  } catch (error) {
-    console.error('Erro ao enviar mensagem:', error);
-    throw new Error(`Falha na comunicação com o backend: ${error}`);
-  }
+  const raw = await invoke<string>('send_message', { message: text });
+  return normalizarResposta(raw);
 }
 
 /**
- * Obtém o status atual do sistema (CPU, RAM, GPU, Modelo ativo)
+ * Obtém o status atual do sistema (CPU, RAM, GPU, modelo ativo).
  */
 export async function getSystemStatus(): Promise<SystemStatus> {
   try {
-    const status = await invoke<any>('get_status');
+    const status = await invoke<Record<string, unknown>>('get_status');
     return {
-      cpu: status.cpu || 0,
-      ram: status.ram || 0,
-      gpu: status.gpu || 0,
-      modelo: status.modelo || status.model || 'Qwen 2.5 3B',
+      cpu: Number(status.cpu) || 0,
+      ram: Number(status.ram) || 0,
+      gpu: Number(status.gpu) || 0,
+      modelo: String(status.modelo || status.model || 'qwen2.5-omni-3b'),
+      versao: status.versao ? String(status.versao) : undefined,
+      online: true,
     };
-  } catch (error) {
-    console.error('Erro ao obter status do sistema:', error);
-    // Retorna valores padrão em caso de erro
-    return {
-      cpu: 0,
-      ram: 0,
-      gpu: 0,
-      modelo: 'Qwen 2.5 3B',
-    };
+  } catch {
+    return { cpu: 0, ram: 0, gpu: 0, modelo: 'qwen2.5-omni-3b', online: false };
   }
 }
 
 /**
- * Ping para verificar se o backend está responsivo
+ * Ping para verificar se o backend está responsivo.
  */
 export async function pingBackend(): Promise<boolean> {
   try {
@@ -79,16 +95,12 @@ export async function pingBackend(): Promise<boolean> {
 }
 
 /**
- * Carrega o histórico de conversas do banco de dados
+ * Carrega o histórico de conversas do banco de dados (via Rust/rusqlite).
  */
-export async function getChatHistory(conversationId?: number): Promise<any[]> {
+export async function getChatHistory(conversationId = 1): Promise<unknown[]> {
   try {
-    const messages = await invoke<any[]>('get_chat_history', { 
-      conversationId: conversationId || 1 
-    });
-    return messages;
-  } catch (error) {
-    console.error('Erro ao carregar histórico:', error);
+    return await invoke<unknown[]>('get_chat_history', { conversationId });
+  } catch {
     return [];
   }
 }

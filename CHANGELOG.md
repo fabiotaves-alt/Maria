@@ -1,6 +1,703 @@
-# CHANGELOG - Projeto MARIA
+﻿# CHANGELOG - Projeto MARIA
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
+
+## [4.2.5-dev] — P0: correção de 3 bugs visíveis (demo ao investidor) — 2026-09-10
+
+### 🐞 Bug 1 — Vazamento de JSON bruto da tool call na UI
+- **Causa raiz:** no fallback textual (caminho ativo para o Qwen2.5-Omni), `chat_stream` (`backend/infrastructure/llm/llama_client.py`) emite cada `chunk` de texto verbatim — incluindo o JSON da tool call que o modelo escreve como texto. Esse texto acumula em `resposta_acumulada` dentro de `_cmd_chat` e era concatenado na `mensagem` enviada ao frontend, aparecendo na UI antes da pergunta de confirmação.
+- **`backend/bridge/comandos.py` — `_remover_span_tool_call` (novo):** remove o span JSON da tool call do texto acumulado, reaproveitando `extrair_tool_call_json` (existente e testado) para deteção + varredura balanceada de chaves (segura para strings/escapes). Aplicado **só** no ramo de geração normal (`resposta_acumulada`); o ramo ambíguo (`resposta_texto`) não é alterado.
+- **`frontend-tauri/src/hooks/useMariaBridge.ts` — `normalizarResposta` endurecida (defesa em profundidade):** reestruturada para preservar texto puro (`JSON.parse` falha → devolve `raw`) e **nunca vazar JSON bruto** (JSON válido sem `mensagem` string → `resposta: ''`). Exportada para testes.
+
+### 🐞 Bug 2 — Mock silencioso de status mascarando backend offline
+- **`frontend-tauri/src-tauri/src/main.rs` — `get_status`:** os dois ramos `Err` passam a propagar `Err` real (`Resposta inválida do backend: …` / `Backend offline: …`), eliminando o mock fabricado `cpu:18/ram:42/gpu:11` e os zeros silenciosos. Assinatura inalterada (`Result<Value, String>`).
+- **`frontend-tauri/src/hooks/useMariaBridge.ts`:** campo `online?: boolean` adicionado a `SystemStatus`; `getSystemStatus` devolve `online: true` no sucesso e `online: false` no `catch`.
+- **`frontend-tauri/src/components/ChatPanel/index.tsx`:** badge de estado passa a usar `setBackendOnline(status.online !== false)`, refletindo o estado real do backend.
+
+### 🐞 Bug 3 — Nomes de modelo inconsistentes
+- **`frontend-tauri/src/components/Sidebar/index.tsx`:** `'Qwen 2.5 3B'` → `'qwen2.5-omni-3b'` (identificador canónico).
+- **`frontend-tauri/src-tauri/src/main.rs`:** resíduos `"Qwen 2.5 3B"` eliminados pelo fixe do Bug 2 (grep de confirmação: 0).
+
+### 🧪 Testes
+- **`frontend-tauri/src/hooks/useMariaBridge.test.ts`:** +5 testes de regressão (`normalizarResposta`: envelope OK / JSON sem `mensagem` não vaza / texto puro intacto; `getSystemStatus`: `online:true` online, `online:false` offline) — total **6 passed**.
+- **Backend:** **288 passed** (baseline 288, 0 falhas) — sem regressão.
+
+### 📋 Itens fora de escopo (registados)
+- Limitação conhecida (não bloqueante): `_remover_span_tool_call` usa `extrair_tool_call_json` como deteção; como o parser devolve `None` para nomes de ferramenta desconhecidos, um tool call com nome inválido não é removido. Coberto para as ferramentas conhecidas.
+- Mantêm-se em aberto: F1.2 (timeout `reqwest` + paths `current_dir()` frágeis) e F1.3 (`read_file`/`save_file` sem validação de path).
+
+## [4.2.5-dev] — Arrumação do repositório: consolidação de branches + preservação de trabalho órfão — 2026-09-10
+
+### 🌿 Consolidação de branches (Frente 1)
+- **F1.1 integrada:** merge `--no-ff` de `feat/smoke-e2e-multimodal` → `develop` (`73b3815`); 5 ficheiros (2 harnesses de smoke + relatório de resultados + CHANGELOG/PROGRESSO), zero código de produção.
+- **Eliminadas 30 branches locais e 26 remotas** — cada uma verificada com `git merge-base --is-ancestor <branch> develop` (exit 0) **antes** da remoção. Estado final: **apenas `main` + `develop`**.
+- **Exceção justificada (`-D`, não `-d`):** `feat/b7a-core-cleanup` e `test/bridge-comandos-regressao-7-bugs` — o ref remoto estava *atrás* do local (`ahead 1` e `ahead 2`), pelo que o git recusou `-d` apesar de ambas estarem em `develop`. Confirmado antes: `git rev-list --count '^develop' <branch>` = **0** commits fora de `develop`.
+- **6 refs remotos *stale* removidos** (`git remote prune origin`): `feat/benchmark-contexto-timeouts-numctx`, `feat/benchmark-id-modelo-resumo-execucao`, `feat/configuracao-modelo-centralizada-fallback-textual`, `latest-benchmark-results-7d15b`, `project-cleanup-and-organization-7e5af`, `ramo-teste` — **já não existiam no GitHub**; sobreviviam apenas como refs locais desatualizados. O remoto tinha **28 heads reais**, não 34.
+- Estado final do remoto: `refs/heads` = `main` + `develop` (+ 32 refs `refs/pull/*` históricos, não removíveis por `push --delete`); **0 tags**.
+- **Branches descartadas com motivo registado:** `project-cleanup-and-organization-7e5af` (autor `qwen.ai[bot]`; cosmético — 4 comentários em `main.py`, reescrita de `.gitignore`, 8 docs movidos, e `"label": "main"` em `tauri.conf.json` que é **inerte**: nenhum código Rust de `develop` usa `get_webview_window`, verificado por grep). `feat/configuracao-modelo-centralizada-fallback-textual` — **nome enganador**: o commit `3ce9e6b` (*"Integração Backend X Frontend"*) não implementa configuração centralizada de modelo nem fallback textual; faz mover `CHANGELOG.md`/`README.md` para a raiz, adiciona `core/protocolo.py` (+ testes) e remove o frontend JavaFX — tudo superado pela reestruturação hexagonal e pela remoção canónica do JavaFX (v4.0.x).
+
+### 🗄️ Trabalho órfão preservado (não portado)
+- **`docs/arquivo/patches/2026-09-02_language-check-fixture-planilha.patch`** — preserva o commit `5f4e9b6` da branch órfã `feat/benchmark-contexto-timeouts-numctx` (nunca integrada; já inexistente no remoto): `language_check` mais robusto (lista PT/EN 15→137 palavras, normalização NFKD, limiar 3%→4%), `fixture_planilha` **determinístico** para as tasks 11-13 (substitui a criação *dummy* por regex sobre o `context`), warmup estendido (3 chamadas) e `--delay` efetivamente aplicado (era parseado e ignorado). Documentado em `docs/arquivo/patches/README.md`.
+- **Não portado nesta rodada** — exige adaptação de imports (`OllamaClient`→`LlamaClient`) e de caminho (`backend/benchmark/`→`backend/benchmarks/maria_bench/`), e o novo limiar de idioma **só é validável por reexecução real do benchmark**, não pelos testes unitários que o acompanham. Candidato a retomar em conjunto com a Fase **R1/R2/R3** (mesma área de trabalho: fixtures de planilha com dados reais). **Nota de handoff registada** em `docs/arquivo/patches/README.md` para a outra equipa (fase R3) avaliar sinergia — sem decisão tomada.
+- ⚠️ O hunk de `frontend-tauri/shared/.bridge_token` foi **deliberadamente excluído** do patch (`git format-patch ... -- ':!frontend-tauri/shared/.bridge_token'`), para não reintroduzir o token no repositório. Verificado: **0 ocorrências** de `bridge_token` no ficheiro.
+- **Integridade do patch blindada:** novo `.gitattributes` com `docs/arquivo/patches/*.patch -text`, para que o `core.autocrlf=true` do Windows não converta o patch para CRLF no checkout — essa conversão introduziria CR em cada linha e **corromperia as 2 partes binárias** (`GIT binary patch`) das fixtures `.xlsx`, tornando o `git am` inaplicável.
+
+### 📌 Precisão histórica (sem reescrever histórico)
+- A entrada `[4.1.8]` (2026-09-02) descreve a remoção de `a`/`do`/`no`/`so`/`me` da lista como *"Correção crítica ao enunciado"*, mas o estado-base (`bf0fa67`) **nunca continha essas palavras** (a lista tinha 15 entradas, nenhuma delas). Trata-se de uma **decisão de desenho preventiva**, não da correção de um defeito existente. O código final está correto — só a redação era imprecisa. A entrada antiga permanece intacta.
+- **Contagem de testes:** a entrada de 2026-09-10 registava **269 passed**; a medição real desta rodada é **288 passed** (o cabeçalho do `PROGRESSO` já indicava 288 — o valor 269 estava desatualizado no `CHANGELOG`).
+
+### 🔐 Segurança
+- Registado em `docs/SEGURANCA.md` §5 que **um valor de token do bridge esteve em commits históricos** de `main`/`develop` (12 commits, 2026-08-30 → 2026-09-03). Impacto prático **baixo** (token gerado por `secrets.token_hex(32)` a cada arranque do backend ⇒ valor exposto obsoleto) e **sem reescrita de histórico** — decisão deliberada, para transparência e para não invalidar todos os hashes do repositório.
+
+### 🧪 Testes
+- Suíte completa: **288 passed** (baseline anterior: 288) — `uv run pytest backend/tests -q`; sem regressão após o merge do smoke.
+
+### 📋 Itens fora de escopo (registrados)
+- **Achado — 236 refs `refs/cline/checkpoints/*`** (906 commits ocultos; 40.32 MiB de objetos *loose*): **100% locais** — confirmado por `git ls-remote` (0 refs `refs/cline` no GitHub), logo **invisíveis para a revisão externa**. **Adiado** por decisão explícita: `git gc --prune=now` fica pausado (não liberta nada enquanto os refs existirem) e preserva-se a capacidade de *restore* dos checkpoints do IDE.
+- **Frente 2 (artefactos/assets)** não iniciada — será feita em branch própria `chore/limpeza-repo-set26`; inclui a política de retenção dos 58 diretórios `results/run_*` (124 ficheiros, 7.85 MB versionados) e a deduplicação dos assets de imagem (`maria_opening.png` existe 3×).
+- **Merge em `main` / tag de release** não executado: só ocorre em *bump* de versão (mantém-se `4.2.5-dev`).
+
+## [4.2.5-dev] — Smoke tests E2E (funcional + multimodal) — 2026-09-10
+
+### 🧪 Novos harnesses de smoke ao vivo (`docs/dev_base/`)
+- **`smoke_e2e_chat.py`** — replica os 6 itens do B0.9 (CHANGELOG 2026-09-08): carga do modelo, `criar_planilha` real com confirmação, validador V3 (case-insensitive), fidelidade de dados no `.xlsx` (pandas, sem NaN), cancelamento e detecção de tool call. Item 6 corrigido: `_fonte` passou de critério a informativo (é metadado interno do parser, não contrato público) — critério agora é `name` + `arguments` válidos.
+- **`smoke_multimodal.py`** — visão (`--image`) e áudio (`--audio`) isolados do smoke funcional, com `--timeout` configurável (default 600s) e **skip inteligente por contexto**: lê `n_ctx` do `/v1/models` e pula a visão (sem contar como falha) se `n_ctx < 3000`.
+
+### ✅ Resultado do smoke ao vivo (llama-server real, Qwen2.5-Omni-3B)
+- **Funcional: 7/7 passaram** (modelo acessível, tool call `criar_planilha` detectada, V3, confirmação, cancelamento, conteúdo `.xlsx` fiel: `{'Data': '2026-01-01', 'Valor': 100}`).
+- **Multimodal: 1/1 passou** — visão descreveu corretamente o logotipo MARIA, com `n_ctx=4096` e `--timeout 600`.
+- **Aprendizado:** `n_ctx=2048` era insuficiente para multimodal (prompt 2080 tokens → `exceed_context_size`); `n_ctx=4096` resolve. Timeout de 240s (default) também era curto para o 3B CPU processar imagem — 600s resolve.
+
+### 📋 Itens fora de escopo (registrados)
+- **Frente B (system_prompt v4):** adiada — com `n_ctx=4096` sobrou margem de contexto; a reescrita do prompt (~700 tokens) deixa de ser obrigatória para o smoke e fica como otimização futura.
+- **Áudio:** não testado (sem fixture `.wav` no repositório).
+
+## [4.2.5-dev] — Auditoria de estado + bugs imediatos + renome do guia canónico — 2026-09-10
+
+### 🐛 Bugs imediatos corrigidos
+- **BUG-2 — módulos divergentes (testes × produção):** `test_tool_call_json_parser.py` e `test_validacao_tool_call.py` passam a importar os módulos canónicos (`backend.infrastructure.tools.tool_call_json_parser` e `backend.domain.validacao_tool_call`) em vez das cópias obsoletas de `core/`. As cópias divergentes `core/tool_call_json_parser.py` e `core/validacao_tool_call.py` foram convertidas em re-export shims — a suíte agora valida exatamente o código que a produção executa.
+- **BUG-4 — contagem de testes inconsistente:** `docs/ARQUITETURA_SISTEMA.md` e `docs/GUIA_TESTES_EMPIRICOS.md` reconciliados para **269 passed** (baseline 2026-09-09).
+- **BUG-5 — comandos do bridge:** `docs/ARQUITETURA_SISTEMA.md` corrigido de 19 → **20 comandos** (contagem real de `_COMANDOS` em `backend/bridge/comandos.py`).
+
+### 📝 Documentação
+- **Renome do guia canónico:** `docs/GUIA_DESENVOLVIMENTO_v2_canonico.md` → `docs/GUIA_DESENVOLVIMENTO.md` (`git mv`, histórico preservado); referências vivas atualizadas (`README.md` árvore + tabela; banner do legado `arquivo/GUIA_DESENVOLVIMENTO_v1_legado.md`).
+- **Guia §5 reescrito** (LACUNA-1): removida a afirmação desatualizada de que `domain/`/`interfaces/` "ainda não existem"; árvore atualizada para a arquitetura hexagonal real (B0–B1 aplicadas).
+- **`ARQUITETURA_SISTEMA.md`:** organização modular aponta `application/` (não `core/maria_controller.py`); 20 comandos; 269 testes.
+- **`README.md`:** removido cabeçalho `# CHANGELOG` órfão no fim do ficheiro; contagem 265→269; diagrama e árvore de pastas refletem as camadas hexagonais; roadmap com `v4.2.1–v4.2.4` e `v4.2.5-dev`.
+- **Novo:** `docs/RELATORIO_AUDITORIA_ESTADO_2026-09-10.md` — figura do estado do projeto (branches/integração), processo de documentação e auditoria dos últimos commits.
+
+### 🧪 Testes
+- Suíte completa: **269 passed** — sem regressão (BUG-2 apontou os testes para os módulos canónicos sem alterar comportamento).
+
+## [4.2.5-dev] — F1.1: Card de confirmação + wiring backend — 2026-09-09
+
+### 🎯 Card de ação pendente no frontend (F1.1 do relatório de integração)
+- **`backend/bridge/comandos.py` — `_cmd_chat` reescrito:** roteamento unificado de chat e confirmação. Se `controller.tem_acao_pendente()`, a entrada é processada por `processar_confirmacao` (resultado `True`/`False` → string; `None`/ambíguo → envelope objeto). No ramo normal, `processar_chunk` é chamado a cada iteração (corrige D1 — sem isso `_tool_call_final` nunca era preenchido e o ActionCard nunca disparava). Texto narrado pelo modelo é preservado e concatenado com a pergunta de confirmação (D2). Todo o corpo dentro de `try/except` — exceções retornam envelope `erro` em vez de HTTP 500 (D3). Contrato de `servidores.py` e `main.rs` **não alterados** — o campo `dados` do envelope Flask é pass-through.
+- **`frontend-tauri/src/components/ChatPanel/ActionCard.tsx` (novo):** componente de card com badge da ferramenta, mensagem de confirmação do backend e botões `[Confirmar]`/`[Cancelar]` que enviam `'sim'`/`'não'` via `handleSendMessage`. Aparece via `AnimatePresence` entre a área de mensagens e o `ChatInput`; some automaticamente quando o backend retorna resposta sem `confirmacao_pendente`.
+- **`frontend-tauri/src/hooks/useMariaBridge.ts` — refatorado:** `normalizarResposta` detecta string pura vs. envelope objeto; `modelo_usado` tipado como `string` (removidos enum `'qwen3b'|'llama7b'`); nomes de modelo canônicos (`qwen2.5-omni-3b/7b`) em todos os fallbacks. `SystemStatus` expõe `versao?: string`.
+- **`frontend-tauri/src/types/index.ts` — ampliado:** novos tipos `ConfirmacaoPendente`, `ChatBackendResponse`, `ChatResponse`.
+- **`frontend-tauri/src/components/ChatPanel/index.tsx` — refatorado:** estado `confirmacao: EstadoConfirmacao | null`; `processarResposta` detecta `confirmacao_pendente` e abre o card; `handleConfirmar`/`handleCancelar` enviam `'sim'`/`'não'`; badge de status exibe `modeloAtivo` obtido de `getSystemStatus()` (nome canônico real).
+- **`backend/tests/test_f1_1_confirmacao.py` (novo):** 4 testes de regressão cobrindo confirmar, cancelar, ambíguo e fluxo normal com tool call — todos via `MagicMock` sem LLM real.
+
+### 🧪 Testes
+- Suíte: **269 passed** (265 baseline desta branch + 4 novos), 0 falhas.
+- ⚠️ Nota de baseline: esta branch parte de `6f1d4f4` (`chore/auditoria-documentacao-2026-09-09`, 265 testes). A linhagem com 284 testes (`feat/b7a-core-cleanup`) é paralela e ainda não mergeada.
+
+### 📋 Itens fora de escopo (registrados para fases seguintes)
+- **F1.2:** timeout `reqwest` (sem limite atual — chat pode levar 300 s) + paths `current_dir()` frágeis em `main.rs` (falham em produção sidecar).
+- **F1.3:** `read_file`/`save_file` genéricos expostos no `invoke_handler` sem validação de path (P7).
+- **F2.1 / P5-P10:** histórico SQLite "fantasma" — `getChatHistory` lê `mensagens` mas nenhum passo do fluxo de chat escreve nessa tabela via Python; `save_message` Rust está registrado mas sem uso no frontend.
+- **D7 (resíduo):** `modelo_usado` hardcoded como `'qwen2.5-omni-3b'` em `normalizarResposta` — sem impacto visual (badge exibe `status.modelo` do `getSystemStatus`); corrigir quando o backend passar a devolver o modelo no envelope de chat.
+- **Pendência de processo:** commit `f3269f9` (R1) segue sem push em `feat/b7a-core-cleanup`.
+## [4.2.5-dev] — B7a: `core/` esvaziado (compat por 1 versão com `DeprecationWarning`) — 2026-09-09
+
+### 🧱 Limpeza estrutural (plano_mestre_v5.md §12 — Decisões A/B/C1)
+- **`config.py` movido**: `backend/core/config.py` → `backend/config.py` (raiz do backend, conforme estrutura-alvo do plano) e `system_prompt.txt` movido junto (`backend/system_prompt.txt`), preservando o carregamento relativo ao módulo. Ajuste obrigatório: `_obter_versao()` passou de `parent.parent.parent` para `parent.parent` — sem isso, ao subir um nível, `__version__` cairia silenciosamente no fallback `4.2.5` (verificado: lê `4.2.5` do `pyproject.toml`). Mensagem de erro do prompt atualizada para o novo path.
+- **`core/config.py` virou stub** de compatibilidade com `DeprecationWarning`; reexporta `backend.config` (`import *` **+ `__version__` explícito**, pois `import *` não exporta nomes com underscore e o bridge consome `__version__`).
+- **15 stubs de `core/`** (`chat_session`, `client_protocol`, `confirmacao`, `excel_handler`, `file_utils`, `interfaces`, `llama_client`, `manual_redacao`, `maria_controller`, `paths`, `router`, `session_storage`, `tool_chaining`, `tools_schema`, `word_handler`) agora emitem `DeprecationWarning` no import, apontando para a camada real.
+- **Duplicatas mortas deletadas:** `core/tool_call_json_parser.py` (cópia de `infrastructure/tools/tool_call_json_parser.py`, exercitada só por testes) e `core/validacao_tool_call.py` (cópia de `domain/validacao_tool_call.py`) — **−348 linhas duplicadas**; testes redirecionados para as fontes reais (sem `@patch` nesses caminhos).
+- **`domain/tool_call_contracts.py` (novo):** `CAMPOS_OBRIGATORIOS` como fonte única de domínio (lógica pura, sem I/O) — corrige a violação `domain→infrastructure` do validador; `infrastructure/tools/tools_schema.py` reexporta a constante (sem segunda definição).
+
+### 🔁 Imports migrados para `backend.config`
+- Produção: `application/` (3), `domain/` (2), `infrastructure/` (4), `bridge/` (2), `main.py` e `benchmarks/maria_bench/` (`run_benchmark.py` ×2, `servidor_llama.py`) — 19 ocorrências + 3 comentários sinérgicos. Zero imports de produção de `backend.core.config` fora do stub.
+- **Fora do escopo desta fase** (permanecem com o aviso C1): testes (`test_maria.py`, `validate_llama_server.py`), `bridge/comandos.py` (`backend.core.paths`) e a string informativa em `run_benchmark.py:359` (`backend/core/system_prompt.txt`).
+
+### 🧪 Testes
+- Suíte: **283 passed**, 0 falhas — baseline B6 preservado (11 `DeprecationWarning` esperados dos stubs legacy; nenhum teste usa `filterwarnings=error`).
+- Cobertura: **75%** (`--cov=backend`: 6720 statements, 1666 não cobertos).
+
+### ✅ Gates de aceite (T7)
+- G1 stub `core.config` dispara `DeprecationWarning` → OK; G2 sem referência às duplicatas deletadas → OK; G3 `CAMPOS_OBRIGATORIOS` definido apenas em `domain/tool_call_contracts.py` → OK; G4 sem `backend.core.config` em produção → OK; G5 `pytest` → 283 passed.
+- `import-linter` / contratos de camada ficam para a **B7b** (Decisão D: exceções documentadas para `application→infrastructure`, fora do escopo desta fase).
+
+## [4.2.5-dev] — R1: Reformulação de tasks do benchmark (M-5/M-1) + regressão da decisão A — 2026-09-09
+
+### 🧹 Escopo (fase R1 — apenas dados de task + testes do benchmark)
+- **R1.1 — Task 21 (`tasks_edges.py`):** reformulada para o padrão determinístico de T22/T23 — nome neutro (`vendas_dezembro`, sem pista de inexistência no texto), `tools_obrigatorios=["editar_planilha"]`, `confirm_sequence=["sim"]` (antes `[]`, o que impedia a ferramenta de executar de fato) e `expected_keywords` de inexistência. Elimina o nome revelador `arquivo_que_nao_existe` (**M-1**).
+- **R1.2 — T3–T6 (`tasks_core.py`):** `expected_keywords=["planilha"]` → `["criada", "sucesso"]` (**M-5** — keyword trivial que casava com qualquer frase contendo "planilha"; agora casa apenas com o template real de sucesso do executor `"Planilha criada com sucesso: <caminho>"`). T11–T13 mantêm `["atualizada"]` (não triviais, casam com `"Planilha atualizada com sucesso: ..."`).
+- **R1.4 — teste de regressão (decisão A):** novo `test_segunda_ferramenta_escrita_apos_erro_real_e_sempre_incorreta` em `TestMariaRunnerCadeiaFerramentas` — se, após o erro REAL da ferramenta (arquivo ausente), o modelo chamar uma SEGUNDA ferramenta de escrita (aqui `criar_planilha`, hipótese **B rejeitada**), o resultado é `tool_correct=False`. **Nenhuma alteração** em `maria_runner.py`/`task_schema.py`: o guard `detected_name is not None and detected_name != task.expected_tool` já produzia a semântica (A); o teste apenas a congela. Cobertura pré-existente cobria só a re-chamada da MESMA ferramenta (`ClienteTeimoso`).
+- **Fora de escopo:** R1.3/R1.5 (mecanismo de injeção de erro) adiadas.
+
+### 📝 Nota técnica (decisão de escopo — para não se perder)
+- No caminho "erro real de escrita → continuação com segunda ferramenta", o valor de `cadeia_ferramentas` **não foi assertado** no teste novo (suposição não verificada em runtime). Pela leitura do código (`maria_runner.py` faz `if detected_name not in cadeia_ferramentas: cadeia_ferramentas.append(detected_name)`), o valor esperado seria `["editar_planilha", "criar_planilha"]` — a verificar/assercionar em fase futura, caso o campo passe a alimentar métrica.
+
+### ✅ Gates (saída literal)
+- **Gate 1** (`py_compile` dos 3 arquivos): `exit=0`.
+- **Gate 2** (`grep expected_keywords=["planilha"] tasks_core.py`): **zero** ocorrências (`exit=1`, sem saída).
+- **Gate 3** (`grep arquivo_que_nao_existe tasks_edges.py`): **zero** ocorrências (`exit=1`, sem saída).
+- **Gate 4a** (`pytest backend/tests -q -k "not TestSegurancaApiHttp"`): `279 passed, 5 deselected` — **0 falhas** (total menor que a suíte cheia apenas pelos 5 desselecionados).
+- **Gate 4b** (suíte completa, sem exclusão): `284 passed` — **0 falhas** (283 baseline B6 + 1 teste novo).
+
+### 📦 Diff
+```
+ backend/benchmarks/maria_bench/tasks/tasks_core.py |  8 ++---
+ backend/benchmarks/maria_bench/tasks/tasks_edges.py |  2 +-
+ backend/tests/test_maria.py                        | 37 ++++++++++++++++++++++
+ 3 files changed, 42 insertions(+), 5 deletions(-)
+```
+
+## [4.2.5-dev] — B6: LLM-as-judge (experimental) + response_format por ferramenta — 2026-09-09
+
+### ⚖️ LLM-as-judge experimental (fase B6, O5 — desvios aprovados)
+- `analysis/llm_judge.py` (novo): avaliação em-processo com temperatura 0.0, rubrica de 4 eixos (`tool_correta`, `args_completos`, `conteudo_coerente`, `idioma`), veredito plano `ok`/`falha` + `justificativa`, parsing determinístico (tolera code fences) e **degradação graciosa** (`_veredito_erro` — eixos `erro`). **NUNCA calibrado**: nenhuma linha deste módulo afirma concordância com avaliação humana.
+- **Opt-in `--judge`** (`cli.py` → `run_benchmark.py` → `MariaRunner(avaliar_com_judge=False)`): default desligado — nenhum run existente muda. Veredito gravado em `MariaTaskResult.judge_veredito` (novo campo, default `None`) e chamado em-processo logo após `_analisar_semantica`, isolado de `errors`/`runtime_ok`/`tool_correct`.
+- `analysis/calibracao_judge.py` (novo): harness de calibração pronto para **uso manual futuro** — `calcular_concordancia(rotulos, vereditos)` (concordância geral + por eixo) e CLI `python -m backend.benchmarks.maria_bench.analysis.calibracao_judge <rotulos.json> <vereditos.json>`; imprime aviso quando < 80%. Promover o judge a métrica oficial é **decisão humana** (rotulagem manual ~30 execuções), documentada no CHANGELOG quando acontecer.
+
+### 📐 `response_format` experimental por ferramenta (fase B6, D3 / OMISSÃO-3)
+- `gerar_response_format_schema(nome)` em `tools_schema.py`: JSON Schema **por ferramenta específica** derivado de `TOOLS_SCHEMA` (não-global — evita alucinação estrutural de campos de outras ferramentas); retorna `None` para ferramenta inexistente.
+- **Opt-in `--response-format-schema`** (env `LLAMA_RESPONSE_FORMAT_SCHEMA=1`): aplicado apenas quando a task declara `expected_tool`, via parâmetro extra em `_montar_payload`/`chat_stream`/`chat_com_tools_stream_com_metricas` — o pipeline de streaming não foi reescrito (regra de parada do T4 não disparada).
+
+### 🔧 LlamaClient
+- `chat()`/`chat_stream()`: `incluir_temperatura = bool(tools) or (self.temperature is not None)` — habilita `temperature=0` **sem** `tools` (determinismo exigido pelo judge); comportamento default (sem temperatura explícita) inalterado.
+
+### 📄 Report
+- Seção `## LLM-as-Judge (EXPERIMENTAL, NAO CALIBRADO)` com o aviso literal de não-calibração e tabela de contagem `ok`/`falha`/`erro` por eixo — renderizada apenas quando há `judge_veredito` em algum resultado.
+
+### 🧪 Testes
+- Suíte: **283 passed** (`pytest backend/tests`, 280 baseline B5 + 3 novos da calibração), 0 falhas.
+
+### 🔧 Ambiente (nota separada — NÃO faz parte da feature)
+- Venv restaurado com dependências já declaradas em `requirements.txt` e ausentes no venv: `flask`, `flask-cors` e `psutil` (quebravam `test_health_http.py`/`TestSegurancaApiHttp` por `ModuleNotFoundError`). Sem mudança de código.
+
+## [4.2.5-dev] — Registro de teste: auto-correção genérica do 3B com harness corrigido — 2026-09-09
+
+### 🧪 Teste empírico isolado (llama-server, `Qwen2.5-Omni-3B` Q4_K_M) — docs-only
+- Harness versionado `docs/dev_base/teste_auto_correcao_3b.ps1` (UTF-8 c/ BOM p/ PowerShell 5.1) + relatório `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`.
+- Cenário: system prompt MARIA + pedido de planilha com tradução Mandarim→PT + resposta anterior **com bug** (`peso` minúsculo vs coluna `Peso`) + instrução genérica de revisão (auto-auditoria sem pista do bug).
+- **Fix no harness:** o veredito original usava `-in`/`-notin` do PowerShell (**case-insensitive**) → `'Peso' -in @('peso',...)` = `True`, ou seja, reportaria `CORRIGIU` mesmo com o bug presente (falso positivo de critério). Substituído por `-cnotcontains` (case-sensitive) + conjunto de referência com as colunas pedidas pelo usuário (`Produto`, `Preço`, `Peso`).
+- Resultado **3/3 determinístico** (temperatura 0.1, 173 tokens, `finish=stop`): JSON válido, porém **AUTO-CONSISTENTE mas DIVERGENTE do pedido** — o modelo rebaixou a coluna `Peso`→`peso` (e `Preço`→`Preco`) em vez de corrigir as linhas. Reforça D2 do relatório v5: instrução genérica é insegura como mecanismo de auto-correção.
+- Auditoria de tradução: 2/5 corretas (Bola, carro de brinquedo), 2 aproximadas (boneca; "caixa de lápis"→estojo), 1 **errada mantida** (`笔记本`→"livro", correto: caderno/notebook) — o turno de revisão não detectou o erro semântico. Alinha à pendência D6 (nova Task 26 de tradução).
+- Nenhum código de produção alterado; suíte **274 passed inalterada**.
+
+## [4.2.5-dev] — B5: CLI unificada (run/report/compare) — 2026-09-09
+
+### 🖥️ CLI unificada (fase B5 do plano mestre v5)
+- `cli.py` (novo): wrapper fino sobre run_benchmark.py/compare_runs.py/analysis/report.py — subcomandos `run`/`report`/`compare` via `python -m backend.benchmarks.maria_bench.cli`. `run` delega a `run_benchmark.main()` via argv sintético (o main lê sys.argv); `compare` usa `generate_comparison`; `report <run_dir>` regenera o `report.md` de um diretório run_* a partir do `log.json` (reusa `carregar_resultados_de_log`, extraído de compare_runs — DRY). NÃO opera sobre run_id SQLite (sem mapeamento id→diretório e colunas parciais em storage.py — pendência explícita).
+- `--temperature`: override no padrão de `--num-predict` (`LlamaClient(temperature=...)` → `MariaRunner` → `run_benchmark`/CLI). Precedência no payload: `temperatura_override` (retry de correção) → `self.temperature` → default `LLAMA_TEMPERATURE_TOOLS`. `montar_sampler_params()` inalterado (a linha do default mora lá, não em `_montar_payload`).
+- Testes: `backend/tests/test_cli.py` (6) — parser + despacho com mocks.
+
+### ⏳ Itens adiados (registro formal, com motivo)
+- **`judge`**: adiado para a B6 — depende da lógica de julgamento (LLM-as-judge) que ainda não existe.
+- **`--ctx-size`**: adiado — o `ctx_size` vem do servidor real (`/v1/models`) como fonte única de verdade para os pre-checks de estouro de contexto; uma flag de override entraria em conflito com essa proteção (redesenho fora do escopo da B5).
+- **`--system-prompt`**: adiado — troca em runtime afeta o `system_prompt_hash` (rastreabilidade de runs) e o carregamento vive em `backend/core/config.py`, fora do pacote de benchmark.
+- **Empacotamento (`[project.scripts]`/comando `maria-bench`)**: adiado — bloqueado por `[tool.uv] package = false` (backend não é instalado como pacote); mantém-se `python -m backend.benchmarks.maria_bench.cli`.
+
+### 🧪 Testes
+- Suíte: **280 passed** (`pytest backend/tests`, 274 baseline B4 + 6 novos).
+
+## [4.2.5-dev] — B4: linhas_esperadas + limite_conhecido + fechamento INCONS-1 — 2026-09-09
+
+### 🧩 Schema de tasks v2 (fase B4 do plano mestre v5)
+- `task_schema.py`: `linhas_esperadas` (`list[dict] | None`) em `MariaTask` e `linhas_esperadas_ok` em `MariaTaskResult`; `limite_conhecido: bool` em ambos (default `False`, retrocompatível).
+- `maria_runner.py`: novo `_verificar_linhas_esperadas` (estático; nunca lança — arquivo ausente/corrompido → `False`; match case-insensitive por chave/valor; `None` desativa). O resultado alimenta `errors` (`kind="LinhasEsperadasNaoEncontradas"`) → `runtime_ok = not errors`.
+- `tasks_extracao.py`: Task 26 original marcada `limite_conhecido=True`.
+- `metrics.py`: filtro exclui tasks com `limite_conhecido=True` do denominador das métricas agregadas de aceite (são executadas/reportadas normalmente, mas não falseiam o aceite).
+
+### 🔧 Fechamento INCONS-1 — fix de acoplamento + teste de integração
+- Fix em `maria_runner.py`: a captura de `caminho_arquivo_gerado` estava DENTRO de `if task.coluna_dados_obrigatoria:` — uma task que declarasse apenas `linhas_esperadas` nunca capturava o caminho do arquivo e reprovaria sempre por falso negativo. Captura movida para fora do guard (comportamento das tasks com coluna inalterado).
+- `TestLinhasEsperadasIntegracaoRun` (novo, ponta-a-ponta via `MariaRunner.run()`): replica o padrão de mock de `TestValidacaoDadosArquivoGerado` (cliente fake devolvendo `criar_planilha` com `linhas`); a task declara apenas `linhas_esperadas`; 2 testes — linhas presentes → `linhas_esperadas_ok`/`runtime_ok`; ausentes → erro `LinhasEsperadasNaoEncontradas` e `runtime_ok=False`.
+
+### ⏳ Pendências explícitas (adiadas — NÃO fazem parte desta entrega)
+- **D6** — nova Task 26 com dados embutidos na mensagem, avaliada via `linhas_esperadas` (requer design decision do formato de dados e de como evitar reintroduzir o problema de tradução).
+- **V6** — decisão de coerção numérica.
+
+### 🧪 Testes
+- Suíte: **274 passed** (`pytest backend/tests`, 272 baseline B4 + 2 novos), sem regressão.
+
+## [4.2.5-dev] — B3: Storage SQLite + report v2 (correções pós-verificação) — 2026-09-09
+
+### 🗄️ Storage SQLite (fase B3 do plano mestre v5)
+- storage.py (novo): schema runs + results (D5 aprovado), PRAGMA journal_mode=WAL, índices run_id/task_id, type hints, docstring em português e sem BOM. Funções: inicializar_schema, registrar_run, registrar_resultados, agrupar_por_modelo_task_fonte.
+- run_benchmark.py: persistência defensiva (try/except + logger.warning) nos 2 fluxos (CLI e programático); config= grava o meta completo do run; modelo= com fallback (id_modelo → id → modelo → desconhecido).
+
+### 🔧 Fechamento de débito do B2 (DRY)
+- LLAMA_NUM_CTX passa a vir de benchmark_config.py (import relativo) em run_benchmark.py e analysis/report.py — elimina o import de backend.core.config no pacote de benchmark.
+- Adicionado logger = logging.getLogger(__name__) em run_benchmark.py (o except da persistência usava logger.warning sem o logger estar definido no módulo).
+
+### 📄 Report v2
+- generate_report(...): include_details → detail (default False); seção de detalhes por execução é omitida quando detail=False (_montar_resumen_ejecucion removida).
+- CLI propaga detail=args.detail.
+
+### 🔍 compare_runs.py
+- Versão híbrida mantida (SQL-first com fallback para log.json) — decisão do tech lead; sem reescrita para SQL puro.
+
+### 🌐 Traduções (espanhol → português)
+- analysis/report.py e compare_runs.py: docstrings, strings de saída e identificadores em espanhol traduzidos (ex.: _montar_secao_fuente_deteccion → _montar_secao_fonte_deteccao, _es_run_id → _eh_run_id).
+
+### 🧪 Testes
+- Suíte: 265 passed (pytest backend/tests -q), sem regressão. Teste test_report_contem_parametros_e_detalhes_por_execucao ajustado para detail=True.
+
+## [4.2.5-dev] — Relatório integração backend→frontend + Desempenho — 2026-09-09
+
+### 📄 Novo documento (planejamento, sem código)
+- `docs/RELATORIO_INTEGRACAO_FRONTEND_POS_REFATORACAO_2026-09-09.md` (172 linhas): inventário dos 21 comandos bridge, matriz F1–F5 de integração, spec da nova seção Análise de Desempenho (3 comandos `executar/status/resultado_benchmark` + `PerformanceView` + polling), contratos JSON, riscos e plano 30–44 h.
+
+### 🧪 Testes
+- Suíte: **265 passed** (sem regressão — só adição de doc).
+
+---
+
+## [4.2.5-dev] — Auditoria da documentação (arquivamento + atualização) — 2026-09-09
+
+### 📁 Arquivamento (git mv, histórico preservado)
+- `docs/GUIA_DESENVOLVIMENTO.md` → `docs/arquivo/GUIA_DESENVOLVIMENTO_v1_legado.md` (superado pelo canônico `GUIA_DESENVOLVIMENTO_v2_canonico.md`).
+- `docs/MELHORIAS_RELATORIO.md` → `docs/arquivo/MELHORIAS_RELATORIO_v411_legado.md` (backlog MEL-01..10 de v4.1.1 fechado; vivo: `TODO_MELHORIAS_BACKEND.md` + `plano_mestre_v5.md`).
+- `docs/RELATORIO_BENCHMARK_DIAGNOSTICO.md` → `docs/arquivo/RELATORIO_BENCHMARK_DIAGNOSTICO_20260904.md` (snapshot pré-B0 da era do parser posicional, removido em D1).
+- `TO DO.txt` (raiz) → `docs/arquivo/TO_DO_legacy_raiz.txt` (brainstorm era JavaFX + ASCII-art + bug 2026-08-12 superado).
+- Banners de arquivamento inseridos no topo dos 4 arquivos.
+
+### 📝 Atualizações (referências quebradas/desatualizadas)
+- `README.md`: versão v4.2.3→v4.2.5-dev, status Estável→EM MIGRAÇÃO, 115+→265 testes, links `INSTALL_GUIDE`/`INSTALACAO_WHISPER`→`GUIA_INSTALACAO`/`REGRAS_OPERACAO_LLAMA_SERVER`, árvore `backend/benchmark/`→`backend/benchmarks/maria_bench/`, `textual_parser`→`json_parser`, roadmap router→B4.5/B4.6.
+- `docs/GUIA_TESTES_EMPIRICOS.md`: v4.1.1→v4.2.5-dev, 120→265 passed, `backend.benchmark`→`backend.benchmarks.maria_bench`, setup `uv sync --extra dev`.
+- `docs/ARQUITETURA_SISTEMA.md`, `docs/GUIA_INSTALACAO.md` (headers + `uv`), `docs/REGRAS_OPERACAO_LLAMA_SERVER.md` (2 paths `maria_bench`), `docs/GUIA_DESENVOLVIMENTO_v2_canonico.md` (§6.2), `docs/PROGRESSO_DESENVOLVIMENTO.md` (path `dev_base`).
+- `docs/install-dependencies.ps1`: `--host 0.0.0.0`→`127.0.0.1` (violava `REGRAS_OPERACAO_LLAMA_SERVER.md`).
+- Novo: `docs/RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md` (tabela MANTER/ARQUIVAR, links corrigidos, débitos).
+
+### 🧪 Testes
+- Suíte: **265 passed** (`pytest backend/tests`; sem regressão — alterações restritas a `.md`/`.ps1`/`.txt`).
+
+---
+
+## [4.2.5-dev] — B2: Benchmark → Ports (zero acoplamento) — 2026-09-08
+
+### 🏗️ Fase B2 do plano mestre v5 (Seção 5)
+- **Move do pacote (D4, escopo ajustado):** `backend/benchmark/` → `backend/benchmarks/maria_bench/`. Decisão registrada: manter sob `backend/` (em vez da raiz do monorepo) para preservar o namespace `backend.*` usado em 255 referências de código (`test_maria.py`/`ui_terminal.py`) — ver nota de escopo do prompt de execução.
+- **`maria_runner.py`:** `_montar_mensagens_com_reforco` → símbolo público `montar_mensagens_com_reforco`; imports reescritos para `backend.domain.*`, `backend.interfaces.*`, `backend.infrastructure.*`, `backend.application.*`; removidos `sys.path.insert` + `MARIA_ROOT`; `CAMPOS_OBRIGATORIOS` via `backend.infrastructure.tools.tools_schema`.
+- **`benchmark_config.py`:** `LLAMA_NUM_CTX` absorvido (leitura de env, default 4096 — mesmo default do config da aplicação).
+- **`run_benchmark.py`:** import de `core.llama_client` → `backend.infrastructure.llm.llama_client`; removidos `sys.path.insert` + `MARIA_ROOT`.
+- Referências externas (`test_maria.py`, `ui_terminal.py`) e `.gitignore` atualizados para o novo caminho.
+
+### 🧪 Testes
+- Suíte: **265 passed** (gates da Seção 13 vazios; sem regressão).
+
+---
+
+
+## [4.2.5-dev] — FIX-4 · Registro de ferramentas intermediárias do encadeamento — 2026-09-08
+
+### 🐛 DEFEITO-2 resolvido (cadeia_ferramentas incompleta)
+- `encadear_leitura_stream` (`tool_chaining.py`) agora aceita callback opcional `apos_cada_leitura(nome, argumentos)`, chamado ANTES de cada ferramenta de leitura executada (inclusive a primeira iteração).
+- `maria_runner.py` passa `_registrar_ferramenta_leitura` — ferramentas intermediárias do encadeamento (ex.: paginação `extrair_dados_planilha`) agora entram em `cadeia_ferramentas`, não apenas a inicial (~linha 184) e a final (~linha 381).
+- Testes: `test_ferramenta_leitura_intermediaria_entra_na_cadeia` (fluxo `listar_arquivos` → `extrair_dados_planilha` → `criar_planilha`) + classe `TestEncadearLeituraStreamCallback` (callback com nome/args; retrocompatibilidade com `None`).
+
+### 🧪 Testes
+- Suíte: **265 passed** (262 base + 3 novos; sem regressão).
+
+---
+
+
+## [4.2.5-dev] — Benchmark: correção do desenho da Task 26 (FIX-1/2/3) — 2026-09-08
+
+### 🐛 Diagnóstico do benchmark (2026-09-08) — 4 defeitos de sistema na Task 26
+- **DEFEITO-1 (crítico):** `user_message` da Task 26 instruía `editar_planilha` ("Preencha a coluna...") — reformulada para "**Leia** os dados... e **crie uma nova planilha**", sem verbos de edição.
+- **DEFEITO-2:** `cadeia_ferramentas` não registra ferramentas intermediárias do `encadear_leitura_stream` — **débito técnico FIX-4 registrado** (correção robusta em ciclo separado).
+- **DEFEITO-3 (moderado):** `context` pré-declarava o arquivo como disponível (eliminava o incentivo de chamar `extrair_dados_planilha`) — removido (`context=[]`).
+- **DEFEITO-4:** `expected_args_subset` exigia set exato de colunas (comparação case-sensitive) — simplificado para apenas `{"nome_arquivo": "produtos_traduzidos"}`; qualidade real fica com `coluna_dados_obrigatoria="english description"`.
+
+### 🧪 Testes
+- Suíte: **262 passed** (idêntico ao baseline; sem regressão).
+- `TestTarefa26Traducao::test_estrutura_da_task_26` atualizado (novo `expected_args_subset`) + asserts de regressão (wording sem "preencha a coluna"/"edite", `context=[]`).
+
+---
+
+
+## [4.2.5-dev] — Baseline v5 do benchmark (B0.5) capturado — 2026-09-08
+
+### 📊 Benchmark baseline (B0.5)
+- Dois runs completos gravados e versionados em `backend/benchmark/results/`:
+  - `run_baseline_v5_3b/` — Qwen2.5-Omni-3B (Q4_K_M)
+  - `run_baseline_v5_7b/` — Qwen2.5-Omni-7B (Q4_K_M)
+- 28 tarefas × 2 repetições (56 execuções) por modelo; `report.md` + `log.json` preservados.
+- Comparativo documentado em `docs/dev_senior/baseline_v5_resultados.md`.
+
+### Resultados-chave
+- Tool calling: **3B 82,1%** vs **7B 96,4%** (latência 14,5 s vs 31,2 s).
+- Task 26 (tradução) falha em ambos os modelos — valida B4/B4.6.
+- 3B fraco em `criar_documento` (60%): campo `conteudo` ausente/camelCase.
+- `parse_suspeito = 20/56` em ambos — investigar em B3.
+
+### 🧪 Testes
+- Suíte não re-executada nesta etapa (captura de artefatos de benchmark; 262 testes seguem verdes da etapa anterior).
+
+---
+
+
+## [4.2.5-dev] — Planejamento: fases B4.5 e B4.6 no plano mestre v5 — 2026-09-08
+
+### 📋 Atualização de `docs/dev_senior/plano_mestre_v5.md` (somente planejamento)
+- **Mapa de dependências (Seção 0):** ramos `B4.5` (intent classification / entity extraction) e `B4.6` (roteamento NLLB-200) dependentes de B4, independentes entre si e não bloqueantes de B5–B7, com nota de origem (análise de viabilidade 2026-09-08).
+- **Inventário de arquivos (Seção 1):** colunas `B4.5`/`B4.6` adicionadas entre `B4` e `B5`; 24 linhas existentes expandidas + 6 arquivos futuros mapeados (`domain/intent_classification.py`, `application/intent_router.py`, `infrastructure/tools/entity_extractor.py`, `infrastructure/translation/nllb_client.py`, `interfaces/translation_protocol.py`, `benchmark/tasks/tasks_intent.py` com tasks 29–32).
+- **Seções novas 8/9:** B4.5 (~10–14h) e B4.6 (~6–9h) com objetivo, escopo, restrição de não-duplicação do `validacao_tool_call.py` (evitar BUG-4) e critérios de aceite.
+- **B1.0:** seção "Reservas de namespace (fases futuras)" no `ARQUITETURA.md` — 5 módulos listados sem implementação.
+- **Renumeração sequencial 0–15** (B5→10, B6→11, B7→12, Critérios→13, Oportunidades→14, Riscos→15); linhas B4.5/B4.6 na tabela de critérios de aceite.
+- Cabeçalho: estimativa total atualizada para **58–80h** (42–57h + 16–23h das novas fases).
+- Nenhuma alteração de código.
+
+### 🧪 Testes
+- Suíte não executada — edição exclusivamente de documento de planejamento.
+
+---
+
+
+## [4.2.5-dev] — Smoke test manual CLI com Qwen2.5-Omni-3B — 2026-09-08
+
+### ✅ Validação end-to-end no chat (6 itens)
+- **Carga do modelo multimodal**: Qwen2.5-Omni-3B via llama-server (mmproj Q8_0, 4 slots, `n_ctx_slot=2048`).
+- **`criar_planilha` real**: `gastos.xlsx` criado em `arquivos_gerados/` com 1 linha (colunas Data/Valor).
+- **Validador V3 (case-insensitive)**: chave `"valor"` de `linhas` normalizada para a coluna `"Valor"` (sem NaN) — confirma o fix B0.4/BUG-2/3 em runtime real.
+- **Fluxo de confirmação**: mensagem amigável → `sim` → execução da ferramenta real.
+- **Cancelamento**: `não` → "Ação cancelada." (sem efeitos colaterais).
+- **Parser JSON streaming**: detectou `criar_planilha` e `editar_planilha` (log `Tool call detectada via JSON parser`).
+
+### 🐛 Problemas observados (backlog para a próxima etapa)
+1. **P0 — Vazamento do JSON da tool call na UI**: o JSON bruto `{"ferramenta":...}` é exibido como resposta `MARIA:` e persistido no histórico da sessão antes da mensagem amigável de confirmação. Causa: `ui_terminal._processar_mensagem_normal` imprime chunks em streaming antes de o parser detectar a tool call.
+2. **P0 — Gap semântico "adicionar"**: `editar_planilha` sobrescreve (sem ferramenta de append); usuário cancelou corretamente. `editar_planilha_real` falha com arquivo inexistente (`contatos.xlsx`).
+3. **P1 — Fidelidade de dados**: `Data=2026-01-01` → `"2026-01"` (modelo truncou o dia); telefone `83 99555 5555` → `"8399555555"` (espaços removidos).
+4. **P2 — Banner**: `maria_opening.png` ausente → fallback de texto.
+
+### 🧪 Testes
+- Suíte automatizada: **262 passed** (16.55s) — validada antes dos commits de fechamento da etapa.
+- Smoke manual com llama-server real (Qwen2.5-Omni-3B), fluxo chat completo.
+
+---
+
+
+## [4.2.5-dev] — B0.4 + B0.7: remover `reindex` e atualizar vocabulário de telemetria — 2026-09-08
+
+### 🐛 B0.4 — remover BUG-2/BUG-3 (`df.reindex`)
+- `backend/infrastructure/tools/excel_handler.py`: removido `df = df.reindex(columns=colunas)` em `criar_planilha_real` e `editar_planilha_real`. O V3 do validador já normaliza as chaves case-insensitive upstream — o handler não precisa mais reindexar (era a fonte do NaN em `"peso"` vs `"Peso"`).
+
+### 📊 B0.7 — vocabulário de telemetria (INCONS-3)
+- `backend/benchmark/tasks/task_schema.py`: `tool_call_fonte` → `"delta"`/`"json"`; `fallbacks` → `json_reparado, chaves_normalizadas, colunas_derivadas, linhas_truncadas_limite`.
+- `backend/benchmark/analysis/report.py` (`formatar_avisos`): substituídos os avisos de `fallback_json`/`nome_mapeado`/`lista_reparada`/`colunas_normalizadas` pelos novos.
+- `backend/tests/test_maria.py` (`TestFormatarAvisos`): atualizados os testes; removido `test_mapeamento_de_nome_mostra_bruto_canonico` (`nome_mapeado` deixou de existir).
+
+### 🧪 Testes
+- Suíte completa: **262 passed** (1 teste removido).
+- Gates: `grep reindex` → 0; `grep fallback_json|parser_posicional|nome_mapeado|lista_reparada|colunas_normalizadas` → 0.
+
+---
+
+## [4.2.5-dev] — B0.6 + B1: destravar a suíte e restaurar re-exports da migração hexagonal — 2026-09-08
+
+### 🎯 (a) B0.6 — deletar parser posicional (D1)
+- `backend/tests/test_maria.py`: removidas as classes `TestMapeamentoNomeFerramenta` e `TestToolCallTextualParser` e o método `test_extrair_dados_planilha_no_positional_map` — testes legados do parser posicional já deletado (154 linhas).
+- `git grep "tool_call_textual_parser|extrair_tool_call_textual|POSITIONAL_MAP|NOME_CANONICO"` → **zero** referências em `.py`.
+
+### 🏗️ (b) B1 — restaurar re-exports/contratos (migração = "move puro")
+- `backend/core/llama_client.py` virou re-export limpo de `backend.infrastructure.llm.llama_client` (expondo explicitamente os privados `_detectar_degeneracao`, `_montar_mensagens_com_reforco`, `_sugere_composicao_de_documento`).
+- `backend/application/tool_chaining.py` ← restaurado do HEAD (recuperou `FERRAMENTAS_ESCRITA`, auto-sanitização de path traversal e o contrato original de `validar_e_corrigir_tool_call_stream`).
+- `backend/infrastructure/tools/tools_schema.py` e `excel_handler.py` ← restaurados do HEAD com imports ajustados para as novas camadas.
+- `backend/core/tools_schema.py`: exposto `_sanitizar_nome_seguro` (privado consumido).
+- Testes com `@patch` atualizados para os novos caminhos (`backend.application.*`, `backend.infrastructure.tools.*`).
+
+### 🐛 Fixes de integração (Etapa 1+2, pré-requisito)
+- `test_maria.py`: corrigido o teste `test_resolver_tool_call_final_aceita_json_plano` (colado sobre o posicional, `conteudo_acumulado` duplicado).
+- `maria_runner.py`: removido o import morto de `POSITIONAL_MAP` + `if` órfão (IndentationError).
+
+### 🧪 Testes
+- Suíte completa (`.venv\Scripts\python.exe`): **263 passed** (antes: 1 erro de coleta).
+
+---
+
+## [4.2.5-dev] — Análise da Arquitetura Hexagonal (Fase 4) — 2026-09-07
+
+### 📚 Documentação — Relatórios de análise técnica
+
+- **`docs/desenvolvedor_base/relatorio_arquitetura_hexagonal`** (novo): análise detalhada da proposta de reestruturação hexagonal do backend (domain/application/infrastructure/interfaces/schemas). Verifica viabilidade, identifica ~40% da estrutura já implementada (Protocols, injeção de dependência, database/ separado), revisa cronograma (12-18h → 20-30h) e define 8 fases de migração.
+- **`docs/desenvolvedor_base/relatório_dev_longcat_tools.md`** (novo): análise técnica da validação da literatura de 2026 sobre tool calling (few-shot, self-correction, case sensitivity, limite de capacidade). Identifica **regressão crítica** no `backend/core/system_prompt.txt` (formato JSON incompatível com o parser textual) e discrepância no diagnóstico da Task 26.
+
+### 🔍 Achados críticos identificados
+
+1. **Regressão no `system_prompt.txt`**: a working tree usa formato JSON (`{"ferramenta":...}`) que o parser (`tool_call_textual_parser.py`) não suporta — o benchmark `run_20260907_141158` (7B) teve 9/9 execuções com `tool_detected=None`. A versão HEAD (formato posicional `criar_planilha: [...]`) é funcional. Correção recomendada ANTES da migração hexagonal (Fase 0).
+2. **Discrepância no diagnóstico da Task 26**: o relatório de validação afirma que "o modelo chama extrair_dados_planilha corretamente em 5/5 execuções", mas os dados empíricos (`run_20260907_130658`, 3B) mostram `cadeia = ['criar_planilha']` — o modelo vai direto para `criar_planilha` sem chamar `extrair_dados_planilha`.
+3. **~40% da estrutura hexagonal já existe**: `LLMClientProtocol` (`core/client_protocol.py`), `ToolExecutorProtocol`/`SessionStorageProtocol` (`core/interfaces.py`) e injeção de dependência em `MariaController.__init__` já estão implementados.
+
+### ⏸️ Estado do projeto
+
+- Sistema **em migração/reestruturação** (Fase 4 — arquitetura hexagonal planejada, não iniciada).
+- Branch dedicado: `feat/arquitetura-hexagonal-fase4`.
+- Janela de reestruturação aberta: sistema não está em produção.
+
+### 🧪 Testes
+
+- Suíte atual: **234 passed / 6 failed** (`test_maria.py`) — 1 falha de system prompt (`test_system_prompt_contem_excecao_para_arquivo_ficticio`) e 5 de módulo ausente (`flask`).
+
+## [4.2.5-dev] — Validação por item em `colunas` (Item B) — 2026-09-07
+
+### 🎯 Validação de schema — Item B: bloqueia o modo de falha 2 antes do pandas
+- `validar_argumentos_obrigatorios` (`backend/core/tools_schema.py`) só checava `isinstance(colunas, list)` — uma lista de dicts (modo de falha 2 do bug de `linhas`) passava e estourava `pandas.errors.InvalidIndexError` na escrita (`criar/editar_planilha_real`), exceção genérica com mensagem confusa.
+- Novo ramo `elif isinstance(colunas, list)`: cada item deve ser `str` não-vazia; item inválido → `ValueError` claro (`'colunas' deve conter apenas strings não-vazias; item(ns) inválido(s): ...`) **antes** da escrita. Sem alteração para listas válidas nem para o ramo "colunas string única" (mensagem antiga preservada).
+
+### ✅ Testes
+- +4 em `TestValidacaoArgumentos`: item dict; item vazio/só espaços; lista válida (regressão explícita); lista de dicts inteira via `editar_planilha` (caso real do bug).
+- Suíte `test_maria.py`: **236 → 240 passed**; suíte completa `backend/tests`: **269 → 273 passed** — zero regressões (`TestToolChaining` e `TestValidacaoDadosArquivoGerado` intactos).
+
+### 🧪 Cobertura
+- Cobertura não re-medida nesta execução.
+
+## [4.2.5-dev] — Validação de conteúdo real no arquivo gerado pela Task 26 (Item A) — 2026-09-07
+
+### 🎯 Benchmark — Item A: fecha o falso positivo da Task 26
+- Antes, a Task 26 (tradução Mandarim→Inglês) era avaliada apenas por `tool_correct`/`args_correct`/`keyword_match` — um arquivo `produtos_traduzidos.xlsx` criado **só com cabeçalho** (sem as linhas traduzidas) passava como sucesso.
+- **`backend/benchmark/tasks/task_schema.py`**: novo campo `coluna_dados_obrigatoria` em `MariaTask` (default `None`, retrocompatível) e `dados_arquivo_validos` em `MariaTaskResult` (default `True`).
+- **`backend/benchmark/tasks/tasks_extracao.py`**: Task 26 passa a exigir `coluna_dados_obrigatoria="english description"`.
+- **`backend/benchmark/runners/maria_runner.py`**: checagem **aditiva** após a escrita confirmada — `_validar_coluna_preenchida()` abre o `.xlsx` gerado e verifica (case-insensitive) se a coluna existe e tem valor não-vazio em TODAS as linhas; `_extrair_caminho_arquivo()` extrai o path real da mensagem de sucesso do executor; falha registra `errors` com `kind="DadosIncompletos"` (→ `runtime_ok=False`). Sem alteração de `tool_correct`/`args_correct`/`keyword_match` nem de nenhuma outra task.
+
+### ✅ Testes
+- Nova classe `TestValidacaoDadosArquivoGerado` (**7 testes**): coluna preenchida; coluna vazia em alguma linha (contagem `n/N`); coluna inexistente; arquivo inexistente (sem exceção); case-insensitive; task sem o campo não chama a validação (regressão) e integração Task 26 com arquivo só-cabeçalho → `dados_arquivo_validos=False` + erro `DadosIncompletos`.
+- Suíte `test_maria.py`: **229 → 236 passed**; suíte completa `backend/tests`: **262 → 269 passed** — zero regressões.
+
+### 🧪 Cobertura
+- Cobertura não re-medida nesta execução (mudança aditiva em caminho coberto por testes diretos + integração mockada).
+
+## [4.2.5-dev] — Correção da documentação do token de autenticação (.bridge_token) — 2026-09-06
+
+### 📚 Documentação
+- Correção do caminho canônico do token de autenticação em toda a documentação: `shared/.bridge_token` → `frontend-tauri/shared/.bridge_token` (o backend grava em `backend/bridge/servidores.py` e o frontend lê em `src-tauri/src/main.rs`; o arquivo na raiz `shared/` era um leftover de 30/08/2026, não usado pelo backend vivo).
+- Inclusão do `/health` como rota aberta (além do `/ping`) nas descrições de autenticação e atualização da referência de módulo de `backend/main.py` para `backend/bridge/servidores.py`.
+- Exemplos de chamada autenticada (`curl.exe -d '{"..."}'`) substituídos por `Invoke-RestMethod` (PowerShell nativo): o `curl.exe` real no Windows corrompe o JSON quando a body vem entre aspas via PowerShell (verificado empiricamente — retornava `"Campo 'comando' vazio"`).
+- Arquivos: `docs/GUIA_TESTES_EMPIRICOS.md`, `docs/SEGURANCA.md`, `docs/ARQUITETURA_SISTEMA.md`, `docs/GUIA_DESENVOLVIMENTO.md`, `README.md` (+ comentários de código em `backend/bridge/servidores.py` e `frontend-tauri/src-tauri/src/main.rs`).
+
+### 🧹 Limpeza
+- Removido o arquivo obsoleto `shared/.bridge_token` (30/08/2026).
+
+### ✅ Testes
+- Validação manual: `/chat` autenticado retornou `{"dados":"pong","id":"1","mensagemErro":null,"status":"ok"}` (HTTP 200) com o token de `frontend-tauri/shared/.bridge_token`; `/chat` sem token → HTTP 401 (esperado).
+
+### 🧪 Cobertura
+- Sem alteração de lógica de produção (apenas documentação e comentários); suíte de testes não afetada.
+
+
+## [4.2.5-dev] — Fase 1: Fundação (migrations, /health e Protocol) — 2026-09-06
+
+### 🗄️ Migrations versionadas (Tarefa 1.1)
+- **`backend/database/migrations/001_initial.sql` (novo)**: DDL atual do `schema.py` congelado como migration 001 — sem mudança de schema, apenas formalização para permitir `ALTER TABLE` futuros com controle de versão.
+- **`backend/database/migration_runner.py` (novo)**: tabela de controle `schema_migrations`, aplicação em ordem numérica (prefixo `NNN_`) dentro de BEGIN/COMMIT, `PRAGMA user_version` registrado **na mesma transação** (atomicidade) e FTS5 **tolerante**: `OperationalError` vira warning e a migration segue registrada.
+- **`backend/database/schema.py`**: `init_db()` virou delegador de `run_migrations(conn)`; `limpar_tudo()` agora também remove `schema_migrations` e zera `user_version` (reset completo para testes/dev).
+- Verificado por smoke: banco vazio aplica 001 (`user_version=1`, 1 linha em `schema_migrations`), segunda execução pula (idempotente) e banco "antigo" com dados é preservado.
+
+### 🩺 Endpoint GET /health (Tarefa 1.2)
+- **`backend/bridge/servidores.py`**: nova rota **sem autenticação** (mesmo tratamento do `/ping`), com checks de llama-server (`GET /v1/models`, timeout 2s), banco (`SELECT 1`) e disco (`psutil`, mínimo 500 MB livres em `PASTA_ARQUIVOS_GERADOS`). `status: "healthy"|"degraded"` vai no corpo JSON com HTTP 200 sempre; `versao` usa `__version__` (fonte única da Fase 0); nenhuma exceção propaga.
+
+### 🧩 Protocol e injeção (Tarefa 1.3 — Opção B)
+- **`backend/core/interfaces.py` (novo)**: `SessionStorageProtocol` e `ToolExecutorProtocol`; `LLMClientProtocol` reexportado de `client_protocol.py` (fonte única, **não** redefinido).
+- **`backend/core/maria_controller.py`**: `__init__(modelo=None, cliente=None, tool_executor=None)`; `inicializar()` só cria `LlamaClient` quando `cliente` não foi injetado; `processar_confirmacao` usa `tool_executor.executar_real` quando injetado (fallback: função global).
+- **`backend/core/tool_chaining.py`**: `encadear_leitura_stream` ganhou o parâmetro opcional `executar_leitura` (fallback para `executar_ferramenta_leitura` global). O controller repassa o executor injetado — cobre o caminho de **leitura** sem código morto.
+
+### 🧪 Testes
+- Novos: `test_health_http.py` (5 testes) e `test_interfaces_injection.py` (5 testes).
+- Suíte completa: **262 passed** (252 baseline + 10 novos) — sem regressão.
+
+## [4.2.5-dev] — Fase 0: Preparação para a profissionalização — 2026-09-06
+
+### 🏗️ Infraestrutura
+- **`pyproject.toml`**: versão sincronizada `4.1.30` → `4.2.5` (CHANGELOG prevalece como fonte única).
+- **`backend/core/config.py`**: `__version__` como fonte única de versão, lida do `pyproject.toml` via `tomllib`. Nota técnica: `importlib.metadata.version("maria-backend")` **não funciona** neste projeto porque `[tool.uv] package = false` impede a instalação do backend como distribuição — por isso a leitura direta do arquivo.
+- **Git**: commit de fechamento `7bcabaf` na branch `test/bridge-comandos-regressao-7-bugs` (arquiva 25 runs de benchmark + 2 análises em `docs/arquivo/`); branch de trabalho `feat/fase-0-preparacao` criada a partir dela.
+
+### 🧪 Testes
+- Baseline real revalidado: **252 passed** em ~4.2s. Os 5 testes antes "desenvolvidos" (Flask ausente no CHANGELOG do 4.2.5) agora **passam** — o ambiente tem Flask 3.1.3. **252 é o novo critério de regressão para todas as fases.**
+
+## [4.2.5] — Testes de regressão para bridge/comandos.py (7 bugs) — 2026-09-06
+
+### 🧪 Testes: nova suíte `test_comandos_bridge.py` (23 testes)
+- **Arquivo**: `backend/tests/test_comandos_bridge.py` — testes de regressão para os 7 bugs corrigidos na análise de 2026-09-03.
+- **BUG 1 — `carregar_sessao`**: 3 testes (resolução por nome_arquivo, caminho absoluto, nome vazio). Cobre o acesso a `dados["historico"]` (dict) em vez de `.historico` (objeto).
+- **BUG 2 — `criar_automacao`**: 4 testes (acao explícita, default vazio, nome vazio, persistência). Cobre o `INSERT` com coluna `acao` (NOT NULL).
+- **BUG 3 — `listar_automacoes`/`toggle_automacao`**: 4 testes (SQL com `ativo`, JSON com `ativa`, toggle, id vazio). Cobre a correção `ativa`×`ativo`.
+- **BUG 4 — `exportar_conversa`**: 5 testes (txt, json, função importável, formato default, conteúdo legível). Cobre `exportar_sessao` inexistente → implementada.
+- **BUG 5 — `ler_planilha_resumo`**: 1 teste (newline real vs `\n` literal).
+- **BUG 7 — `listar_memoria`**: 4 testes (retorna `id`, fluxo com `deletar_memoria`, id vazio, lista vazia).
+- **Dispatch geral**: 2 testes (comando desconhecido, ping).
+- **Estratégia**: DB isolado por teste (`tempfile` + `Path` dedicado), `PASTA_SESSOES` sobrescrito, `controller` mockado com `MagicMock`.
+- Suíte completa: **247 passed** (224 existentes + 23 novos), 5 desenvolvidos (Flask não instalado no ambiente). Sem regressão.
+
+## [4.2.4] — Tarefas de extração com planilha real (Mandarim → Inglês) — 2026-09-06
+
+### ✨ Benchmark: novo módulo `tasks_extracao.py` (tasks 26-28)
+- **Task 26 — Tradução de planilha (Mandarim → Inglês)**: modelo deve ler `produtos_mandarim` com `extrair_dados_planilha`, traduzir a coluna `product` para inglês e criar `produtos_traduzidos` com `criar_planilha` (colunas `model/product/english description/NCM`).
+- **Task 27 — Resumo de planilha**: extrai os dados e responde em texto (quantidade de produtos, códigos NCM presentes, quantos têm a descrição em inglês preenchida) — sem ferramenta de escrita.
+- **Task 28 — Listar arquivos**: valida `listar_arquivos` sem ferramenta de escrita subsequente.
+- **Task 26 antiga removida** de `tasks_core.py` (fixture `nomes_mandarim` gerada via pandas); o arquivo volta a terminar na Task 15.
+
+### ✨ Fixtures reais: cópia de `backend/benchmark/fixtures/`
+- `_garantir_planilha_existente` passa a **copiar arquivos reais** (`shutil.copy2`) quando existe `benchmark/fixtures/<nome>.xlsx` — abordagem genérica, sem hardcode de nomes de arquivo.
+- Nova constante `BENCHMARK_FIXTURES_DIR` e import de `pathlib.Path` no runner.
+- Nova fixture real `backend/benchmark/fixtures/produtos_mandarim.xlsx`: 6 produtos em Mandarim (NCM 4602/6302/7323/7010, `english description` vazia).
+
+### 🧪 Testes
+- 2 atualizados (`TestTarefa26Traducao`): estrutura da nova Task 26 e verificação da cópia real da fixture (6 linhas, 4 colunas, idempotente).
+- Suíte completa: **229 passed** — sem regressão. Cobertura: **69%**.
+
+## [4.2.3] — Consistência e avaliação do fluxo de planilhas — 2026-09-05
+
+### ✨ `criar_planilha`: `descricao` vs `linhas` (`backend/core/excel_handler.py`, `tools_schema.py`)
+- Quando `linhas` é fornecido, `descricao` é **ignorada** (com `logger.warning` "Use apenas uma das opções") — o arquivo sai com cabeçalho na linha 1, sem título. Retrocompatível: sem `linhas`, a descrição continua sendo aplicada.
+- Descrição do campo `descricao` no schema atualizada para documentar a nova regra.
+
+### ✨ `extrair_dados_planilha`: `linha_cabecalho` e `limite_linhas` (`excel_handler.py`, `tools_schema.py`, `tool_call_textual_parser.py`)
+- Novo parâmetro opcional `linha_cabecalho` (0-indexado, schema com `minimum: 0`): override explícito do cabeçalho; quando omitido, mantém a detecção automática (linha 1 ou 3).
+- Novo parâmetro opcional `limite_linhas` (schema com `minimum: 1`): reduz o lote da chamada, mas o teto do modelo prevalece (`min(limite_linhas, get_max_linhas_extracao())`).
+- O retorno inclui **`tipos`**: dict com o dtype pandas de cada coluna (ex.: `{"Idade": "int64"}`), documentado no docstring.
+- `POSITIONAL_MAP["extrair_dados_planilha"]` → `["nome_arquivo", "offset", "linha_cabecalho", "limite_linhas"]`; coerção `str→int` estendida aos 3 campos numéricos no fallback textual.
+
+### ✨ Benchmark: Task 26 — tradução mandarim → PT/EN (`tasks_core.py`, `maria_runner.py`)
+- Nova `MariaTask(id=26, ...)`: exige `tools_obrigatorios=["extrair_dados_planilha", "criar_planilha"]` (fluxo real de leitura → escrita), fixture `nomes_mandarim.xlsx` e `expected_args_subset` (colunas Mandarim/Portuguese/English).
+- `_garantir_planilha_existente`: fixture `nomes_mandarim` criada com **dados reais** via pandas (5 nomes em mandarim); demais fixtures seguem como workbook vazio.
+- Avaliação de `tools_obrigatorios` ajustada: a execução pode terminar em texto (tasks 22/23, `expected_tool=None`) **ou** na ferramenta de escrita esperada (task 26: `criar_planilha`); terminar em escrita diferente da esperada continua incorreto. Comportamento dos testes existentes preservado.
+
+### 🧪 Testes
+- 7 novos: `descricao` ignorada com warning (verifica A1 = cabeçalho), override de `linha_cabecalho` (linha 3), `limite_linhas` (reduz lote + teto prevalece + default), `tipos` no retorno, parser com 4 campos (ints e strings), estrutura da Task 26 e fixture `nomes_mandarim` com dados.
+- 2 atualizados: `test_extrair_dados_planilha_no_positional_map` (4 campos) e `test_planilha_com_descricao_detecta_cabecalho` (agora via `editar_planilha_real`, que mantém o formato com descrição — `criar_planilha` ignora a descrição quando há `linhas`).
+- Suíte completa: **229 passed** (222 anteriores + 7 novos) — sem regressão.
+
+## [4.2.2] — System prompt + parser posicional para `extrair_dados_planilha` — 2026-09-05
+
+### ✨ System prompt (`backend/core/system_prompt.txt`)
+- Nova seção **`## Extrair dados de planilha existente`** inserida entre `## Quando NÃO chamar ferramenta` e `## Conteúdo de documento`: instrui o modelo a chamar `extrair_dados_planilha` antes de `criar_planilha`/`editar_planilha` quando houver transformação/tradução/filtro/cálculo/reorganização de dados existentes.
+- Fluxo de paginação documentado: chamar com `offset` 0, repetir com `proximo_offset` enquanto `tem_mais` for `true`, e só então escrever (padrão "salvar e continuar" para planilhas grandes — `editar_planilha` sobrescreve o arquivo inteiro).
+- As demais seções (`## Como chamar uma ferramenta`, `## Quando NÃO chamar ferramenta`, `## Conteúdo de documento`, `## Correção de erro`) **inalteradas**.
+
+### ✨ Parser posicional (`backend/core/tool_call_textual_parser.py`)
+- `POSITIONAL_MAP` ganhou `"extrair_dados_planilha": ["nome_arquivo", "offset"]` — habilita o fallback textual (formato posicional do Qwen 3B) para a nova ferramenta.
+- `_normalizar_argumentos`: coerção defensiva de `offset` string numérica ("50") para `int` (50), no mesmo ponto onde `colunas` é normalizada.
+- `NOME_CANONICO` intocado.
+
+### 🧪 Testes
+- 3 métodos em `TestToolCallTextualParser` (via `self.extrair`): `offset` omitido → `None`, `offset` inteiro, `offset` string convertido para `int`.
+- 1 teste de integração em `TestFerramentaConsultarManualRedacao`: `extrair_dados_planilha` presente em `POSITIONAL_MAP` com o mapeamento correto.
+- Suíte completa: **222 passed + 33 subtests** (218 anteriores + 4 novos) — sem regressão.
+
+## [4.2.1] — Ferramenta `extrair_dados_planilha` (leitura paginada) — 2026-09-05
+
+### ✨ Novas capacidades
+- **`extrair_dados_planilha_real(nome_arquivo, offset=0)`** em `backend/core/excel_handler.py`: lê planilhas existentes em **lotes paginados**, retornando JSON estruturado `{nome_arquivo, colunas, linhas, total_linhas, offset_atual, proximo_offset, tem_mais}`. Somente leitura.
+- **Detecção automática da linha de cabeçalho** (`_detectar_linha_cabecalho`): cobre os dois formatos gerados pela MARIA — sem `descricao` (cabeçalho na linha 1) e com `descricao` (linha 1 = descrição, linha 2 = vazia, linha 3 = cabeçalho).
+- **Limite por chamada automático**: `get_max_linhas_extracao()` em `backend/core/config.py` (3B=50, 7B=150; ENV `MAX_LINHAS_EXTRACAO_3B/7B`). Paginação exposta ao modelo apenas via `offset` — nenhum limite no schema.
+- **Nova ferramenta no schema**: `FERRAMENTA_EXTRAIR_DADOS_PLANILHA` registrada em `FERRAMENTAS_LEITURA` e `TOOLS_SCHEMA`; execução via `executar_ferramenta_leitura` retorna `json.dumps(..., ensure_ascii=False)`.
+- **Integração automática no encadeamento**: `tool_chaining.py` não foi alterado — `encadear_leitura_stream` já cobre a nova ferramenta via `FERRAMENTAS_LEITURA`.
+
+### 🧪 Testes
+- Nova classe `TestExtrairDadosPlanilha` (8 testes): arquivo inexistente, planilha vazia, paginação (`tem_mais`/`proximo_offset`), offset além do total, `descricao` com cabeçalho na linha 3, offset negativo, JSON via `executar_ferramenta_leitura`, registro em `FERRAMENTAS_LEITURA`.
+- Suíte completa: **218 passed + 33 subtests** (210 anteriores + 8 novos) — sem regressão.
+
+## [4.2.0] — Planilhas com pandas e linhas de dados — 2026-09-05
+
+### ✨ Novas capacidades
+- **`backend/core/excel_handler.py` reescrito com pandas**: `criar_planilha_real()` e `editar_planilha_real()` agora aceitam `linhas` (lista de dicts) para criar/sobrescrever planilhas já com dados. `ler_planilha_resumo()` permanece com openpyxl.
+- **Limite de linhas por modelo**: novas constantes `MAX_LINHAS_POR_CHAMADA_3B/7B` e `MAX_LINHAS_EXTRACAO_3B/7B` (configuráveis via ENV) + função `get_max_linhas_por_chamada()` em `backend/core/config.py`; excedente é truncado silenciosamente.
+- **Schema `criar_planilha`**: novo campo opcional `linhas` (nunca obrigatório — `required` permanece `["nome_arquivo", "colunas"]`); descrição de `linhas` em `editar_planilha` esclarecida.
+- **`executar_ferramenta_real`**: repassa `linhas` para `criar_planilha_real`.
+- **Dependência `pandas>=2.0.0`** adicionada ao `pyproject.toml` e ao `requirements.txt` (fallback).
+
+### 🧪 Testes
+- Nova classe `TestCriarPlanilhaComLinhas` (7 testes): retrocompatibilidade sem `linhas`, dados, colunas ausentes/chaves extras, edição e limite de linhas.
+- Suíte completa: **210 passed + 33 subtests** (203 anteriores + 7 novos) — sem regressão.
+
+## [4.1.30] — Migração para pyproject.toml + uv — 2026-09-05
+
+### 🔧 Tooling & Dependências
+- **`pyproject.toml`** criado na raiz do monorepo (fonte primária de dependências via uv): `requires-python >=3.11`, dependências de produção e grupo `dev` (`pytest`, `pytest-cov`); `[tool.uv] package = false` (o `backend` é namespace package e não é instalado como pacote); `[tool.pytest.ini_options]` com `testpaths`, `pythonpath = ["."]` e `addopts`.
+- **uv** como gerenciador: `uv venv --seed --python 3.14` + `uv sync --extra dev` substituem `python -m venv` + `pip install -r requirements.txt`.
+- **`requirements.txt`** mantido como fallback (comentário aponta para `pyproject.toml`).
+- **`.gitignore`**: nova seção 17 (`uv.lock`, `.uv/`).
+- **`.vscode/settings.json`**: interpretador `.venv` e pytest configurados (pasta `.vscode/` segue gitignorada — só local).
+- **README.md**: comandos migrados para `uv run python` / `uv run pytest`.
+
+### 🧪 Testes
+- `uv run pytest` → 203 passed + 33 subtests (sem regressão vs. baseline).
+- Smoke tests: `uv run python backend/main.py --help` OK; `--bridge-http` responde `/ping` 200 na porta 8081.
+
+## [4.1.29] — Correção do sampler: restaura tool calling sem reexpor o loop — 2026-09-05
+
+### 🔧 Regressão corrigida (run `run_20260905_170437`)
+- O ajuste agressivo do sampler (4.1.27) derrubou a acurácia de tool calling de 100% para **76%**: `presence_penalty`/`frequency_penalty` em 0.1 penalizavam o nome canônico da ferramenta (presente no system prompt) e os tokens estruturais do JSON — o modelo passou a emitir `create_planilha` (inglês), JSON malformado e prosa após a chamada.
+- **`core/config.py`**: `LLAMA_REPEAT_PENALTY` 1.3→**1.1** (default clássico), `LLAMA_FREQUENCY_PENALTY`/`LLAMA_PRESENCE_PENALTY` 0.1→**0.0** (desativados). O loop de frase da Task 8 continua coberto por `LLAMA_DRY_MULTIPLIER` **0.8** + `LLAMA_REPEAT_LAST_N` **128** — mecanismos que não atingem tokens estruturais isolados.
+- **`backend/benchmark/README_benchmark.md`**: tabela de sampler e seção de orçamento de tokens (`LLAMA_NUM_PREDICT_DOCUMENTO` 300→**600**) atualizadas.
+
+### 🧪 Testes
+- Teste de defaults do sampler (`TestSamplerParamsBenchmark`) atualizado para os novos valores.
+
+---
+
+## [4.1.28] — Avisos de fallback por mecanismo (em vez de "detectada via parser") — 2026-09-05
+
+### 🎯 Avisos condicionais por mecanismo de fallback
+- Antes, `⚠️ ferramenta detectada via parser` aparecia em ~100% das tool calls (o llama-server não emite `tool_calls` nativas). Agora os avisos aparecem **somente quando o sistema usa um fallback para corrigir comportamento inesperado**, indicando **qual** mecanismo:
+  - `⚠️ fallback JSON` — tool call vazada como JSON no content.
+  - `⚠️ nome mapeado: "bruto" → "canônico"` — nome legível mapeado (`NOME_CANONICO`).
+  - `⚠️ lista reparada` — lista posicional truncada por max_tokens e reparada.
+  - `⚠️ colunas normalizadas` — colunas achatadas/string.
+- `parser_posicional` **limpo** (formato instruído) **não** gera mais aviso.
+
+### 📊 Nova métrica `fallbacks`
+- **`llama_client.py`**: `_resolver_tool_call_final` retorna `(tool_call, fonte, nome_bruto, fallbacks)`.
+- **`tool_call_textual_parser.py`**: marca `_lista_reparada` e `_colunas_normalizadas`.
+- **`task_schema.py`** + **`runners/maria_runner.py`**: campo `fallbacks: list[str]` (salva no `log.json`).
+
+### 🧪 Testes
+- **203 testes passando + 33 subtests** — novos: fallback por mecanismo, ausência de aviso quando limpo, colunas achatadas.
+
+---
+
+## [4.1.27] — Mitigações de loop + fonte de detecção e avisos no terminal — 2026-09-05
+
+### 🛡️ Mitigações de loop de geração (sampler)
+- **`core/config.py`**: `LLAMA_REPEAT_LAST_N` 64→**128**, `LLAMA_REPEAT_PENALTY` 1.1→**1.3**, `LLAMA_FREQUENCY_PENALTY`/`LLAMA_PRESENCE_PENALTY` 0.0→**0.1**, `LLAMA_DRY_MULTIPLIER` 0.0→**0.8** — mitigam o loop de **frase inteira** (run `run_20260905_150433`, task 8: o 7B repetia "Prezado(a) Senhor(a)... Meu nome é Maria..." até estourar 600 tokens, contado como sucesso).
+
+### 🔎 Captura da fonte de detecção + mapeamento de nome
+- **`core/llama_client.py`**: `_resolver_tool_call_final` agora retorna `(tool_call, fonte, nome_bruto)` — fonte ∈ `{delta, fallback_json, parser_posicional}`; propagada via `metricas_saida`/`extras_saida`.
+- **`core/tool_call_textual_parser.py`**: `NOME_CANONICO` mapeia nomes legíveis (`"Listar arquivos"`) → canônico (`"listar_arquivos"`) — case (b).
+- **`task_schema.py`** + **`runners/maria_runner.py`**: novos campos `tool_call_fonte`, `tool_nome_bruto`, `tool_nome_final` (estado bruto no JSON).
+
+### 🖥️ Terminal: avisos em linhas separadas
+- **`analysis/report.py`** (`formatar_avisos`) + **`run_benchmark.py`**: correções e detecção via parser aparecem em **linhas próprias abaixo do `rep X/Y`** (não mais inline), suportando múltiplos avisos.
+
+### 🧪 Testes
+- **200 testes passando + 33 subtests** — novos: mapeamento de nome, avisos (correção/parser), fonte de detecção; defaults do sampler atualizados.
+
+---
+
+## [4.1.26] — Log de correções + métricas de qualidade semântica — 2026-09-05
+
+### 🧹 Log do terminal: correção visível (Fase 1)
+- **`core/tool_chaining.py`**: `validar_e_corrigir_tool_call_stream` registra o **antes → depois** da auto-sanitização de `nome_arquivo` (path traversal) em `correcoes` e devolve no resultado.
+- **`benchmark/runners/maria_runner.py`**: expõe `correcoes` no `MariaTaskResult`.
+- **`benchmark/analysis/report.py`**: novo `formatar_correcoes()` + sufixo `⚠️ corrigido campo: "antes" → "depois"` na linha de resumo.
+- **`benchmark/run_benchmark.py`**: sufixo de correção nas duas saídas do terminal (CLI e programática) — uma linha só, sem os INFO poluentes.
+
+### 📊 Métricas de qualidade semântica (Fase 2)
+- **`task_schema.py`**: novos campos em `MariaTaskResult` — `correcoes`, `titulo_conteudo_invertido`, `placeholder_detectado`, `conteudo_curto`, `nome_com_extensao`.
+- **`maria_runner.py`**: `_analisar_semantica()` (heurística) detecta título/conteúdo invertidos, placeholders (`[data]`, `[Seu Nome]`), conteúdo curto e nome com extensão.
+- **`analysis/metrics.py`**: `semantic_quality_rate`, `semantic_errors_by_type`, `correcoes_count`.
+- **`analysis/report.py`**: seção `## Qualidade Semântica` + linha na tabela de métricas gerais.
+- **`run_benchmark.py`**: linha `Qualidade semântica` no `Resumo`.
+
+### 🧪 Testes
+- **196 testes passando + 33 subtests** — 9 novos (`TestAnaliseSemantica`, `TestFormatarCorrecoes`); mocks de `metrics` atualizados.
+
+---
 
 ## [4.1.25] — Decisão final do system prompt (V2) e consolidação no main — 2026-09-05
 

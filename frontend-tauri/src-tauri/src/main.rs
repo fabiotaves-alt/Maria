@@ -69,26 +69,10 @@ async fn get_status() -> Result<Value, String> {
             // Tenta parsear a resposta como JSON
             match serde_json::from_str::<Value>(&response) {
                 Ok(status) => Ok(status),
-                Err(_) => {
-                    // Se não for JSON válido, retorna status mockado
-                    Ok(serde_json::json!({
-                        "cpu": 18.0,
-                        "ram": 42.0,
-                        "gpu": 11.0,
-                        "modelo": "Qwen 2.5 3B"
-                    }))
-                }
+                Err(e) => Err(format!("Resposta inválida do backend: {}", e)),
             }
         }
-        Err(_) => {
-            // Backend offline, retorna valores padrão
-            Ok(serde_json::json!({
-                "cpu": 0.0,
-                "ram": 0.0,
-                "gpu": 0.0,
-                "modelo": "Qwen 2.5 3B"
-            }))
-        }
+        Err(e) => Err(format!("Backend offline: {}", e)),
     }
 }
 
@@ -188,7 +172,7 @@ async fn call_python_backend(comando: &str, dados: Value) -> Result<String, Stri
     };
 
     // Autenticação: lê o token regenerado pelo backend a cada inicialização
-    // (persistido em shared/.bridge_token) e injeta no header Authorization.
+    // (persistido em frontend-tauri/shared/.bridge_token) e injeta no header Authorization.
     let mut requisicao = client.post("http://localhost:8081/chat").json(&request);
     if let Ok(dir_raiz) = std::env::current_dir() {
         let caminho_token = dir_raiz.join("../shared/.bridge_token");

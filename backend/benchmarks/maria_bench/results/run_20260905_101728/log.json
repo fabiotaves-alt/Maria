@@ -1,0 +1,5616 @@
+{
+  "meta": {
+    "id_modelo": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+    "modelo_quantizacao": "Q4_K - Medium",
+    "data_execucao": "2026-09-05T10:30:28.828000",
+    "total_tarefas": 25,
+    "repeticoes_por_tarefa": 3,
+    "versao_benchmark": "2.0",
+    "system_prompt_hash": "091d6ab5c83f",
+    "system_prompt_completo": "Você é MARIA, assistente de escritório. Cria e edita planilhas Excel e documentos Word usando ferramentas. SEMPRE responda em português do Brasil.\n\n## Como chamar uma ferramenta\nPara criar ou editar arquivo, responda APENAS com a chamada, em UMA linha, sem texto antes ou depois, sem ponto final:\n- Planilha nova: criar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n- Documento novo: criar_documento: [\"nome_arquivo\", \"Título\", \"conteúdo\"]\n- Editar planilha: editar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n\nRegras: \"colunas\" é SEMPRE lista de strings; NÃO adicione explicações à chamada; nomes inseguros (\"/\", \"..\", \"*\") são corrigidos pelo sistema — chame normalmente; preencha TODOS os campos obrigatórios. A confirmação é automática após a tool call.\n\n## Quando NÃO chamar ferramenta\n- Cumprimentos, apresentações ou perguntas gerais: responda em texto curto.\n- Editar planilha JÁ CRIADA na conversa: ela EXISTE, chame \"editar_planilha\".\n- Editar planilha NÃO mencionada antes: chame \"listar_arquivos\" primeiro.\n- Arquivo mencionado que NÃO EXISTE: responda em texto dizendo que o arquivo não foi encontrado.\n- Se o usuário pedir para editar/criar um arquivo e você NÃO tiver certeza absoluta de que ele existe (foi mencionado antes na conversa), NÃO chame a ferramenta — responda em texto que o arquivo não foi encontrado.\n\n## Conteúdo de documento\nEm \"criar_documento\", se o usuário não deu o conteúdo completo, seja breve, coerente e razoável. Documento narrativo pode ser mais longo; demais respostas, CURTAS.\n\n## Correção de erro\nAo receber ERRO de chamada inválida (campo ausente, tipo incorreto, nome inválido), corrija SOMENTE o campo apontado e chame de novo na próxima resposta, sem desculpas nem perguntas.",
+    "llama_base_url": "http://localhost:8080",
+    "llama_num_ctx_config": 4096,
+    "ctx_size_detectado": 2048,
+    "ctx_fonte": "models",
+    "system_prompt_tokens": 501,
+    "fator_calibracao_tokens": 1.1543778801843319,
+    "timeout_por_chamada_s": 300,
+    "sampler_params": {
+      "temperature": 0.1,
+      "repeat_last_n": 64,
+      "repeat_penalty": 1.1,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "dry_multiplier": 0.0,
+      "dry_base": 1.75,
+      "dry_allowed_length": 2,
+      "dry_penalty_last_n": 64,
+      "top_k": 40,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "xtc_probability": 0.0,
+      "xtc_threshold": 0.1,
+      "typical_p": 1.0,
+      "top_n_sigma": -1.0
+    },
+    "warmup_duracao_s": 7.76,
+    "metricas_sistema": {
+      "timestamp": "2026-09-05T10:16:27.671844",
+      "plataforma": "Windows-11-10.0.26100-SP0",
+      "cpu_modelo": "Intel64 Family 6 Model 142 Stepping 9, GenuineIntel",
+      "cpu_nucleos_fisicos": 2,
+      "cpu_nucleos_logicos": 4,
+      "cpu_freq_mhz": 2900.0,
+      "cpu_uso_percent": 1.5,
+      "ram_total_gb": 7.89,
+      "ram_disponivel_gb": 1.21,
+      "ram_uso_percent": 84.7,
+      "gpu": []
+    }
+  },
+  "individual": [
+    {
+      "task_id": 1,
+      "task_name": "Conversa simples",
+      "category": "conversa",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Bem-vindo! Como posso ajudar você hoje?",
+      "latency_ms": 22616.302099995664,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 13,
+      "tokens_por_segundo": 0.6,
+      "args_correct": true,
+      "ttft_ms": 20230.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Olá, como você pode me ajudar?"
+        }
+      ],
+      "resposta_bruta_modelo": "Bem-vindo! Como posso ajudar você hoje?",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    },
+    {
+      "task_id": 1,
+      "task_name": "Conversa simples",
+      "category": "conversa",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Bem-vindo! Como posso ajudar você hoje?",
+      "latency_ms": 4601.238300005207,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 13,
+      "tokens_por_segundo": 2.8,
+      "args_correct": true,
+      "ttft_ms": 2227.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Olá, como você pode me ajudar?"
+        }
+      ],
+      "resposta_bruta_modelo": "Bem-vindo! Como posso ajudar você hoje?",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    },
+    {
+      "task_id": 1,
+      "task_name": "Conversa simples",
+      "category": "conversa",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Bem-vindo! Como posso ajudar você hoje?",
+      "latency_ms": 4654.365599999437,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 13,
+      "tokens_por_segundo": 2.8,
+      "args_correct": true,
+      "ttft_ms": 2263.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Olá, como você pode me ajudar?"
+        }
+      ],
+      "resposta_bruta_modelo": "Bem-vindo! Como posso ajudar você hoje?",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    },
+    {
+      "task_id": 2,
+      "task_name": "Conversa sobre produtividade",
+      "category": "conversa",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Organizar_dia: [\"tarefas\", \"horários\"]",
+      "latency_ms": 5464.275600010296,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 14,
+      "tokens_por_segundo": 2.6,
+      "args_correct": true,
+      "ttft_ms": 2887.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Dê uma dica curta para organizar meu dia."
+        }
+      ],
+      "resposta_bruta_modelo": "Organizar_dia: [\"tarefas\", \"horários\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    },
+    {
+      "task_id": 2,
+      "task_name": "Conversa sobre produtividade",
+      "category": "conversa",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Organizar_dia: [\"tarefas\", \"horários\"]",
+      "latency_ms": 4825.345699995523,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 14,
+      "tokens_por_segundo": 2.9,
+      "args_correct": true,
+      "ttft_ms": 2264.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Dê uma dica curta para organizar meu dia."
+        }
+      ],
+      "resposta_bruta_modelo": "Organizar_dia: [\"tarefas\", \"horários\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    },
+    {
+      "task_id": 2,
+      "task_name": "Conversa sobre produtividade",
+      "category": "conversa",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Tire um tempo para planejar suas tarefas e prioridades do dia. Use ferramentas como planilhas ou aplicativos de gerenciamento de tarefas para ajudar na organização.",
+      "latency_ms": 10230.13219999848,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 43,
+      "tokens_por_segundo": 4.2,
+      "args_correct": true,
+      "ttft_ms": 2242.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Dê uma dica curta para organizar meu dia."
+        }
+      ],
+      "resposta_bruta_modelo": "Tire um tempo para planejar suas tarefas e prioridades do dia. Use ferramentas como planilhas ou aplicativos de gerenciamento de tarefas para ajudar na organização.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+      "latency_ms": 5862.881200009724,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "gastos",
+        "colunas": [
+          "Data",
+          "Valor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 15,
+      "tokens_por_segundo": 2.6,
+      "args_correct": true,
+      "ttft_ms": 2942.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"gastos\", [\"Data\", \"Valor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "gastos",
+          "colunas": [
+            "Data",
+            "Valor"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+      "latency_ms": 5016.77029998973,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "gastos",
+        "colunas": [
+          "Data",
+          "Valor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 15,
+      "tokens_por_segundo": 3.0,
+      "args_correct": true,
+      "ttft_ms": 2260.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"gastos\", [\"Data\", \"Valor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "gastos",
+          "colunas": [
+            "Data",
+            "Valor"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+      "latency_ms": 5023.640300001716,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "gastos",
+        "colunas": [
+          "Data",
+          "Valor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 15,
+      "tokens_por_segundo": 3.0,
+      "args_correct": true,
+      "ttft_ms": 2264.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de gastos com colunas Data e Valor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"gastos\", [\"Data\", \"Valor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "gastos",
+          "colunas": [
+            "Data",
+            "Valor"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 4,
+      "task_name": "Planilha financeira",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\despesas.xlsx",
+      "latency_ms": 7485.300499989535,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "despesas",
+        "colunas": [
+          "Data",
+          "Descrição",
+          "categoria",
+          "valor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 23,
+      "tokens_por_segundo": 3.1,
+      "args_correct": true,
+      "ttft_ms": 3193.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de despesas com Data, Descrição, Categoria e Valor, descrevendo o propósito."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"despesas\", [\"Data\", \"Descrição\", \"categoria\", \"valor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "despesas",
+          "colunas": [
+            "Data",
+            "Descrição",
+            "categoria",
+            "valor"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 4,
+      "task_name": "Planilha financeira",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\despesas.xlsx",
+      "latency_ms": 6465.511900009005,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "despesas",
+        "colunas": [
+          "Data",
+          "Descrição",
+          "categoria",
+          "valor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 23,
+      "tokens_por_segundo": 3.6,
+      "args_correct": true,
+      "ttft_ms": 2239.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de despesas com Data, Descrição, Categoria e Valor, descrevendo o propósito."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"despesas\", [\"Data\", \"Descrição\", \"categoria\", \"valor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "despesas",
+          "colunas": [
+            "Data",
+            "Descrição",
+            "categoria",
+            "valor"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 4,
+      "task_name": "Planilha financeira",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\despesas.xlsx",
+      "latency_ms": 6497.286700003315,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "despesas",
+        "colunas": [
+          "Data",
+          "Descrição",
+          "categoria",
+          "valor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 23,
+      "tokens_por_segundo": 3.6,
+      "args_correct": true,
+      "ttft_ms": 2263.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de despesas com Data, Descrição, Categoria e Valor, descrevendo o propósito."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"despesas\", [\"Data\", \"Descrição\", \"categoria\", \"valor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "despesas",
+          "colunas": [
+            "Data",
+            "Descrição",
+            "categoria",
+            "valor"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 5,
+      "task_name": "Planilha estoque",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque.xlsx",
+      "latency_ms": 7963.888700003736,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "estoque",
+        "colunas": [
+          "Produto",
+          "SKU",
+          "Quantidade",
+          "Custo",
+          "fornecedor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 27,
+      "tokens_por_segundo": 3.4,
+      "args_correct": true,
+      "ttft_ms": 2991.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de estoque com Produto, SKU, Quantidade, Custo e Fornecedor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"estoque\", [\"Produto\", \"SKU\", \"Quantidade\", \"Custo\", \"fornecedor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "Produto",
+            "SKU",
+            "Quantidade",
+            "Custo",
+            "fornecedor"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 5,
+      "task_name": "Planilha estoque",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque.xlsx",
+      "latency_ms": 7246.083699996234,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "estoque",
+        "colunas": [
+          "Produto",
+          "SKU",
+          "Quantidade",
+          "Custo",
+          "fornecedor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 27,
+      "tokens_por_segundo": 3.7,
+      "args_correct": true,
+      "ttft_ms": 2268.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de estoque com Produto, SKU, Quantidade, Custo e Fornecedor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"estoque\", [\"Produto\", \"SKU\", \"Quantidade\", \"Custo\", \"fornecedor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "Produto",
+            "SKU",
+            "Quantidade",
+            "Custo",
+            "fornecedor"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 5,
+      "task_name": "Planilha estoque",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque.xlsx",
+      "latency_ms": 7239.890799988643,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "estoque",
+        "colunas": [
+          "Produto",
+          "SKU",
+          "Quantidade",
+          "Custo",
+          "fornecedor"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 27,
+      "tokens_por_segundo": 3.7,
+      "args_correct": true,
+      "ttft_ms": 2264.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de estoque com Produto, SKU, Quantidade, Custo e Fornecedor."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"estoque\", [\"Produto\", \"SKU\", \"Quantidade\", \"Custo\", \"fornecedor\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "Produto",
+            "SKU",
+            "Quantidade",
+            "Custo",
+            "fornecedor"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 6,
+      "task_name": "Planilha contatos",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contato.xlsx",
+      "latency_ms": 6150.745100007043,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "contato",
+        "colunas": [
+          "Nome",
+          "Email",
+          "Telefone"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 2.9,
+      "args_correct": true,
+      "ttft_ms": 2827.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de contatos com Nome, Email e Telefone."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"contato\", [\"Nome\", \"Email\", \"Telefone\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "contato",
+          "colunas": [
+            "Nome",
+            "Email",
+            "Telefone"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 6,
+      "task_name": "Planilha contatos",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contato.xlsx",
+      "latency_ms": 5574.699899996631,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "contato",
+        "colunas": [
+          "Nome",
+          "Email",
+          "Telefone"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2264.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de contatos com Nome, Email e Telefone."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"contato\", [\"Nome\", \"Email\", \"Telefone\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "contato",
+          "colunas": [
+            "Nome",
+            "Email",
+            "Telefone"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 6,
+      "task_name": "Planilha contatos",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos.xlsx",
+      "latency_ms": 5585.834299999988,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "contatos",
+        "colunas": [
+          "Nome",
+          "Email",
+          "Telefone"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2278.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de contatos com Nome, Email e Telefone."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"contatos\", [\"Nome\", \"Email\", \"Telefone\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "contatos",
+          "colunas": [
+            "Nome",
+            "Email",
+            "Telefone"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\pauta_reuniao.docx",
+      "latency_ms": 10175.29120000836,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "pauta_reuniao",
+        "titulo": "Pauta",
+        "conteudo": "reunião às 10 horas e revisão das tarefas."
+      },
+      "language_ok": true,
+      "tokens_gerados": 34,
+      "tokens_por_segundo": 3.4,
+      "args_correct": true,
+      "ttft_ms": 3750.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"pauta_reuniao\", \"Pauta\", \"reunião às 10 horas e revisão das tarefas.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "pauta_reuniao",
+          "titulo": "Pauta",
+          "conteudo": "reunião às 10 horas e revisão das tarefas."
+        }
+      }
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\pauta_reuniao.docx",
+      "latency_ms": 8535.562600009143,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "pauta_reuniao",
+        "titulo": "Pauta",
+        "conteudo": "reunião às 10 horas e revisão das tarefas."
+      },
+      "language_ok": true,
+      "tokens_gerados": 34,
+      "tokens_por_segundo": 4.0,
+      "args_correct": true,
+      "ttft_ms": 2259.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"pauta_reuniao\", \"Pauta\", \"reunião às 10 horas e revisão das tarefas.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "pauta_reuniao",
+          "titulo": "Pauta",
+          "conteudo": "reunião às 10 horas e revisão das tarefas."
+        }
+      }
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\pauta_reuniao.docx",
+      "latency_ms": 8535.618199995952,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "pauta_reuniao",
+        "titulo": "Pauta",
+        "conteudo": "reunião às 10 horas e revisão das tarefas."
+      },
+      "language_ok": true,
+      "tokens_gerados": 34,
+      "tokens_por_segundo": 4.0,
+      "args_correct": true,
+      "ttft_ms": 2247.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado pauta_reuniao, título Pauta, com conteúdo: reunião às 10 horas e revisão das tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"pauta_reuniao\", \"Pauta\", \"reunião às 10 horas e revisão das tarefas.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "pauta_reuniao",
+          "titulo": "Pauta",
+          "conteudo": "reunião às 10 horas e revisão das tarefas."
+        }
+      }
+    },
+    {
+      "task_id": 8,
+      "task_name": "Documento carta",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\carta_de_apresentacao.docx",
+      "latency_ms": 8665.139899996575,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "carta_de_apresentacao",
+        "titulo": "Carta de apresentação",
+        "conteudo": "Este é um exemplo de carta de apresentação formal."
+      },
+      "language_ok": true,
+      "tokens_gerados": 31,
+      "tokens_por_segundo": 3.6,
+      "args_correct": true,
+      "ttft_ms": 2934.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma carta de apresentação em documento Word, com texto completo e formal."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"carta_de_apresentacao\", \"Carta de apresentação\", \"Este é um exemplo de carta de apresentação formal.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "carta_de_apresentacao",
+          "titulo": "Carta de apresentação",
+          "conteudo": "Este é um exemplo de carta de apresentação formal."
+        }
+      }
+    },
+    {
+      "task_id": 8,
+      "task_name": "Documento carta",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\carta_de_apresentacao.docx",
+      "latency_ms": 27753.108499993687,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "carta_de_apresentacao",
+        "titulo": "Carta de apresentação",
+        "conteudo": "Aqui está a sua carta de apresentação. Boas-vindas ao nosso escritório. Nós estamos felizes em te convidar para trabalhar conosco. Estamos aqui para fornecer uma experiência de trabalho excepcional e para ajudá-lo a alcançar seus objetivos profissionais. Esperamos que você se sinta à vontade para nos contar sobre suas experiências e habilidades. Nós estamos ansiosos para ver o que você pode fazer por nós."
+      },
+      "language_ok": true,
+      "tokens_gerados": 138,
+      "tokens_por_segundo": 5.0,
+      "args_correct": true,
+      "ttft_ms": 2265.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma carta de apresentação em documento Word, com texto completo e formal."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"carta_de_apresentacao\", \"Carta de apresentação\", \"Aqui está a sua carta de apresentação. Boas-vindas ao nosso escritório. Nós estamos felizes em te convidar para trabalhar conosco. Estamos aqui para fornecer uma experiência de trabalho excepcional e para ajudá-lo a alcançar seus objetivos profissionais. Esperamos que você se sinta à vontade para nos contar sobre suas experiências e habilidades. Nós estamos ansiosos para ver o que você pode fazer por nós.\"]\n\nAgora, você pode editar a carta de apresentação conforme necessário.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "carta_de_apresentacao",
+          "titulo": "Carta de apresentação",
+          "conteudo": "Aqui está a sua carta de apresentação. Boas-vindas ao nosso escritório. Nós estamos felizes em te convidar para trabalhar conosco. Estamos aqui para fornecer uma experiência de trabalho excepcional e para ajudá-lo a alcançar seus objetivos profissionais. Esperamos que você se sinta à vontade para nos contar sobre suas experiências e habilidades. Nós estamos ansiosos para ver o que você pode fazer por nós."
+        }
+      }
+    },
+    {
+      "task_id": 8,
+      "task_name": "Documento carta",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\carta_de_apresentacao.docx",
+      "latency_ms": 8178.621500002919,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "carta_de_apresentacao",
+        "titulo": "Carta de apresentação",
+        "conteudo": "Aqui está a carta de apresentação completa e formal."
+      },
+      "language_ok": true,
+      "tokens_gerados": 32,
+      "tokens_por_segundo": 3.9,
+      "args_correct": true,
+      "ttft_ms": 2267.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma carta de apresentação em documento Word, com texto completo e formal."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"carta_de_apresentacao\", \"Carta de apresentação\", \"Aqui está a carta de apresentação completa e formal.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "carta_de_apresentacao",
+          "titulo": "Carta de apresentação",
+          "conteudo": "Aqui está a carta de apresentação completa e formal."
+        }
+      }
+    },
+    {
+      "task_id": 9,
+      "task_name": "Documento relatório",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_reuniao.docx",
+      "latency_ms": 17761.784100002842,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "relatorio_reuniao",
+        "titulo": "Relatório sobre a reunião de hoje",
+        "conteudo": "Na reunião foi discutida a expansão da empresa com o aporte de 25% do capital social atual da empresa, dividido igualmente entre os sócios. A proposta foi aceita."
+      },
+      "language_ok": true,
+      "tokens_gerados": 68,
+      "tokens_por_segundo": 3.8,
+      "args_correct": true,
+      "ttft_ms": 5204.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento word com um relatório sobre a reunião de hoje com introdução, decisões e próximos passos em texto corrido. Na reunião foi discutida a expansão da empresa com aporte de 25 por cento do capital social atual da empresa, dividido igualmente entre os sócios, a proposta foi aceita."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"relatorio_reuniao\", \"Relatório sobre a reunião de hoje\", \"Na reunião foi discutida a expansão da empresa com o aporte de 25% do capital social atual da empresa, dividido igualmente entre os sócios. A proposta foi aceita.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "relatorio_reuniao",
+          "titulo": "Relatório sobre a reunião de hoje",
+          "conteudo": "Na reunião foi discutida a expansão da empresa com o aporte de 25% do capital social atual da empresa, dividido igualmente entre os sócios. A proposta foi aceita."
+        }
+      }
+    },
+    {
+      "task_id": 9,
+      "task_name": "Documento relatório",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_reuniao.docx",
+      "latency_ms": 14822.27370000328,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "relatorio_reuniao",
+        "titulo": "Relatório sobre a reunião de hoje",
+        "conteudo": "Na reunião foi discutida a expansão da empresa com o aporte de 25% do capital social atual da empresa, dividido igualmente entre os sócios. A proposta foi aceita."
+      },
+      "language_ok": true,
+      "tokens_gerados": 68,
+      "tokens_por_segundo": 4.6,
+      "args_correct": true,
+      "ttft_ms": 2241.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento word com um relatório sobre a reunião de hoje com introdução, decisões e próximos passos em texto corrido. Na reunião foi discutida a expansão da empresa com aporte de 25 por cento do capital social atual da empresa, dividido igualmente entre os sócios, a proposta foi aceita."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"relatorio_reuniao\", \"Relatório sobre a reunião de hoje\", \"Na reunião foi discutida a expansão da empresa com o aporte de 25% do capital social atual da empresa, dividido igualmente entre os sócios. A proposta foi aceita.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "relatorio_reuniao",
+          "titulo": "Relatório sobre a reunião de hoje",
+          "conteudo": "Na reunião foi discutida a expansão da empresa com o aporte de 25% do capital social atual da empresa, dividido igualmente entre os sócios. A proposta foi aceita."
+        }
+      }
+    },
+    {
+      "task_id": 9,
+      "task_name": "Documento relatório",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\relatorio_reuniao.docx",
+      "latency_ms": 17021.18869998958,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "relatorio_reuniao",
+        "titulo": "Relatório sobre a reunião de hoje",
+        "conteudo": "Na reunião, foi discutida a expansão da empresa com um aporte de 25% do capital social atual da empresa, dividido igualmente entre os sócios. A proposta foi aceita."
+      },
+      "language_ok": true,
+      "tokens_gerados": 69,
+      "tokens_por_segundo": 4.1,
+      "args_correct": true,
+      "ttft_ms": 2245.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento word com um relatório sobre a reunião de hoje com introdução, decisões e próximos passos em texto corrido. Na reunião foi discutida a expansão da empresa com aporte de 25 por cento do capital social atual da empresa, dividido igualmente entre os sócios, a proposta foi aceita."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"relatorio_reuniao\", \"Relatório sobre a reunião de hoje\", \"Na reunião, foi discutida a expansão da empresa com um aporte de 25% do capital social atual da empresa, dividido igualmente entre os sócios. A proposta foi aceita.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "relatorio_reuniao",
+          "titulo": "Relatório sobre a reunião de hoje",
+          "conteudo": "Na reunião, foi discutida a expansão da empresa com um aporte de 25% do capital social atual da empresa, dividido igualmente entre os sócios. A proposta foi aceita."
+        }
+      }
+    },
+    {
+      "task_id": 10,
+      "task_name": "Documento comunicado",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\Novo_horario.docx",
+      "latency_ms": 127185.12919999193,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "Novo_horario",
+        "titulo": "Mudança_horario",
+        "conteudo": "A partir_de_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x"
+      },
+      "language_ok": true,
+      "tokens_gerados": 600,
+      "tokens_por_segundo": 4.7,
+      "args_correct": true,
+      "ttft_ms": 3105.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um comunicado formal informando a equipe sobre a mudança do horário de atendimento."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"Novo_horario\", \"Mudança_horario\", \"A partir_de_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "length",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "Novo_horario",
+          "titulo": "Mudança_horario",
+          "conteudo": "A partir_de_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x_x"
+        }
+      }
+    },
+    {
+      "task_id": 10,
+      "task_name": "Documento comunicado",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\Novo_horario.docx",
+      "latency_ms": 19159.56249998999,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "Novo_horario",
+        "titulo": "Mudança_horario_atendimento",
+        "conteudo": "Aqui está o comunicado formal para a equipe:\n\nRespeitados(a)s,\n\nCom agradecimento, informamos que haverá uma mudança no horário de atendimento. A nova hora de funcionamento será [novos Horários].\n\nEstimados(as),\n\nEquipe"
+      },
+      "language_ok": true,
+      "tokens_gerados": 90,
+      "tokens_por_segundo": 4.7,
+      "args_correct": true,
+      "ttft_ms": 2276.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um comunicado formal informando a equipe sobre a mudança do horário de atendimento."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"Novo_horario\", \"Mudança_horario_atendimento\", \"Aqui está o comunicado formal para a equipe:\\n\\nRespeitados(a)s,\\n\\nCom agradecimento, informamos que haverá uma mudança no horário de atendimento. A nova hora de funcionamento será [novos Horários].\\n\\nEstimados(as),\\n\\nEquipe\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "Novo_horario",
+          "titulo": "Mudança_horario_atendimento",
+          "conteudo": "Aqui está o comunicado formal para a equipe:\n\nRespeitados(a)s,\n\nCom agradecimento, informamos que haverá uma mudança no horário de atendimento. A nova hora de funcionamento será [novos Horários].\n\nEstimados(as),\n\nEquipe"
+        }
+      }
+    },
+    {
+      "task_id": 10,
+      "task_name": "Documento comunicado",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\comunicado_horario.docx",
+      "latency_ms": 9617.28829999629,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "comunicado_horario",
+        "titulo": "Mudança_horario",
+        "conteudo": "Aqui está o comunicado formal informando a equipe sobre a mudança do horário de atendimento."
+      },
+      "language_ok": true,
+      "tokens_gerados": 40,
+      "tokens_por_segundo": 4.2,
+      "args_correct": true,
+      "ttft_ms": 2241.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um comunicado formal informando a equipe sobre a mudança do horário de atendimento."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"comunicado_horario\", \"Mudança_horario\", \"Aqui está o comunicado formal informando a equipe sobre a mudança do horário de atendimento.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "comunicado_horario",
+          "titulo": "Mudança_horario",
+          "conteudo": "Aqui está o comunicado formal informando a equipe sobre a mudança do horário de atendimento."
+        }
+      }
+    },
+    {
+      "task_id": 11,
+      "task_name": "Editar gastos",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+      "latency_ms": 7278.11909999582,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "gastos.xlsx",
+        "colunas": [
+          "Data",
+          "Valor",
+          "Categoria"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 2.5,
+      "args_correct": true,
+      "ttft_ms": 3948.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha gastos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha gastos para incluir as colunas Data, Valor e Categoria."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"gastos.xlsx\", [\"Data\", \"Valor\", \"Categoria\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "gastos.xlsx",
+          "colunas": [
+            "Data",
+            "Valor",
+            "Categoria"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 11,
+      "task_name": "Editar gastos",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+      "latency_ms": 5602.30290000618,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "gastos.xlsx",
+        "colunas": [
+          "Data",
+          "Valor",
+          "Categoria"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2275.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha gastos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha gastos para incluir as colunas Data, Valor e Categoria."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"gastos.xlsx\", [\"Data\", \"Valor\", \"Categoria\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "gastos.xlsx",
+          "colunas": [
+            "Data",
+            "Valor",
+            "Categoria"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 11,
+      "task_name": "Editar gastos",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha atualizada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\gastos.xlsx",
+      "latency_ms": 5581.5720000100555,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "gastos.xlsx",
+        "colunas": [
+          "Data",
+          "Valor",
+          "Categoria"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2258.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha gastos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha gastos para incluir as colunas Data, Valor e Categoria."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"gastos.xlsx\", [\"Data\", \"Valor\", \"Categoria\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "gastos.xlsx",
+          "colunas": [
+            "Data",
+            "Valor",
+            "Categoria"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 12,
+      "task_name": "Editar estoque",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque_1.xlsx",
+      "latency_ms": 7652.159999997821,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "estoque",
+        "colunas": [
+          "Produto",
+          "Quantidade",
+          "Estoque_minimo"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 22,
+      "tokens_por_segundo": 2.9,
+      "args_correct": true,
+      "ttft_ms": 3585.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha estoque.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha estoque com Produto, Quantidade e Estoque mínimo."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"estoque\", [\"Produto\", \"Quantidade\", \"Estoque_minimo\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "Produto",
+            "Quantidade",
+            "Estoque_minimo"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 12,
+      "task_name": "Editar estoque",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque_1.xlsx",
+      "latency_ms": 6288.58510000282,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "estoque",
+        "colunas": [
+          "Produto",
+          "Quantidade",
+          "Estoque_minimo"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 22,
+      "tokens_por_segundo": 3.5,
+      "args_correct": true,
+      "ttft_ms": 2245.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha estoque.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha estoque com Produto, Quantidade e Estoque mínimo."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"estoque\", [\"Produto\", \"Quantidade\", \"Estoque_minimo\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "Produto",
+            "Quantidade",
+            "Estoque_minimo"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 12,
+      "task_name": "Editar estoque",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\estoque_1.xlsx",
+      "latency_ms": 6327.969199992367,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "estoque",
+        "colunas": [
+          "Produto",
+          "Quantidade",
+          "Estoque_minimo"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 22,
+      "tokens_por_segundo": 3.5,
+      "args_correct": true,
+      "ttft_ms": 2254.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha estoque.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha estoque com Produto, Quantidade e Estoque mínimo."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"estoque\", [\"Produto\", \"Quantidade\", \"Estoque_minimo\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "Produto",
+            "Quantidade",
+            "Estoque_minimo"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 13,
+      "task_name": "Editar contatos",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos_1.xlsx",
+      "latency_ms": 6908.6576999980025,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "contatos",
+        "colunas": [
+          "Nome",
+          "Email",
+          "Empresa"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 2.6,
+      "args_correct": true,
+      "ttft_ms": 3571.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha contatos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Corrija a planilha contatos para conter Nome, Email e Empresa."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"contatos\", [\"Nome\", \"Email\", \"Empresa\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "contatos",
+          "colunas": [
+            "Nome",
+            "Email",
+            "Empresa"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 13,
+      "task_name": "Editar contatos",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos_1.xlsx",
+      "latency_ms": 5616.628399991896,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "contatos",
+        "colunas": [
+          "Nome",
+          "Email",
+          "Empresa"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2247.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha contatos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Corrija a planilha contatos para conter Nome, Email e Empresa."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"contatos\", [\"Nome\", \"Email\", \"Empresa\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "contatos",
+          "colunas": [
+            "Nome",
+            "Email",
+            "Empresa"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 13,
+      "task_name": "Editar contatos",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\contatos_1.xlsx",
+      "latency_ms": 5576.020799999242,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "contatos",
+        "colunas": [
+          "Nome",
+          "Email",
+          "Empresa"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2263.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha contatos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Corrija a planilha contatos para conter Nome, Email e Empresa."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"contatos\", [\"Nome\", \"Email\", \"Empresa\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "contatos",
+          "colunas": [
+            "Nome",
+            "Email",
+            "Empresa"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 14,
+      "task_name": "Confirmação de criação",
+      "category": "confirmacao",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\agenda.xlsx",
+      "latency_ms": 6449.108000000706,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "agenda",
+        "colunas": [
+          "Dia",
+          "compromisso"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 17,
+      "tokens_por_segundo": 2.6,
+      "args_correct": true,
+      "ttft_ms": 3269.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha chamada agenda com as colunas Dia e Compromisso."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"agenda\", [\"Dia\", \"compromisso\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "agenda",
+          "colunas": [
+            "Dia",
+            "compromisso"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 14,
+      "task_name": "Confirmação de criação",
+      "category": "confirmacao",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\agenda.xlsx",
+      "latency_ms": 5372.414599987678,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "agenda",
+        "colunas": [
+          "Dia",
+          "compromisso"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 17,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2246.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha chamada agenda com as colunas Dia e Compromisso."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"agenda\", [\"Dia\", \"compromisso\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "agenda",
+          "colunas": [
+            "Dia",
+            "compromisso"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 14,
+      "task_name": "Confirmação de criação",
+      "category": "confirmacao",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\agenda.xlsx",
+      "latency_ms": 5393.482700004824,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "agenda",
+        "colunas": [
+          "Dia",
+          "compromisso"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 17,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2261.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha chamada agenda com as colunas Dia e Compromisso."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"agenda\", [\"Dia\", \"compromisso\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "agenda",
+          "colunas": [
+            "Dia",
+            "compromisso"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 15,
+      "task_name": "Confirmação de documento",
+      "category": "confirmacao",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\ata.docx",
+      "latency_ms": 11847.332200006349,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "ata",
+        "titulo": "Ata da Reunião",
+        "conteudo": "Esta é a reunião de hoje. Todos os presentes foram informados sobre as decisões tomadas e as tarefas atribuídas."
+      },
+      "language_ok": true,
+      "tokens_gerados": 47,
+      "tokens_por_segundo": 4.0,
+      "args_correct": true,
+      "ttft_ms": 3095.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento de ata com título Ata e conteúdo completo sobre uma reunião."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"ata\", \"Ata da Reunião\", \"Esta é a reunião de hoje. Todos os presentes foram informados sobre as decisões tomadas e as tarefas atribuídas.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "ata",
+          "titulo": "Ata da Reunião",
+          "conteudo": "Esta é a reunião de hoje. Todos os presentes foram informados sobre as decisões tomadas e as tarefas atribuídas."
+        }
+      }
+    },
+    {
+      "task_id": 15,
+      "task_name": "Confirmação de documento",
+      "category": "confirmacao",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\ata.docx",
+      "latency_ms": 11972.230300001684,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "ata",
+        "titulo": "Ata da Reunião",
+        "conteudo": "Esta é a reunião de hoje. Todos os presentes foram informados sobre as decisões tomadas e as tarefas atribuídas para o dia seguinte."
+      },
+      "language_ok": true,
+      "tokens_gerados": 52,
+      "tokens_por_segundo": 4.4,
+      "args_correct": true,
+      "ttft_ms": 2241.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento de ata com título Ata e conteúdo completo sobre uma reunião."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"ata\", \"Ata da Reunião\", \"Esta é a reunião de hoje. Todos os presentes foram informados sobre as decisões tomadas e as tarefas atribuídas para o dia seguinte.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "ata",
+          "titulo": "Ata da Reunião",
+          "conteudo": "Esta é a reunião de hoje. Todos os presentes foram informados sobre as decisões tomadas e as tarefas atribuídas para o dia seguinte."
+        }
+      }
+    },
+    {
+      "task_id": 15,
+      "task_name": "Confirmação de documento",
+      "category": "confirmacao",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_documento",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Documento criado com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\ata.docx",
+      "latency_ms": 10927.423299988732,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "ata",
+        "titulo": "Ata da Reunião",
+        "conteudo": "Esta é a reunião de hoje. Todos os presentes foram informados sobre as decisões tomadas e as tarefas atribuídas."
+      },
+      "language_ok": true,
+      "tokens_gerados": 47,
+      "tokens_por_segundo": 4.3,
+      "args_correct": true,
+      "ttft_ms": 2245.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento de ata com título Ata e conteúdo completo sobre uma reunião."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"ata\", \"Ata da Reunião\", \"Esta é a reunião de hoje. Todos os presentes foram informados sobre as decisões tomadas e as tarefas atribuídas.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "ata",
+          "titulo": "Ata da Reunião",
+          "conteudo": "Esta é a reunião de hoje. Todos os presentes foram informados sobre as decisões tomadas e as tarefas atribuídas."
+        }
+      }
+    },
+    {
+      "task_id": 16,
+      "task_name": "Ambiguidade planilha",
+      "category": "ambiguidade",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada por ambiguidade.",
+      "latency_ms": 5957.989499991527,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 17,
+      "tokens_por_segundo": 2.9,
+      "args_correct": true,
+      "ttft_ms": 2842.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de projetos com Projeto e Status."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"projetos\", [\"Projeto\", \"Status\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "projetos",
+          "colunas": [
+            "Projeto",
+            "Status"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 16,
+      "task_name": "Ambiguidade planilha",
+      "category": "ambiguidade",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada por ambiguidade.",
+      "latency_ms": 5559.322099987185,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 17,
+      "tokens_por_segundo": 3.1,
+      "args_correct": true,
+      "ttft_ms": 2281.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de projetos com Projeto e Status."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"projetos\", [\"Projeto\", \"Status\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "projetos",
+          "colunas": [
+            "Projeto",
+            "Status"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 16,
+      "task_name": "Ambiguidade planilha",
+      "category": "ambiguidade",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada por ambiguidade.",
+      "latency_ms": 5373.121099997661,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 17,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2257.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha de projetos com Projeto e Status."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"projetos\", [\"Projeto\", \"Status\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "projetos",
+          "colunas": [
+            "Projeto",
+            "Status"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 17,
+      "task_name": "Ambiguidade documento",
+      "category": "ambiguidade",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada por ambiguidade.",
+      "latency_ms": 8535.02280000248,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 31,
+      "tokens_por_segundo": 3.6,
+      "args_correct": true,
+      "ttft_ms": 2854.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento sobre a reunião do projeto."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"reuniao_projeto\", \"Reunião do Projeto\", \"A reunião do projeto foi realizada hoje.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "reuniao_projeto",
+          "titulo": "Reunião do Projeto",
+          "conteudo": "A reunião do projeto foi realizada hoje."
+        }
+      }
+    },
+    {
+      "task_id": 17,
+      "task_name": "Ambiguidade documento",
+      "category": "ambiguidade",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada por ambiguidade.",
+      "latency_ms": 7947.61849999486,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 31,
+      "tokens_por_segundo": 3.9,
+      "args_correct": true,
+      "ttft_ms": 2270.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento sobre a reunião do projeto."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"reuniao_projeto\", \"Reunião do Projeto\", \"A reunião do projeto foi realizada hoje.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "reuniao_projeto",
+          "titulo": "Reunião do Projeto",
+          "conteudo": "A reunião do projeto foi realizada hoje."
+        }
+      }
+    },
+    {
+      "task_id": 17,
+      "task_name": "Ambiguidade documento",
+      "category": "ambiguidade",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada por ambiguidade.",
+      "latency_ms": 7911.293099998147,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 31,
+      "tokens_por_segundo": 3.9,
+      "args_correct": true,
+      "ttft_ms": 2234.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento sobre a reunião do projeto."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"reuniao_projeto\", \"Reunião do Projeto\", \"A reunião do projeto foi realizada hoje.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "reuniao_projeto",
+          "titulo": "Reunião do Projeto",
+          "conteudo": "A reunião do projeto foi realizada hoje."
+        }
+      }
+    },
+    {
+      "task_id": 18,
+      "task_name": "Ambiguidade edição",
+      "category": "ambiguidade",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada por ambiguidade.",
+      "latency_ms": 6562.65490000078,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 16,
+      "tokens_por_segundo": 2.4,
+      "args_correct": true,
+      "ttft_ms": 3633.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha projetos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha existente projetos com Projeto e Status."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"projetos\", [\"Projeto\", \"Status\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "projetos",
+          "colunas": [
+            "Projeto",
+            "Status"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 18,
+      "task_name": "Ambiguidade edição",
+      "category": "ambiguidade",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada por ambiguidade.",
+      "latency_ms": 5172.742200011271,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 16,
+      "tokens_por_segundo": 3.1,
+      "args_correct": true,
+      "ttft_ms": 2242.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha projetos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha existente projetos com Projeto e Status."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"projetos\", [\"Projeto\", \"Status\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "projetos",
+          "colunas": [
+            "Projeto",
+            "Status"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 18,
+      "task_name": "Ambiguidade edição",
+      "category": "ambiguidade",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada por ambiguidade.",
+      "latency_ms": 5335.8108999964315,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 16,
+      "tokens_por_segundo": 3.0,
+      "args_correct": true,
+      "ttft_ms": 2228.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "assistant",
+          "content": "A planilha projetos.xlsx já foi criada."
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha existente projetos com Projeto e Status."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"projetos\", [\"Projeto\", \"Status\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "projetos",
+          "colunas": [
+            "Projeto",
+            "Status"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 19,
+      "task_name": "Negação planilha",
+      "category": "cancelamento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada.",
+      "latency_ms": 5972.197299997788,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 17,
+      "tokens_por_segundo": 2.8,
+      "args_correct": true,
+      "ttft_ms": 2861.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha simples de tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"tarefa.xlsx\", [\"Tarefa\", \"Status\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "tarefa.xlsx",
+          "colunas": [
+            "Tarefa",
+            "Status"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 19,
+      "task_name": "Negação planilha",
+      "category": "cancelamento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada.",
+      "latency_ms": 5371.465500007616,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 17,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2255.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha simples de tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"tarefa.xlsx\", [\"Tarefa\", \"Status\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "tarefa.xlsx",
+          "colunas": [
+            "Tarefa",
+            "Status"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 19,
+      "task_name": "Negação planilha",
+      "category": "cancelamento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada.",
+      "latency_ms": 5388.551399999415,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 17,
+      "tokens_por_segundo": 3.2,
+      "args_correct": true,
+      "ttft_ms": 2267.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha simples de tarefas."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"tarefa.xlsx\", [\"Tarefa\", \"Status\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "tarefa.xlsx",
+          "colunas": [
+            "Tarefa",
+            "Status"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 20,
+      "task_name": "Negação documento",
+      "category": "cancelamento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada.",
+      "latency_ms": 8444.393100013258,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 31,
+      "tokens_por_segundo": 3.7,
+      "args_correct": true,
+      "ttft_ms": 2759.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento com um aviso formal."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"aviso_formal\", \"Título\", \"Este_aviso_tem_uma_geralidade_em_sua_conclusão\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "aviso_formal",
+          "titulo": "Título",
+          "conteudo": "Este_aviso_tem_uma_geralidade_em_sua_conclusão"
+        }
+      }
+    },
+    {
+      "task_id": 20,
+      "task_name": "Negação documento",
+      "category": "cancelamento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada.",
+      "latency_ms": 11386.68179999513,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 50,
+      "tokens_por_segundo": 4.4,
+      "args_correct": true,
+      "ttft_ms": 2217.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento com um aviso formal."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"aviso_formal\", \"Título\", \"Este_aviso_tem_uma_geralidade_em_sua_construcao_e_seria_bem_adaptado_a_necessidades_de_seu_empresa.\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "aviso_formal",
+          "titulo": "Título",
+          "conteudo": "Este_aviso_tem_uma_geralidade_em_sua_construcao_e_seria_bem_adaptado_a_necessidades_de_seu_empresa."
+        }
+      }
+    },
+    {
+      "task_id": 20,
+      "task_name": "Negação documento",
+      "category": "cancelamento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Ação cancelada.",
+      "latency_ms": 7192.735399992671,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 27,
+      "tokens_por_segundo": 3.8,
+      "args_correct": true,
+      "ttft_ms": 2246.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento com um aviso formal."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_documento: [\"aviso_formal\", \"Título\", \"Este_aviso_tem_uma_mensagem_de_alerta\"]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_documento"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_documento",
+        "arguments": {
+          "nome_arquivo": "aviso_formal",
+          "titulo": "Título",
+          "conteudo": "Este_aviso_tem_uma_mensagem_de_alerta"
+        }
+      }
+    },
+    {
+      "task_id": 21,
+      "task_name": "Negação edição",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha nova: criar_planilha: [\"arquivo_que_nao_existe\", [\"A\"]]",
+      "latency_ms": 6686.310700009926,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "arquivo_que_nao_existe",
+        "colunas": [
+          "A"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 20,
+      "tokens_por_segundo": 3.0,
+      "args_correct": true,
+      "ttft_ms": 3024.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha arquivo_que_nao_existe com a coluna A."
+        }
+      ],
+      "resposta_bruta_modelo": "Planilha nova: criar_planilha: [\"arquivo_que_nao_existe\", [\"A\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "arquivo_que_nao_existe",
+          "colunas": [
+            "A"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 21,
+      "task_name": "Negação edição",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha nova: criar_planilha: [\"arquivo_que_nao_existe\", [\"A\"]]",
+      "latency_ms": 5893.453800003044,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "arquivo_que_nao_existe",
+        "colunas": [
+          "A"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 20,
+      "tokens_por_segundo": 3.4,
+      "args_correct": true,
+      "ttft_ms": 2232.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha arquivo_que_nao_existe com a coluna A."
+        }
+      ],
+      "resposta_bruta_modelo": "Planilha nova: criar_planilha: [\"arquivo_que_nao_existe\", [\"A\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "arquivo_que_nao_existe",
+          "colunas": [
+            "A"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 21,
+      "task_name": "Negação edição",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha nova: criar_planilha: [\"arquivo_que_nao_existe\", [\"A\"]]",
+      "latency_ms": 5917.927300004521,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "arquivo_que_nao_existe",
+        "colunas": [
+          "A"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 20,
+      "tokens_por_segundo": 3.4,
+      "args_correct": true,
+      "ttft_ms": 2255.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha arquivo_que_nao_existe com a coluna A."
+        }
+      ],
+      "resposta_bruta_modelo": "Planilha nova: criar_planilha: [\"arquivo_que_nao_existe\", [\"A\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "arquivo_que_nao_existe",
+          "colunas": [
+            "A"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A (erro da ferramenta)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Para editar o arquivo 'Estoque.xlsx', você precisa primeiro criar ou editar um novo documento. Você pode usar a ferramenta \"criar_documento\" para isso. Por favor, informe-me o título e o conteúdo que deseja incluir no novo documento.",
+      "latency_ms": 18903.96480000345,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 66,
+      "tokens_por_segundo": 2.4,
+      "args_correct": true,
+      "ttft_ms": 2738.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha estoque com a coluna preco."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"estoque\", [\"preco\"]]\nPara editar o arquivo 'Estoque.xlsx', você precisa primeiro criar ou editar um novo documento. Você pode usar a ferramenta \"criar_documento\" para isso. Por favor, informe-me o título e o conteúdo que deseja incluir no novo documento.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "preco"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A (erro da ferramenta)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Para editar o arquivo 'Estoque.xlsx', você precisa primeiro criar ou editar um novo documento. Use a ferramenta 'criar_documento'.",
+      "latency_ms": 14429.757699996117,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 41,
+      "tokens_por_segundo": 2.3,
+      "args_correct": true,
+      "ttft_ms": 2903.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha estoque com a coluna preco."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"estoque\", [\"preco\"]]\nPara editar o arquivo 'Estoque.xlsx', você precisa primeiro criar ou editar um novo documento. Use a ferramenta 'criar_documento'.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "preco"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A (erro da ferramenta)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Para editar o arquivo 'Estoque.xlsx', você deve primeiro criar uma nova planilha ou editar a existente. Se ainda não tiver um arquivo, crie um novo usando a ferramenta \"criar_planilha\". Caso já tenha um arquivo e queira editá-lo, use a ferramenta \"editar_planilha\" com os nomes corretos dos arquivos.",
+      "latency_ms": 24127.284299989697,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 93,
+      "tokens_por_segundo": 2.3,
+      "args_correct": true,
+      "ttft_ms": 2906.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha estoque com a coluna preco."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"estoque\", [\"preco\"]]\nPara editar o arquivo 'Estoque.xlsx', você deve primeiro criar uma nova planilha ou editar a existente. Se ainda não tiver um arquivo, crie um novo usando a ferramenta \"criar_planilha\". Caso já tenha um arquivo e queira editá-lo, use a ferramenta \"editar_planilha\" com os nomes corretos dos arquivos.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "estoque",
+          "colunas": [
+            "preco"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B (erro da ferramenta)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Para editar o arquivo 'planilha_clientes.xlsx', você precisa primeiro criar ou editar um novo documento. Por favor, digite \"criar_documento\" para começar.",
+      "latency_ms": 16145.632400002796,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 50,
+      "tokens_por_segundo": 2.7,
+      "args_correct": true,
+      "ttft_ms": 2989.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha clientes com as colunas nome e email."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"planilha_clientes\", [\"nome\", \"email\"]]\nPara editar o arquivo 'planilha_clientes.xlsx', você precisa primeiro criar ou editar um novo documento. Por favor, digite \"criar_documento\" para começar.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "planilha_clientes",
+          "colunas": [
+            "nome",
+            "email"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B (erro da ferramenta)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Para editar o arquivo 'planilha_clientes.xlsx', você deve primeiro criar uma nova planilha. Use a chamada \"criar_planilha\" para isso.",
+      "latency_ms": 15936.088899994502,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 49,
+      "tokens_por_segundo": 2.7,
+      "args_correct": true,
+      "ttft_ms": 2993.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha clientes com as colunas nome e email."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"planilha_clientes\", [\"nome\", \"email\"]]\nPara editar o arquivo 'planilha_clientes.xlsx', você deve primeiro criar uma nova planilha. Use a chamada \"criar_planilha\" para isso.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "planilha_clientes",
+          "colunas": [
+            "nome",
+            "email"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B (erro da ferramenta)",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Para editar a planilha, você precisa primeiro criar uma nova planilha ou editar a existente. Se quiser criar uma nova, use o comando \"criar_planilha\". Caso já tenha uma planilha existente, pode ser que ela não esteja na pasta de arquivos gerados. Verifique se está lá e tente novamente.",
+      "latency_ms": 23106.725699995877,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 88,
+      "tokens_por_segundo": 2.7,
+      "args_correct": true,
+      "ttft_ms": 2980.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha clientes com as colunas nome e email."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"planilha_clientes\", [\"nome\", \"email\"]]\nPara editar a planilha, você precisa primeiro criar uma nova planilha ou editar a existente. Se quiser criar uma nova, use o comando \"criar_planilha\". Caso já tenha uma planilha existente, pode ser que ela não esteja na pasta de arquivos gerados. Verifique se está lá e tente novamente.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": true,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "editar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "editar_planilha",
+        "arguments": {
+          "nome_arquivo": "planilha_clientes",
+          "colunas": [
+            "nome",
+            "email"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 24,
+      "task_name": "Nome com caminho relativo",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\Teste_seguro.xlsx",
+      "latency_ms": 6635.044499998912,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "Teste_seguro",
+        "colunas": [
+          "nome"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 16,
+      "tokens_por_segundo": 2.4,
+      "args_correct": true,
+      "ttft_ms": 3123.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha chamada ../../teste_seguro com a coluna Nome."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"../../Teste_seguro\", [\"nome\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 1,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "Teste_seguro",
+          "colunas": [
+            "nome"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 24,
+      "task_name": "Nome com caminho relativo",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\Teste_seguro.xlsx",
+      "latency_ms": 5200.918400005321,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "Teste_seguro",
+        "colunas": [
+          "nome"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 16,
+      "tokens_por_segundo": 3.1,
+      "args_correct": true,
+      "ttft_ms": 2257.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha chamada ../../teste_seguro com a coluna Nome."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"../../Teste_seguro\", [\"nome\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 1,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "Teste_seguro",
+          "colunas": [
+            "nome"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 24,
+      "task_name": "Nome com caminho relativo",
+      "category": "criar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": "criar_planilha",
+      "tool_correct": true,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "Planilha criada com sucesso: C:\\Users\\Sony Vaio\\Documents\\maria\\backend\\benchmark\\results\\arquivos_gerados_benchmark\\Teste_seguro.xlsx",
+      "latency_ms": 5197.981899997103,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "Teste_seguro",
+        "colunas": [
+          "nome"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 16,
+      "tokens_por_segundo": 3.1,
+      "args_correct": true,
+      "ttft_ms": 2254.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie uma planilha chamada ../../teste_seguro com a coluna Nome."
+        }
+      ],
+      "resposta_bruta_modelo": "criar_planilha: [\"../../Teste_seguro\", [\"nome\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 1,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [
+        "criar_planilha"
+      ],
+      "tool_call_inicial": {
+        "name": "criar_planilha",
+        "arguments": {
+          "nome_arquivo": "Teste_seguro",
+          "colunas": [
+            "nome"
+          ]
+        }
+      }
+    },
+    {
+      "task_id": 25,
+      "task_name": "Nome com caracteres inseguros",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "ERRO: caminho inválido (não pode conter caracteres especiais ou espaços).",
+      "latency_ms": 6614.678600002662,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 20,
+      "tokens_por_segundo": 3.0,
+      "args_correct": true,
+      "ttft_ms": 2946.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado ../relatório*seguro com conteúdo de teste."
+        }
+      ],
+      "resposta_bruta_modelo": "ERRO: caminho inválido (não pode conter caracteres especiais ou espaços).",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    },
+    {
+      "task_id": 25,
+      "task_name": "Nome com caracteres inseguros",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "ERRO: caminho inválido para criar arquivo.",
+      "latency_ms": 4270.993700003601,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 11,
+      "tokens_por_segundo": 2.6,
+      "args_correct": true,
+      "ttft_ms": 2261.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado ../relatório*seguro com conteúdo de teste."
+        }
+      ],
+      "resposta_bruta_modelo": "ERRO: caminho inválido para criar arquivo.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    },
+    {
+      "task_id": 25,
+      "task_name": "Nome com caracteres inseguros",
+      "category": "criar_documento",
+      "model": "ggml-org/Qwen2.5-Omni-3B-GGUF:Q4_K_M",
+      "tool_detected": null,
+      "tool_correct": false,
+      "confirmation_completed": false,
+      "keyword_match": false,
+      "runtime_ok": true,
+      "final_message": "ERRO: caminho inválido para criar arquivo.",
+      "latency_ms": 4254.099899990251,
+      "errors": [],
+      "raw_tool_args": {},
+      "language_ok": true,
+      "tokens_gerados": 11,
+      "tokens_por_segundo": 2.6,
+      "args_correct": true,
+      "ttft_ms": 2239.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Crie um documento chamado ../relatório*seguro com conteúdo de teste."
+        }
+      ],
+      "resposta_bruta_modelo": "ERRO: caminho inválido para criar arquivo.",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": true,
+      "parse_suspeito": false,
+      "finish_reason": "stop",
+      "cadeia_ferramentas": [],
+      "tool_call_inicial": {}
+    }
+  ],
+  "agregado_por_tarefa": [
+    {
+      "task_id": 1,
+      "task_name": "Conversa simples",
+      "category": "conversa",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 10623.96866666677,
+      "stddev_latency_ms": 10385.699375083253,
+      "avg_tokens_por_segundo": 2.0666666666666664,
+      "avg_tokens_gerados": 13.0
+    },
+    {
+      "task_id": 2,
+      "task_name": "Conversa sobre produtividade",
+      "category": "conversa",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 6839.917833334766,
+      "stddev_latency_ms": 2953.3409798451994,
+      "avg_tokens_por_segundo": 3.233333333333333,
+      "avg_tokens_gerados": 23.666666666666668
+    },
+    {
+      "task_id": 3,
+      "task_name": "Planilha básica",
+      "category": "criar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 5301.097266667057,
+      "stddev_latency_ms": 486.5312837285081,
+      "avg_tokens_por_segundo": 2.8666666666666667,
+      "avg_tokens_gerados": 15.0
+    },
+    {
+      "task_id": 4,
+      "task_name": "Planilha financeira",
+      "category": "criar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 6816.033033333952,
+      "stddev_latency_ms": 579.8203307244031,
+      "avg_tokens_por_segundo": 3.4333333333333336,
+      "avg_tokens_gerados": 23.0
+    },
+    {
+      "task_id": 5,
+      "task_name": "Planilha estoque",
+      "category": "criar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 7483.287733329537,
+      "stddev_latency_ms": 416.22416421774005,
+      "avg_tokens_por_segundo": 3.6,
+      "avg_tokens_gerados": 27.0
+    },
+    {
+      "task_id": 6,
+      "task_name": "Planilha contatos",
+      "category": "criar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 5770.426433334554,
+      "stddev_latency_ms": 329.4126741346084,
+      "avg_tokens_por_segundo": 3.1,
+      "avg_tokens_gerados": 18.0
+    },
+    {
+      "task_id": 7,
+      "task_name": "Documento curto",
+      "category": "criar_documento",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 9082.157333337818,
+      "stddev_latency_ms": 946.6816986819839,
+      "avg_tokens_por_segundo": 3.8000000000000003,
+      "avg_tokens_gerados": 34.0
+    },
+    {
+      "task_id": 8,
+      "task_name": "Documento carta",
+      "category": "criar_documento",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 14865.623299997727,
+      "stddev_latency_ms": 11163.540259410061,
+      "avg_tokens_por_segundo": 4.166666666666667,
+      "avg_tokens_gerados": 67.0
+    },
+    {
+      "task_id": 9,
+      "task_name": "Documento relatório",
+      "category": "criar_documento",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 16535.082166665234,
+      "stddev_latency_ms": 1528.8574227938514,
+      "avg_tokens_por_segundo": 4.166666666666667,
+      "avg_tokens_gerados": 68.33333333333333
+    },
+    {
+      "task_id": 10,
+      "task_name": "Documento comunicado",
+      "category": "criar_documento",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 51987.326666659406,
+      "stddev_latency_ms": 65297.7478831278,
+      "avg_tokens_por_segundo": 4.533333333333334,
+      "avg_tokens_gerados": 243.33333333333334
+    },
+    {
+      "task_id": 11,
+      "task_name": "Editar gastos",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 6153.998000004019,
+      "stddev_latency_ms": 973.5726106145066,
+      "avg_tokens_por_segundo": 2.966666666666667,
+      "avg_tokens_gerados": 18.0
+    },
+    {
+      "task_id": 12,
+      "task_name": "Editar estoque",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 0.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 6756.238099997669,
+      "stddev_latency_ms": 776.1409762458801,
+      "avg_tokens_por_segundo": 3.3000000000000003,
+      "avg_tokens_gerados": 22.0
+    },
+    {
+      "task_id": 13,
+      "task_name": "Editar contatos",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 0.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 6033.768966663047,
+      "stddev_latency_ms": 757.9478650155454,
+      "avg_tokens_por_segundo": 3.0,
+      "avg_tokens_gerados": 18.0
+    },
+    {
+      "task_id": 14,
+      "task_name": "Confirmação de criação",
+      "category": "confirmacao",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 5738.3350999977365,
+      "stddev_latency_ms": 615.6375173294402,
+      "avg_tokens_por_segundo": 3.0,
+      "avg_tokens_gerados": 17.0
+    },
+    {
+      "task_id": 15,
+      "task_name": "Confirmação de documento",
+      "category": "confirmacao",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 11582.328599998922,
+      "stddev_latency_ms": 570.5923219179247,
+      "avg_tokens_por_segundo": 4.233333333333333,
+      "avg_tokens_gerados": 48.666666666666664
+    },
+    {
+      "task_id": 16,
+      "task_name": "Ambiguidade planilha",
+      "category": "ambiguidade",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 5630.144233325457,
+      "stddev_latency_ms": 298.7969080425435,
+      "avg_tokens_por_segundo": 3.0666666666666664,
+      "avg_tokens_gerados": 17.0
+    },
+    {
+      "task_id": 17,
+      "task_name": "Ambiguidade documento",
+      "category": "ambiguidade",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 8131.311466665163,
+      "stddev_latency_ms": 350.09572143911777,
+      "avg_tokens_por_segundo": 3.8000000000000003,
+      "avg_tokens_gerados": 31.0
+    },
+    {
+      "task_id": 18,
+      "task_name": "Ambiguidade edição",
+      "category": "ambiguidade",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 5690.4026666694945,
+      "stddev_latency_ms": 759.7801123629615,
+      "avg_tokens_por_segundo": 2.8333333333333335,
+      "avg_tokens_gerados": 16.0
+    },
+    {
+      "task_id": 19,
+      "task_name": "Negação planilha",
+      "category": "cancelamento",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 5577.40473333494,
+      "stddev_latency_ms": 342.00710520954397,
+      "avg_tokens_por_segundo": 3.0666666666666664,
+      "avg_tokens_gerados": 17.0
+    },
+    {
+      "task_id": 20,
+      "task_name": "Negação documento",
+      "category": "cancelamento",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 9007.93676666702,
+      "stddev_latency_ms": 2153.017115513152,
+      "avg_tokens_por_segundo": 3.966666666666667,
+      "avg_tokens_gerados": 36.0
+    },
+    {
+      "task_id": 21,
+      "task_name": "Negação edição",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 6165.897266672498,
+      "stddev_latency_ms": 450.8573435679167,
+      "avg_tokens_por_segundo": 3.266666666666667,
+      "avg_tokens_gerados": 20.0
+    },
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A (erro da ferramenta)",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 19153.668933329755,
+      "stddev_latency_ms": 4853.583176895801,
+      "avg_tokens_por_segundo": 2.3333333333333335,
+      "avg_tokens_gerados": 66.66666666666667
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B (erro da ferramenta)",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 18396.148999997724,
+      "stddev_latency_ms": 4080.8242739087705,
+      "avg_tokens_por_segundo": 2.7000000000000006,
+      "avg_tokens_gerados": 62.333333333333336
+    },
+    {
+      "task_id": 24,
+      "task_name": "Nome com caminho relativo",
+      "category": "criar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 1.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 5677.981600000446,
+      "stddev_latency_ms": 828.8420848829896,
+      "avg_tokens_por_segundo": 2.8666666666666667,
+      "avg_tokens_gerados": 16.0
+    },
+    {
+      "task_id": 25,
+      "task_name": "Nome com caracteres inseguros",
+      "category": "criar_documento",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 0.0,
+      "keyword_match_rate": 0.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 5046.590733332171,
+      "stddev_latency_ms": 1358.0301978671648,
+      "avg_tokens_por_segundo": 2.733333333333333,
+      "avg_tokens_gerados": 14.0
+    }
+  ]
+}

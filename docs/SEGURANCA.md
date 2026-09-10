@@ -1,8 +1,8 @@
 # Segurança — MARIA
 
 **Versão:** v4.1.1
-**Última atualização:** 2026-08-31
-**Status:** ✅ Auditado e Mitigado
+**Última atualização:** 2026-09-10
+**Status:** ✅ Auditado e Mitigado — inclui achados históricos registrados (§5.1)
 
 Este documento registra o modelo de segurança da aplicação, as medidas de proteção ativas contra ameaças locais, as correções aplicadas na auditoria (v4.0 e v4.1.1) e o roadmap de segurança.
 
@@ -36,7 +36,7 @@ O MARIA roda **100% localmente**: frontend Tauri (webview nativa) + backend Pyth
 
 | Medida | Onde | Implementação Técnica |
 |--------|------|------------------------|
-| **Autenticação por token atômico** | `backend/main.py` + `src-tauri/src/main.rs` | Token criptográfico de 32 bytes (`secrets.token_hex(32)`) gerado a cada inicialização do backend e salvo atomicamente via `.tmp` + `os.replace()` em `shared/.bridge_token` (permissão `0o600` em POSIX). Header `Authorization: Bearer <token>` obrigatório para todas as rotas exceto `/ping`. O Rust relê o arquivo a cada requisição e injeta o header. Falha de I/O (`OSError`) interrompe o startup. |
+| **Autenticação por token atômico** | `backend/bridge/servidores.py` + `src-tauri/src/main.rs` | Token criptográfico de 32 bytes (`secrets.token_hex(32)`) gerado a cada inicialização do backend e salvo atomicamente via `.tmp` + `os.replace()` em `frontend-tauri/shared/.bridge_token` (permissão `0o600` em POSIX). Header `Authorization: Bearer <token>` obrigatório para todas as rotas exceto `/ping` e `/health`. O Rust relê o arquivo a cada requisição e injeta o header. Falha de I/O (`OSError`) interrompe o startup. |
 | **CORS restrito por ambiente** | `backend/core/config.py` + `backend/main.py` | Controlado por `MARIA_ENV` (padrão: `"production"`). Em produção, aceita apenas origens do webview (`tauri://localhost`, `http://tauri.localhost`). `http://localhost:5173` (Vite dev server) é liberado **apenas** quando `MARIA_ENV=development`. |
 | **Thread-Safety da Conexão SQLite** | `backend/database/connection.py` | Conexão com `check_same_thread=False` protegida por `threading.Lock()` (*double-checked locking*), impedindo `ProgrammingError` em threads simultâneas do Flask. `PRAGMA busy_timeout = 5000` evita bloqueios imediatos sob concorrência. |
 | **CSP Restritiva** | `frontend-tauri/src-tauri/tauri.conf.json` | `default-src 'self'`; `connect-src` limitado à bridge (`http://127.0.0.1:8081`) e ao IPC nativo do Tauri. |
@@ -70,21 +70,21 @@ curl -X POST http://127.0.0.1:8081/chat \
 
 ### 2. Requisição autenticada com token válido (deve retornar 200 OK)
 ```powershell
-$token = Get-Content shared\.bridge_token
-curl -X POST http://127.0.0.1:8081/chat `
-  -H "Content-Type: application/json" `
-  -H "Authorization: Bearer $token" `
-  -d '{"id":"1","comando":"ping","dados":{}}'
+$token = (Get-Content frontend-tauri\shared\.bridge_token -Raw).Trim()
+Invoke-RestMethod -Uri http://127.0.0.1:8081/chat -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType 'application/json' `
+  -Body '{"id":"1","comando":"ping","dados":{}}'
 ```
 *Resposta esperada:* `{"dados":"pong","id":"1","mensagemErro":null,"status":"ok"}` (HTTP 200).
 
 ### 3. Tentativa de Path Traversal (deve ser bloqueada)
 ```powershell
-$token = Get-Content shared\.bridge_token
-curl -X POST http://127.0.0.1:8081/chat `
-  -H "Content-Type: application/json" `
-  -H "Authorization: Bearer $token" `
-  -d '{"id":"2","comando":"resumir_documento","dados":{"caminho":"../../etc/passwd"}}'
+$token = (Get-Content frontend-tauri\shared\.bridge_token -Raw).Trim()
+Invoke-RestMethod -Uri http://127.0.0.1:8081/chat -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType 'application/json' `
+  -Body '{"id":"2","comando":"resumir_documento","dados":{"caminho":"../../etc/passwd"}}'
 ```
 *Resposta esperada:* Erro informando que o caminho está fora das pastas permitidas.
 
@@ -107,6 +107,25 @@ curl -I -X OPTIONS http://127.0.0.1:8081/chat `
 | **P2** | Sanitizar mensagens de log para evitar exposição de caminhos absolutos de usuários | 📋 Planejado |
 | **P3** | Assinatura de código digital (Authenticode no Windows e Codesign no macOS) para o instalador de produção | 📋 Planejado (Fase de Distribuição) |
 | **P3** | Atualização contínua de dependências de desenvolvimento do ecossistema Vite/Node | 🔄 Contínuo |
+| **P3** | Confirmar em cada auditoria que `frontend-tauri/shared/.bridge_token` não volta a ser rastreado (ver §5.1) | ✅ Documentado (2026-09-10) |
+
+### 5.1 Achados históricos registrados
+
+#### Exposição histórica de token do bridge em commits versionados (2026-09-10)
+
+**Achado:** o ficheiro `frontend-tauri/shared/.bridge_token` esteve **rastreado** no repositório e foi alterado em **12 commits** entre 2026-08-30 e 2026-09-03, presentes no histórico de `main` e `develop` (ex.: `600fed7`, `b2152f6`, `bf0fa67`, `2fac499`, `26f588f`). O ficheiro **já não existe** na árvore atual (removido e coberto pelo `.gitignore` §15), mas os valores antigos continuam recuperáveis a partir da história do GitHub.
+
+**Avaliação de impacto: BAIXO**
+- O token é gerado por `secrets.token_hex(32)` a cada arranque do backend (§2, P1) — qualquer valor histórico está **obsoleto** e não autentica nada nas execuções atuais.
+- A API escuta apenas em `127.0.0.1`, sem exposição de rede.
+- Não há indícios de uso indevido.
+
+**Decisão: NÃO reescrever o histórico** (`git filter-repo` / `filter-branch`). Justificação: invalidaria todos os hashes do repositório, quebraria referências de branches/PRs e é desproporcionado face a um segredo obsoleto por desenho. Registado aqui por **transparência** e para memória de auditoria.
+
+**Ações de acompanhamento:**
+1. Manter `.bridge_token` no `.gitignore` (§15) e confirmar em cada auditoria que o ficheiro não volta a ser rastreado — `git ls-files` filtrado por `bridge_token` deve ser **vazio**.
+2. Ao arquivar patches de branches antigas, **excluir explicitamente** esse caminho. Foi o procedimento aplicado em `docs/arquivo/patches/2026-09-02_language-check-fixture-planilha.patch`, gerado com `git format-patch --binary ... -- ':!frontend-tauri/shared/.bridge_token'` (verificado: 0 ocorrências de `bridge_token` no ficheiro).
+3. Se o repositório se tornar público em definitivo e se ainda se pretender purgar, fazê-lo **antes** da primeira tag de release — ciente do custo de reescrita integral.
 
 ---
 

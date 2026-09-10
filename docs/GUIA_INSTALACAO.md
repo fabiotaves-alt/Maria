@@ -1,8 +1,9 @@
 ﻿# Guia Completo de Instalação e Configuração — MARIA
 
-**Versão:** v4.1.1  
-**Última atualização:** 2026-08-31  
+**Versão:** v4.2.5-dev  
+**Última atualização:** 2026-09-09  
 **Ambiente de Referência:** Windows 10 (1809+) ou Windows 11 (PowerShell)  
+**Gerenciador Python canônico:** `uv` + `pyproject.toml` (fallback: `pip install -r requirements.txt`)
 
 Este documento é o guia definitivo para configurar do zero o ambiente de desenvolvimento e execução do monorepo **MARIA**, incluindo ferramentas de sistema, ambiente Python, frontend Tauri/React, servidor LLM local (`llama-server`) e transcrição de áudio local (`whisper.cpp`).
 
@@ -31,6 +32,8 @@ Este documento é o guia definitivo para configurar do zero o ambiente de desenv
 ---
 
 ## 2. Instalação das Ferramentas Base (Windows)
+
+> Canônico: `uv sync --extra dev` (ver `pyproject.toml`). `pip install -r requirements.txt` abaixo é fallback sem uv.
 
 Abra o **PowerShell como Administrador** e utilize o `winget` para instalar todas as ferramentas de uma vez:
 

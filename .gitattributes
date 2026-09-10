@@ -1,0 +1,10 @@
+# Patches arquivados em docs/arquivo/patches/
+# Preservar os bytes exatos (LF) de cada patch: são aplicáveis de volta com
+# `git am`. A conversão automática LF->CRLF (core.autocrlf=true no Windows)
+# introduziria CR em cada linha e corromperia as partes binárias
+# ("GIT binary patch", base85) das fixtures .xlsx, tornando o patch inaplicável.
+docs/arquivo/patches/*.patch -text
+
+# Nota de contexto: preservar a codificação exata do README que acompanha
+# cada patch (documenta a proveniência e o motivo do arquivamento).
+docs/arquivo/patches/*.md -text

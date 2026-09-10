@@ -1,0 +1,426 @@
+{
+  "meta": {
+    "id_modelo": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+    "modelo_quantizacao": "Q4_K - Medium",
+    "data_execucao": "2026-09-04T21:07:18.791097",
+    "total_tarefas": 2,
+    "repeticoes_por_tarefa": 3,
+    "versao_benchmark": "2.0",
+    "system_prompt_hash": "7263f4690a5b",
+    "system_prompt_completo": "Você é MARIA, assistente de escritório. Cria e edita planilhas Excel e documentos Word usando ferramentas. SEMPRE responda em português do Brasil.\n\n## Como chamar uma ferramenta\nPara criar ou editar arquivo, responda APENAS com a chamada, em UMA linha, sem texto antes ou depois, sem ponto final:\n- Planilha nova: criar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n- Documento novo: criar_documento: [\"nome_arquivo\", \"Título\", \"conteúdo\"]\n- Editar planilha: editar_planilha: [\"nome_arquivo\", [\"Coluna1\", \"Coluna2\"]]\n\nRegras: \"colunas\" é SEMPRE lista de strings; NÃO adicione explicações à chamada; nomes inseguros (\"/\", \"..\", \"*\") são corrigidos pelo sistema — chame normalmente; preencha TODOS os campos obrigatórios. A confirmação é automática após a tool call.\n\n## Quando NÃO chamar ferramenta\n- Cumprimentos, apresentações ou perguntas gerais: responda em texto curto.\n- Editar planilha JÁ CRIADA na conversa: ela EXISTE, chame \"editar_planilha\".\n- Editar planilha NÃO mencionada antes: chame \"listar_arquivos\" primeiro.\n\n## Conteúdo de documento\nEm \"criar_documento\", se o usuário não deu o conteúdo completo, seja breve, coerente e razoável. Documento narrativo pode ser mais longo; demais respostas, CURTAS.\n\n## Correção de erro\nAo receber ERRO de chamada inválida (campo ausente, tipo incorreto, nome inválido), corrija SOMENTE o campo apontado e chame de novo na próxima resposta, sem desculpas nem perguntas.",
+    "llama_base_url": "http://localhost:8080",
+    "llama_num_ctx_config": 4096,
+    "ctx_size_detectado": 4096,
+    "ctx_fonte": "models",
+    "system_prompt_tokens": 414,
+    "fator_calibracao_tokens": 1.1629213483146068,
+    "timeout_por_chamada_s": 300,
+    "sampler_params": {
+      "temperature": 0.1,
+      "repeat_last_n": 64,
+      "repeat_penalty": 1.1,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "dry_multiplier": 0.0,
+      "dry_base": 1.75,
+      "dry_allowed_length": 2,
+      "dry_penalty_last_n": 64,
+      "top_k": 40,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "xtc_probability": 0.0,
+      "xtc_threshold": 0.1,
+      "typical_p": 1.0,
+      "top_n_sigma": -1.0
+    }
+  },
+  "individual": [
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"planilha_inexistente\", [\"A\"]]",
+      "latency_ms": 45010.87990000087,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "planilha_inexistente",
+        "colunas": [
+          "A"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 14,
+      "tokens_por_segundo": 0.3,
+      "args_correct": true,
+      "ttft_ms": 39403.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha planilha_inexistente com a coluna A."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"planilha_inexistente\", [\"A\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop"
+    },
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"planilha_inexistente\", [\"A\"]]",
+      "latency_ms": 8102.626399995643,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "planilha_inexistente",
+        "colunas": [
+          "A"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 14,
+      "tokens_por_segundo": 1.7,
+      "args_correct": true,
+      "ttft_ms": 2503.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha planilha_inexistente com a coluna A."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"planilha_inexistente\", [\"A\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop"
+    },
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"planilha_inexistente\", [\"A\"]]",
+      "latency_ms": 8070.301300002029,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "planilha_inexistente",
+        "colunas": [
+          "A"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 14,
+      "tokens_por_segundo": 1.7,
+      "args_correct": true,
+      "ttft_ms": 2494.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Edite a planilha planilha_inexistente com a coluna A."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"planilha_inexistente\", [\"A\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop"
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"planilha_nao_existe\", [\"X\", \"Y\"]]",
+      "latency_ms": 11595.85060000245,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "planilha_nao_existe",
+        "colunas": [
+          "X",
+          "Y"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 1.6,
+      "args_correct": true,
+      "ttft_ms": 4394.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha planilha_nao_existe com as colunas X e Y."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"planilha_nao_existe\", [\"X\", \"Y\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop"
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"planilha_nao_existe\", [\"X\", \"Y\"]]",
+      "latency_ms": 9867.579300000216,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "planilha_nao_existe",
+        "colunas": [
+          "X",
+          "Y"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 1.8,
+      "args_correct": true,
+      "ttft_ms": 2516.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha planilha_nao_existe com as colunas X e Y."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"planilha_nao_existe\", [\"X\", \"Y\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop"
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B",
+      "category": "editar_planilha",
+      "model": "ggml-org/Qwen2.5-Omni-7B-GGUF:Q4_K_M",
+      "tool_detected": "editar_planilha",
+      "tool_correct": false,
+      "confirmation_completed": true,
+      "keyword_match": true,
+      "runtime_ok": true,
+      "final_message": "editar_planilha: [\"planilha_nao_existe\", [\"X\", \"Y\"]]",
+      "latency_ms": 10058.56119999953,
+      "errors": [],
+      "raw_tool_args": {
+        "nome_arquivo": "planilha_nao_existe",
+        "colunas": [
+          "X",
+          "Y"
+        ]
+      },
+      "language_ok": true,
+      "tokens_gerados": 18,
+      "tokens_por_segundo": 1.8,
+      "args_correct": true,
+      "ttft_ms": 2511.0,
+      "prompt_enviado": [
+        {
+          "role": "system",
+          "content": "prompt do system injetado"
+        },
+        {
+          "role": "user",
+          "content": "Atualize a planilha planilha_nao_existe com as colunas X e Y."
+        }
+      ],
+      "resposta_bruta_modelo": "editar_planilha: [\"planilha_nao_existe\", [\"X\", \"Y\"]]",
+      "sampler_params": {
+        "temperature": 0.1,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "top_k": 40,
+        "top_p": 0.95,
+        "min_p": 0.05,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.1,
+        "typical_p": 1.0,
+        "top_n_sigma": -1.0
+      },
+      "contexto_ok": true,
+      "correction_attempts": 0,
+      "confirmacao_elegivel": false,
+      "parse_suspeito": false,
+      "finish_reason": "stop"
+    }
+  ],
+  "agregado_por_tarefa": [
+    {
+      "task_id": 22,
+      "task_name": "Edição inexistente A",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 20394.602533332847,
+      "stddev_latency_ms": 21318.32767298063,
+      "avg_tokens_por_segundo": 1.2333333333333332,
+      "avg_tokens_gerados": 14.0
+    },
+    {
+      "task_id": 23,
+      "task_name": "Edição inexistente B",
+      "category": "editar_planilha",
+      "execucoes": 3,
+      "tool_accuracy": 0.0,
+      "confirmation_success_rate": 1.0,
+      "keyword_match_rate": 1.0,
+      "runtime_success_rate": 1.0,
+      "avg_latency_ms": 10507.330366667398,
+      "stddev_latency_ms": 947.5102877102088,
+      "avg_tokens_por_segundo": 1.7333333333333334,
+      "avg_tokens_gerados": 18.0
+    }
+  ]
+}

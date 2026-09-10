@@ -11,7 +11,15 @@ import secrets
 import sys
 from pathlib import Path
 
-from backend.core.config import MARIA_ENV
+from datetime import datetime, timezone
+
+from backend.config import (
+    LLAMA_BASE_URL,
+    LLAMA_MODEL,
+    MARIA_ENV,
+    PASTA_ARQUIVOS_GERADOS,
+    __version__,
+)
 from backend.core.maria_controller import MariaController
 from backend.core.paths import RAIZ_MONOREPO
 from backend.bridge.comandos import _despachar_comando, _responder_bridge
@@ -75,7 +83,7 @@ def _modo_bridge(modelo: str | None = None):
 def _carregar_token_api() -> str:
     """
     Gera o token da API bridge HTTP e o persiste atomicamente em
-    `shared/.bridge_token`, restringindo a permissão de leitura ao
+    `frontend-tauri/shared/.bridge_token`, restringindo a permissão de leitura ao
     usuário atual (POSIX). O frontend Tauri relê este arquivo a cada
     chamada (ver `call_python_backend` em main.rs), portanto não é
     necessário nenhum mecanismo adicional de sincronização.
@@ -127,8 +135,8 @@ def _criar_app_http(controller: "MariaController", token: str):
 
     @app.before_request
     def _exigir_autenticacao():
-        """Rejeita requisições sem token válido (exceto /ping)."""
-        if request.path == "/ping":
+        """Rejeita requisições sem token válido (exceto /ping e /health)."""
+        if request.path in ("/ping", "/health"):
             return None
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer ") or not secrets.compare_digest(auth[7:], token):
@@ -155,6 +163,83 @@ def _criar_app_http(controller: "MariaController", token: str):
     @app.route("/ping", methods=["GET"])
     def _health_check():
         return jsonify({"status": "ok", "dados": "pong"})
+
+    @app.route("/health", methods=["GET"])
+    def _rota_health():
+        """
+        Health check estendido, sem autenticação (mesmo tratamento do /ping).
+
+        Retorna HTTP 200 sempre — o estado vai no corpo:
+        {"status": "healthy"|"degraded", "timestamp", "checks", "versao", "modelo"}.
+        Nenhuma exceção deve propagar: falhas viram `ok: false` no check
+        correspondente e o status geral vira "degraded".
+        """
+        import time
+
+        try:
+            import requests
+        except ImportError:
+            requests = None
+
+        checks: dict = {}
+
+        # 1) llama-server: GET /v1/models com timeout de 2s
+        inicio = time.monotonic()
+        try:
+            if requests is None:
+                raise RuntimeError("Biblioteca 'requests' não instalada.")
+            resposta = requests.get(f"{LLAMA_BASE_URL}/v1/models", timeout=2)
+            checks["llama_server"] = {
+                "ok": bool(resposta.ok),
+                "latencia_ms": round((time.monotonic() - inicio) * 1000),
+            }
+            if not resposta.ok:
+                checks["llama_server"]["erro"] = f"HTTP {resposta.status_code}"
+        except Exception as error:  # noqa: BLE001 — health nunca propaga exceção
+            checks["llama_server"] = {
+                "ok": False,
+                "latencia_ms": round((time.monotonic() - inicio) * 1000),
+                "erro": str(error),
+            }
+
+        # 2) banco de dados: SELECT 1 na conexão SQLite
+        try:
+            from backend.database.connection import get_connection
+
+            get_connection().execute("SELECT 1").fetchone()
+            checks["banco_dados"] = {"ok": True, "erro": None}
+        except Exception as error:  # noqa: BLE001
+            checks["banco_dados"] = {"ok": False, "erro": str(error)}
+
+        # 3) disco: espaço livre na pasta de arquivos gerados (mín. 500 MB)
+        try:
+            import psutil
+
+            pasta_disco = Path(PASTA_ARQUIVOS_GERADOS)
+            if not pasta_disco.is_absolute():
+                pasta_disco = Path(RAIZ_MONOREPO) / pasta_disco
+            caminho_disco = pasta_disco if pasta_disco.exists() else Path(RAIZ_MONOREPO)
+            uso = psutil.disk_usage(str(caminho_disco))
+            limite_bytes = 500 * 1024 * 1024
+            checks["disco"] = {
+                "ok": uso.free >= limite_bytes,
+                "livre_gb": round(uso.free / (1024**3), 2),
+            }
+        except Exception as error:  # noqa: BLE001
+            checks["disco"] = {"ok": False, "livre_gb": None, "erro": str(error)}
+
+        saudavel = all(item.get("ok") for item in checks.values())
+        return jsonify(
+            {
+                "status": "healthy" if saudavel else "degraded",
+                "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "checks": checks,
+                "versao": __version__,
+                "modelo": (
+                    controller.modelo if controller is not None else None
+                ) or LLAMA_MODEL,
+            }
+        )
 
     return app
 
