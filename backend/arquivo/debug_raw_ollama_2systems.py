@@ -7,7 +7,7 @@ Uso:
 import sys
 import json
 import requests
-from backend.core.config import (
+from backend.config import (
     OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_NUM_CTX,
     OLLAMA_NUM_PREDICT, OLLAMA_NUM_THREAD, OLLAMA_KEEP_ALIVE,
     OLLAMA_ENVIAR_THINK_PARAM, OLLAMA_THINK_HABILITADO, OLLAMA_TEMPERATURE_TOOLS,

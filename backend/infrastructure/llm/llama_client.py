@@ -15,7 +15,7 @@ from pathlib import Path
 
 import requests
 
-from backend.core.config import (
+from backend.config import (
     LLAMA_BASE_URL,
     LLAMA_MODEL,
     LLAMA_TIMEOUT,
@@ -84,7 +84,7 @@ def _detectar_degeneracao(texto: str, minimo: int = 100, tamanho_bloco_max: int 
 def montar_mensagens_com_reforco(historico: list[dict] | None, mensagem_usuario: str) -> list[dict]:
     mensagens = list(historico or [])
     if not mensagens or mensagens[0].get("role") != "system":
-        from backend.core.config import MARIA_SYSTEM_PROMPT
+        from backend.config import MARIA_SYSTEM_PROMPT
         mensagens.insert(0, {"role": "system", "content": MARIA_SYSTEM_PROMPT})
 
     mensagens.append({"role": "user", "content": mensagem_usuario})

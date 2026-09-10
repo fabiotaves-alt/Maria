@@ -32,6 +32,6 @@ BENCHMARK_TIMEOUT_POR_CHAMADA = int(
 
 # Absorvido de core/config.py (fase B2 — benchmark como consumer isolado).
 # Replica a leitura de env com o mesmo default do config da aplicação (4096),
-# sem importar backend.core.config — elimina o acoplamento do pacote de
+# sem importar backend.config — elimina o acoplamento do pacote de
 # benchmark ao módulo de configuração da aplicação.
 LLAMA_NUM_CTX = int(os.getenv("LLAMA_NUM_CTX", "4096"))

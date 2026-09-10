@@ -36,7 +36,7 @@ _requests = requests
 
 logger = logging.getLogger(__name__)
 
-from backend.core.config import LLAMA_BASE_URL, LLAMA_MODEL, MARIA_SYSTEM_PROMPT
+from backend.config import LLAMA_BASE_URL, LLAMA_MODEL, MARIA_SYSTEM_PROMPT
 from .benchmark_config import LLAMA_NUM_CTX
 from backend.infrastructure.llm.llama_client import (
     LlamaClient,
@@ -564,7 +564,7 @@ def _run_benchmark_programatico(
     )
 
     # Sobrescreve o modelo no config em runtime (sem alterar ENV permanentemente)
-    import backend.core.config as _cfg
+    import backend.config as _cfg
     _cfg.LLAMA_MODEL = modelo
     # Atualiza também o binding deste módulo (importado por valor no topo): o
     # warmup compara o modelo detectado com LLAMA_MODEL para emitir aviso de

@@ -4,15 +4,17 @@
 
 **Versão Atual:** v4.2.5  
 **Última alteração:** 2026-09-09  
-**Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — Fase 0 (parser JSON + validação determinística) e Fase 1-4 (camadas domain/application/infrastructure/interfaces + re-exports) **commitadas** na branch; smoke test manual CLI (Qwen2.5-Omni-3B) **aprovado** (6/6 itens, `criar_planilha` real OK); 4 problemas documentados no backlog (P0 JSON na UI, P0 gap "adicionar", P1 fidelidade de dados, P2 banner); B0.5 baseline capturado (3B e 7B, 28 tasks); pendente B0.9 smoke completo; **suíte verde (265 passed)**  
+**Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — Fase 0 (parser JSON + validação determinística) e Fase 1-4 (camadas domain/application/infrastructure/interfaces + re-exports) **commitadas** na branch; smoke test manual CLI (Qwen2.5-Omni-3B) **aprovado** (6/6 itens, `criar_planilha` real OK); 4 problemas documentados no backlog (P0 JSON na UI, P0 gap "adicionar", P1 fidelidade de dados, P2 banner); B0.5 baseline capturado (3B e 7B, 28 tasks); pendente B0.9 smoke completo; **suíte verde (283 passed)**; **B7a: `core/` esvaziado (compat por 1 versão via `DeprecationWarning`) e `config.py` movido para `backend/config.py`**  
 **Relatório integração frontend (2026-09-09):** `docs/RELATORIO_INTEGRACAO_FRONTEND_POS_REFATORACAO_2026-09-09.md` — inventário 21 comandos bridge, matriz F1–F5, spec seção Desempenho; ver entrada do `CHANGELOG.md`.
 **Auditoria de documentação (2026-09-09):** 4 legados arquivados em `docs/arquivo/` (GUIA_DESENVOLVIMENTO v1, MELHORIAS_RELATORIO v4.1.1, RELATORIO_BENCHMARK_DIAGNOSTICO 2026-09-04, TO DO.txt da raiz) + 8 docs atualizados (README, GUIA_TESTES, ARQUITETURA, GUIA_INSTALACAO, REGRAS_LLAMA, v2 canônico, install-dependencies.ps1 `--host 127.0.0.1`) + relatório `docs/RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; ver entrada do `CHANGELOG.md`.
 **Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`  
 **Débito técnico FIX-4 — ✅ RESOLVIDO (ciclo 2026-09-08):** `encadear_leitura_stream` agora aceita o callback `apos_cada_leitura(nome, argumentos)` (chamado antes de cada leitura) e o `maria_runner` registra as ferramentas intermediárias em `cadeia_ferramentas` — commit na branch `fix/fix4-cadeia-ferramentas-encadeamento`; 3 testes novos; suíte 265.
 **B3 (2026-09-09):** storage SQLite + report v2 na branch `feat/b3-storage-report-v2` — fecha o débito B2 (LLAMA_NUM_CTX) e entrega report v2; suíte 265.
 **B4 (2026-09-09):** Fase B4 do `plano_mestre_v5.md` (Seção 7), **escopo reduzido**, na branch `feat/b4-tasks-v2`: schema `linhas_esperadas` + `limite_conhecido`, `_verificar_linhas_esperadas` (nunca lança), Task 26 marcada `limite_conhecido=True`, fechamento INCONS-1 (fix do acoplamento em `maria_runner.py` + teste de integração ponta-a-ponta via `run()`); suíte 274. **D6 (nova Task 26) e V6 (coerção numérica) adiados — fora desta entrega.**
+**R1 (2026-09-09):** Fase R1 (R1.1 + R1.2 + R1.4; R1.3/R1.5 adiadas) — Task 21 reformulada ao padrão de T22/T23 (nome neutro `vendas_dezembro`, execução real + erro) e T3–T6 com keywords não-triviais `["criada","sucesso"]` (M-5); teste novo congela a decisão **(A)** (segunda ferramenta de escrita após erro real ⇒ `tool_correct=False`, sem tocar `maria_runner.py`); suíte **284**; ver entrada do `CHANGELOG.md`.
 **B6 (2026-09-09):** Fase B6 do `plano_mestre_v5.md` (judge experimental + `response_format` por ferramenta) na branch `feat/b6-judge-response-format`; judge opt-in (`--judge`, temperatura 0.0, rubrica 4 eixos `ok/falha`, degradação graciosa, nunca calibrado) + harness `calibracao_judge.py` para uso manual futuro; suíte **283**; pendências: calibração manual (~30 execuções rotuladas) e validação live contra llama-server real; ver entrada do `CHANGELOG.md`.
 **Registro de teste — auto-correção 3B (2026-09-09):** harness corrigido versionado em `docs/dev_base/teste_auto_correcao_3b.ps1` (veredito **case-sensitive** + conjunto de referência com o pedido do usuário — o original usava `-in`, case-insensitive, e produzia falso positivo) + relatório `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`; resultado 3/3 AUTO-CONSISTENTE mas DIVERGENTE (o modelo rebaixou a coluna `Peso`→`peso` em vez de corrigir as linhas) e tradução `笔记本`→"livro" errada mantida; docs-only (suíte 274 inalterada); ver entrada do `CHANGELOG.md`.
+**B7a (2026-09-09):** Fase B7a do `plano_mestre_v5.md` (Seção 12, Decisões A/B/C1) na branch `feat/b7a-core-cleanup`: `config.py` movido para `backend/config.py` (+ `system_prompt.txt`); `core/config.py` e os 15 stubs de re-export passam a emitir `DeprecationWarning`; duplicatas mortas `core/tool_call_json_parser.py`/`core/validacao_tool_call.py` deletadas (−348 linhas — produção já usava as fontes reais); novo `domain/tool_call_contracts.py` (fonte única de `CAMPOS_OBRIGATORIOS`, corrige violação `domain→infrastructure`); imports de produção migrados para `backend.config`; **283 testes passando**, cobertura **75%**; ver entrada do `CHANGELOG.md`.
 
 ---
 
@@ -31,7 +33,7 @@
 | **Fase 4** | Infrastructure (llm/, tools/, handlers) | ✅ Aplicado (working tree; suíte verde) | 4-6h |
 | **Fase 5** | Database (mover `database/` para `infrastructure/database/`) | ⏳ Pendente | 2-3h |
 | **Fase 6** | Schemas Pydantic (validação de tool calls) | ⏳ Pendente | 3-4h |
-| **Fase 7** | Testes e Benchmark (atualizar @patch, imports) | ✅ Imports/ports concluídos (B2: `backend/benchmark/` → `backend/benchmarks/maria_bench/`, sem `core.*`/`sys.path.insert`); **débito:** `analysis/report.py` e `servidor_llama.py` ainda importam `backend.core.*` | 6-10h |
+| **Fase 7** | Testes e Benchmark (atualizar @patch, imports) | ✅ Imports/ports concluídos (B2: `backend/benchmark/` → `backend/benchmarks/maria_bench/`, sem `core.*`/`sys.path.insert`); **débito de `backend.core.*` em `report.py`/`servidor_llama.py` RESOLVIDO na B7a** (`servidor_llama.py` → `backend.config`; `report.py` já sem `core.*`); stubs `core/` emitem `DeprecationWarning` | 6-10h |
 
 **Total estimado:** 20-30 horas (2.5-4 dias úteis) — estimativa revisada (proposta original: 12-18h).
 
@@ -61,7 +63,7 @@
 | Segurança & Concorrência | 95% | Token atômico, CORS por ambiente, SQLite thread-safe, PATH hijacking |
 | Frontend (Tauri v2 + React) | 92% | Interface completa, temas, persistência rusqlite, sidecar |
 | Integração Bridge (HTTP/Sidecar) | 95% | 19 comandos bridge, autenticação Bearer, health check; transporte e protocolo separados em `backend/bridge/` (`servidores.py` + `comandos.py`) |
-| **Total do Projeto (v4.x)** | **~96%** | MVP v4 estável, pronto para empacotamento final |
+| **Total do Projeto (v4.x)** | **~97%** | MVP v4 estável, pronto para empacotamento final; B7a concluiu o esvaziamento do `core/` (compat por 1 versão, com `DeprecationWarning`) |
 
 ---
 
@@ -69,6 +71,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (B7a — core/ esvaziado)** | 2026-09-09 | Fase B7a do `plano_mestre_v5.md` (Seção 12, Decisões A/B/C1): `config.py` → `backend/config.py` (+ `system_prompt.txt`) com stub deprecado; 15 stubs `core/*` com `DeprecationWarning`; duplicatas mortas deletadas (−348 linhas); `domain/tool_call_contracts.py` (fonte única de `CAMPOS_OBRIGATORIOS`); imports de produção → `backend.config`; **283 testes passando**, cobertura **75%** | ✅ Concluída (branch `feat/b7a-core-cleanup`) |
 | **4.2.5-dev (Registro teste auto-correção 3B)** | 2026-09-09 | Harness versionado `docs/dev_base/teste_auto_correcao_3b.ps1` (UTF-8 c/ BOM p/ PS 5.1) com veredito corrigido (case-sensitive `-cnotcontains` + referência do pedido) e relatório `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`; resultado **3/3 AUTO-CONSISTENTE mas DIVERGENTE** (modelo rebaixou coluna `Peso`→`peso` em vez de corrigir as linhas); tradução `笔记本`→"livro" errada mantida (reforça D2/D6); **docs-only — suíte 274 inalterada** | ✅ Commitada (branch chore/registro-teste-auto-correcao-3b) |
 | **4.2.5-dev (B5 — CLI unificada)** | 2026-09-09 | Fase B5 do plano_mestre_v5.md (Seção 10): `cli.py` (novo, wrapper fino run/report/compare); override `--temperature` com precedência retry→self→default; `report <run_dir>` via log.json (`carregar_resultados_de_log` extraído de compare_runs, DRY); integração SQLite↔report adiada; 4 itens adiados registrados (judge/B6, --ctx-size, --system-prompt, empacotamento); **280 testes passando** (274 + 6) | ✅ Commitada (branch feat/b5-cli-unificada) |
 | **4.2.5-dev (B4 — linhas_esperadas + INCONS-1)** | 2026-09-09 | Fase B4 do plano_mestre_v5.md (Seção 7), **escopo reduzido**: `linhas_esperadas` e `limite_conhecido` em MariaTask/MariaTaskResult; `_verificar_linhas_esperadas` (nunca lança, case-insensitive); Task 26 original `limite_conhecido=True` (fora do denominador de métricas); fix do acoplamento em `maria_runner.py` (captura de `caminho_arquivo_gerado` desacoplada de `coluna_dados_obrigatoria`); teste de integração ponta-a-ponta via `run()`; **274 testes passando** (272 baseline + 2 novos). **D6 (nova Task 26) e V6 (coerção numérica) ADIADOS — fora desta entrega** | ✅ Commitada (branch feat/b4-tasks-v2) |
@@ -127,6 +130,7 @@
 | **4.2.5-dev (Item A — Task 26)** | 2026-09-07 | Validação de conteúdo real no arquivo gerado pela Task 26: checagem aditiva abre o `.xlsx` e exige a coluna `english description` preenchida em todas as linhas (`coluna_dados_obrigatoria`/`dados_arquivo_validos`; erro `DadosIncompletos`) — elimina o falso positivo de arquivo só-cabeçalho; **269 testes passando** (262 baseline + 7 novos) | ✅ Concluída |
 | **4.2.5-dev (Item B — colunas)** | 2026-09-07 | Validação por item em `colunas`: cada elemento deve ser `str` não-vazia — lista de dicts (modo de falha 2 do bug de `linhas`) agora levanta `ValueError` claro na validação, antes de estourar `InvalidIndexError` no pandas; **273 testes passando** (269 baseline + 4 novos) | ✅ Concluída |
 | **4.2.5-dev (B6 — judge experimental + response_format)** | 2026-09-09 | LLM-as-judge em-processo opt-in (`--judge`, temperatura 0.0, rubrica 4 eixos `ok`/`falha`, degradação graciosa, nunca calibrado) + harness de calibração manual (`calibracao_judge.py`) + `response_format` por ferramenta opt-in (`--response-format-schema`, schema derivado de `TOOLS_SCHEMA`) + `LlamaClient.chat` aceita `temperature=0` sem tools; **283 testes passando** | ✅ Concluída |
+| **4.2.5-dev (R1 — tasks do benchmark: M-5/M-1 + decisão A)** | 2026-09-09 | Fase R1 (R1.1+R1.2+R1.4; R1.3/R1.5 adiadas): Task 21 reformulada (nome neutro `vendas_dezembro`, `tools_obrigatorios=["editar_planilha"]`, `confirm_sequence=["sim"]`) e T3–T6 com keywords não-triviais `["criada","sucesso"]` (M-5); teste novo fixa a decisão **(A)** — segunda ferramenta de escrita após erro real ⇒ `tool_correct=False` (sem alterar `maria_runner.py`/`task_schema.py`); **284 testes passando** (283 + 1) | ✅ Commitada (branch de trabalho, sem push) |
 | **4.3.0** | *Planejado* | Instalador final *one-click* com Python embeddable e modelo pré-configurado | 📋 Planejado |
 
 ---
@@ -249,6 +253,16 @@
 - Report: seção `## LLM-as-Judge (EXPERIMENTAL, NAO CALIBRADO)` renderizada só quando há `judge_veredito`, com contagem `ok`/`falha`/`erro` por eixo.
 - Suíte: **283 passed** (280 baseline B5 + 3 calibração), sem regressão.
 - Pendências explícitas (fora desta entrega): **calibração manual** do judge (~30 execuções rotuladas, decisão humana documentada) e **validação live** de judge/`response_format` contra llama-server real.
+
+### R1 — Reformulação de tasks do benchmark (M-5/M-1) + regressão da decisão A (2026-09-09)
+
+- Fase R1 (escopo aprovado: R1.1 + R1.2 + R1.4; **R1.3/R1.5 adiadas**), na branch de trabalho atual, sem push.
+- **R1.1 (`tasks_edges.py`)**: Task 21 reformulada ao padrão determinístico de T22/T23 — `"Edite a planilha vendas_dezembro com a coluna Valor."` (nome neutro, sem pista de inexistência), `tools_obrigatorios=["editar_planilha"]`, `confirm_sequence=["sim"]` (antes `[]`, o que impedia a ferramenta de executar) e `expected_keywords` de inexistência; elimina o nome revelador `arquivo_que_nao_existe` (**M-1**).
+- **R1.2 (`tasks_core.py`)**: T3–T6 `expected_keywords=["planilha"]` → `["criada", "sucesso"]` (**M-5**); T11–T13 mantêm `["atualizada"]` (casam com o template real de `editar_planilha`).
+- **R1.4 (decisão A)**: novo `test_segunda_ferramenta_escrita_apos_erro_real_e_sempre_incorreta` em `TestMariaRunnerCadeiaFerramentas` — segunda ferramenta de escrita (`criar_planilha`) após o erro real ⇒ `tool_correct=False`; sem alterar `maria_runner.py`/`task_schema.py` (o guard existente já fixava a semântica; o teste apenas a congela). A cobertura pré-existente (`ClienteTeimoso`) só exercitava a re-chamada da MESMA ferramenta.
+- **Nota técnica (decisão de escopo):** o assert de `cadeia_ferramentas` foi removido do teste novo por ser suposição não verificada em runtime; pela leitura do código (`append` de `detected_name`), o valor esperado seria `["editar_planilha", "criar_planilha"]` — verificar em fase futura se o campo virar métrica.
+- Gates: `py_compile` `exit=0`; greps M-5/M-1 com **zero** ocorrências (`exit=1`); `pytest -q -k "not TestSegurancaApiHttp"` → `279 passed, 5 deselected`; suíte completa → **284 passed** (283 + 1 novo), 0 falhas.
+- Diff: `tasks_core.py` (+4/−4), `tasks_edges.py` (+1/−1), `test_maria.py` (+37) — 42 inserções, 5 remoções; nenhum arquivo fora dos 3 autorizados.
 
 ### ⚠️ B5 — itens adiados (registro formal, com motivo)
 

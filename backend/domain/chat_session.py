@@ -4,7 +4,7 @@ Responsável por manter o histórico da conversa e limitar o número de mensagen
 para evitar degradação de performance.
 """
 
-from backend.core.config import MARIA_SYSTEM_PROMPT
+from backend.config import MARIA_SYSTEM_PROMPT
 from backend.domain.confirmacao import ConfirmacaoAcao, interpretar_confirmacao
 
 
@@ -28,7 +28,7 @@ class ChatSession:
             max_mensagens: Número máximo de mensagens no histórico.
                           Se None, usa o valor de MAX_MENSAGENS_HISTORICO do config.py
         """
-        from backend.core.config import MAX_MENSAGENS_HISTORICO
+        from backend.config import MAX_MENSAGENS_HISTORICO
         self.max_mensagens = max_mensagens if max_mensagens is not None else MAX_MENSAGENS_HISTORICO
         self.historico: list[dict[str, str]] = []
         self._confirmacao = ConfirmacaoAcao()

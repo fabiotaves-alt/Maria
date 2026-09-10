@@ -2,6 +2,53 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — B7a: `core/` esvaziado (compat por 1 versão com `DeprecationWarning`) — 2026-09-09
+
+### 🧱 Limpeza estrutural (plano_mestre_v5.md §12 — Decisões A/B/C1)
+- **`config.py` movido**: `backend/core/config.py` → `backend/config.py` (raiz do backend, conforme estrutura-alvo do plano) e `system_prompt.txt` movido junto (`backend/system_prompt.txt`), preservando o carregamento relativo ao módulo. Ajuste obrigatório: `_obter_versao()` passou de `parent.parent.parent` para `parent.parent` — sem isso, ao subir um nível, `__version__` cairia silenciosamente no fallback `4.2.5` (verificado: lê `4.2.5` do `pyproject.toml`). Mensagem de erro do prompt atualizada para o novo path.
+- **`core/config.py` virou stub** de compatibilidade com `DeprecationWarning`; reexporta `backend.config` (`import *` **+ `__version__` explícito**, pois `import *` não exporta nomes com underscore e o bridge consome `__version__`).
+- **15 stubs de `core/`** (`chat_session`, `client_protocol`, `confirmacao`, `excel_handler`, `file_utils`, `interfaces`, `llama_client`, `manual_redacao`, `maria_controller`, `paths`, `router`, `session_storage`, `tool_chaining`, `tools_schema`, `word_handler`) agora emitem `DeprecationWarning` no import, apontando para a camada real.
+- **Duplicatas mortas deletadas:** `core/tool_call_json_parser.py` (cópia de `infrastructure/tools/tool_call_json_parser.py`, exercitada só por testes) e `core/validacao_tool_call.py` (cópia de `domain/validacao_tool_call.py`) — **−348 linhas duplicadas**; testes redirecionados para as fontes reais (sem `@patch` nesses caminhos).
+- **`domain/tool_call_contracts.py` (novo):** `CAMPOS_OBRIGATORIOS` como fonte única de domínio (lógica pura, sem I/O) — corrige a violação `domain→infrastructure` do validador; `infrastructure/tools/tools_schema.py` reexporta a constante (sem segunda definição).
+
+### 🔁 Imports migrados para `backend.config`
+- Produção: `application/` (3), `domain/` (2), `infrastructure/` (4), `bridge/` (2), `main.py` e `benchmarks/maria_bench/` (`run_benchmark.py` ×2, `servidor_llama.py`) — 19 ocorrências + 3 comentários sinérgicos. Zero imports de produção de `backend.core.config` fora do stub.
+- **Fora do escopo desta fase** (permanecem com o aviso C1): testes (`test_maria.py`, `validate_llama_server.py`), `bridge/comandos.py` (`backend.core.paths`) e a string informativa em `run_benchmark.py:359` (`backend/core/system_prompt.txt`).
+
+### 🧪 Testes
+- Suíte: **283 passed**, 0 falhas — baseline B6 preservado (11 `DeprecationWarning` esperados dos stubs legacy; nenhum teste usa `filterwarnings=error`).
+- Cobertura: **75%** (`--cov=backend`: 6720 statements, 1666 não cobertos).
+
+### ✅ Gates de aceite (T7)
+- G1 stub `core.config` dispara `DeprecationWarning` → OK; G2 sem referência às duplicatas deletadas → OK; G3 `CAMPOS_OBRIGATORIOS` definido apenas em `domain/tool_call_contracts.py` → OK; G4 sem `backend.core.config` em produção → OK; G5 `pytest` → 283 passed.
+- `import-linter` / contratos de camada ficam para a **B7b** (Decisão D: exceções documentadas para `application→infrastructure`, fora do escopo desta fase).
+
+## [4.2.5-dev] — R1: Reformulação de tasks do benchmark (M-5/M-1) + regressão da decisão A — 2026-09-09
+
+### 🧹 Escopo (fase R1 — apenas dados de task + testes do benchmark)
+- **R1.1 — Task 21 (`tasks_edges.py`):** reformulada para o padrão determinístico de T22/T23 — nome neutro (`vendas_dezembro`, sem pista de inexistência no texto), `tools_obrigatorios=["editar_planilha"]`, `confirm_sequence=["sim"]` (antes `[]`, o que impedia a ferramenta de executar de fato) e `expected_keywords` de inexistência. Elimina o nome revelador `arquivo_que_nao_existe` (**M-1**).
+- **R1.2 — T3–T6 (`tasks_core.py`):** `expected_keywords=["planilha"]` → `["criada", "sucesso"]` (**M-5** — keyword trivial que casava com qualquer frase contendo "planilha"; agora casa apenas com o template real de sucesso do executor `"Planilha criada com sucesso: <caminho>"`). T11–T13 mantêm `["atualizada"]` (não triviais, casam com `"Planilha atualizada com sucesso: ..."`).
+- **R1.4 — teste de regressão (decisão A):** novo `test_segunda_ferramenta_escrita_apos_erro_real_e_sempre_incorreta` em `TestMariaRunnerCadeiaFerramentas` — se, após o erro REAL da ferramenta (arquivo ausente), o modelo chamar uma SEGUNDA ferramenta de escrita (aqui `criar_planilha`, hipótese **B rejeitada**), o resultado é `tool_correct=False`. **Nenhuma alteração** em `maria_runner.py`/`task_schema.py`: o guard `detected_name is not None and detected_name != task.expected_tool` já produzia a semântica (A); o teste apenas a congela. Cobertura pré-existente cobria só a re-chamada da MESMA ferramenta (`ClienteTeimoso`).
+- **Fora de escopo:** R1.3/R1.5 (mecanismo de injeção de erro) adiadas.
+
+### 📝 Nota técnica (decisão de escopo — para não se perder)
+- No caminho "erro real de escrita → continuação com segunda ferramenta", o valor de `cadeia_ferramentas` **não foi assertado** no teste novo (suposição não verificada em runtime). Pela leitura do código (`maria_runner.py` faz `if detected_name not in cadeia_ferramentas: cadeia_ferramentas.append(detected_name)`), o valor esperado seria `["editar_planilha", "criar_planilha"]` — a verificar/assercionar em fase futura, caso o campo passe a alimentar métrica.
+
+### ✅ Gates (saída literal)
+- **Gate 1** (`py_compile` dos 3 arquivos): `exit=0`.
+- **Gate 2** (`grep expected_keywords=["planilha"] tasks_core.py`): **zero** ocorrências (`exit=1`, sem saída).
+- **Gate 3** (`grep arquivo_que_nao_existe tasks_edges.py`): **zero** ocorrências (`exit=1`, sem saída).
+- **Gate 4a** (`pytest backend/tests -q -k "not TestSegurancaApiHttp"`): `279 passed, 5 deselected` — **0 falhas** (total menor que a suíte cheia apenas pelos 5 desselecionados).
+- **Gate 4b** (suíte completa, sem exclusão): `284 passed` — **0 falhas** (283 baseline B6 + 1 teste novo).
+
+### 📦 Diff
+```
+ backend/benchmarks/maria_bench/tasks/tasks_core.py |  8 ++---
+ backend/benchmarks/maria_bench/tasks/tasks_edges.py |  2 +-
+ backend/tests/test_maria.py                        | 37 ++++++++++++++++++++++
+ 3 files changed, 42 insertions(+), 5 deletions(-)
+```
+
 ## [4.2.5-dev] — B6: LLM-as-judge (experimental) + response_format por ferramenta — 2026-09-09
 
 ### ⚖️ LLM-as-judge experimental (fase B6, O5 — desvios aprovados)

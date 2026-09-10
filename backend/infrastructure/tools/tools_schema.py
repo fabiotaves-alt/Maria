@@ -63,17 +63,9 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------------------
 # Campos obrigatórios por ferramenta (usados na validação antes da execução)
 # -----------------------------------------------------------------------------
-CAMPOS_OBRIGATORIOS = {
-    # Escrita
-    "criar_planilha": ["nome_arquivo", "colunas"],
-    "criar_documento": ["nome_arquivo", "titulo", "conteudo"],
-    "editar_planilha": ["nome_arquivo", "colunas"],
-    # Leitura
-    "listar_arquivos": [],  # nenhum campo obrigatório
-    "resumir_documento": ["nome_arquivo"],
-    "extrair_dados_planilha": ["nome_arquivo"],
-    "consultar_manual_redacao": ["tipo_documento"],
-}
+# Fonte única em domain/tool_call_contracts.py (fase B7a). Reexportado aqui para
+# manter compatibilidade com `from ...tools_schema import CAMPOS_OBRIGATORIOS`.
+from backend.domain.tool_call_contracts import CAMPOS_OBRIGATORIOS  # noqa: E402,F401
 
 # -----------------------------------------------------------------------------
 # Definições das ferramentas (schemas para function calling)

@@ -16,7 +16,7 @@ Tudo é configurável via ENV:
     LLAMA_SERVER_STARTUP_TIMEOUT    timeout p/ subir/responder (padrão 600s)
     LLAMA_SERVER_POLL_INTERVALO     intervalo do polling (padrão 2.0s)
 
-A porta/host vem de LLAMA_BASE_URL (backend.core.config), garantindo que o
+A porta/host vem de LLAMA_BASE_URL (backend.config), garantindo que o
 servidor iniciado seja exatamente o que o benchmark e o modo chat usam.
 """
 from __future__ import annotations
@@ -105,7 +105,7 @@ def _localizar_llama_server() -> str | None:
 # ───────────────────────────────────────────────────────────────────────────
 def _config_servidor() -> dict:
     """Monta a configuração efetiva (exe, base_url, host, porta, flags)."""
-    from backend.core.config import LLAMA_BASE_URL
+    from backend.config import LLAMA_BASE_URL
 
     parsed = urlsplit(LLAMA_BASE_URL)
     host = parsed.hostname or "127.0.0.1"
