@@ -4,7 +4,7 @@
 
 **Versão Atual:** v4.2.5  
 **Última alteração:** 2026-09-09  
-**Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — Fase 0 (parser JSON + validação determinística) e Fase 1-4 (camadas domain/application/infrastructure/interfaces + re-exports) **commitadas** na branch; smoke test manual CLI (Qwen2.5-Omni-3B) **aprovado** (6/6 itens, `criar_planilha` real OK); 4 problemas documentados no backlog (P0 JSON na UI, P0 gap "adicionar", P1 fidelidade de dados, P2 banner); B0.5 baseline capturado (3B e 7B, 28 tasks); pendente B0.9 smoke completo; **suíte verde (265 passed)**  
+**Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — F1.1 (card de confirmação + wiring backend) **commitada** na branch `feat/f1.1-confirmacao-card` (269 passed, base `6f1d4f4`); pendente merge na linhagem principal; B7a (`core/` esvaziado, 283 passed) segue em `feat/b7a-core-cleanup` sem push; próximo: F1.2 (timeout + paths) e F1.3 (read_file/save_file)  
 **Relatório integração frontend (2026-09-09):** `docs/RELATORIO_INTEGRACAO_FRONTEND_POS_REFATORACAO_2026-09-09.md` — inventário 21 comandos bridge, matriz F1–F5, spec seção Desempenho; ver entrada do `CHANGELOG.md`.
 **Auditoria de documentação (2026-09-09):** 4 legados arquivados em `docs/arquivo/` (GUIA_DESENVOLVIMENTO v1, MELHORIAS_RELATORIO v4.1.1, RELATORIO_BENCHMARK_DIAGNOSTICO 2026-09-04, TO DO.txt da raiz) + 8 docs atualizados (README, GUIA_TESTES, ARQUITETURA, GUIA_INSTALACAO, REGRAS_LLAMA, v2 canônico, install-dependencies.ps1 `--host 127.0.0.1`) + relatório `docs/RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; ver entrada do `CHANGELOG.md`.
 **Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`  
@@ -65,6 +65,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (F1.1 — card de confirmação)** | 2026-09-09 | Card de ação pendente (`ActionCard.tsx`), wiring `_cmd_chat` → `processar_confirmacao`, envelope estruturado `{mensagem, confirmacao_pendente}`, remoção de enum legado `qwen3b\|llama7b`, 4 testes novos. Base `6f1d4f4`, 269 passed. | ✅ Commitada (`feat/f1.1-confirmacao-card`) |
 | **4.2.5-dev (Auditoria docs)** | 2026-09-09 | Arquivamento de 4 legados em `docs/arquivo/` + atualização de 8 docs (versão, 265 testes, paths `maria_bench`, `uv`, `--host 127.0.0.1`) + relatório `RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; **265 testes passando** | ✅ Concluída |
 | **4.2.5-dev (B2 — benchmark ports)** | 2026-09-08 | Fase B2 do `plano_mestre_v5.md` (Seção 5): move `backend/benchmark/` → `backend/benchmarks/maria_bench/` (D4 ajustado — mantido sob `backend/`, namespace `backend.*` preservado); `montar_mensagens_com_reforco` (público); `LLAMA_NUM_CTX` absorvido em `benchmark_config.py`; imports do benchmark reescritos p/ `backend.domain/interfaces/infrastructure/application.*` sem `sys.path.insert`; **265 testes passando**; débito `backend.core.*` em `report.py`/`servidor_llama.py` registrado | ✅ Commitada (branch `feat/b2-benchmark-ports`) |
 | **4.2.5-dev (FIX-4 — cadeia de ferramentas)** | 2026-09-08 | DEFEITO-2 do diagnóstico resolvido: `encadear_leitura_stream` expõe callback `apos_cada_leitura(nome, argumentos)`; `maria_runner` registra ferramentas de leitura intermediárias em `cadeia_ferramentas`; 3 testes novos; **265 testes passando** | ✅ Commitada (branch `fix/fix4-cadeia-ferramentas-encadeamento`) |
@@ -174,6 +175,15 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### F1.1 — Card de confirmação + wiring backend (2026-09-09)
+
+- **Problema central (P9, auditoria F1.1):** `_cmd_chat` não consultava `tem_acao_pendente()` nem chamava `processar_confirmacao` — confirmação via bridge nunca funcionou; "sim/não" virava nova mensagem ao LLM.
+- **D1 (crítico):** `processar_chunk` ausente no loop → `_tool_call_final` nunca preenchido → `finalizar_mensagem()` retornava `tem_pendente=False` sempre → envelope de confirmação jamais produzido.
+- **D2:** narração do modelo descartada no envelope — corrigido concatenando `resposta_acumulada + get_mensagem_confirmacao()`.
+- **D3:** `finalizar_mensagem`/`get_mensagem_confirmacao` fora do `try` → HTTP 500 em exceções — movidos para dentro do bloco protegido.
+- **Frontend:** `ActionCard.tsx` novo; `AnimatePresence` controla visibilidade; `useMariaBridge` com parser tolerante string/objeto; enum `'qwen3b'|'llama7b'` removido de todos os pontos (5 ocorrências).
+- **Baseline desta branch:** 265 (base `6f1d4f4`) + 4 novos = **269 passed**. Linhagem com 284 (`feat/b7a-core-cleanup`) é paralela.
 
 ### B2 — Benchmark → Ports (2026-09-08)
 
