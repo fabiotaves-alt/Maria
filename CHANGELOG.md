@@ -2,6 +2,25 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — B4: linhas_esperadas + limite_conhecido + fechamento INCONS-1 — 2026-09-09
+
+### 🧩 Schema de tasks v2 (fase B4 do plano mestre v5)
+- `task_schema.py`: `linhas_esperadas` (`list[dict] | None`) em `MariaTask` e `linhas_esperadas_ok` em `MariaTaskResult`; `limite_conhecido: bool` em ambos (default `False`, retrocompatível).
+- `maria_runner.py`: novo `_verificar_linhas_esperadas` (estático; nunca lança — arquivo ausente/corrompido → `False`; match case-insensitive por chave/valor; `None` desativa). O resultado alimenta `errors` (`kind="LinhasEsperadasNaoEncontradas"`) → `runtime_ok = not errors`.
+- `tasks_extracao.py`: Task 26 original marcada `limite_conhecido=True`.
+- `metrics.py`: filtro exclui tasks com `limite_conhecido=True` do denominador das métricas agregadas de aceite (são executadas/reportadas normalmente, mas não falseiam o aceite).
+
+### 🔧 Fechamento INCONS-1 — fix de acoplamento + teste de integração
+- Fix em `maria_runner.py`: a captura de `caminho_arquivo_gerado` estava DENTRO de `if task.coluna_dados_obrigatoria:` — uma task que declarasse apenas `linhas_esperadas` nunca capturava o caminho do arquivo e reprovaria sempre por falso negativo. Captura movida para fora do guard (comportamento das tasks com coluna inalterado).
+- `TestLinhasEsperadasIntegracaoRun` (novo, ponta-a-ponta via `MariaRunner.run()`): replica o padrão de mock de `TestValidacaoDadosArquivoGerado` (cliente fake devolvendo `criar_planilha` com `linhas`); a task declara apenas `linhas_esperadas`; 2 testes — linhas presentes → `linhas_esperadas_ok`/`runtime_ok`; ausentes → erro `LinhasEsperadasNaoEncontradas` e `runtime_ok=False`.
+
+### ⏳ Pendências explícitas (adiadas — NÃO fazem parte desta entrega)
+- **D6** — nova Task 26 com dados embutidos na mensagem, avaliada via `linhas_esperadas` (requer design decision do formato de dados e de como evitar reintroduzir o problema de tradução).
+- **V6** — decisão de coerção numérica.
+
+### 🧪 Testes
+- Suíte: **274 passed** (`pytest backend/tests`, 272 baseline B4 + 2 novos), sem regressão.
+
 ## [4.2.5-dev] — B3: Storage SQLite + report v2 (correções pós-verificação) — 2026-09-09
 
 ### 🗄️ Storage SQLite (fase B3 do plano mestre v5)

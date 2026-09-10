@@ -40,6 +40,17 @@ class MariaTask:
     # Task 26) — sem isso, tool_correct/args_correct passam mesmo com o arquivo
     # gerado só com cabeçalho, sem os dados esperados.
     coluna_dados_obrigatoria: str | None = None
+    # Conteúdo esperado das linhas de dados do arquivo gerado (match
+    # case-insensitive por chave/valor). Usado por
+    # MariaRunner._verificar_linhas_esperadas para validar dados reais além da
+    # checagem de coluna não-vazia (coluna_dados_obrigatoria). None desativa a
+    # checagem (default, retrocompatível).
+    linhas_esperadas: list[dict] | None = None
+    # True quando a task documenta uma limitação conhecida do modelo (ex.: tradução
+    # embutida na ferramenta). Tasks com limite_conhecido=True são executadas e
+    # reportadas normalmente, mas NÃO contam para as métricas agregadas de aceite
+    # (ver filtro em analysis/metrics.py).
+    limite_conhecido: bool = False
 
 
 @dataclass
@@ -120,6 +131,12 @@ class MariaTaskResult:
     # gerado não a tem preenchida em todas as linhas (ou o arquivo não pôde ser
     # lido). True por default — não afeta tasks sem essa validação.
     dados_arquivo_validos: bool = True
+    # Resultado da checagem de MariaRunner._verificar_linhas_esperadas. True
+    # (default) quando a task não define linhas_esperadas — retrocompatível.
+    linhas_esperadas_ok: bool = True
+    # Espelha MariaTask.limite_conhecido; usado para excluir a execução das
+    # métricas agregadas de aceite sem removê-la do relatório individual.
+    limite_conhecido: bool = False
 
 
 @dataclass

@@ -44,6 +44,10 @@ class MariaBenchmarkMetrics:
 
 
 def calculate_maria_metrics(results: list[MariaTaskResult]) -> MariaBenchmarkMetrics:
+    # B4: exclui execuções com limite_conhecido=True do denominador das métricas
+    # agregadas de aceite (tool_accuracy, args_accuracy etc.) — elas continuam
+    # presentes no relatório individual (report.md), que usa a lista completa.
+    results = [r for r in results if not r.limite_conhecido]
     total = len(results)
     if not total:
         return MariaBenchmarkMetrics(
