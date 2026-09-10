@@ -1,8 +1,8 @@
 # Segurança — MARIA
 
 **Versão:** v4.1.1
-**Última atualização:** 2026-09-06
-**Status:** ✅ Auditado e Mitigado
+**Última atualização:** 2026-09-10
+**Status:** ✅ Auditado e Mitigado — inclui achados históricos registrados (§5.1)
 
 Este documento registra o modelo de segurança da aplicação, as medidas de proteção ativas contra ameaças locais, as correções aplicadas na auditoria (v4.0 e v4.1.1) e o roadmap de segurança.
 
@@ -107,6 +107,25 @@ curl -I -X OPTIONS http://127.0.0.1:8081/chat `
 | **P2** | Sanitizar mensagens de log para evitar exposição de caminhos absolutos de usuários | 📋 Planejado |
 | **P3** | Assinatura de código digital (Authenticode no Windows e Codesign no macOS) para o instalador de produção | 📋 Planejado (Fase de Distribuição) |
 | **P3** | Atualização contínua de dependências de desenvolvimento do ecossistema Vite/Node | 🔄 Contínuo |
+| **P3** | Confirmar em cada auditoria que `frontend-tauri/shared/.bridge_token` não volta a ser rastreado (ver §5.1) | ✅ Documentado (2026-09-10) |
+
+### 5.1 Achados históricos registrados
+
+#### Exposição histórica de token do bridge em commits versionados (2026-09-10)
+
+**Achado:** o ficheiro `frontend-tauri/shared/.bridge_token` esteve **rastreado** no repositório e foi alterado em **12 commits** entre 2026-08-30 e 2026-09-03, presentes no histórico de `main` e `develop` (ex.: `600fed7`, `b2152f6`, `bf0fa67`, `2fac499`, `26f588f`). O ficheiro **já não existe** na árvore atual (removido e coberto pelo `.gitignore` §15), mas os valores antigos continuam recuperáveis a partir da história do GitHub.
+
+**Avaliação de impacto: BAIXO**
+- O token é gerado por `secrets.token_hex(32)` a cada arranque do backend (§2, P1) — qualquer valor histórico está **obsoleto** e não autentica nada nas execuções atuais.
+- A API escuta apenas em `127.0.0.1`, sem exposição de rede.
+- Não há indícios de uso indevido.
+
+**Decisão: NÃO reescrever o histórico** (`git filter-repo` / `filter-branch`). Justificação: invalidaria todos os hashes do repositório, quebraria referências de branches/PRs e é desproporcionado face a um segredo obsoleto por desenho. Registado aqui por **transparência** e para memória de auditoria.
+
+**Ações de acompanhamento:**
+1. Manter `.bridge_token` no `.gitignore` (§15) e confirmar em cada auditoria que o ficheiro não volta a ser rastreado — `git ls-files` filtrado por `bridge_token` deve ser **vazio**.
+2. Ao arquivar patches de branches antigas, **excluir explicitamente** esse caminho. Foi o procedimento aplicado em `docs/arquivo/patches/2026-09-02_language-check-fixture-planilha.patch`, gerado com `git format-patch --binary ... -- ':!frontend-tauri/shared/.bridge_token'` (verificado: 0 ocorrências de `bridge_token` no ficheiro).
+3. Se o repositório se tornar público em definitivo e se ainda se pretender purgar, fazê-lo **antes** da primeira tag de release — ciente do custo de reescrita integral.
 
 ---
 

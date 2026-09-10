@@ -2,6 +2,37 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Arrumação do repositório: consolidação de branches + preservação de trabalho órfão — 2026-09-10
+
+### 🌿 Consolidação de branches (Frente 1)
+- **F1.1 integrada:** merge `--no-ff` de `feat/smoke-e2e-multimodal` → `develop` (`73b3815`); 5 ficheiros (2 harnesses de smoke + relatório de resultados + CHANGELOG/PROGRESSO), zero código de produção.
+- **Eliminadas 30 branches locais e 26 remotas** — cada uma verificada com `git merge-base --is-ancestor <branch> develop` (exit 0) **antes** da remoção. Estado final: **apenas `main` + `develop`**.
+- **Exceção justificada (`-D`, não `-d`):** `feat/b7a-core-cleanup` e `test/bridge-comandos-regressao-7-bugs` — o ref remoto estava *atrás* do local (`ahead 1` e `ahead 2`), pelo que o git recusou `-d` apesar de ambas estarem em `develop`. Confirmado antes: `git rev-list --count '^develop' <branch>` = **0** commits fora de `develop`.
+- **6 refs remotos *stale* removidos** (`git remote prune origin`): `feat/benchmark-contexto-timeouts-numctx`, `feat/benchmark-id-modelo-resumo-execucao`, `feat/configuracao-modelo-centralizada-fallback-textual`, `latest-benchmark-results-7d15b`, `project-cleanup-and-organization-7e5af`, `ramo-teste` — **já não existiam no GitHub**; sobreviviam apenas como refs locais desatualizados. O remoto tinha **28 heads reais**, não 34.
+- Estado final do remoto: `refs/heads` = `main` + `develop` (+ 32 refs `refs/pull/*` históricos, não removíveis por `push --delete`); **0 tags**.
+- **Branches descartadas com motivo registado:** `project-cleanup-and-organization-7e5af` (autor `qwen.ai[bot]`; cosmético — 4 comentários em `main.py`, reescrita de `.gitignore`, 8 docs movidos, e `"label": "main"` em `tauri.conf.json` que é **inerte**: nenhum código Rust de `develop` usa `get_webview_window`, verificado por grep). `feat/configuracao-modelo-centralizada-fallback-textual` — **nome enganador**: o commit `3ce9e6b` (*"Integração Backend X Frontend"*) não implementa configuração centralizada de modelo nem fallback textual; faz mover `CHANGELOG.md`/`README.md` para a raiz, adiciona `core/protocolo.py` (+ testes) e remove o frontend JavaFX — tudo superado pela reestruturação hexagonal e pela remoção canónica do JavaFX (v4.0.x).
+
+### 🗄️ Trabalho órfão preservado (não portado)
+- **`docs/arquivo/patches/2026-09-02_language-check-fixture-planilha.patch`** — preserva o commit `5f4e9b6` da branch órfã `feat/benchmark-contexto-timeouts-numctx` (nunca integrada; já inexistente no remoto): `language_check` mais robusto (lista PT/EN 15→137 palavras, normalização NFKD, limiar 3%→4%), `fixture_planilha` **determinístico** para as tasks 11-13 (substitui a criação *dummy* por regex sobre o `context`), warmup estendido (3 chamadas) e `--delay` efetivamente aplicado (era parseado e ignorado). Documentado em `docs/arquivo/patches/README.md`.
+- **Não portado nesta rodada** — exige adaptação de imports (`OllamaClient`→`LlamaClient`) e de caminho (`backend/benchmark/`→`backend/benchmarks/maria_bench/`), e o novo limiar de idioma **só é validável por reexecução real do benchmark**, não pelos testes unitários que o acompanham. Candidato a retomar em conjunto com a Fase **R1/R2/R3** (mesma área de trabalho: fixtures de planilha com dados reais).
+- ⚠️ O hunk de `frontend-tauri/shared/.bridge_token` foi **deliberadamente excluído** do patch (`git format-patch ... -- ':!frontend-tauri/shared/.bridge_token'`), para não reintroduzir o token no repositório. Verificado: **0 ocorrências** de `bridge_token` no ficheiro.
+- **Integridade do patch blindada:** novo `.gitattributes` com `docs/arquivo/patches/*.patch -text`, para que o `core.autocrlf=true` do Windows não converta o patch para CRLF no checkout — essa conversão introduziria CR em cada linha e **corromperia as 2 partes binárias** (`GIT binary patch`) das fixtures `.xlsx`, tornando o `git am` inaplicável.
+
+### 📌 Precisão histórica (sem reescrever histórico)
+- A entrada `[4.1.8]` (2026-09-02) descreve a remoção de `a`/`do`/`no`/`so`/`me` da lista como *"Correção crítica ao enunciado"*, mas o estado-base (`bf0fa67`) **nunca continha essas palavras** (a lista tinha 15 entradas, nenhuma delas). Trata-se de uma **decisão de desenho preventiva**, não da correção de um defeito existente. O código final está correto — só a redação era imprecisa. A entrada antiga permanece intacta.
+- **Contagem de testes:** a entrada de 2026-09-10 registava **269 passed**; a medição real desta rodada é **288 passed** (o cabeçalho do `PROGRESSO` já indicava 288 — o valor 269 estava desatualizado no `CHANGELOG`).
+
+### 🔐 Segurança
+- Registado em `docs/SEGURANCA.md` §5 que **um valor de token do bridge esteve em commits históricos** de `main`/`develop` (12 commits, 2026-08-30 → 2026-09-03). Impacto prático **baixo** (token gerado por `secrets.token_hex(32)` a cada arranque do backend ⇒ valor exposto obsoleto) e **sem reescrita de histórico** — decisão deliberada, para transparência e para não invalidar todos os hashes do repositório.
+
+### 🧪 Testes
+- Suíte completa: **288 passed** (baseline anterior: 288) — `uv run pytest backend/tests -q`; sem regressão após o merge do smoke.
+
+### 📋 Itens fora de escopo (registrados)
+- **Achado — 236 refs `refs/cline/checkpoints/*`** (906 commits ocultos; 40.32 MiB de objetos *loose*): **100% locais** — confirmado por `git ls-remote` (0 refs `refs/cline` no GitHub), logo **invisíveis para a revisão externa**. **Adiado** por decisão explícita: `git gc --prune=now` fica pausado (não liberta nada enquanto os refs existirem) e preserva-se a capacidade de *restore* dos checkpoints do IDE.
+- **Frente 2 (artefactos/assets)** não iniciada — será feita em branch própria `chore/limpeza-repo-set26`; inclui a política de retenção dos 58 diretórios `results/run_*` (124 ficheiros, 7.85 MB versionados) e a deduplicação dos assets de imagem (`maria_opening.png` existe 3×).
+- **Merge em `main` / tag de release** não executado: só ocorre em *bump* de versão (mantém-se `4.2.5-dev`).
+
 ## [4.2.5-dev] — Smoke tests E2E (funcional + multimodal) — 2026-09-10
 
 ### 🧪 Novos harnesses de smoke ao vivo (`docs/dev_base/`)
