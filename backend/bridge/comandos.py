@@ -237,25 +237,75 @@ def _cmd_transcrever_audio(controller, payload):
         logger.error(f"Erro ao transcrever áudio: {error}")
         return "erro", None, str(error)
 
-def _cmd_chat(controller, payload):
-    mensagem = payload.get("mensagem", "")
+def _cmd_chat(controller, payload: dict) -> tuple:
+    """
+    Fluxo unificado de chat e confirmação.
+
+    Se o controller tiver ação pendente, roteia a entrada para
+    processar_confirmacao (qualquer mensagem conta como resposta;
+    2 ambiguidades consecutivas cancelam a ação).
+
+    Caso contrário, executa o fluxo normal de geração de resposta.
+
+    Retorno:
+    - String simples quando não há ação pendente ao final.
+    - Objeto {"mensagem", "confirmacao_pendente", "cadeia_ferramentas"}
+      quando o modelo solicitou uma ação ou quando a resposta é ambígua
+      e ainda há ação pendente.
+    """
+    mensagem = payload.get("mensagem", "").strip()
     if not mensagem:
         return "erro", None, "Campo 'mensagem' vazio."
-    try:
-        stream = controller.enviar_mensagem(mensagem)
-        texto_final = ""
-        for chunk, tool_chunk in stream:
-            if chunk is not None:
-                texto_final += chunk
-            controller.processar_chunk(chunk, tool_chunk)
 
-        tem_tool, info = controller.finalizar_mensagem()
-        if tem_tool:
-            texto_final += "\n\n" + controller.get_mensagem_confirmacao()
-        return "ok", texto_final, None
-    except Exception as error:
-        logger.error(f"Erro no comando chat: {error}")
-        return "erro", None, str(error)
+    try:
+        # ── Ramo de confirmação ───────────────────────────────────────────
+        if controller.tem_acao_pendente():
+            resultado, resposta_texto = controller.processar_confirmacao(mensagem)
+            # resultado: True (executou), False (cancelou), None (ambíguo)
+            if resultado is True or resultado is False:
+                # Ação executada ou cancelada — limpa pendente, devolve string
+                return "ok", resposta_texto, None
+            # resultado is None — ambíguo, ação ainda pendente
+            acao = controller.sessao.acao_pendente
+            return "ok", {
+                "mensagem": resposta_texto,
+                "confirmacao_pendente": {
+                    "ferramenta": acao.get("name", ""),
+                    "argumentos": acao.get("arguments", {}),
+                },
+                "cadeia_ferramentas": [],
+            }, None
+
+        # ── Ramo normal de geração ────────────────────────────────────────
+        resposta_acumulada = ""
+        for chunk, tool_chunk in controller.enviar_mensagem(mensagem):
+            if chunk is not None:
+                resposta_acumulada += chunk
+            controller.processar_chunk(chunk, tool_chunk)  # preenche _tool_call_final
+
+        tem_pendente, _ = controller.finalizar_mensagem()
+
+        if tem_pendente:
+            # Preserva texto narrado pelo modelo + pergunta de confirmação
+            texto_confirmacao = (
+                resposta_acumulada.strip() + "\n\n" + controller.get_mensagem_confirmacao()
+            ).strip()
+            acao = controller.sessao.acao_pendente
+            return "ok", {
+                "mensagem": texto_confirmacao,
+                "confirmacao_pendente": {
+                    "ferramenta": acao.get("name", ""),
+                    "argumentos": acao.get("arguments", {}),
+                },
+                "cadeia_ferramentas": [],
+            }, None
+
+        # Resposta textual simples — compatibilidade com clientes que esperam string
+        return "ok", resposta_acumulada or "(sem resposta)", None
+
+    except Exception as e:
+        logger.error(f"Erro no comando chat: {e}")
+        return "erro", None, f"Erro ao processar mensagem: {e}"
 
 
 def _cmd_encerrar(controller, payload):

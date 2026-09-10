@@ -1,7 +1,27 @@
-# CHANGELOG - Projeto MARIA
+﻿# CHANGELOG - Projeto MARIA
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — F1.1: Card de confirmação + wiring backend — 2026-09-09
+
+### 🎯 Card de ação pendente no frontend (F1.1 do relatório de integração)
+- **`backend/bridge/comandos.py` — `_cmd_chat` reescrito:** roteamento unificado de chat e confirmação. Se `controller.tem_acao_pendente()`, a entrada é processada por `processar_confirmacao` (resultado `True`/`False` → string; `None`/ambíguo → envelope objeto). No ramo normal, `processar_chunk` é chamado a cada iteração (corrige D1 — sem isso `_tool_call_final` nunca era preenchido e o ActionCard nunca disparava). Texto narrado pelo modelo é preservado e concatenado com a pergunta de confirmação (D2). Todo o corpo dentro de `try/except` — exceções retornam envelope `erro` em vez de HTTP 500 (D3). Contrato de `servidores.py` e `main.rs` **não alterados** — o campo `dados` do envelope Flask é pass-through.
+- **`frontend-tauri/src/components/ChatPanel/ActionCard.tsx` (novo):** componente de card com badge da ferramenta, mensagem de confirmação do backend e botões `[Confirmar]`/`[Cancelar]` que enviam `'sim'`/`'não'` via `handleSendMessage`. Aparece via `AnimatePresence` entre a área de mensagens e o `ChatInput`; some automaticamente quando o backend retorna resposta sem `confirmacao_pendente`.
+- **`frontend-tauri/src/hooks/useMariaBridge.ts` — refatorado:** `normalizarResposta` detecta string pura vs. envelope objeto; `modelo_usado` tipado como `string` (removidos enum `'qwen3b'|'llama7b'`); nomes de modelo canônicos (`qwen2.5-omni-3b/7b`) em todos os fallbacks. `SystemStatus` expõe `versao?: string`.
+- **`frontend-tauri/src/types/index.ts` — ampliado:** novos tipos `ConfirmacaoPendente`, `ChatBackendResponse`, `ChatResponse`.
+- **`frontend-tauri/src/components/ChatPanel/index.tsx` — refatorado:** estado `confirmacao: EstadoConfirmacao | null`; `processarResposta` detecta `confirmacao_pendente` e abre o card; `handleConfirmar`/`handleCancelar` enviam `'sim'`/`'não'`; badge de status exibe `modeloAtivo` obtido de `getSystemStatus()` (nome canônico real).
+- **`backend/tests/test_f1_1_confirmacao.py` (novo):** 4 testes de regressão cobrindo confirmar, cancelar, ambíguo e fluxo normal com tool call — todos via `MagicMock` sem LLM real.
+
+### 🧪 Testes
+- Suíte: **269 passed** (265 baseline desta branch + 4 novos), 0 falhas.
+- ⚠️ Nota de baseline: esta branch parte de `6f1d4f4` (`chore/auditoria-documentacao-2026-09-09`, 265 testes). A linhagem com 284 testes (`feat/b7a-core-cleanup`) é paralela e ainda não mergeada.
+
+### 📋 Itens fora de escopo (registrados para fases seguintes)
+- **F1.2:** timeout `reqwest` (sem limite atual — chat pode levar 300 s) + paths `current_dir()` frágeis em `main.rs` (falham em produção sidecar).
+- **F1.3:** `read_file`/`save_file` genéricos expostos no `invoke_handler` sem validação de path (P7).
+- **F2.1 / P5-P10:** histórico SQLite "fantasma" — `getChatHistory` lê `mensagens` mas nenhum passo do fluxo de chat escreve nessa tabela via Python; `save_message` Rust está registrado mas sem uso no frontend.
+- **D7 (resíduo):** `modelo_usado` hardcoded como `'qwen2.5-omni-3b'` em `normalizarResposta` — sem impacto visual (badge exibe `status.modelo` do `getSystemStatus`); corrigir quando o backend passar a devolver o modelo no envelope de chat.
+- **Pendência de processo:** commit `f3269f9` (R1) segue sem push em `feat/b7a-core-cleanup`.
 ## [4.2.5-dev] — B7a: `core/` esvaziado (compat por 1 versão com `DeprecationWarning`) — 2026-09-09
 
 ### 🧱 Limpeza estrutural (plano_mestre_v5.md §12 — Decisões A/B/C1)

@@ -1,10 +1,10 @@
-# PROGRESSO_DESENVOLVIMENTO
+﻿# PROGRESSO_DESENVOLVIMENTO
 
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
 **Versão Atual:** v4.2.5  
 **Última alteração:** 2026-09-09  
-**Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — Fase 0 (parser JSON + validação determinística) e Fase 1-4 (camadas domain/application/infrastructure/interfaces + re-exports) **commitadas** na branch; smoke test manual CLI (Qwen2.5-Omni-3B) **aprovado** (6/6 itens, `criar_planilha` real OK); 4 problemas documentados no backlog (P0 JSON na UI, P0 gap "adicionar", P1 fidelidade de dados, P2 banner); B0.5 baseline capturado (3B e 7B, 28 tasks); pendente B0.9 smoke completo; **suíte verde (283 passed)**; **B7a: `core/` esvaziado (compat por 1 versão via `DeprecationWarning`) e `config.py` movido para `backend/config.py`**  
+**Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — F1.1 (card de confirmação + wiring backend) e cadeia **B3→B4→B5→B6→B7a** **integradas em `develop`** (284 passed); `core/` esvaziado com `DeprecationWarning` (B7a), `config.py` → `backend/config.py`; aguardando smoke tests para merge em `main` (mantém v4.2.5-dev); próximo: F1.2 (timeout + paths) e F1.3 (read_file/save_file)
 **Relatório integração frontend (2026-09-09):** `docs/RELATORIO_INTEGRACAO_FRONTEND_POS_REFATORACAO_2026-09-09.md` — inventário 21 comandos bridge, matriz F1–F5, spec seção Desempenho; ver entrada do `CHANGELOG.md`.
 **Auditoria de documentação (2026-09-09):** 4 legados arquivados em `docs/arquivo/` (GUIA_DESENVOLVIMENTO v1, MELHORIAS_RELATORIO v4.1.1, RELATORIO_BENCHMARK_DIAGNOSTICO 2026-09-04, TO DO.txt da raiz) + 8 docs atualizados (README, GUIA_TESTES, ARQUITETURA, GUIA_INSTALACAO, REGRAS_LLAMA, v2 canônico, install-dependencies.ps1 `--host 127.0.0.1`) + relatório `docs/RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; ver entrada do `CHANGELOG.md`.
 **Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`  
@@ -71,6 +71,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (F1.1 — card de confirmação)** | 2026-09-09 | Card de ação pendente (`ActionCard.tsx`), wiring `_cmd_chat` → `processar_confirmacao`, envelope estruturado `{mensagem, confirmacao_pendente}`, remoção de enum legado `qwen3b\|llama7b`, 4 testes novos. Base `6f1d4f4`, 269 passed. | ✅ Commitada (`feat/f1.1-confirmacao-card`) |
 | **4.2.5-dev (B7a — core/ esvaziado)** | 2026-09-09 | Fase B7a do `plano_mestre_v5.md` (Seção 12, Decisões A/B/C1): `config.py` → `backend/config.py` (+ `system_prompt.txt`) com stub deprecado; 15 stubs `core/*` com `DeprecationWarning`; duplicatas mortas deletadas (−348 linhas); `domain/tool_call_contracts.py` (fonte única de `CAMPOS_OBRIGATORIOS`); imports de produção → `backend.config`; **283 testes passando**, cobertura **75%** | ✅ Concluída (branch `feat/b7a-core-cleanup`) |
 | **4.2.5-dev (Registro teste auto-correção 3B)** | 2026-09-09 | Harness versionado `docs/dev_base/teste_auto_correcao_3b.ps1` (UTF-8 c/ BOM p/ PS 5.1) com veredito corrigido (case-sensitive `-cnotcontains` + referência do pedido) e relatório `docs/dev_base/relatorio_teste_auto_correcao_3b_2026-09-09.md`; resultado **3/3 AUTO-CONSISTENTE mas DIVERGENTE** (modelo rebaixou coluna `Peso`→`peso` em vez de corrigir as linhas); tradução `笔记本`→"livro" errada mantida (reforça D2/D6); **docs-only — suíte 274 inalterada** | ✅ Commitada (branch chore/registro-teste-auto-correcao-3b) |
 | **4.2.5-dev (B5 — CLI unificada)** | 2026-09-09 | Fase B5 do plano_mestre_v5.md (Seção 10): `cli.py` (novo, wrapper fino run/report/compare); override `--temperature` com precedência retry→self→default; `report <run_dir>` via log.json (`carregar_resultados_de_log` extraído de compare_runs, DRY); integração SQLite↔report adiada; 4 itens adiados registrados (judge/B6, --ctx-size, --system-prompt, empacotamento); **280 testes passando** (274 + 6) | ✅ Commitada (branch feat/b5-cli-unificada) |
@@ -187,6 +188,15 @@
 ---
 
 ## 🔁 Notas das Iterações Recentes
+
+### F1.1 — Card de confirmação + wiring backend (2026-09-09)
+
+- **Problema central (P9, auditoria F1.1):** `_cmd_chat` não consultava `tem_acao_pendente()` nem chamava `processar_confirmacao` — confirmação via bridge nunca funcionou; "sim/não" virava nova mensagem ao LLM.
+- **D1 (crítico):** `processar_chunk` ausente no loop → `_tool_call_final` nunca preenchido → `finalizar_mensagem()` retornava `tem_pendente=False` sempre → envelope de confirmação jamais produzido.
+- **D2:** narração do modelo descartada no envelope — corrigido concatenando `resposta_acumulada + get_mensagem_confirmacao()`.
+- **D3:** `finalizar_mensagem`/`get_mensagem_confirmacao` fora do `try` → HTTP 500 em exceções — movidos para dentro do bloco protegido.
+- **Frontend:** `ActionCard.tsx` novo; `AnimatePresence` controla visibilidade; `useMariaBridge` com parser tolerante string/objeto; enum `'qwen3b'|'llama7b'` removido de todos os pontos (5 ocorrências).
+- **Baseline desta branch:** 265 (base `6f1d4f4`) + 4 novos = **269 passed**. Linhagem com 284 (`feat/b7a-core-cleanup`) é paralela.
 
 ### B2 — Benchmark → Ports (2026-09-08)
 
