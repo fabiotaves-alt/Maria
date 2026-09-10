@@ -50,3 +50,21 @@ git am --3way docs/arquivo/patches/2026-09-02_language-check-fixture-planilha.pa
 ```
 Esperar conflitos de caminho (`backend/benchmark/` → `backend/benchmarks/maria_bench/`)
 e resolver manualmente — o patch é do layout pré-B2.
+
+---
+
+## 📤 Nota de handoff — sinergia com a Fase R3 (outra equipa)
+
+A fase **R3** em curso mexe exatamente em **fixtures de planilha com dados reais** — a
+mesma área de trabalho de `fixture_planilha` neste patch. **Nada foi decidido nem
+portado:** este registo existe apenas para que a equipa da R3 avalie se há sinergia.
+
+Pontos que podem ser úteis para eles:
+- O patch resolve o mesmo problema de fundo: substituir a geração *dummy* de planilhas
+  (via regex sobre o texto do `context`) por uma **declaração explícita e determinística**
+  no schema da tarefa (nome + colunas + linhas reais).
+- O contrato novo testado é: *um `context` que apenas menciona "já foi criada" não cria
+  ficheiro nenhum* — evita fixtures fantasma que mascaravam falhas do modelo.
+- Se a R3 introduzir fixture declarativa própria, este patch deve ser **descartado** em
+  favor dela (evitar duas fontes de verdade para o mesmo conceito).
+
