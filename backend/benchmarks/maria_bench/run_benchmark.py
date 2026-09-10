@@ -56,6 +56,8 @@ def _parse_args() -> argparse.Namespace:
                         help="Número de repetições por tarefa (padrão: BENCHMARK_REPETICOES)")
     parser.add_argument("--num-predict", type=int, default=None,
                         help="Override do número de tokens previstos pelo modelo no benchmark")
+    parser.add_argument("--temperature", type=float, default=None,
+                        help="Override de temperatura para as chamadas com tools (default: LLAMA_TEMPERATURE_TOOLS).")
     parser.add_argument("--detail", action="store_true",
                         help="Report v2: incluir prompt_enviado e resposta_bruta por execução "
                              "(default: resumido < 200 linhas)")
@@ -399,6 +401,7 @@ def main() -> int:
     # Um único runner reduz reconexões; a execução sequencial evita sobrecarga da GPU.
     runner = MariaRunner(
         num_predict=args.num_predict,
+        temperature=args.temperature,
         modelo_carregado=modelo_carregado,
         ctx_size=(metadados_modelo or {}).get("ctx_size"),
     )
@@ -544,6 +547,7 @@ def _run_benchmark_programatico(
         delay=0.0,
         repeticoes=repeticoes,
         num_predict=None,
+        temperature=None,
         detail=False,
     )
 
@@ -578,6 +582,7 @@ def _run_benchmark_programatico(
 
     runner = MariaRunner(
         num_predict=args.num_predict,
+        temperature=args.temperature,
         modelo_carregado=modelo_carregado,
         ctx_size=(metadados_modelo or {}).get("ctx_size"),
     )
