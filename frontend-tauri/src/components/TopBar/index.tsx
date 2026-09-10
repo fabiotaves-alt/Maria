@@ -1,10 +1,24 @@
 import { Sun, Moon, Minus, Square, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
+import { getSystemStatus } from '../../hooks/useMariaBridge';
 import mariaLogo from '../../assets/maria-logo.png';
 import { Window } from '@tauri-apps/api/window';
 
 export function TopBar() {
   const { theme, toggleTheme } = useTheme();
+  const [online, setOnline] = useState(false);
+
+  // Poll do estado real do backend (padrão do Sidebar), a cada 5s.
+  useEffect(() => {
+    const verificar = async () => {
+      const status = await getSystemStatus();
+      setOnline(status.online !== false);
+    };
+    verificar();
+    const intervalo = setInterval(verificar, 5000);
+    return () => clearInterval(intervalo);
+  }, []);
 
   const handleMinimize = async () => {
     try {
@@ -54,10 +68,12 @@ export function TopBar() {
         />
       </div>
 
-      {/* Badge MODO LOCAL */}
+      {/* Badge de status da ligação (dinâmico) */}
       <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'var(--maria-hover)' }}>
-        <div className="w-2 h-2 rounded-full bg-green-400 animate-dot-pulse" />
-        <span className="text-xs font-semibold" style={{ color: 'var(--maria-text)' }}>MODO LOCAL</span>
+        <div className={`w-2 h-2 rounded-full ${online ? 'bg-green-400 animate-dot-pulse' : 'bg-red-400'}`} />
+        <span className="text-xs font-semibold" style={{ color: 'var(--maria-text)' }}>
+          {online ? 'MODO LOCAL' : 'OFFLINE'}
+        </span>
       </div>
 
       {/* Controles */}
