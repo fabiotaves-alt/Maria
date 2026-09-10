@@ -5,7 +5,7 @@ Controller — lógica de negócio da MARIA.
 import logging
 from datetime import datetime
 
-from backend.core.config import MAX_MENSAGENS_HISTORICO
+from backend.config import MAX_MENSAGENS_HISTORICO
 from backend.infrastructure.llm.llama_client import LlamaClient
 from backend.domain.chat_session import ChatSession, interpretar_confirmacao
 from backend.infrastructure.tools.tools_schema import TOOLS_SCHEMA, executar_ferramenta_real

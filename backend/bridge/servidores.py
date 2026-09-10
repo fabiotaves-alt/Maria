@@ -13,7 +13,7 @@ from pathlib import Path
 
 from datetime import datetime, timezone
 
-from backend.core.config import (
+from backend.config import (
     LLAMA_BASE_URL,
     LLAMA_MODEL,
     MARIA_ENV,

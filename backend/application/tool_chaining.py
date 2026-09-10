@@ -13,7 +13,7 @@ import logging
 import time
 from typing import Callable
 
-from backend.core.config import (
+from backend.config import (
     MAX_PASSOS_LEITURA,
     MAX_TENTATIVAS_CORRECAO_FERRAMENTA,
     LLAMA_TEMPERATURE_TOOLS_RETRY,

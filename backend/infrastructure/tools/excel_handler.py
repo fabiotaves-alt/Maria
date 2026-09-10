@@ -12,7 +12,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from backend.infrastructure.tools.file_utils import garantir_pasta_arquivos, gerar_nome_unico, sanitizar_nome_arquivo
-from backend.core.config import PASTA_ARQUIVOS_GERADOS, get_max_linhas_por_chamada, get_max_linhas_extracao
+from backend.config import PASTA_ARQUIVOS_GERADOS, get_max_linhas_por_chamada, get_max_linhas_extracao
 
 logger = logging.getLogger(__name__)
 

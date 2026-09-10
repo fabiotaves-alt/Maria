@@ -2,6 +2,27 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — B7a: `core/` esvaziado (compat por 1 versão com `DeprecationWarning`) — 2026-09-09
+
+### 🧱 Limpeza estrutural (plano_mestre_v5.md §12 — Decisões A/B/C1)
+- **`config.py` movido**: `backend/core/config.py` → `backend/config.py` (raiz do backend, conforme estrutura-alvo do plano) e `system_prompt.txt` movido junto (`backend/system_prompt.txt`), preservando o carregamento relativo ao módulo. Ajuste obrigatório: `_obter_versao()` passou de `parent.parent.parent` para `parent.parent` — sem isso, ao subir um nível, `__version__` cairia silenciosamente no fallback `4.2.5` (verificado: lê `4.2.5` do `pyproject.toml`). Mensagem de erro do prompt atualizada para o novo path.
+- **`core/config.py` virou stub** de compatibilidade com `DeprecationWarning`; reexporta `backend.config` (`import *` **+ `__version__` explícito**, pois `import *` não exporta nomes com underscore e o bridge consome `__version__`).
+- **15 stubs de `core/`** (`chat_session`, `client_protocol`, `confirmacao`, `excel_handler`, `file_utils`, `interfaces`, `llama_client`, `manual_redacao`, `maria_controller`, `paths`, `router`, `session_storage`, `tool_chaining`, `tools_schema`, `word_handler`) agora emitem `DeprecationWarning` no import, apontando para a camada real.
+- **Duplicatas mortas deletadas:** `core/tool_call_json_parser.py` (cópia de `infrastructure/tools/tool_call_json_parser.py`, exercitada só por testes) e `core/validacao_tool_call.py` (cópia de `domain/validacao_tool_call.py`) — **−348 linhas duplicadas**; testes redirecionados para as fontes reais (sem `@patch` nesses caminhos).
+- **`domain/tool_call_contracts.py` (novo):** `CAMPOS_OBRIGATORIOS` como fonte única de domínio (lógica pura, sem I/O) — corrige a violação `domain→infrastructure` do validador; `infrastructure/tools/tools_schema.py` reexporta a constante (sem segunda definição).
+
+### 🔁 Imports migrados para `backend.config`
+- Produção: `application/` (3), `domain/` (2), `infrastructure/` (4), `bridge/` (2), `main.py` e `benchmarks/maria_bench/` (`run_benchmark.py` ×2, `servidor_llama.py`) — 19 ocorrências + 3 comentários sinérgicos. Zero imports de produção de `backend.core.config` fora do stub.
+- **Fora do escopo desta fase** (permanecem com o aviso C1): testes (`test_maria.py`, `validate_llama_server.py`), `bridge/comandos.py` (`backend.core.paths`) e a string informativa em `run_benchmark.py:359` (`backend/core/system_prompt.txt`).
+
+### 🧪 Testes
+- Suíte: **283 passed**, 0 falhas — baseline B6 preservado (11 `DeprecationWarning` esperados dos stubs legacy; nenhum teste usa `filterwarnings=error`).
+- Cobertura: **75%** (`--cov=backend`: 6720 statements, 1666 não cobertos).
+
+### ✅ Gates de aceite (T7)
+- G1 stub `core.config` dispara `DeprecationWarning` → OK; G2 sem referência às duplicatas deletadas → OK; G3 `CAMPOS_OBRIGATORIOS` definido apenas em `domain/tool_call_contracts.py` → OK; G4 sem `backend.core.config` em produção → OK; G5 `pytest` → 283 passed.
+- `import-linter` / contratos de camada ficam para a **B7b** (Decisão D: exceções documentadas para `application→infrastructure`, fora do escopo desta fase).
+
 ## [4.2.5-dev] — B6: LLM-as-judge (experimental) + response_format por ferramenta — 2026-09-09
 
 ### ⚖️ LLM-as-judge experimental (fase B6, O5 — desvios aprovados)

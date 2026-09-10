@@ -17,7 +17,7 @@ try:
 except ImportError:
     psutil = None
 
-from backend.core.config import LLAMA_MODEL
+from backend.config import LLAMA_MODEL
 from backend.core.paths import RAIZ_MONOREPO
 from backend.database.connection import get_connection
 

@@ -19,13 +19,13 @@ from pathlib import Path
 
 # Garantir que a raiz do monorepo esteja no sys.path quando o script é
 # executado diretamente (ex.: python backend/main.py --bridge), permitindo
-# imports como `from backend.core.config import ...` sejam resolvidos.
+# imports como `from backend.config import ...` sejam resolvidos.
 _RAIZ_MONOREPO = str(Path(__file__).resolve().parent.parent)
 if _RAIZ_MONOREPO not in sys.path:
     sys.path.insert(0, _RAIZ_MONOREPO)
 
 
-from backend.core.config import LOG_LEVEL
+from backend.config import LOG_LEVEL
 from backend.core.maria_controller import MariaController
 from backend.bridge.servidores import _modo_bridge, _modo_bridge_http
 from backend.bridge.servidores import (  # re-export p/ compat com testes/patches

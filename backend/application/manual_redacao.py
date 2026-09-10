@@ -8,7 +8,7 @@ import logging
 import sqlite3
 
 from backend.database.connection import get_connection
-from backend.core.config import MANUAL_REDACAO_TOP_K, MANUAL_REDACAO_MAX_CHARS_POR_TRECHO
+from backend.config import MANUAL_REDACAO_TOP_K, MANUAL_REDACAO_MAX_CHARS_POR_TRECHO
 
 logger = logging.getLogger(__name__)
 

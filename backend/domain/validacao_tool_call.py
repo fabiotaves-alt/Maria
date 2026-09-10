@@ -6,8 +6,8 @@ import copy
 import logging
 from typing import Any
 
-from backend.core.config import get_max_linhas_por_chamada
-from backend.core.tools_schema import CAMPOS_OBRIGATORIOS
+from backend.config import get_max_linhas_por_chamada
+from backend.domain.tool_call_contracts import CAMPOS_OBRIGATORIOS
 
 logger = logging.getLogger(__name__)
 

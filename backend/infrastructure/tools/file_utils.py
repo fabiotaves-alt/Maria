@@ -6,7 +6,7 @@ import os
 import re
 import logging
 from pathlib import Path
-from backend.core.config import EXTENSOES_LEITURA, MAX_CHARS_LEITURA, MAX_TAMANHO_ARQUIVO_MB
+from backend.config import EXTENSOES_LEITURA, MAX_CHARS_LEITURA, MAX_TAMANHO_ARQUIVO_MB
 
 logger = logging.getLogger(__name__)
 

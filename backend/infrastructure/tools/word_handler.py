@@ -7,7 +7,7 @@ import logging
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from backend.infrastructure.tools.file_utils import garantir_pasta_arquivos, gerar_nome_unico
-from backend.core.config import PASTA_ARQUIVOS_GERADOS
+from backend.config import PASTA_ARQUIVOS_GERADOS
 
 logger = logging.getLogger(__name__)
 
