@@ -23,7 +23,7 @@ O modelo de linguagem roda localmente via **llama-server** (llama.cpp) com o **Q
 ### Para o desenvolvedor
 - 🔌 Três modos de execução: **CLI interativo**, **bridge JSON-lines** (sidecar) e **servidor HTTP REST** (dev)
 - 🛡️ Camada de segurança completa: token de autenticação por sessão, CORS por ambiente, validação de caminhos contra path traversal, restrição de binários externos
-- 🧪 Suíte de testes automatizados com 265 testes (pytest) — ver `CHANGELOG.md`
+- 🧪 Suíte de testes automatizados com 269 testes (pytest) — ver `CHANGELOG.md`
 - 📦 Sistema de benchmark próprio para avaliação de tool calling
 
 ---
@@ -38,8 +38,8 @@ O sistema é um monorepo com dois processos independentes que se comunicam via H
 │                                     │                             │                                  │
 │  • React 18 + TypeScript + Vite     │    Authorization: Bearer    │  • main.py (entry point fino)    │
 │  • Tailwind CSS + Framer Motion     │    <token por sessão>       │  • bridge/ (stdin/stdout + HTTP) │
-│  • Zustand (estado global)          │                             │  • core/maria_controller.py      │
-│  • useMariaBridge (hook HTTP)       │                             │  • core/ (LLM, tools, parser)    │
+│  • Zustand (estado global)          │                             │  • application/maria_controller  │
+│  • useMariaBridge (hook HTTP)       │                             │  • domain/ + infrastructure/     │
 │  • Rust: rusqlite, reqwest, sidecar │                             │  • database/ (SQLite)            │
 └──────────────────┬──────────────────┘                             └────────────────┬─────────────────┘
                    │ rusqlite (WAL)                                                  │ HTTP localhost:8080
@@ -304,29 +304,34 @@ maria/
 │   ├── bridge/                    ← camada de transporte do backend
 │   │   ├── comandos.py            ← protocolo de comandos (compartilhado entre os transportes)
 │   │   └── servidores.py          ← transporte stdin/stdout (sidecar) e HTTP Flask (dev)
-│   ├── core/                      ← lógica de negócio
-│   │   ├── config.py              ← fonte da verdade: modelos, URLs, parâmetros
-│   │   ├── maria_controller.py    ← controller: cliente LLM, sessão, ferramentas, persistência
-│   │   ├── llama_client.py        ← cliente llama-server (produção)
+│   ├── domain/                    ← entidades e validação pura (stdlib apenas)
 │   │   ├── chat_session.py        ← histórico e prompt de sistema
-│   │   ├── session_storage.py     ← persistência de sessões
-│   │   ├── tools_schema.py        ← definição e execução das ferramentas
-│   │   ├── tool_call_json_parser.py ← parser JSON-objeto plano (canonico pos-B0; textual removido em D1)
+│   │   ├── confirmacao.py         ← confirmação de ações (sim/não/ambíguo)
+│   │   └── validacao_tool_call.py ← validação determinística de tool calls
+│   ├── interfaces/                ← ports (typing.Protocol)
+│   │   ├── client_protocol.py     ← LLMClientProtocol
+│   │   ├── interfaces.py          ← ToolExecutorProtocol, SessionStorageProtocol
+│   │   └── session_storage.py     ← persistência de sessões
+│   ├── application/               ← casos de uso / orquestração
+│   │   ├── maria_controller.py    ← controller: cliente LLM, sessão, ferramentas, persistência
 │   │   ├── tool_chaining.py       ← encadeamento automático de ferramentas de leitura
-│   │   ├── router.py              ← roteamento (legado textual; intent-classification em B4.5 do plano v5)
-│   │   ├── word_handler.py        ← manipulação de documentos .docx
-│   │   ├── excel_handler.py       ← manipulação de planilhas .xlsx
-│   │   ├── file_utils.py          ← validação de caminhos e permissões
+│   │   ├── router.py              ← roteamento (legado; intent-classification em B4.5)
 │   │   └── manual_redacao.py      ← RAG via FTS5 (Manual de Redação)
+│   ├── infrastructure/            ← implementações concretas (Flask, SQLite, requests)
+│   │   ├── llm/llama_client.py    ← cliente llama-server (produção)
+│   │   └── tools/                 ← tools_schema, parser JSON, word/excel, file_utils
+│   ├── core/                      ← config + re-exports de compatibilidade (transição)
+│   │   ├── config.py              ← fonte da verdade: modelos, URLs, parâmetros
+│   │   └── system_prompt.txt      ← prompt de sistema
 │   ├── ui_terminal.py             ← interface CLI interativa
 │   ├── database/
 │   │   ├── connection.py          ← conexão SQLite thread-safe (WAL + busy_timeout)
 │   │   ├── schema.py              ← criação de tabelas (init_db)
-│   │   └── ingest_manual_redacao.py  ← ingestão do Manual de Redação no FTS5
-│   ├── tests/
-│   │   ├── test_maria.py          ← 265 testes pytest (baseline 2026-09-08)
-│   │   └── validate_llama_server.py  ← smoke-test ao vivo
-│   └── benchmarks/maria_bench/  ← avaliacao de tool calling (28 tasks, baseline B0.5)
+│   │   ├── migration_runner.py    ← migrations versionadas (NNN_nome.sql)
+│   │   └── ingest_manual_redacao.py ← ingestão do Manual de Redação no FTS5
+│   ├── tests/                     ← 269 testes pytest (baseline 2026-09-09)
+│   │   └── validate_llama_server.py ← smoke-test ao vivo
+│   └── benchmarks/maria_bench/    ← avaliação de tool calling (28 tasks, baseline B0.5)
 │
 ├── frontend-tauri/                ← frontend Tauri v2 + React
 │   ├── shared/
@@ -347,7 +352,7 @@ maria/
 └── docs/                          ← documentação técnica
     ├── ARQUITETURA_SISTEMA.md     ← arquitetura completa e estado por camada
     ├── SEGURANCA.md               ← modelo de ameaças, medidas e pendências
-    ├── GUIA_DESENVOLVIMENTO_v2_canonico.md ← guia canonico unico (pratico + referencial teorico)
+    ├── GUIA_DESENVOLVIMENTO.md   ← guia canonico unico (pratico + referencial teorico)
     ├── GUIA_TESTES_EMPIRICOS.md   ← 5 niveis de teste (build → E2E)
     ├── GUIA_INSTALACAO.md         ← instalacao completa com troubleshooting
     ├── DECISOES_BANCO_DADOS.md    ← decisões de design do banco
@@ -368,6 +373,8 @@ maria/
 | v4.1.0 | ✅ Concluída | RAG do Manual de Redação da Presidência (FTS5, 255 trechos) |
 | v4.1.1 | ✅ Concluída | Correções críticas de segurança (token atômico, CORS, PATH hijacking, SQLite thread-safe) |
 | v4.2.0 | ✅ Concluída | Planilhas com pandas: criar/editar com linhas de dados e limites por modelo |
+| v4.2.1–v4.2.4 | ✅ Concluída | Extração paginada de planilhas, parser JSON + validação determinística de tool calls, system prompt v4 |
+| v4.2.5-dev | 🔄 Em andamento | Reestruturação para arquitetura hexagonal (fases B0–B7) + benchmark v2 |
 | v4.3.0 | 📋 Planejado | Instalador one-click (MSI/DEB/AppImage com Python embeddable e modelo pré-baixado) |
 | v4.4.0 | 📋 Planejado | Roteamento (intent B4.5 + NLLB-200 B4.6, ver plano_mestre_v5.md) |
 | v4.5.0 | 📋 Planejado | Voz da MARIA: TTS + STT + avatar animado |
@@ -381,7 +388,7 @@ maria/
 |-----------|-----------|
 | [`docs/ARQUITETURA_SISTEMA.md`](docs/ARQUITETURA_SISTEMA.md) | Diagrama completo, componentes, protocolo bridge e estado por camada |
 | [`docs/SEGURANCA.md`](docs/SEGURANCA.md) | Modelo de ameaças, medidas implementadas e roadmap de segurança |
-| [`docs/GUIA_DESENVOLVIMENTO_v2_canonico.md`](docs/GUIA_DESENVOLVIMENTO_v2_canonico.md) | Guia canonico unico: setup, arquitetura, checklist e referencial |
+| [`docs/GUIA_DESENVOLVIMENTO.md`](docs/GUIA_DESENVOLVIMENTO.md) | Guia canonico unico: setup, arquitetura, checklist e referencial |
 | [`docs/GUIA_TESTES_EMPIRICOS.md`](docs/GUIA_TESTES_EMPIRICOS.md) | Como construir e validar os 5 níveis de teste |
 | [`docs/GUIA_INSTALACAO.md`](docs/GUIA_INSTALACAO.md) | Instalacao completa (sistema + LLM + Whisper) com troubleshooting |
 | [`docs/REGRAS_OPERACAO_LLAMA_SERVER.md`](docs/REGRAS_OPERACAO_LLAMA_SERVER.md) | Regras obrigatorias de operacao do llama-server local |
@@ -410,4 +417,3 @@ maria/
 ## Licença
 
 Projeto proprietário — todos os direitos reservados. Uso, cópia ou distribuição não autorizados são proibidos.
-# CHANGELOG - Projeto MARIA

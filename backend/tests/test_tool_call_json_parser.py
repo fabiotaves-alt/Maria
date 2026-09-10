@@ -1,9 +1,9 @@
 """
-Testes unitários TDD para backend/core/tool_call_json_parser.py.
+Testes unitários TDD para backend/infrastructure/tools/tool_call_json_parser.py.
 """
 import unittest
 
-from backend.core.tool_call_json_parser import extrair_tool_call_json
+from backend.infrastructure.tools.tool_call_json_parser import extrair_tool_call_json
 
 
 class TestToolCallJsonParser(unittest.TestCase):

@@ -164,14 +164,14 @@ Definido no arquivo [`shared/schema.sql`](../shared/schema.sql):
 | Backend Core (llama-server, tools) | ✅ Funcional | Suporte multimodal, encadeamento de leitura e tool calling |
 | Backend RAG (Manual de Redação) | ✅ Funcional | Consulta FTS5 com BM25 e truncamento inteligente de contexto |
 | Backend CLI | ✅ Funcional | `main.py` interativo no terminal |
-| Backend Bridge stdin/stdout | ✅ 19 comandos | Utilizado pelo sidecar em produção |
+| Backend Bridge stdin/stdout | ✅ 20 comandos | Utilizado pelo sidecar em produção |
 | Backend Bridge HTTP | ✅ Funcional | Porta 8081, autenticada por token, usada pelo frontend em dev |
-| Backend Organização Modular | ✅ Concluída | `main.py` é entry point fino; transporte/protocolo em `bridge/` e lógica de negócio em `core/maria_controller.py` |
+| Backend Organização Modular | ✅ Concluída | `main.py` é entry point fino; transporte/protocolo em `bridge/` e lógica de negócio em `application/` (hexagonal: domain/interfaces/application/infrastructure) |
 | Backend Database | ✅ Schema unificado | 6 tabelas relacionais + 1 tabela virtual FTS5 + WAL |
 | Frontend Tauri (Rust) | ✅ Funcional | App compila e inicia; comandos rusqlite e sidecar configurados |
 | Frontend React (UI) | ✅ Funcional | Interface com Glassmorphism, Aura rosa, TopBar, Sidebar e Chat |
 | Frontend Persistência | ✅ rusqlite | Compartilha `shared/maria.db` com o backend |
-| Testes Backend | ✅ 265 passed (baseline 2026-09-08) | pytest (`uv run pytest`) |
+| Testes Backend | ✅ 269 passed (baseline 2026-09-09) | pytest (`uv run pytest`) |
 | Testes Frontend (TS) | ✅ Passando | `npm run test` (Vitest) |
 | Testes Frontend (Rust) | ✅ Passando | `cargo test` |
 | Documentação | 🔄 Em auditoria (2026-09-09) | v4.2.5-dev; legados em `docs/arquivo/` |

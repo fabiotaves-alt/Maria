@@ -3,10 +3,11 @@
 > Painel de controle de entregas e roadmap do **MARIA** (v4.x). Atualizado a cada tarefa concluída.
 
 **Versão Atual:** v4.2.5  
-**Última alteração:** 2026-09-09  
+**Última alteração:** 2026-09-10  
 **Estado:** 🔄 **EM MIGRAÇÃO/REESTRUTURAÇÃO** — F1.1 (card de confirmação + wiring backend) **commitada** na branch `feat/f1.1-confirmacao-card` (269 passed, base `6f1d4f4`); pendente merge na linhagem principal; B7a (`core/` esvaziado, 283 passed) segue em `feat/b7a-core-cleanup` sem push; próximo: F1.2 (timeout + paths) e F1.3 (read_file/save_file)  
 **Relatório integração frontend (2026-09-09):** `docs/RELATORIO_INTEGRACAO_FRONTEND_POS_REFATORACAO_2026-09-09.md` — inventário 21 comandos bridge, matriz F1–F5, spec seção Desempenho; ver entrada do `CHANGELOG.md`.
 **Auditoria de documentação (2026-09-09):** 4 legados arquivados em `docs/arquivo/` (GUIA_DESENVOLVIMENTO v1, MELHORIAS_RELATORIO v4.1.1, RELATORIO_BENCHMARK_DIAGNOSTICO 2026-09-04, TO DO.txt da raiz) + 8 docs atualizados (README, GUIA_TESTES, ARQUITETURA, GUIA_INSTALACAO, REGRAS_LLAMA, v2 canônico, install-dependencies.ps1 `--host 127.0.0.1`) + relatório `docs/RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; ver entrada do `CHANGELOG.md`.
+**Auditoria de estado + bugs imediatos (2026-09-10):** relatório `docs/RELATORIO_AUDITORIA_ESTADO_2026-09-10.md`; BUG-2 (módulos divergentes `core/`→`infrastructure/`/`domain/` corrigidos — testes apontados para os módulos canónicos + shims), BUG-4 (contagem 265→269), BUG-5 (19→20 comandos); guia canónico renomeado para `GUIA_DESENVOLVIMENTO.md`; ver entrada do `CHANGELOG.md`.
 **Branch de reestruturação:** `feat/arquitetura-hexagonal-fase4`  
 **Débito técnico FIX-4 — ✅ RESOLVIDO (ciclo 2026-09-08):** `encadear_leitura_stream` agora aceita o callback `apos_cada_leitura(nome, argumentos)` (chamado antes de cada leitura) e o `maria_runner` registra as ferramentas intermediárias em `cadeia_ferramentas` — commit na branch `fix/fix4-cadeia-ferramentas-encadeamento`; 3 testes novos; suíte 265.
 
@@ -56,7 +57,7 @@
 | Backend Core & Ferramentas (Python) | 99% | LlamaClient, RAG FTS5, criação/edição de arquivos, benchmark com metadados do modelo, sampler configurável, system prompt externo, lógica de negócio em `backend/core/maria_controller.py`, autocorreção de tool calls inválidas e **avaliação de desempenho integrada ao terminal com automação do llama-server** |
 | Segurança & Concorrência | 95% | Token atômico, CORS por ambiente, SQLite thread-safe, PATH hijacking |
 | Frontend (Tauri v2 + React) | 92% | Interface completa, temas, persistência rusqlite, sidecar |
-| Integração Bridge (HTTP/Sidecar) | 95% | 19 comandos bridge, autenticação Bearer, health check; transporte e protocolo separados em `backend/bridge/` (`servidores.py` + `comandos.py`) |
+| Integração Bridge (HTTP/Sidecar) | 95% | 20 comandos bridge, autenticação Bearer, health check; transporte e protocolo separados em `backend/bridge/` (`servidores.py` + `comandos.py`) |
 | **Total do Projeto (v4.x)** | **~96%** | MVP v4 estável, pronto para empacotamento final |
 
 ---
@@ -65,6 +66,7 @@
 
 | Versão | Data | Descrição | Status |
 |--------|------|-----------|--------|
+| **4.2.5-dev (Auditoria de estado + bugs imediatos)** | 2026-09-10 | Relatório `RELATORIO_AUDITORIA_ESTADO_2026-09-10.md`; BUG-2 (módulos divergentes `core/`→`infrastructure/`/`domain/`, testes apontados para módulos canónicos + shims), BUG-4 (contagem 265→269), BUG-5 (19→20 comandos); guia canónico renomeado → `GUIA_DESENVOLVIMENTO.md`; guia §5 + `ARQUITETURA_SISTEMA.md` + `README.md` atualizados; **269 testes passando** | ✅ Concluída |
 | **4.2.5-dev (F1.1 — card de confirmação)** | 2026-09-09 | Card de ação pendente (`ActionCard.tsx`), wiring `_cmd_chat` → `processar_confirmacao`, envelope estruturado `{mensagem, confirmacao_pendente}`, remoção de enum legado `qwen3b\|llama7b`, 4 testes novos. Base `6f1d4f4`, 269 passed. | ✅ Commitada (`feat/f1.1-confirmacao-card`) |
 | **4.2.5-dev (Auditoria docs)** | 2026-09-09 | Arquivamento de 4 legados em `docs/arquivo/` + atualização de 8 docs (versão, 265 testes, paths `maria_bench`, `uv`, `--host 127.0.0.1`) + relatório `RELATORIO_AUDITORIA_DOCUMENTACAO_2026-09-09.md`; **265 testes passando** | ✅ Concluída |
 | **4.2.5-dev (B2 — benchmark ports)** | 2026-09-08 | Fase B2 do `plano_mestre_v5.md` (Seção 5): move `backend/benchmark/` → `backend/benchmarks/maria_bench/` (D4 ajustado — mantido sob `backend/`, namespace `backend.*` preservado); `montar_mensagens_com_reforco` (público); `LLAMA_NUM_CTX` absorvido em `benchmark_config.py`; imports do benchmark reescritos p/ `backend.domain/interfaces/infrastructure/application.*` sem `sys.path.insert`; **265 testes passando**; débito `backend.core.*` em `report.py`/`servidor_llama.py` registrado | ✅ Commitada (branch `feat/b2-benchmark-ports`) |

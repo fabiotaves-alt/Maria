@@ -1,9 +1,9 @@
 """
-Testes unitários TDD para backend/core/validacao_tool_call.py.
+Testes unitários TDD para backend/domain/validacao_tool_call.py.
 """
 import unittest
 
-from backend.core.validacao_tool_call import validar_tool_call_determinístico
+from backend.domain.validacao_tool_call import validar_tool_call_determinístico
 
 
 class TestValidacaoToolCall(unittest.TestCase):
