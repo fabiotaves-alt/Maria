@@ -2,6 +2,21 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — Smoke tests E2E (funcional + multimodal) — 2026-09-10
+
+### 🧪 Novos harnesses de smoke ao vivo (`docs/dev_base/`)
+- **`smoke_e2e_chat.py`** — replica os 6 itens do B0.9 (CHANGELOG 2026-09-08): carga do modelo, `criar_planilha` real com confirmação, validador V3 (case-insensitive), fidelidade de dados no `.xlsx` (pandas, sem NaN), cancelamento e detecção de tool call. Item 6 corrigido: `_fonte` passou de critério a informativo (é metadado interno do parser, não contrato público) — critério agora é `name` + `arguments` válidos.
+- **`smoke_multimodal.py`** — visão (`--image`) e áudio (`--audio`) isolados do smoke funcional, com `--timeout` configurável (default 600s) e **skip inteligente por contexto**: lê `n_ctx` do `/v1/models` e pula a visão (sem contar como falha) se `n_ctx < 3000`.
+
+### ✅ Resultado do smoke ao vivo (llama-server real, Qwen2.5-Omni-3B)
+- **Funcional: 7/7 passaram** (modelo acessível, tool call `criar_planilha` detectada, V3, confirmação, cancelamento, conteúdo `.xlsx` fiel: `{'Data': '2026-01-01', 'Valor': 100}`).
+- **Multimodal: 1/1 passou** — visão descreveu corretamente o logotipo MARIA, com `n_ctx=4096` e `--timeout 600`.
+- **Aprendizado:** `n_ctx=2048` era insuficiente para multimodal (prompt 2080 tokens → `exceed_context_size`); `n_ctx=4096` resolve. Timeout de 240s (default) também era curto para o 3B CPU processar imagem — 600s resolve.
+
+### 📋 Itens fora de escopo (registrados)
+- **Frente B (system_prompt v4):** adiada — com `n_ctx=4096` sobrou margem de contexto; a reescrita do prompt (~700 tokens) deixa de ser obrigatória para o smoke e fica como otimização futura.
+- **Áudio:** não testado (sem fixture `.wav` no repositório).
+
 ## [4.2.5-dev] — Auditoria de estado + bugs imediatos + renome do guia canónico — 2026-09-10
 
 ### 🐛 Bugs imediatos corrigidos
