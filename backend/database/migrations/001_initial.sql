@@ -1,0 +1,101 @@
+-- 001_initial.sql — Estado atual do schema MARIA (Fase 1: formalização, sem mudanças).
+-- Extraído literalmente de backend/database/schema.py (init_db) — a migration
+-- apenas congela o schema existente para permitir evolução versionada.
+--
+-- Regra para migrations futuras: NUNCA renomear/remover colunas existentes —
+-- apenas ADD COLUMN com DEFAULT (compatibilidade com o frontend Rust/rusqlite).
+
+-- 1. Tabela: conversas (sessões de chat)
+CREATE TABLE IF NOT EXISTS conversas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    titulo TEXT NOT NULL DEFAULT 'Nova Conversa',
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Tabela: mensagens (histórico de cada conversa)
+CREATE TABLE IF NOT EXISTS mensagens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversa_id INTEGER NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+    conteudo TEXT NOT NULL,
+    anexos TEXT,  -- JSON com caminhos de arquivos anexados
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (conversa_id) REFERENCES conversas(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_mensagens_conversa
+ON mensagens(conversa_id);
+
+-- 3. Tabela: memoria (fatos persistentes sobre o usuário - RAG)
+CREATE TABLE IF NOT EXISTS memoria (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fato TEXT NOT NULL UNIQUE,
+    categoria TEXT DEFAULT 'geral',  -- ex: 'pessoal', 'trabalho', 'preferencias'
+    relevancia REAL DEFAULT 1.0,
+    fonte TEXT DEFAULT 'manual',  -- origem do fato (ex: 'chat', 'arquivo', 'manual')
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_memoria_categoria
+ON memoria(categoria);
+
+-- 4. Tabela: arquivos_indexados (metadados de arquivos processados)
+CREATE TABLE IF NOT EXISTS arquivos_indexados (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    caminho TEXT NOT NULL UNIQUE,
+    tipo TEXT NOT NULL,  -- 'excel', 'word', 'pdf', 'txt', 'audio'
+    tamanho_bytes INTEGER,
+    hash_checksum TEXT,  -- para detectar mudanças
+    indexado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ultima_leitura TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_arquivos_tipo
+ON arquivos_indexados(tipo);
+
+-- 5. Tabela: automacoes (automações salvas pelo usuário)
+CREATE TABLE IF NOT EXISTS automacoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    descricao TEXT,
+    gatilho TEXT NOT NULL,
+    acao TEXT NOT NULL,
+    parametros TEXT,
+    passos_json TEXT,  -- JSON com sequência de ações
+    ativo BOOLEAN DEFAULT 1,
+    execucoes_count INTEGER DEFAULT 0,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ultima_execucao TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_automacoes_ativo
+ON automacoes(ativo);
+
+-- 6. Tabela: configuracoes (preferências do usuário)
+CREATE TABLE IF NOT EXISTS configuracoes (
+    chave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL,
+    descricao TEXT,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Configurações padrão (manter em sincronia com shared/schema.sql;
+-- modelos em teste: qwen2.5-omni-3b leve / qwen2.5-omni-7b pesado).
+INSERT OR IGNORE INTO configuracoes (chave, valor, descricao)
+VALUES
+    ('tema_escuro', 'true', 'Usar tema escuro na interface'),
+    ('modelo_llama', 'qwen2.5-omni-3b', 'Modelo padrão do llama-server'),
+    ('idioma', 'pt-BR', 'Idioma da interface'),
+    ('notificacoes_som', 'true', 'Emitir sons de notificação');
+
+-- 7. Tabela virtual FTS5: Manual de Redação da Presidência da República (RAG)
+-- TOLERANTE: este statement é executado pelo runner fora da transação
+-- principal, com try/except individual — SQLite sem suporte a FTS5 apenas
+-- registra warning e a migration segue aplicada.
+CREATE VIRTUAL TABLE IF NOT EXISTS manual_redacao_fts USING fts5(
+    tipo_documento UNINDEXED,
+    secao,
+    conteudo,
+    tokenize = 'unicode61 remove_diacritics 2'
+);

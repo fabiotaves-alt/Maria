@@ -1,6 +1,6 @@
 # MARIA — Assistente de IA de Escritório, 100% Local
 
-> **Versão atual:** v4.1.1 · **Status:** ✅ Estável
+> **Versão atual:** v4.2.5-dev · **Status:** 🔄 EM MIGRAÇÃO/REESTRUTURAÇÃO (arquitetura hexagonal Fase 0–4 + benchmark v5) — ver `docs/PROGRESSO_DESENVOLVIMENTO.md` e `docs/dev_senior/plano_mestre_v5.md`
 
 **MARIA** é uma assistente de inteligência artificial para escritório que roda **completamente no seu computador**, sem enviar dados para a internet e sem depender de serviços em nuvem. Ela entende linguagem natural em português, executa tarefas reais (criar documentos, preencher planilhas, transcrever áudio, gerenciar memórias e automações) e aprende com as informações que você compartilha ao longo do tempo.
 
@@ -23,7 +23,7 @@ O modelo de linguagem roda localmente via **llama-server** (llama.cpp) com o **Q
 ### Para o desenvolvedor
 - 🔌 Três modos de execução: **CLI interativo**, **bridge JSON-lines** (sidecar) e **servidor HTTP REST** (dev)
 - 🛡️ Camada de segurança completa: token de autenticação por sessão, CORS por ambiente, validação de caminhos contra path traversal, restrição de binários externos
-- 🧪 Suíte de testes automatizados com 115+ testes (pytest)
+- 🧪 Suíte de testes automatizados com 265 testes (pytest) — ver `CHANGELOG.md`
 - 📦 Sistema de benchmark próprio para avaliação de tool calling
 
 ---
@@ -106,7 +106,7 @@ rustc --version  # stable
 python --version # 3.11+
 ```
 
-> Para um guia mais detalhado com troubleshooting, consulte [`docs/INSTALL_GUIDE.md`](docs/INSTALL_GUIDE.md).
+> Para um guia mais detalhado com troubleshooting, consulte [`docs/GUIA_INSTALACAO.md`](docs/GUIA_INSTALACAO.md) (instalação completa, LLM + Whisper).
 
 ### 2. Clonar o repositório e configurar o ambiente Python
 
@@ -114,13 +114,11 @@ python --version # 3.11+
 git clone <repo-url>
 cd maria
 
-# Criar ambiente virtual na raiz do monorepo
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # Linux/macOS
+# Instalar uv (uma vez)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
-# Instalar dependências do backend
-pip install -r requirements.txt
+# Criar ambiente e instalar dependências
+uv sync --extra dev
 ```
 
 ### 3. Compilar o llama.cpp e baixar o modelo
@@ -195,7 +193,7 @@ Abra um terminal separado e mantenha-o rodando:
 O modo mais simples, sem frontend. Útil para testar o backend isoladamente.
 
 ```bash
-.venv\Scripts\python.exe backend\main.py
+uv run python backend/main.py
 ```
 
 Comandos disponíveis no prompt: `ajuda`, `limpar`, `retomar` (retoma sessão salva), `sair`.
@@ -209,10 +207,10 @@ O modo de uso normal. Requer dois processos rodando em paralelo.
 **Terminal 1 — Backend Python (bridge HTTP):**
 
 ```bash
-.venv\Scripts\python.exe backend\main.py --bridge-http
+uv run python backend/main.py --bridge-http
 ```
 
-O backend gera um token de autenticação em `shared/.bridge_token` e registra no log:
+O backend gera um token de autenticação em `frontend-tauri/shared/.bridge_token` e registra no log:
 ```
 INFO — Token da API bridge HTTP regenerado
 INFO — Servidor bridge HTTP iniciado em http://127.0.0.1:8081
@@ -251,10 +249,10 @@ O instalador gerado em `frontend-tauri/src-tauri/target/release/bundle/` inclui 
 
 ```bash
 # Suíte principal do backend (pytest)
-.venv\Scripts\python.exe -m pytest backend/tests/test_maria.py -v
+uv run pytest
 
 # Smoke-test contra o llama-server ao vivo (requer servidor rodando na porta 8080)
-.venv\Scripts\python.exe backend/tests/validate_llama_server.py
+uv run python backend/tests/validate_llama_server.py
 
 # Frontend — type-check + build Vite
 cd frontend-tauri && npm run build
@@ -276,7 +274,7 @@ O MARIA foi projetado para rodar 100% localmente. As principais medidas implemen
 
 | Medida | Detalhe |
 |--------|---------|
-| **Autenticação por sessão** | Token de 64 hex chars gerado a cada inicialização, escrito atomicamente em `shared/.bridge_token` (chmod 600 em POSIX). O frontend injeta o token no header `Authorization: Bearer` automaticamente. |
+| **Autenticação por sessão** | Token de 64 hex chars gerado a cada inicialização, escrito atomicamente em `frontend-tauri/shared/.bridge_token` (chmod 600 em POSIX). O frontend injeta o token no header `Authorization: Bearer` automaticamente. |
 | **CORS por ambiente** | Em `MARIA_ENV=production` (padrão), apenas origens do webview Tauri são aceitas. `http://localhost:5173` (Vite) só é liberado com `MARIA_ENV=development`. |
 | **Thread-safety do banco** | SQLite com `check_same_thread=False`, WAL mode, `busy_timeout=5000ms` e double-checked locking na criação da conexão. |
 | **Proteção contra PATH hijacking** | O binário do whisper.cpp é validado via `WHISPER_ALLOWED_DIR` — binários fora do diretório permitido são rejeitados. |
@@ -293,13 +291,13 @@ Para detalhes completos, resultados do `bandit`, pendências e instruções de t
 maria/
 ├── README.md                      ← este arquivo
 ├── CHANGELOG.md                   ← histórico de versões
-├── requirements.txt               ← dependências Python (raiz do monorepo)
+├── pyproject.toml                 ← dependências Python (uv) + config pytest
+├── requirements.txt               ← fallback (pip) das dependências Python
 ├── .venv/                         ← ambiente virtual Python
 │
 ├── shared/                        ← recursos compartilhados entre frontend e backend
 │   ├── schema.sql                 ← DDL canônico (6 tabelas em português)
-│   ├── maria.db                   ← banco SQLite (gerado automaticamente)
-│   └── .bridge_token              ← token de sessão HTTP (gerado em runtime, fora do git)
+│   └── maria.db                   ← banco SQLite (gerado automaticamente)
 │
 ├── backend/                       ← backend Python
 │   ├── main.py                    ← entry point fino (CLI / --bridge / --bridge-http)
@@ -313,9 +311,9 @@ maria/
 │   │   ├── chat_session.py        ← histórico e prompt de sistema
 │   │   ├── session_storage.py     ← persistência de sessões
 │   │   ├── tools_schema.py        ← definição e execução das ferramentas
-│   │   ├── tool_call_textual_parser.py  ← parser de tool calls textuais (fallback posicional)
+│   │   ├── tool_call_json_parser.py ← parser JSON-objeto plano (canonico pos-B0; textual removido em D1)
 │   │   ├── tool_chaining.py       ← encadeamento automático de ferramentas de leitura
-│   │   ├── router.py              ← roteamento MoE entre modelos (3B ↔ 8B)
+│   │   ├── router.py              ← roteamento (legado textual; intent-classification em B4.5 do plano v5)
 │   │   ├── word_handler.py        ← manipulação de documentos .docx
 │   │   ├── excel_handler.py       ← manipulação de planilhas .xlsx
 │   │   ├── file_utils.py          ← validação de caminhos e permissões
@@ -326,11 +324,13 @@ maria/
 │   │   ├── schema.py              ← criação de tabelas (init_db)
 │   │   └── ingest_manual_redacao.py  ← ingestão do Manual de Redação no FTS5
 │   ├── tests/
-│   │   ├── test_maria.py          ← 115+ testes pytest
+│   │   ├── test_maria.py          ← 265 testes pytest (baseline 2026-09-08)
 │   │   └── validate_llama_server.py  ← smoke-test ao vivo
-│   └── benchmark/                 ← sistema de benchmark de tool calling
+│   └── benchmarks/maria_bench/  ← avaliacao de tool calling (28 tasks, baseline B0.5)
 │
 ├── frontend-tauri/                ← frontend Tauri v2 + React
+│   ├── shared/
+│   │   └── .bridge_token          ← token de sessão HTTP (gerado em runtime, fora do git)
 │   ├── src/
 │   │   ├── App.tsx                ← entry point React
 │   │   ├── components/            ← TopBar, Sidebar, CenterStage, ChatPanel
@@ -347,12 +347,15 @@ maria/
 └── docs/                          ← documentação técnica
     ├── ARQUITETURA_SISTEMA.md     ← arquitetura completa e estado por camada
     ├── SEGURANCA.md               ← modelo de ameaças, medidas e pendências
-    ├── GUIA_DESENVOLVIMENTO.md    ← guia prático para novos desenvolvedores
-    ├── GUIA_TESTES_EMPIRICOS.md   ← 5 níveis de teste (build → E2E)
-    ├── INSTALL_GUIDE.md           ← instalação detalhada com troubleshooting
+    ├── GUIA_DESENVOLVIMENTO_v2_canonico.md ← guia canonico unico (pratico + referencial teorico)
+    ├── GUIA_TESTES_EMPIRICOS.md   ← 5 niveis de teste (build → E2E)
+    ├── GUIA_INSTALACAO.md         ← instalacao completa com troubleshooting
     ├── DECISOES_BANCO_DADOS.md    ← decisões de design do banco
-    ├── INSTALACAO_WHISPER.md      ← instalação do whisper.cpp para transcrição
-    └── arquivo/                   ← histórico da era JavaFX (v2.x/v3.x)
+    ├── REGRAS_OPERACAO_LLAMA_SERVER.md ← regras obrigatorias do llama-server local
+    ├── PROGRESSO_DESENVOLVIMENTO.md ← painel de entregas e roadmap vivo
+    ├── TODO_MELHORIAS_BACKEND.md  ← backlog vivo do backend
+    ├── dev_senior/plano_mestre_v5.md ← plano mestre v5 (fases B0-B7)
+    └── arquivo/                   ← historico arquivado (era JavaFX + snapshots superados)
 ```
 
 ---
@@ -364,9 +367,10 @@ maria/
 | v4.0.0 | ✅ Concluída | Migração completa para Tauri v2 + React; bridge HTTP; sidecar |
 | v4.1.0 | ✅ Concluída | RAG do Manual de Redação da Presidência (FTS5, 255 trechos) |
 | v4.1.1 | ✅ Concluída | Correções críticas de segurança (token atômico, CORS, PATH hijacking, SQLite thread-safe) |
-| v4.2.0 | 📋 Planejado | Instalador one-click (MSI/DEB/AppImage com Python embeddable e modelo pré-baixado) |
-| v4.3.0 | 📋 Planejado | Roteamento multi-modelo (3B ↔ 8B via `router.py`) |
-| v4.4.0 | 📋 Planejado | Voz da MARIA: TTS + STT + avatar animado |
+| v4.2.0 | ✅ Concluída | Planilhas com pandas: criar/editar com linhas de dados e limites por modelo |
+| v4.3.0 | 📋 Planejado | Instalador one-click (MSI/DEB/AppImage com Python embeddable e modelo pré-baixado) |
+| v4.4.0 | 📋 Planejado | Roteamento (intent B4.5 + NLLB-200 B4.6, ver plano_mestre_v5.md) |
+| v4.5.0 | 📋 Planejado | Voz da MARIA: TTS + STT + avatar animado |
 | v5.0.0 | 📋 Planejado | Whisper.cpp empacotado; lançamento para parceiros fundadores |
 
 ---
@@ -377,10 +381,10 @@ maria/
 |-----------|-----------|
 | [`docs/ARQUITETURA_SISTEMA.md`](docs/ARQUITETURA_SISTEMA.md) | Diagrama completo, componentes, protocolo bridge e estado por camada |
 | [`docs/SEGURANCA.md`](docs/SEGURANCA.md) | Modelo de ameaças, medidas implementadas e roadmap de segurança |
-| [`docs/GUIA_DESENVOLVIMENTO.md`](docs/GUIA_DESENVOLVIMENTO.md) | Setup, padrões de código, fluxo de trabalho e backlog técnico |
+| [`docs/GUIA_DESENVOLVIMENTO_v2_canonico.md`](docs/GUIA_DESENVOLVIMENTO_v2_canonico.md) | Guia canonico unico: setup, arquitetura, checklist e referencial |
 | [`docs/GUIA_TESTES_EMPIRICOS.md`](docs/GUIA_TESTES_EMPIRICOS.md) | Como construir e validar os 5 níveis de teste |
-| [`docs/INSTALL_GUIDE.md`](docs/INSTALL_GUIDE.md) | Instalação passo a passo com troubleshooting (Windows/PowerShell) |
-| [`docs/INSTALACAO_WHISPER.md`](docs/INSTALACAO_WHISPER.md) | Como compilar e configurar o whisper.cpp para transcrição de áudio |
+| [`docs/GUIA_INSTALACAO.md`](docs/GUIA_INSTALACAO.md) | Instalacao completa (sistema + LLM + Whisper) com troubleshooting |
+| [`docs/REGRAS_OPERACAO_LLAMA_SERVER.md`](docs/REGRAS_OPERACAO_LLAMA_SERVER.md) | Regras obrigatorias de operacao do llama-server local |
 | [`docs/DECISOES_BANCO_DADOS.md`](docs/DECISOES_BANCO_DADOS.md) | Decisões de design do schema SQLite compartilhado |
 | [`CHANGELOG.md`](CHANGELOG.md) | Histórico completo de versões |
 
@@ -395,7 +399,7 @@ maria/
    - **Rust:** `cargo fmt` e `cargo clippy` sem warnings
 3. Rode a suíte completa de testes antes de abrir o PR:
    ```bash
-   .venv\Scripts\python.exe -m pytest backend/tests/test_maria.py -q
+   uv run pytest
    cd frontend-tauri && npm run build && cargo test
    ```
 4. Escreva mensagens de commit claras e em português

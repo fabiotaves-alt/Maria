@@ -5,6 +5,8 @@ Suporta override via variáveis de ambiente.
 """
 
 import os
+import tomllib
+from pathlib import Path
 
 # Carregar variáveis de ambiente de arquivo .env se existir (opcional)
 try:
@@ -13,6 +15,30 @@ try:
 except ImportError:
     # python-dotenv não instalado, usar apenas variáveis de ambiente do sistema
     pass
+
+# ------------------------------------------------------------------
+# Versão única da aplicação (fonte: pyproject.toml na raiz do monorepo)
+# ------------------------------------------------------------------
+
+
+def _obter_versao() -> str:
+    """
+    Fonte única de versão: lê `project.version` do pyproject.toml.
+
+    Não usa importlib.metadata de propósito: `[tool.uv] package = false`
+    impede que o backend seja instalado como distribuição, o que faria
+    `importlib.metadata.version("maria-backend")` sempre cair no fallback.
+    """
+    pyproject = Path(__file__).resolve().parent.parent.parent / "pyproject.toml"
+    try:
+        with open(pyproject, "rb") as f:
+            dados = tomllib.load(f)
+        return str(dados["project"]["version"])
+    except Exception:
+        return "4.2.5"  # fallback explícito — nunca deve ocorrer em ambiente normal
+
+
+__version__ = _obter_versao()
 
 # ------------------------------------------------------------------
 # System Prompt da MARIA (carregado de arquivo externo)
@@ -63,16 +89,25 @@ MAX_TENTATIVAS_CORRECAO_FERRAMENTA = int(os.getenv("MAX_TENTATIVAS_CORRECAO_FERR
 # Defaults idênticos aos do llama-server; enviá-los explicitamente no payload
 # permite configurar (via ENV) e auditar (benchmark) cada valor. O servidor
 # ignora campos desconhecidos com warning, então o payload permanece seguro.
-LLAMA_REPEAT_LAST_N = int(os.getenv("LLAMA_REPEAT_LAST_N", "64"))
-# Penalidade de repetição de tokens. 1.1 (antes 1.0 = desativada): com 1.0,
-# temperature 0.1 e sem DRY, modelos pequenos entravam em loop degenerado de
-# "\n" (run_20260904_131134, task 15: 600 tokens de "\n", finish_reason=length,
-# 250s desperdiçados). 1.1 é o default clássico do llama.cpp para chat.
-# Reversível via ENV se afetar tool calls: LLAMA_REPEAT_PENALTY=1.0.
+LLAMA_REPEAT_LAST_N = int(os.getenv("LLAMA_REPEAT_LAST_N", "128"))
+# Penalidade de repetição de tokens. 1.1 (default clássico do llama.cpp para
+# chat): suficiente contra repetições próximas sem penalizar os tokens
+# estruturais do tool call (colchetes/aspas/vírgulas). 1.3 + presence/frequency
+# 0.1 derrubaram a acurácia de 100% para 76% (run_20260905_170437). O loop de
+# FRASE inteira (task 8) é coberto por DRY + janela 128, não por repeat_penalty.
+# Reversível via ENV: LLAMA_REPEAT_PENALTY=1.0.
 LLAMA_REPEAT_PENALTY = float(os.getenv("LLAMA_REPEAT_PENALTY", "1.1"))
+# 0.0 (desativado): frequency/presence penalizam tokens JÁ VISTOS — inclusive o
+# nome canônico da ferramenta (presente no system prompt) e os tokens
+# estruturais do JSON. Com 0.1, o modelo trocava "criar_planilha" por
+# "create_planilha" e gerava JSON malformado (run_20260905_170437). Não usar.
 LLAMA_FREQUENCY_PENALTY = float(os.getenv("LLAMA_FREQUENCY_PENALTY", "0.0"))
 LLAMA_PRESENCE_PENALTY = float(os.getenv("LLAMA_PRESENCE_PENALTY", "0.0"))
-LLAMA_DRY_MULTIPLIER = float(os.getenv("LLAMA_DRY_MULTIPLIER", "0.0"))
+# DRY (Don't Repeat Yourself): penaliza sequências já emitidas — a defesa
+# CORRETA contra loops de frase (que o repeat_penalty, limitado à janela, não
+# pega), sem atingir tokens estruturais isolados (sequências <=
+# dry_allowed_length ficam isentas). 0.0 = desativado; 0.8 = referência.
+LLAMA_DRY_MULTIPLIER = float(os.getenv("LLAMA_DRY_MULTIPLIER", "0.8"))
 LLAMA_DRY_BASE = float(os.getenv("LLAMA_DRY_BASE", "1.75"))
 LLAMA_DRY_ALLOWED_LENGTH = int(os.getenv("LLAMA_DRY_ALLOWED_LENGTH", "2"))
 LLAMA_DRY_PENALTY_LAST_N = int(os.getenv("LLAMA_DRY_PENALTY_LAST_N", "64"))
@@ -110,4 +145,34 @@ MANUAL_REDACAO_MAX_CHARS_POR_TRECHO = int(os.getenv("MANUAL_REDACAO_MAX_CHARS_PO
 # "development" habilita origens extras de CORS (ex.: Vite dev server).
 # Qualquer outro valor (padrão: "production") aplica a configuração mais restrita.
 MARIA_ENV = os.getenv("MARIA_ENV", "production").strip().lower()
+
+# ---- Limites de linhas por modelo (planilhas) ----
+# Aplicados automaticamente pelo excel_handler conforme LLAMA_MODEL ativo.
+# Configuráveis via ENV para ajuste sem alteração de código.
+# v4.3.x: usados também para controle de paginação na visualização em tempo real.
+MAX_LINHAS_POR_CHAMADA_3B = int(os.getenv("MAX_LINHAS_POR_CHAMADA_3B", "50"))
+MAX_LINHAS_POR_CHAMADA_7B = int(os.getenv("MAX_LINHAS_POR_CHAMADA_7B", "150"))
+MAX_LINHAS_EXTRACAO_3B = int(os.getenv("MAX_LINHAS_EXTRACAO_3B", "50"))
+MAX_LINHAS_EXTRACAO_7B = int(os.getenv("MAX_LINHAS_EXTRACAO_7B", "150"))
+
+
+def get_max_linhas_por_chamada() -> int:
+    """
+    Retorna o limite de linhas por chamada conforme o modelo ativo (LLAMA_MODEL).
+    Automático — não exposto ao modelo nem ao usuário.
+    """
+    if "7b" in LLAMA_MODEL.lower():
+        return MAX_LINHAS_POR_CHAMADA_7B
+    return MAX_LINHAS_POR_CHAMADA_3B
+
+
+def get_max_linhas_extracao() -> int:
+    """
+    Retorna o limite de linhas por chamada de extração (leitura paginada)
+    conforme o modelo ativo (LLAMA_MODEL). Automático — não exposto ao
+    modelo nem ao usuário.
+    """
+    if "7b" in LLAMA_MODEL.lower():
+        return MAX_LINHAS_EXTRACAO_7B
+    return MAX_LINHAS_EXTRACAO_3B
 
