@@ -1426,6 +1426,43 @@ class TestMariaRunnerCadeiaFerramentas(unittest.TestCase):
         self.assertEqual(resultado.tool_detected, "editar_planilha")
         self.assertEqual(resultado.cadeia_ferramentas, ["editar_planilha"])
 
+    def test_segunda_ferramenta_escrita_apos_erro_real_e_sempre_incorreta(self):
+        """R1.4 (decisão A): após o erro REAL da ferramenta (arquivo ausente),
+        uma SEGUNDA ferramenta de escrita — mesmo uma DIFERENTE da original
+        (aqui `criar_planilha`) — sempre resulta em tool_correct=False.
+
+        O guard `detected_name is not None and detected_name != task.expected_tool`
+        cobre tanto a re-chamada da mesma ferramenta (teste vizinho,
+        `ClienteTeimoso`) quanto a tentativa de "consertar" chamando outra
+        ferramenta de escrita: em ambos os casos a execução não termina em
+        texto e é reprovada. Este teste fixa a decisão (A) contra a hipótese
+        (B) rejeitada (exceção para criar_planilha).
+        """
+        from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
+
+        class ClienteSegundaEscrita:
+            model = "modelo-teste"
+
+            def chat_com_tools_stream_com_metricas(self, **kwargs):
+                return (
+                    "",
+                    {"name": "editar_planilha", "arguments": {"nome_arquivo": "estoque", "colunas": ["preco"]}},
+                    10, 5.0, 1.0,
+                )
+
+            def continuar_com_resultado_ferramenta_stream(self, **kwargs):
+                # Em vez de responder em texto, o modelo tenta "consertar"
+                # chamando OUTRA ferramenta de escrita (criar_planilha).
+                yield None, {
+                    "name": "criar_planilha",
+                    "arguments": {"nome_arquivo": "estoque", "colunas": ["preco"]},
+                }
+
+        resultado = MariaRunner(cliente=ClienteSegundaEscrita()).run(self._task())
+
+        self.assertFalse(resultado.tool_correct)
+        self.assertEqual(resultado.tool_detected, "criar_planilha")
+
     def test_resposta_em_texto_sem_chamar_ferramenta_conta_como_incorreta(self):
         from backend.benchmarks.maria_bench.runners.maria_runner import MariaRunner
 
