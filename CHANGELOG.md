@@ -2,6 +2,28 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — P4: navegação em breve + versões 4.2.5 + hardening — 2026-09-11
+
+### 🧭 Navegação (F4.2 — `Sidebar/index.tsx`)
+- `NavItem` recebe `emBreve?: boolean`; os 7 itens não implementados (arquivos, análise, visão, voz, memória, automações, config) ficam marcados e o `onClick` é *short-circuit* (não altera `activeItem` — a seleção permanece em "Conversar", o único item funcional). Badge "em breve" renderizado à direita + `title` no botão.
+
+### 📦 Versões → 4.2.5 (F4.3)
+- `tauri.conf.json`, `Cargo.toml`, `package.json`: `4.0.0` → `4.2.5` (alinhamento ao `pyproject.toml`, fonte canónica lida por `backend/config.py:_obter_versao()`).
+- `Sidebar`: rodapé `MARIA v0.1.0` → `MARIA v4.2.5`.
+
+### 🛡️ Hardening
+- **Cartão "FUNCIONANDO LOCALMENTE" (N1):** deixa de ser verde *hardcoded* e passa a refletir o estado real (`online` via `getSystemStatus`): offline → ponto vermelho + "OFFLINE".
+- **`ErrorBoundary.tsx` (novo):** boundary de erro global envolvendo o `App` (evita tela branca em exceção de render; fallback com mensagem + recarregar).
+- **`.env.example` (novo, na raiz):** exemplo das variáveis de ambiente do `backend/config.py` — sem segredos (o token do bridge é ficheiro `frontend-tauri/shared/.bridge_token`).
+
+### 🧪 Testes
+- **Backend:** 288 passed (inalterado).
+- **Frontend:** 6 passed (inalterado); build tsc+vite ✓.
+
+### 📋 Itens fora de escopo (registados)
+- DEF-12 (polling), DEF-25 (CI/CD), placeholder `18/42/11` (só flash no 1.º render), override multimodal 600s.
+- Warning pré-existente `use uuid;` em `main.rs:14` (clippy).
+
 ## [4.2.5-dev] — P1: paridade do chat (timeout, progresso, badge dinâmico) — 2026-09-10
 
 ### ⏱️ Timeout do bridge (Rust)

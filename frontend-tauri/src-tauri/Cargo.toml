@@ -1,6 +1,6 @@
 [package]
 name = "maria-frontend"
-version = "4.0.0"
+version = "4.2.5"
 description = "MARIA - Assistente de IA Pessoal 100% Local"
 authors = ["MARIA Team"]
 edition = "2021"
