@@ -17,6 +17,25 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Cartão "FUNCIONANDO LOCALMENTE" hardcoded no `Sidebar` (N1) — endereçado no P4.
 - Divergência de versão `4.2.5` (manifests) vs `4.2.5-dev` (cabeçalho do CHANGELOG) — alinhada no P4.
 
+## [4.2.5-dev] — P1-restante: timeout 300s no backend + estado vazio — 2026-09-11
+
+### ⏱️ Timeout do backend alinhado a 300s
+- **`backend/config.py`:** `LLAMA_TIMEOUT` default `"240"` → `"300"`, alinhado ao timeout do bridge Rust (`main.rs`, `Duration::from_secs(300)`). Com 240s, o backend devolvia **erro** aos ~240s e o limiar da UI (`>= 290`) nunca era atingido, mostrando sempre "Não consegui me conectar" (falso). Com 300s, a falha chega aos ~300s → mensagem de timeout correta.
+- **`backend/tests/test_config.py` (novo):** 1 teste do default (`LLAMA_TIMEOUT == 300`).
+
+### 💬 Estado vazio com sugestões (`ChatPanel/index.tsx`)
+- Quando `messages.length <= 1 && !loading`, a área de mensagens exibe 3 sugestões ("Criar uma planilha de gastos", "Analisar um arquivo", "Resumir um documento") que disparam `handleSendMessage`.
+- Sugestões como constantes locais (`SUGESTOES`), sem dependência do store zustand (P2).
+
+### 🧪 Testes
+- **Backend:** 289 passed (288 → 289, +1 novo).
+- **Frontend:** 6 passed (sem novos — estado vazio validado por build/tsc).
+
+### 📋 Itens fora de escopo (registados)
+- Override multimodal (600s) — mantido.
+- DEF-13 debounce — invalidado (guard `if (loading) return` + `disabled={loading || !message.trim()}`).
+- Margem Rust 310s — não aplicada (300s em ambas as camadas).
+- Warning pré-existente `use uuid;` redundante em `main.rs:14` (clippy) — fora de escopo desta tarefa.
 ## [4.2.5-dev] — P1: paridade do chat (timeout, progresso, badge dinâmico) — 2026-09-10
 
 ### ⏱️ Timeout do bridge (Rust)

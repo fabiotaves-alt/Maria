@@ -17,6 +17,12 @@ const INITIAL_MESSAGES: Message[] = [
   },
 ];
 
+const SUGESTOES: string[] = [
+  'Criar uma planilha de gastos',
+  'Analisar um arquivo',
+  'Resumir um documento',
+];
+
 interface EstadoConfirmacao {
   pendente: ConfirmacaoPendente;
   mensagem: string;
@@ -173,6 +179,21 @@ export function ChatPanel() {
         {messages.map(msg => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
+
+        {messages.length <= 1 && !loading && (
+          <div className="grid grid-cols-1 gap-2 mt-2">
+            {SUGESTOES.map((sugestao) => (
+              <button
+                key={sugestao}
+                onClick={() => handleSendMessage(sugestao)}
+                className="text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border transition-colors"
+                style={{ borderColor: 'var(--maria-card-border)' }}
+              >
+                <span className="text-sm" style={{ color: 'var(--maria-text)' }}>{sugestao}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading && (
           <motion.div
