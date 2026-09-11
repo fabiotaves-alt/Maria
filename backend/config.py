@@ -64,7 +64,7 @@ MARIA_SYSTEM_PROMPT = _carregar_system_prompt()
 # Modelos em teste: qwen2.5-omni-3b (leve) e qwen2.5-omni-7b (pesado).
 LLAMA_BASE_URL = os.getenv("LLAMA_BASE_URL", "http://localhost:8080")
 LLAMA_MODEL = os.getenv("LLAMA_MODEL", "qwen2.5-omni-3b")  # use "qwen2.5-omni-7b" p/ modelo pesado
-LLAMA_TIMEOUT = int(os.getenv("LLAMA_TIMEOUT", "240"))
+LLAMA_TIMEOUT = int(os.getenv("LLAMA_TIMEOUT", "300"))  # alinhado ao timeout de 300s do bridge Rust (main.rs)
 LLAMA_NUM_CTX = int(os.getenv("LLAMA_NUM_CTX", "4096"))
 LLAMA_NUM_PREDICT = int(os.getenv("LLAMA_NUM_PREDICT", "400"))
 LLAMA_TEMPERATURE_TOOLS = float(os.getenv("LLAMA_TEMPERATURE_TOOLS", "0.1"))
