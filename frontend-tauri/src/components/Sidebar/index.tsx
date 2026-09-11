@@ -19,17 +19,18 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   active?: boolean;
+  emBreve?: boolean;
 }
 
 const navItems: NavItem[] = [
   { id: 'conversar', label: 'Conversar', icon: MessageCircle, active: true },
-  { id: 'arquivos', label: 'Arquivos', icon: FileText },
-  { id: 'analise', label: 'Análise de Dados', icon: BarChart3 },
-  { id: 'visao', label: 'Visão', icon: Camera },
-  { id: 'voz', label: 'Voz', icon: Mic },
-  { id: 'memoria', label: 'Memória', icon: Database },
-  { id: 'automacoes', label: 'Automações', icon: Zap },
-  { id: 'config', label: 'Configurações', icon: Settings },
+  { id: 'arquivos', label: 'Arquivos', icon: FileText, emBreve: true },
+  { id: 'analise', label: 'Análise de Dados', icon: BarChart3, emBreve: true },
+  { id: 'visao', label: 'Visão', icon: Camera, emBreve: true },
+  { id: 'voz', label: 'Voz', icon: Mic, emBreve: true },
+  { id: 'memoria', label: 'Memória', icon: Database, emBreve: true },
+  { id: 'automacoes', label: 'Automações', icon: Zap, emBreve: true },
+  { id: 'config', label: 'Configurações', icon: Settings, emBreve: true },
 ];
 
 const resources: ResourceMetric[] = [
@@ -51,6 +52,7 @@ export function Sidebar() {
   const [activeItem, setActiveItem] = useState('conversar');
   const [systemStatus, setSystemStatus] = useState<ResourceMetric[]>(resources);
   const [modeloAtivo, setModeloAtivo] = useState('qwen2.5-omni-3b');
+  const [online, setOnline] = useState(true);
 
   // Carrega status real do sistema a cada 2 segundos
   useEffect(() => {
@@ -63,6 +65,7 @@ export function Sidebar() {
           { label: 'GPU', value: status.gpu },
         ]);
         setModeloAtivo(status.modelo);
+        setOnline(status.online !== false);
       } catch (error) {
         console.warn('Não foi possível carregar status do sistema:', error);
       }
@@ -86,7 +89,7 @@ export function Sidebar() {
           return (
             <motion.button
               key={item.id}
-              onClick={() => setActiveItem(item.id)}
+              onClick={() => { if (!item.emBreve) setActiveItem(item.id); }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative pl-4"
               style={{
                 background: isActive ? 'transparent' : 'transparent',
@@ -94,6 +97,7 @@ export function Sidebar() {
               }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              title={item.emBreve ? 'Em breve' : undefined}
             >
               {/* Linha vertical rosa à esquerda - efeito hover/ativo */}
               <div 
@@ -107,6 +111,14 @@ export function Sidebar() {
                 style={{ color: isActive ? 'var(--maria-pink)' : 'var(--maria-muted)' }}
               />
               <span className="text-sm font-medium">{item.label}</span>
+              {item.emBreve && (
+                <span
+                  className="ml-auto text-[9px] font-semibold uppercase"
+                  style={{ color: 'var(--maria-muted)' }}
+                >
+                  em breve
+                </span>
+              )}
             </motion.button>
           );
         })}
@@ -118,9 +130,9 @@ export function Sidebar() {
       {/* Status */}
       <div className="p-4 mx-4 mb-4 glass" style={{ borderRadius: '12px' }}>
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-2 h-2 rounded-full bg-green-400 animate-dot-pulse" />
-          <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: 'var(--maria-pink)' }}>
-            FUNCIONANDO LOCALMENTE
+          <div className={`w-2 h-2 rounded-full ${online ? 'bg-green-400 animate-dot-pulse' : 'bg-red-400'}`} />
+          <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: online ? 'var(--maria-pink)' : '#ef4444' }}>
+            {online ? 'FUNCIONANDO LOCALMENTE' : 'OFFLINE'}
           </span>
         </div>
         <p className="text-xs mb-2" style={{ color: 'var(--maria-muted)' }}>
@@ -177,7 +189,7 @@ export function Sidebar() {
       {/* Footer */}
       <div className="p-4 text-center border-t" style={{ borderColor: 'var(--maria-card-border)' }}>
         <span className="text-[11px]" style={{ color: 'var(--maria-muted)' }}>
-          MARIA v0.1.0
+          MARIA v4.2.5
         </span>
       </div>
     </aside>
