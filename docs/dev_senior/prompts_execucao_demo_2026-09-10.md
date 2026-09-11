@@ -51,7 +51,7 @@
 
 | Gate | Comando | Esperado |
 |---|---|---|
-| G1 | `cd frontend-tauri; npm test` | 6 → **8** |
+| G1 | `cd frontend-tauri; npm test` | 6 → **9** |
 | G2 | `cd frontend-tauri; npm run build` | sucesso (tsc+vite) |
 | G3 | `uv run pytest` | **288** (inalterado) |
 | G4 | `cd frontend-tauri/src-tauri; cargo test` | 1 passed |
