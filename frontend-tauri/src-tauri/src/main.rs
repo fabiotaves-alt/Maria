@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::time::Duration;
 use tauri::command;
 #[cfg(not(debug_assertions))]
 use tauri::Manager;
@@ -163,7 +164,10 @@ fn save_message(conversation_id: i64, role: String, content: String) -> Result<i
 /// manualmente pelo desenvolvedor (`python backend/main.py --bridge-http`).
 /// Em produção, o sidecar é iniciado automaticamente no setup() do app (ver main()).
 async fn call_python_backend(comando: &str, dados: Value) -> Result<String, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(300))
+        .build()
+        .map_err(|e| format!("Erro ao criar cliente HTTP: {}", e))?;
 
     let request = PythonRequest {
         id: uuid::Uuid::new_v4().to_string(),

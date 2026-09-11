@@ -2,6 +2,27 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — P1: paridade do chat (timeout, progresso, badge dinâmico) — 2026-09-10
+
+### ⏱️ Timeout do bridge (Rust)
+- **`frontend-tauri/src-tauri/src/main.rs`:** `call_python_backend` deixa de usar `reqwest::Client::new()` (sem timeout — o `invoke` podia pendurar indefinidamente) e passa a `reqwest::Client::builder().timeout(Duration::from_secs(300)).build()`. Novo `use std::time::Duration;`. 300s cobre chat de texto com folga e multimodal leve (o smoke E2E indicou até 600s para multimodal pesado em CPU — valor do bridge mantido em 300s por decisão de escopo).
+
+### ⏳ Indicador de progresso + cancelamento (`ChatPanel/index.tsx`)
+- Substituído o spinner indefinido por indicador com **tempo decorrido** (aparece após 3s), aviso **"processando localmente…"** após 15s e **botão cancelar (✕)** após 5s.
+- `handleSendMessage` reescrito: guard anti-duplo-envio, **id de pedido (`reqIdRef`)** para que o `finally`/resposta de um pedido antigo não sobreponha uma mensagem nova (evita *clobber* após cancelamento), e **deteção de timeout via `useRef`** (`tempoDecorridoRef`) em vez do estado (que era *stale* dentro do fecho do `catch`).
+- **`handleCancelarEnvio`:** cancelamento **best-effort** — sinaliza a flag e interrompe a espera na UI. **Não** cancela a geração no llama-server (limitação conhecida; o `invoke` do Tauri não é abortável).
+
+### 🟢 Badge de status dinâmico (`TopBar/index.tsx`)
+- O badge deixa de ser estático (`"MODO LOCAL"` + verde fixo) e passa a **poll de `getSystemStatus` a cada 5s** (padrão idêntico ao `Sidebar`), alternando entre `MODO LOCAL` (verde, pulsante) e `OFFLINE` (vermelho). Inicia `online=false` para evitar *flash* verde falso.
+
+### 🧪 Testes
+- **Backend:** **288 passed** (baseline 288, 0 falhas).
+- **Frontend:** **6 passed** (sem testes novos — nenhum era obrigatório nesta fase; os existentes mantêm-se verdes).
+
+### 📋 Itens fora de escopo (registados)
+- `/health` completo (checks de disco/banco) mantido para F1.2 completo, após a demo.
+- Cancelamento **real** no llama-server não implementado (apenas best-effort na UI).
+
 ## [4.2.5-dev] — P0: correção de 3 bugs visíveis (demo ao investidor) — 2026-09-10
 
 ### 🐞 Bug 1 — Vazamento de JSON bruto da tool call na UI

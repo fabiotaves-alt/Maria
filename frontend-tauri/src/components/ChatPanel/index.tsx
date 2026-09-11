@@ -32,7 +32,11 @@ export function ChatPanel() {
   const [backendOnline, setBackendOnline] = useState(false);
   const [modeloAtivo, setModeloAtivo] = useState('qwen2.5-omni-3b');
   const [confirmacao, setConfirmacao] = useState<EstadoConfirmacao | null>(null);
+  const [tempoDecorrido, setTempoDecorrido] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const tempoDecorridoRef = useRef(0);
+  const reqIdRef = useRef(0);
+  const abortRef = useRef<(() => void) | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -56,6 +60,21 @@ export function ChatPanel() {
     })();
   }, []);
 
+  // Cronômetro de progresso: incrementa a cada segundo enquanto loading.
+  // Atualiza estado (display) e ref (leitura no catch sem stale closure).
+  useEffect(() => {
+    if (!loading) {
+      setTempoDecorrido(0);
+      tempoDecorridoRef.current = 0;
+      return;
+    }
+    const intervalo = setInterval(() => {
+      setTempoDecorrido(t => t + 1);
+      tempoDecorridoRef.current += 1;
+    }, 1000);
+    return () => clearInterval(intervalo);
+  }, [loading]);
+
   const appendMessage = (role: 'user' | 'assistant', content: string) => {
     setMessages(prev => [...prev, {
       id: String(Date.now()),
@@ -78,20 +97,45 @@ export function ChatPanel() {
   };
 
   const handleSendMessage = async (content: string) => {
+    if (loading) return;                        // evitar duplo envio
+    const meuId = ++reqIdRef.current;           // id único do pedido (guarda anti-race)
     appendMessage('user', content);
     setLoading(true);
+
+    let foiCancelado = false;
+    abortRef.current = () => { foiCancelado = true; };
+
     try {
       const resp = await sendMessage(content);
+      if (foiCancelado || meuId !== reqIdRef.current) return;
       setBackendOnline(true);
       processarResposta(resp);
     } catch {
+      if (foiCancelado || meuId !== reqIdRef.current) return;
       setBackendOnline(false);
       setConfirmacao(null);
-      appendMessage('assistant',
-        'Não consegui me conectar ao backend. Verifique se o servidor está rodando.');
+      const msg = tempoDecorridoRef.current >= 290
+        ? 'O servidor demorou demasiado a responder (timeout de 300s). Tente novamente.'
+        : 'Não consegui me conectar ao backend. Verifique se o servidor está rodando.';
+      appendMessage('assistant', msg);
     } finally {
-      setLoading(false);
+      if (meuId === reqIdRef.current) {
+        abortRef.current = null;
+        setLoading(false);
+      }
     }
+  };
+
+  // Cancelamento best-effort: interrompe a espera na UI.
+  // Não cancela a geração no llama-server (limitação conhecida).
+  const handleCancelarEnvio = () => {
+    if (abortRef.current) {
+      abortRef.current();
+      abortRef.current = null;
+    }
+    setLoading(false);
+    setConfirmacao(null);
+    appendMessage('assistant', 'Geração interrompida.');
   };
 
   const handleConfirmar = () => {
@@ -131,17 +175,50 @@ export function ChatPanel() {
         ))}
 
         {loading && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }} className="flex justify-start mb-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex justify-start mb-4"
+          >
             <div className="px-4 py-3 bg-white/10 backdrop-blur-md text-white
                             rounded-2xl rounded-bl-none max-w-[80%]">
-              <div className="flex gap-2">
-                {[0, 0.15, 0.3].map((delay, i) => (
-                  <motion.div key={i} className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: 'var(--maria-pink)' }}
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 0.6, repeat: Infinity, delay }} />
-                ))}
+              <div className="flex items-center gap-3">
+                {/* Pontos animados (mantidos) */}
+                <div className="flex gap-1">
+                  {[0, 0.15, 0.3].map((delay, i) => (
+                    <motion.div key={i} className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: 'var(--maria-pink)' }}
+                                animate={{ scale: [1, 1.2, 1] }}
+                                transition={{ duration: 0.6, repeat: Infinity, delay }} />
+                  ))}
+                </div>
+
+                {/* Tempo decorrido — aparece após 3s */}
+                {tempoDecorrido >= 3 && (
+                  <span className="text-xs" style={{ color: 'var(--maria-muted)' }}>
+                    {tempoDecorrido}s
+                  </span>
+                )}
+
+                {/* Aviso "a demorar" — aparece após 15s */}
+                {tempoDecorrido >= 15 && (
+                  <span className="text-xs" style={{ color: 'var(--maria-muted)' }}>
+                    processando localmente…
+                  </span>
+                )}
+
+                {/* Botão cancelar — aparece após 5s */}
+                {tempoDecorrido >= 5 && (
+                  <button
+                    onClick={handleCancelarEnvio}
+                    className="text-xs hover:opacity-100 transition-opacity ml-2"
+                    style={{ color: 'var(--maria-muted)' }}
+                    title="Cancelar geração"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
