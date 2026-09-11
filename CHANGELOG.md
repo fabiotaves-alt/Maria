@@ -2,6 +2,21 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [4.2.5-dev] — P0-resíduo: indicador de modelo 7B no Sidebar — 2026-09-11
+
+### 🐞 Resíduo do P0 — badge de modelo nunca acende azul
+- **Causa raiz:** o badge do `Sidebar` comparava `modeloAtivo.includes('7B') || modeloAtivo.includes('8B')` contra o nome canónico **minúsculo** (`qwen2.5-omni-7b`), pelo que a condição era sempre falsa e o indicador ficava sempre rosa; `8B` era legado morto (grep: 2 ocorrências, ambas neste bloco).
+- **`frontend-tauri/src/components/Sidebar/index.tsx`:** extraído helper exportável `indicaModeloPesado(modelo)` com comparação **case-insensitive** (`modelo.toLowerCase().includes('7b')`), espelhando `backend/config.py` (`if "7b" in LLAMA_MODEL.lower()`); removido o ramo `'8B'`.
+- **`frontend-tauri/src/components/Sidebar/index.test.tsx` (novo):** 3 testes do helper (canónico 7B → azul; 3B → rosa; maiúsculas → case-insensitive).
+
+### 🧪 Testes
+- **Backend:** 288 passed (inalterado).
+- **Frontend:** 9 passed (6 → 9, +3 novos).
+
+### 📋 Itens fora de escopo (registados)
+- Cartão "FUNCIONANDO LOCALMENTE" hardcoded no `Sidebar` (N1) — endereçado no P4.
+- Divergência de versão `4.2.5` (manifests) vs `4.2.5-dev` (cabeçalho do CHANGELOG) — alinhada no P4.
+
 ## [4.2.5-dev] — P1: paridade do chat (timeout, progresso, badge dinâmico) — 2026-09-10
 
 ### ⏱️ Timeout do bridge (Rust)

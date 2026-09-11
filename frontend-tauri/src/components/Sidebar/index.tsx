@@ -38,6 +38,15 @@ const resources: ResourceMetric[] = [
   { label: 'GPU', value: 11 },
 ];
 
+/**
+ * Indica se o modelo ativo é o modelo "pesado" (7B).
+ * Comparação case-insensitive, espelhando `backend/config.py`
+ * (`if "7b" in LLAMA_MODEL.lower()`). O sufixo "8B" é legado e foi removido.
+ */
+export function indicaModeloPesado(modelo: string): boolean {
+  return modelo.toLowerCase().includes('7b');
+}
+
 export function Sidebar() {
   const [activeItem, setActiveItem] = useState('conversar');
   const [systemStatus, setSystemStatus] = useState<ResourceMetric[]>(resources);
@@ -156,8 +165,8 @@ export function Sidebar() {
             <span 
               className="inline-block w-2 h-2 rounded-full"
               style={{ 
-                backgroundColor: modeloAtivo.includes('7B') || modeloAtivo.includes('8B') ? '#3b82f6' : 'var(--maria-pink)',
-                boxShadow: modeloAtivo.includes('7B') || modeloAtivo.includes('8B') ? '0 0 8px rgba(59, 130, 246, 0.5)' : '0 0 8px rgba(232, 90, 138, 0.5)'
+                backgroundColor: indicaModeloPesado(modeloAtivo) ? '#3b82f6' : 'var(--maria-pink)',
+                boxShadow: indicaModeloPesado(modeloAtivo) ? '0 0 8px rgba(59, 130, 246, 0.5)' : '0 0 8px rgba(232, 90, 138, 0.5)'
               }}
             />
             <span style={{ color: 'var(--maria-text)' }}>{modeloAtivo}</span>
